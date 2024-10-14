@@ -1,0 +1,48 @@
+image: node:lts-alpine
+
+definitions:
+  steps:
+    - step: &build_and_deploy_to_s3
+        name: Build and Deploy to S3
+        # Regular steps have 4096 MB of memory in total, large build steps (which you can define using size: 2x) have 8192 MB in total.
+        size: 2x
+        caches:
+          - node
+        script:
+          - echo $REACT_APP_API_URL
+          - yarn install
+          - CI=FALSE REACT_APP_API_URL=$REACT_APP_API_URL yarn build --verbose
+          - pipe: atlassian/aws-s3-deploy:0.3.8
+            variables:
+              AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+              AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+              AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
+              S3_BUCKET: $S3_BUCKET
+              LOCAL_PATH: "build"
+              ACL: "private"
+          - pipe: atlassian/aws-cloudfront-invalidate:0.1.1
+            variables:
+              DISTRIBUTION_ID: $DISTRIBUTION_ID
+              AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+              AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+              AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
+pipelines:
+  branches:
+    master:
+      - step:
+          <<: *build_and_deploy_to_s3
+          deployment: Production
+    staging:
+      - step:
+          <<: *build_and_deploy_to_s3
+          deployment: Staging
+  pull-requests:
+    "**":
+      - step:
+          name: "Lint"
+          caches:
+            - node
+          script:
+            - yarn install
+            #- yarn lint
+            # - yarn run test:integration
