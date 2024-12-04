@@ -1,0 +1,43 @@
+name: Validate NeuroJson_io Project
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+  pull_request:
+    branches:
+      - dev
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Compile TypeScript
+        run: yarn build
+
+      - name: Run Linter
+        run: yarn lint
+
+     # - name: Check for exposed environment variables
+     #   run: |
+     #     if [ -f ".env" ]; then
+     #       echo "Error: .env file found. Environment variables should not be exposed." >&2
+     #       exit 1
+     #     fi
+
+      - name: Run Security Audit
+        run: yarn audit --level moderate
