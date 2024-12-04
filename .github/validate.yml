@@ -32,12 +32,5 @@ jobs:
       - name: Run Linter
         run: yarn lint
 
-     # - name: Check for exposed environment variables
-     #   run: |
-     #     if [ -f ".env" ]; then
-     #       echo "Error: .env file found. Environment variables should not be exposed." >&2
-     #       exit 1
-     #     fi
-
       - name: Run Security Audit
         run: yarn audit --level moderate
