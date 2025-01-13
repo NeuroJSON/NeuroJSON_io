@@ -42,7 +42,7 @@ const NeuroJsonGraph: React.FC<{ registry: Database[] }> = ({ registry }) => {
 				links: [],
 			};
 
-			const Graph = new ForceGraph3D()(graphRef.current)
+			const Graph = new ForceGraph3D(graphRef.current)
 				.graphData(graphData)
 				.nodeRelSize(2)
 				.nodeColor(
