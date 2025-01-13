@@ -1,21 +1,26 @@
-import { Container } from "@mui/material";
-import { useAppDispatch } from "hooks/useAppDispatch";
-import { useAppSelector } from "hooks/useAppSelector";
-import NeuroJsonGraph from "modules/universe/NeuroJsonGraph";
-import React, { useEffect } from "react";
-import { fetchRegistry } from "redux/neurojson/neurojson.action";
-import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
+import React from "react";
+import { Box, Typography, Button } from "@mui/material";
+import { Link } from "react-router-dom";
 
 const Home: React.FC = () => {
-	const dispatch = useAppDispatch();
-	const { registry } = useAppSelector(NeurojsonSelector);
+  return (
+    <Box sx={{ padding: 4 }}>
+      {/* Header Section */}
+      <Typography variant="h3" gutterBottom>
+        Welcome to NeuroJSON IO
+      </Typography>
+      <Typography variant="body1">
+        Manage and explore your CouchDB databases and datasets effortlessly.
+      </Typography>
 
-	useEffect(() => {
-		dispatch(fetchRegistry());
-	}, [dispatch]);
-	return (
-		<Container>{registry && <NeuroJsonGraph registry={registry} />}</Container>
-	);
+      {/* Navigation to Database Page */}
+      <Box mt={4}>
+        <Button variant="contained" color="primary" component={Link} to="/databases">
+          View Databases
+        </Button>
+      </Box>
+    </Box>
+  );
 };
 
 export default Home;
