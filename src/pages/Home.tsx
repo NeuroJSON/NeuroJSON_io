@@ -12,9 +12,17 @@ const Home: React.FC = () => {
 
 	useEffect(() => {
 		dispatch(fetchRegistry());
+		console.log(registry);
 	}, [dispatch]);
+
 	return (
-		<Container>{registry && <NeuroJsonGraph registry={registry} />}</Container>
+		<Container style={{ width: "100%", height: "100vh", padding: 0 }}>
+			{registry && registry.length > 0 ? (
+				<NeuroJsonGraph registry={registry} />
+			) : (
+				<div>No data available to display</div>
+			)}
+		</Container>
 	);
 };
 
