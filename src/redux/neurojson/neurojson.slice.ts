@@ -29,9 +29,11 @@ const neurojsonSlice = createSlice({
 			state.loading = false;
 			state.hasMore = true; // Reset pagination availability
 		},
+		setLoading: (state, action: PayloadAction<boolean>) => {
+			state.loading = action.payload;
+		},
 	},
 	extraReducers: (builder) => {
-		// Handle paginated data loading
 		builder
 			.addCase(loadPaginatedData.pending, (state) => {
 				state.loading = true;
@@ -98,6 +100,6 @@ const neurojsonSlice = createSlice({
 	},
 });
 
-export const { resetData } = neurojsonSlice.actions;
+export const { resetData, setLoading } = neurojsonSlice.actions;
 
 export default neurojsonSlice.reducer;
