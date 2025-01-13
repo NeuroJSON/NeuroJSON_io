@@ -1,7 +1,7 @@
 name: Validate NeuroJson_io Project
 
 on:
-  pull_request: # Trigger the workflow on all pull requests
+  pull_request:
     branches:
       - '*'
 
