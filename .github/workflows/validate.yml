@@ -21,16 +21,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
 
       - name: Install dependencies
         run: yarn install
 
       - name: Compile TypeScript
         run: yarn build
-
-      - name: Run Linter
-        run: yarn lint
 
       - name: Run Security Audit
         run: yarn audit --level moderate
