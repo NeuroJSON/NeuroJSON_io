@@ -53,7 +53,7 @@ const NeuroJsonGraph: React.FC<{ registry: Database[] }> = ({ registry }) => {
 		};
 
 		// Initialize 3D Force Graph
-		const Graph: ForceGraph3DInstance = ForceGraph3D()(graphRef.current)
+		const Graph: ForceGraph3DInstance = new ForceGraph3D(graphRef.current)
 			.graphData(graphData)
 			.nodeRelSize(2)
 			.nodeColor((node) => (node as NodeObject).color || "rgba(255,255,255,1)") // White nodes
