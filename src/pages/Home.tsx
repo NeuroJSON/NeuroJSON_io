@@ -1,8 +1,9 @@
-import { Container } from "@mui/material";
+import { Box, Typography, Button, Container } from "@mui/material";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import NeuroJsonGraph from "modules/universe/NeuroJsonGraph";
 import React, { useEffect } from "react";
+import { Link } from "react-router-dom";
 import { fetchRegistry } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
 
