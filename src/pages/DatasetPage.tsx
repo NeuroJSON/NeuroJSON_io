@@ -1,144 +1,199 @@
-import { RootState, AppDispatch } from "../redux/store";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { fetchDbInfo, fetchBidsDocs } from "../services/couchDb.service";
 import {
-	Box,
-	Button,
-	Typography,
-	CircularProgress,
-	Alert,
+  Box,
+  Typography,
+  Button,
+  CircularProgress,
+  Card,
+  CardContent,
+  CardActionArea,
+  Alert,
 } from "@mui/material";
-import React, { useEffect, useCallback, useState } from "react";
-import ReactJson from "react-json-view";
-import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, useParams } from "react-router-dom";
-import { loadPaginatedData } from "redux/neurojson/neurojson.action";
-import { resetData } from "redux/neurojson/neurojson.slice";
+
+// Helper function to recursively extract modalities
+const extractModalities = (obj: any, modalitiesSet: Set<string>) => {
+  if (typeof obj === "object" && obj !== null) {
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        if (/^[a-zA-Z]+$/.test(key)) {
+          // Add strictly alphabetic keys as modalities
+          modalitiesSet.add(key);
+        } else if (typeof obj[key] === "object") {
+          // Recursively traverse nested objects
+          extractModalities(obj[key], modalitiesSet);
+        }
+      }
+    }
+  }
+};
+
+// Process datasets to add Subjects, Modalities, and JSON Size
+const processDatasets = (datasets: any[]) => {
+  return datasets.map((dataset: any) => {
+    // Count Subjects
+    const subjects = Object.keys(dataset).filter((key) =>
+      key.startsWith("sub-")
+    ).length;
+
+    // Extract Modalities
+    const modalitiesSet = new Set<string>();
+    Object.keys(dataset)
+      .filter((key) => key.startsWith("sub-")) // Only process `sub-` fields
+      .forEach((subKey) => {
+        extractModalities(dataset[subKey], modalitiesSet); // Recursively extract modalities
+      });
+
+    const modalities = Array.from(modalitiesSet).join(", ");
+
+    // Calculate JSON Size
+    const sizeInKB = JSON.stringify(dataset).length / 1024;
+
+    return {
+      ...dataset,
+      subjects,
+      modalities,
+      sizeInKB: sizeInKB.toFixed(2),
+    };
+  });
+};
 
 const DatasetPage: React.FC = () => {
-	const { dbName } = useParams<{ dbName: string }>();
-	const navigate = useNavigate();
-	const dispatch = useDispatch<AppDispatch>();
-	const { data, loading, error, hasMore, offset } = useSelector(
-		(state: RootState) => state.neurojson
-	);
-	const limit = 100; // Number of items to load per page
+  const { dbName } = useParams<{ dbName: string }>();
+  const navigate = useNavigate();
+  const [dbInfo, setDbInfo] = useState<any>(null); // Database metadata
+  const [datasets, setDatasets] = useState<any[]>([]); // Dataset list
+  const [loading, setLoading] = useState(false); // Loading state
+  const [error, setError] = useState<string | null>(null); // Error message
+  const [page, setPage] = useState(0); // Current page
+  const limit = 25; // Datasets per page
 
-	const [selectedDataset, setSelectedDataset] = useState<any>(null); // State for selected dataset
+  // Fetch database metadata
+  useEffect(() => {
+    const loadDbInfo = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        if (dbName) {
+          const info = await fetchDbInfo(dbName);
+          setDbInfo(info);
+        }
+      } catch (err) {
+        console.error(`[ERROR] Failed to fetch database info:`, err);
+        setError("Failed to fetch database information.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-	useEffect(() => {
-		if (dbName) {
-			console.log("Triggering initial data fetch for dbName:", dbName);
-			dispatch(resetData());
-			dispatch(loadPaginatedData({ dbName, offset: 0, limit }));
-		}
-	}, [dbName, dispatch]);
+    loadDbInfo();
+  }, [dbName]);
 
-	useEffect(() => {
-		console.log("Updated data:", data);
-	}, [data]);
+  // Fetch datasets for the current page
+  useEffect(() => {
+    const loadDatasets = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        if (dbName) {
+          const docs = await fetchBidsDocs(dbName, page * limit, limit);
+          const processedDatasets = processDatasets(docs); // Process datasets
+          setDatasets(processedDatasets);
+        }
+      } catch (err) {
+        console.error(`[ERROR] Failed to fetch datasets:`, err);
+        setError("Failed to fetch datasets.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-	const loadMoreData = useCallback(() => {
-		if (!loading && hasMore && dbName) {
-			console.log("Loading more data:", { dbName, offset, limit });
-			dispatch(loadPaginatedData({ dbName, offset, limit }));
-		}
-	}, [loading, hasMore, dbName, offset, dispatch]);
+    loadDatasets();
+  }, [dbName, page]);
 
-	// Safeguard: Ensure data is an array
-	const validData = Array.isArray(data) ? data : [];
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
 
-	// Log state outside of rendering for debugging
-	if (loading) console.log("Loading status:", loading);
-	if (error) console.log("Error:", error);
-	if (!loading && validData.length === 0)
-		console.log("No datasets found for this database.");
+  return (
+    <Box sx={{ padding: 4 }}>
+      <Typography variant="h4" gutterBottom>
+        Database: {dbName || "N/A"}
+      </Typography>
 
-	return (
-		<Box sx={{ padding: 4 }}>
-			<Typography variant="h4" gutterBottom>
-				Datasets in {dbName}
-			</Typography>
+      {/* Database Metadata */}
+      <Typography>Total Datasets: {dbInfo?.doc_count || 0}</Typography>
 
-			{/* Render loading indicator */}
-			{loading && validData.length === 0 && (
-				<Box
-					sx={{
-						display: "flex",
-						justifyContent: "center",
-						alignItems: "center",
-						height: "100vh",
-					}}
-				>
-					<CircularProgress />
-				</Box>
-			)}
+      {/* Error Message */}
+      {error && (
+        <Alert severity="error" sx={{ marginBottom: 2 }}>
+          {error}
+        </Alert>
+      )}
 
-			{/* Render error message */}
-			{error && (
-				<Alert severity="error" sx={{ mt: 2 }}>
-					{error}
-				</Alert>
-			)}
+      {/* Loading Indicator */}
+      {loading && <CircularProgress sx={{ display: "block", margin: "16px auto" }} />}
 
-			{/* Render datasets */}
-			{validData.length > 0 ? (
-				<>
-					<Box sx={{ marginBottom: 2 }}>
-						{validData.map((dataset, index) => (
-							<Button
-								key={dataset._id || index}
-								variant="outlined"
-								onClick={() => navigate(`/databases/${dbName}/${dataset._id}`)} // Navigate to DatasetDetailPage
-								sx={{
-									display: "block",
-									textAlign: "left",
-									width: "100%",
-									marginBottom: "8px",
-								}}
-							>
-								{dataset._id}
-							</Button>
-						))}
-					</Box>
+      {/* Dataset Cards */}
+      {!loading && datasets.length > 0 && (
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, marginTop: 2 }}>
+          {datasets.map((dataset) => (
+            <Card
+              key={dataset._id}
+              sx={{
+                width: "300px",
+                backgroundColor: "#f9f9f9",
+                border: "1px solid #ccc",
+                borderRadius: "8px",
+              }}
+            >
+              <CardActionArea
+                onClick={() => navigate(`/databases/${dbName}/${dataset._id}`)}
+              >
+                <CardContent>
+                  <Typography variant="h6">
+                    {dataset["dataset_description.json"]?.Name || "Untitled Dataset"}
+                  </Typography>
+                  <Typography>Subjects: {dataset.subjects || "N/A"}</Typography>
+                  <Typography>Modalities: {dataset.modalities || "N/A"}</Typography>
+                  <Typography>
+                    Summary:{" "}
+                    {dataset["dataset_description.json"]?.Summary ||
+                      "No summary available"}
+                  </Typography>
+                  <Typography>JSON Size: {dataset.sizeInKB} KB</Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          ))}
+        </Box>
+      )}
 
-					{/* Load more datasets */}
-					{hasMore && (
-						<Button
-							variant="contained"
-							onClick={loadMoreData}
-							sx={{ marginTop: 2 }}
-							disabled={loading}
-						>
-							{loading ? "Loading..." : "Load More"}
-						</Button>
-					)}
+      {/* No Data Message */}
+      {!loading && datasets.length === 0 && !error && (
+        <Typography variant="body1" color="textSecondary" align="center">
+          No datasets available in this database.
+        </Typography>
+      )}
 
-					{/* Display the selected dataset details as a JSON tree */}
-					{selectedDataset && (
-						<Box sx={{ marginTop: 4 }}>
-							<Typography variant="h5" gutterBottom>
-								Selected Dataset Details
-							</Typography>
-							<ReactJson
-								src={selectedDataset} // Show selected dataset
-								name={false}
-								collapsed={2} // Collapse levels by default
-								enableClipboard={true}
-								displayDataTypes={false}
-								theme="monokai"
-							/>
-						</Box>
-					)}
-				</>
-			) : (
-				// Render "No datasets found" message
-				!loading && (
-					<Typography sx={{ textAlign: "center", mt: 4 }}>
-						No datasets found for this database.
-					</Typography>
-				)
-			)}
-		</Box>
-	);
+      {/* Pagination */}
+      {!loading && datasets.length > 0 && (
+        <Box sx={{ display: "flex", justifyContent: "center", marginTop: 2 }}>
+          {[...Array(Math.ceil((dbInfo?.doc_count || 0) / limit)).keys()].map((index) => (
+            <Button
+              key={index}
+              variant={index === page ? "contained" : "outlined"}
+              onClick={() => handlePageChange(index)}
+              sx={{ margin: "0 4px" }}
+            >
+              {index + 1}
+            </Button>
+          ))}
+        </Box>
+      )}
+    </Box>
+  );
 };
 
 export default DatasetPage;
