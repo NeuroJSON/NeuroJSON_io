@@ -15,13 +15,14 @@ const Home: React.FC = () => {
 
 	useEffect(() => {
 		dispatch(fetchRegistry());
+		console.log(registry);
 	}, [dispatch]);
 
 	return (
 		<Container
 			style={{
 				minWidth: "100%",
-				height: "100vh",
+				maxHeight: "99%",
 				padding: 0,
 				overflow: "hidden",
 				position: "relative",
@@ -44,6 +45,7 @@ const Home: React.FC = () => {
 
 			<Box
 				sx={{
+					overflow: "hidden",
 					maxWidth: "42%",
 					zIndex: "3",
 					position: "absolute",
