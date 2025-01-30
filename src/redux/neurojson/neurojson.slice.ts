@@ -1,5 +1,6 @@
 import {
 	fetchDocumentDetails,
+	fetchRegistry,
 	loadAllDocuments,
 	loadPaginatedData,
 } from "./neurojson.action";
@@ -96,6 +97,17 @@ const neurojsonSlice = createSlice({
 			.addCase(fetchDocumentDetails.rejected, (state, action) => {
 				state.loading = false;
 				state.error = action.payload as string;
+			})
+			.addCase(fetchRegistry.fulfilled, (state, action: PayloadAction<any>) => {
+				state.registry = action.payload;
+			})
+			.addCase(fetchRegistry.rejected, (state, action) => {
+				state.registry = null;
+				state.error = action.payload as string;
+			})
+			.addCase(fetchRegistry.pending, (state) => {
+				state.loading = true;
+				state.error = null;
 			});
 	},
 });

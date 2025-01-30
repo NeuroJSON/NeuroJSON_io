@@ -11,7 +11,6 @@ export const fetchRegistry = createAsyncThunk(
 	"neurojson/fetchRegistry",
 	async () => {
 		const response = await NeurojsonService.getRegistry();
-		console.log(response);
 		return response.database;
 	}
 );
