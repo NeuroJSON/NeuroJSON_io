@@ -1,12 +1,12 @@
 import axios from "axios";
 
-const COUCHDB_URL = "http://127.0.0.1:5984"; // CouchDB URL
+const baseURL = "http://127.0.0.1:5984"; // CouchDB URL
 const username = "admin"; // Replace with your username
 const password = "mypassword"; // Replace with your password
 
 export const fetchDatabases = async (): Promise<string[]> => {
 	try {
-		const response = await axios.get(`${COUCHDB_URL}/_all_dbs`, {
+		const response = await axios.get(`${baseURL}/_all_dbs`, {
 			auth: { username, password },
 			headers: { Accept: "application/json" },
 		});
@@ -24,7 +24,7 @@ export const fetchDatabases = async (): Promise<string[]> => {
 
 export const fetchDocuments = async (dbName: string): Promise<any[]> => {
 	try {
-		const response = await axios.get(`${COUCHDB_URL}/${dbName}/_all_docs`, {
+		const response = await axios.get(`${baseURL}/${dbName}/_all_docs`, {
 			auth: { username, password },
 			params: { include_docs: true },
 		});
@@ -41,7 +41,7 @@ export const fetchDocumentById = async (
 	documentId: string
 ): Promise<any> => {
 	try {
-		const response = await axios.get(`${COUCHDB_URL}/${dbName}/${documentId}`, {
+		const response = await axios.get(`${baseURL}/${dbName}/${documentId}`, {
 			auth: { username, password },
 		});
 
@@ -63,7 +63,7 @@ export const fetchPaginatedDocument = async (
 ): Promise<any[]> => {
 	try {
 		console.log("Fetching paginated data:", { dbName, offset, limit });
-		const response = await axios.get(`${COUCHDB_URL}/${dbName}/_all_docs`, {
+		const response = await axios.get(`${baseURL}/${dbName}/_all_docs`, {
 			auth: { username, password },
 			params: { skip: offset, limit, include_docs: true },
 		});
