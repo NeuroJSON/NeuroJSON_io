@@ -1,102 +1,102 @@
-import { fetchDatabases } from "../services/couchDb.service";
 import {
 	Box,
 	Typography,
 	Button,
+	Container,
 	CircularProgress,
-	Alert,
 } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import { Colors } from "design/theme";
+import { useAppDispatch } from "hooks/useAppDispatch";
+import { useAppSelector } from "hooks/useAppSelector";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { fetchRegistry } from "redux/neurojson/neurojson.action";
+import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
+import { Database } from "types/responses/registry.interface";
 
 const DatabasePage: React.FC = () => {
-	const [databases, setDatabases] = useState<string[] | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 	const navigate = useNavigate();
+	const dispatch = useAppDispatch();
+	const { registry } = useAppSelector(NeurojsonSelector);
 
 	useEffect(() => {
-		const loadDatabases = async () => {
-			try {
-				setError(null);
-				setLoading(true);
-				const data = await fetchDatabases();
-				setDatabases(data);
-			} catch (err) {
-				console.error("Error loading databases:", err);
-				setError("Failed to load databases. Please try again.");
-			} finally {
-				setLoading(false);
-			}
-		};
+		dispatch(fetchRegistry());
+	}, [dispatch]);
 
-		loadDatabases();
-	}, []);
-
-	if (loading) {
+	if (!registry || registry.length === 0) {
 		return (
-			<Box
-				sx={{
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-					height: "100vh",
-				}}
-			>
-				<CircularProgress />
-			</Box>
-		);
-	}
-
-	if (error) {
-		return (
-			<Box sx={{ textAlign: "center", padding: 4 }}>
-				<Alert severity="error">{error}</Alert>
-			</Box>
-		);
-	}
-
-	if (!databases || databases.length === 0) {
-		return (
-			<Box sx={{ textAlign: "center", padding: 4 }}>
-				<Typography variant="h5" color="textSecondary">
-					No Databases Found
-				</Typography>
-			</Box>
+			<Container maxWidth="md">
+				<Box
+					sx={{
+						textAlign: "center",
+						padding: 8,
+						backgroundColor: Colors.lightGray,
+						borderRadius: 2,
+						margin: "2rem auto",
+					}}
+				>
+					<Typography variant="h2" color={Colors.secondary.main} gutterBottom>
+						No Databases Found
+					</Typography>
+					<Typography variant="body1" color={Colors.textSecondary}>
+						Please check back later or contact support if this persists.
+					</Typography>
+				</Box>
+			</Container>
 		);
 	}
 
 	return (
-		<Box sx={{ padding: 4 }}>
-			<Typography variant="h4" gutterBottom>
-				Databases
-			</Typography>
-			<Box
-				sx={{
-					display: "grid",
-					gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-					gap: 2,
-				}}
-			>
-				{databases.map((dbName) => (
-					<Button
-						key={dbName}
-						variant="contained"
-						sx={{
-							padding: 2,
-							textTransform: "none",
-							fontWeight: "bold",
-							backgroundColor: "#7b81a5",
-							color: "#fff",
-							"&:hover": { backgroundColor: "#5c6386" },
-						}}
-						onClick={() => navigate(`/databases/${dbName}`)} // Navigate to DatasetPage with dbName
-					>
-						{dbName}
-					</Button>
-				))}
+		<Container maxWidth="lg">
+			<Box sx={{ padding: { xs: 2, md: 4 } }}>
+				<Typography variant="h1" gutterBottom>
+					Databases
+				</Typography>
+				<Box
+					sx={{
+						display: "grid",
+						gridTemplateColumns: {
+							xs: "1fr",
+							sm: "repeat(2, 1fr)",
+							md: "repeat(3, 1fr)",
+							lg: "repeat(4, 1fr)",
+						},
+						gap: 3,
+						mt: 4,
+					}}
+				>
+					{registry.map((db) => (
+						<Button
+							key={db.id}
+							variant="contained"
+							sx={{
+								padding: 3,
+								textTransform: "none",
+								fontWeight: 600,
+								backgroundColor: Colors.primary.main,
+								color: Colors.white,
+								borderRadius: 2,
+								transition: "all 0.3s ease",
+								height: "100px",
+								display: "flex",
+								flexDirection: "column",
+								justifyContent: "center",
+								"&:hover": {
+									backgroundColor: Colors.primary.dark,
+									transform: "translateY(-2px)",
+									boxShadow: 3,
+								},
+							}}
+							onClick={() => navigate(`/databases/${db.name}`)}
+						>
+							<Typography variant="h6" component="span">
+								{db.name}
+							</Typography>
+						</Button>
+					))}
+				</Box>
 			</Box>
-		</Box>
+		</Container>
 	);
 };
 

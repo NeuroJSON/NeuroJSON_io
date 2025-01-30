@@ -1,4 +1,8 @@
 import { api, baseURL } from "./instance";
+import {
+	DBDatafields,
+	DBParticulars,
+} from "redux/neurojson/types/neurojson.interface";
 import { IApiResponse } from "types/responses/apiResponse.interface";
 import { Registry } from "types/responses/registry.interface";
 
@@ -6,6 +10,21 @@ export const NeurojsonService = {
 	getRegistry: async (): Promise<Registry> => {
 		const response = await api.get<Registry>(`${baseURL}/sys/registry`);
 
+		return response.data;
+	},
+	getDbInfo: async (dbName: string): Promise<DBParticulars> => {
+		const response = await api.get(`${baseURL}/${dbName}`);
+		return response.data;
+	},
+	getPaginatedData: async (
+		dbName: string,
+		offset: number,
+		limit: number
+	): Promise<DBDatafields> => {
+		const response = await api.get(
+			`${baseURL}/${dbName}/_design/qq/_view/dbinfo?limit=${limit}&skip=${offset}`
+		);
+		console.log(response);
 		return response.data;
 	},
 };

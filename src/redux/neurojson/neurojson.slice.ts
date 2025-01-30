@@ -3,9 +3,14 @@ import {
 	fetchRegistry,
 	loadAllDocuments,
 	loadPaginatedData,
+	fetchDbInfo,
 } from "./neurojson.action";
-import { INeuroJsonState } from "./types/neurojson.interface";
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import {
+	DBDatafields,
+	INeuroJsonState,
+	Row,
+} from "./types/neurojson.interface";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 const initialState: INeuroJsonState = {
 	loading: false,
@@ -28,7 +33,7 @@ const neurojsonSlice = createSlice({
 			state.offset = 0;
 			state.error = null;
 			state.loading = false;
-			state.hasMore = true; // Reset pagination availability
+			state.hasMore = true;
 		},
 		setLoading: (state, action: PayloadAction<boolean>) => {
 			state.loading = action.payload;
@@ -42,12 +47,10 @@ const neurojsonSlice = createSlice({
 			})
 			.addCase(
 				loadPaginatedData.fulfilled,
-				(state, action: PayloadAction<any[]>) => {
+				(state, action: PayloadAction<Row[]>) => {
 					const uniqueEntries = action.payload.filter(
 						(newItem) =>
-							!state.data.some(
-								(existingItem) => existingItem._id === newItem._id
-							)
+							!state.data.some((existingItem) => existingItem.id === newItem.id)
 					);
 					state.loading = false;
 
@@ -108,6 +111,17 @@ const neurojsonSlice = createSlice({
 			.addCase(fetchRegistry.pending, (state) => {
 				state.loading = true;
 				state.error = null;
+			})
+			.addCase(fetchDbInfo.pending, (state) => {
+				state.loading = true;
+				state.error = null;
+			})
+			.addCase(fetchDbInfo.fulfilled, (state, action: PayloadAction<any>) => {
+				state.loading = false;
+			})
+			.addCase(fetchDbInfo.rejected, (state, action) => {
+				state.loading = false;
+				state.error = action.payload as string;
 			});
 	},
 });

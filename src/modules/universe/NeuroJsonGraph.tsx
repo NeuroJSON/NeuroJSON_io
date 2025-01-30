@@ -8,8 +8,7 @@ import {
 } from "three/examples/jsm/renderers/CSS2DRenderer";
 import { Database } from "types/responses/registry.interface";
 
-// Define the interface for NodeObject
-interface NodeObject {
+export interface NodeObject {
 	id: string;
 	name: string;
 	dbname: string;

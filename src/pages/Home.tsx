@@ -15,7 +15,6 @@ const Home: React.FC = () => {
 
 	useEffect(() => {
 		dispatch(fetchRegistry());
-		console.log(registry);
 	}, [dispatch]);
 
 	return (

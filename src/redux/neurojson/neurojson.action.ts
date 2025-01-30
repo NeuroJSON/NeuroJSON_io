@@ -1,4 +1,3 @@
-import { LoadPaginatedDataPayload } from "./types/neurojson.interface";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import {
 	fetchDocumentById,
@@ -15,20 +14,36 @@ export const fetchRegistry = createAsyncThunk(
 	}
 );
 
+export const fetchDbInfo = createAsyncThunk(
+	"neurojson/fetchDbInfo",
+	async (dbName: string) => {
+		const response = await NeurojsonService.getDbInfo(dbName);
+		return response;
+	}
+);
+
 export const loadPaginatedData = createAsyncThunk(
 	"neurojson/loadPaginatedData",
 	async (
-		{ dbName, offset, limit }: LoadPaginatedDataPayload,
+		{
+			dbName,
+			offset,
+			limit,
+		}: { dbName: string; offset: number; limit: number },
 		{ rejectWithValue }
 	) => {
 		try {
-			const dataChunk = await fetchPaginatedDocument(dbName, offset, limit);
+			const response = await NeurojsonService.getPaginatedData(
+				dbName,
+				offset,
+				limit
+			);
 
-			if (dataChunk.length === 0) {
+			if (response.rows.length === 0) {
 				return rejectWithValue("No more data to load.");
 			}
 
-			return dataChunk;
+			return response.rows;
 		} catch (error: any) {
 			return rejectWithValue(error.message || "Failed to load data.");
 		}
