@@ -49,7 +49,7 @@ const Home: React.FC = () => {
 					maxWidth: "42%",
 					zIndex: "3",
 					position: "absolute",
-					top: "10%",
+					top: "6%",
 					left: "5%",
 					backgroundColor: "rgba(255, 255, 255, 0.8)",
 					padding: "1.5rem",

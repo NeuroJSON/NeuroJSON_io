@@ -17,11 +17,10 @@ const FullScreen = () => {
 					maxWidth: "100vw",
 					width: "100%",
 					overflowX: "hidden",
-					backgroundColor: "transparent",
+					backgroundColor: Colors.primary.main,
 					transition: "background 0.3s ease-in-out",
-					background: "#7b81a5",
 					backdropFilter: "blur(2.5px)",
-					borderBottom: `2px solid ${Colors.primary.main}`,
+					borderBottom: `2px solid ${Colors.primary.dark}`,
 					left: "0",
 					height: "6rem",
 				}}
@@ -42,161 +41,41 @@ const FullScreen = () => {
 									flexDirection: "column",
 								}}
 							>
-								<Typography variant="h1" fontSize={"2rem"} fontWeight={800}>
+								<Typography variant="h1" sx={{ color: Colors.white }}>
 									NeuroJSON.io
 								</Typography>
-								<Typography variant="h2" fontSize={"1.5rem"}>
-									Free Data Worth Sharing
-								</Typography>
+								<Typography variant="h2">Free Data Worth Sharing</Typography>
 							</Box>
 						</Grid>
 
-						{/* Mission */}
-						<Grid item sm={3} md={2} lg={1}>
-							<Typography
-								align="center"
-								margin={"0.75rem"}
-								fontWeight={600}
-								lineHeight={"1.5rem"}
-								letterSpacing={"0.05rem"}
-								sx={{
-									transition: "color 0.3s ease, transform 0.3s ease",
-									"&:hover": {
-										color: Colors.primary.light,
-										transform: "scale(1.05)",
-										cursor: "pointer",
-									},
-								}}
-							>
-								Mission
-							</Typography>
-						</Grid>
-
-						{/* Get Started */}
-						<Grid item sm={3} md={2} lg={1}>
-							<Typography
-								align="center"
-								margin={"0.75rem"}
-								fontWeight={600}
-								lineHeight={"1.5rem"}
-								letterSpacing={"0.05rem"}
-								sx={{
-									transition: "color 0.3s ease, transform 0.3s ease",
-									"&:hover": {
-										color: Colors.primary.light,
-										transform: "scale(1.05)",
-										cursor: "pointer",
-									},
-								}}
-							>
-								Get Started
-							</Typography>
-						</Grid>
-
-						{/* Contribute */}
-						<Grid item sm={3} md={2} lg={1}>
-							<Typography
-								align="center"
-								margin={"0.75rem"}
-								fontWeight={600}
-								lineHeight={"1.5rem"}
-								letterSpacing={"0.05rem"}
-								sx={{
-									transition: "color 0.3s ease, transform 0.3s ease",
-									"&:hover": {
-										color: Colors.primary.light,
-										transform: "scale(1.05)",
-										cursor: "pointer",
-									},
-								}}
-							>
-								Contribute
-							</Typography>
-						</Grid>
-
-						{/* Tools */}
-						<Grid item sm={3} md={2} lg={1}>
-							<Typography
-								align="center"
-								margin={"0.75rem"}
-								fontWeight={600}
-								lineHeight={"1.5rem"}
-								letterSpacing={"0.05rem"}
-								sx={{
-									transition: "color 0.3s ease, transform 0.3s ease",
-									"&:hover": {
-										color: Colors.primary.light,
-										transform: "scale(1.05)",
-										cursor: "pointer",
-									},
-								}}
-							>
-								Tools
-							</Typography>
-						</Grid>
-
-						{/* Search */}
-						<Grid item sm={6} md={2} lg={1}>
-							<Typography
-								align="center"
-								margin={"0.75rem"}
-								fontWeight={600}
-								lineHeight={"1.5rem"}
-								letterSpacing={"0.05rem"}
-								sx={{
-									transition: "color 0.3s ease, transform 0.3s ease",
-									"&:hover": {
-										color: Colors.primary.light,
-										transform: "scale(1.05)",
-										cursor: "pointer",
-									},
-								}}
-							>
-								Search
-							</Typography>
-						</Grid>
-
-						{/* Forum */}
-						<Grid item sm={6} md={2} lg={1}>
-							<Typography
-								align="center"
-								margin={"0.75rem"}
-								fontWeight={600}
-								lineHeight={"1.5rem"}
-								letterSpacing={"0.05rem"}
-								sx={{
-									transition: "color 0.3s ease, transform 0.3s ease",
-									"&:hover": {
-										color: Colors.primary.light,
-										transform: "scale(1.05)",
-										cursor: "pointer",
-									},
-								}}
-							>
-								Forum
-							</Typography>
-						</Grid>
-
-						{/* About */}
-						<Grid item sm={6} md={2} lg={1}>
-							<Typography
-								align="center"
-								margin={"0.75rem"}
-								fontWeight={600}
-								lineHeight={"1.5rem"}
-								letterSpacing={"0.05rem"}
-								sx={{
-									transition: "color 0.3s ease, transform 0.3s ease",
-									"&:hover": {
-										color: Colors.primary.light,
-										transform: "scale(1.05)",
-										cursor: "pointer",
-									},
-								}}
-							>
-								About
-							</Typography>
-						</Grid>
+						{[
+							"Mission",
+							"Get Started",
+							"Contribute",
+							"Tools",
+							"Search",
+							"Forum",
+							"About",
+						].map((text) => (
+							<Grid item sm={3} md={2} lg={1} key={text} mt={"3rem"}>
+								<Typography
+									align="center"
+									fontWeight={600}
+									lineHeight={"1.5rem"}
+									letterSpacing={"0.05rem"}
+									sx={{
+										transition: "color 0.3s ease, transform 0.3s ease",
+										"&:hover": {
+											color: Colors.white,
+											transform: "scale(1.05)",
+											cursor: "pointer",
+										},
+									}}
+								>
+									{text}
+								</Typography>
+							</Grid>
+						))}
 					</Grid>
 				</Toolbar>
 			</AppBar>
@@ -206,7 +85,7 @@ const FullScreen = () => {
 					height: "calc(100vh - 6rem)",
 					boxSizing: "border-box",
 					marginTop: "6rem",
-					background: "#f0f0f0",
+					backgroundColor: Colors.lightGray,
 					overflow: "auto",
 				}}
 			>
