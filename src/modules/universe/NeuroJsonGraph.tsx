@@ -143,9 +143,10 @@ const NeuroJsonGraph: React.FC<{ registry: Database[] }> = ({ registry }) => {
 			ref={graphRef}
 			style={{
 				width: "100%",
-				height: "100vh",
+				maxHeight: "99%",
 				backgroundColor: "transparent",
 				position: "relative",
+				overflow: "hidden",
 			}}
 		/>
 	);
