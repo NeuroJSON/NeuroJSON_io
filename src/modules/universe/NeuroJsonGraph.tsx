@@ -1,4 +1,5 @@
 import ForceGraph3D from "3d-force-graph";
+import { Colors } from "design/theme";
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import {
@@ -16,15 +17,18 @@ interface NodeObject {
 	datatype: string[];
 	support: string;
 	url: string;
+	datasets: number;
 }
 
 const NeuroJsonGraph: React.FC<{ registry: Database[] }> = ({ registry }) => {
 	const graphRef = useRef<HTMLDivElement>(null);
 
-	// Debug log for registry data
-	useEffect(() => {
-		console.log("From NeuroJsonGraph, registry:", registry);
-	}, [registry]);
+	// Function to determine color and size based on node size
+	const size2colorAndSize = (size: number) => {
+		if (size > 32) return { color: Colors.primary.dark, size: 10 };
+		if (size > 3) return { color: Colors.primary.main, size: 7 };
+		return { color: Colors.primary.light, size: 5 };
+	};
 
 	useEffect(() => {
 		// Ensure registry and graphRef are properly initialized
@@ -40,40 +44,61 @@ const NeuroJsonGraph: React.FC<{ registry: Database[] }> = ({ registry }) => {
 
 		// Prepare graph data
 		const graphData = {
-			nodes: registry.map((db) => ({
-				id: db.id,
-				name: db.fullname || db.name,
-				dbname: db.name,
-				color: "rgba(255,255,255,1)", // White color for nodes
-				datatype: db.datatype,
-				support: db.support,
-				url: db.url,
-			})),
-			links: [], // Add links if needed
+			nodes: registry.map((db) => {
+				const { color, size } = size2colorAndSize(db.datasets);
+				return {
+					id: db.id,
+					name: db.fullname || db.name,
+					dbname: db.name,
+					color: color,
+					datatype: db.datatype,
+					support: db.support,
+					url: db.url,
+					datasets: db.datasets,
+					size: size,
+				};
+			}),
+			links: registry.flatMap((db, index) => {
+				const connections = [];
+				const nextIndex = (index + 1) % registry.length;
+				const { color } = size2colorAndSize(db.datasets);
+				connections.push({
+					source: db.id,
+					target: registry[nextIndex].id,
+					color: color,
+					visible: true,
+				});
+				return connections;
+			}),
 		};
 
 		// Initialize 3D Force Graph
 		const Graph = new ForceGraph3D(graphRef.current)
 			.graphData(graphData)
 			.nodeRelSize(2)
-			.nodeColor((node) => (node as NodeObject).color || "rgba(255,255,255,1)") // White nodes
+			.nodeColor((node) => (node as NodeObject).color)
+			.linkWidth(2) // Set the thickness of the links
 			.backgroundColor("rgba(0,0,0,0)") // Transparent background
 			.nodeLabel("name")
 			.nodeThreeObject((node) => {
 				const castNode = node as NodeObject;
 
 				// Create a 3D sphere for the node
-				const sphereGeometry = new THREE.SphereGeometry(5, 16, 16); // Radius 5
+				const sphereGeometry = new THREE.SphereGeometry(
+					(castNode as any).size,
+					16,
+					16
+				); // Dynamic radius
 				const sphereMaterial = new THREE.MeshBasicMaterial({
-					color: "white",
+					color: (castNode as any).color,
 				});
 				const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
 
 				// Add label as CSS2DObject
 				const label = new CSS2DObject(document.createElement("div"));
 				label.element.textContent = castNode.dbname || "Unnamed";
-				label.element.style.color = "white";
-				label.element.style.fontSize = "10px";
+				label.element.style.color = Colors.primary.main;
+				label.element.style.fontSize = "12px";
 				label.element.style.pointerEvents = "none"; // Prevent interaction
 				label.position.set(0, 10, 0); // Position label above the node
 				sphere.add(label);
@@ -86,7 +111,7 @@ const NeuroJsonGraph: React.FC<{ registry: Database[] }> = ({ registry }) => {
 		labelRenderer.setSize(window.innerWidth, window.innerHeight);
 		labelRenderer.domElement.style.position = "absolute";
 		labelRenderer.domElement.style.top = "0px";
-		labelRenderer.domElement.style.pointerEvents = "none"; // Prevent interaction
+		labelRenderer.domElement.style.pointerEvents = "none";
 		graphRef.current?.appendChild(labelRenderer.domElement);
 
 		// Animate label rendering

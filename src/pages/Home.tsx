@@ -3,7 +3,6 @@ import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import NeuroJsonGraph from "modules/universe/NeuroJsonGraph";
 import React, { useEffect } from "react";
-import { Link } from "react-router-dom";
 import { fetchRegistry } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
 
@@ -13,7 +12,6 @@ const Home: React.FC = () => {
 
 	useEffect(() => {
 		dispatch(fetchRegistry());
-		console.log(registry);
 	}, [dispatch]);
 
 	return (
