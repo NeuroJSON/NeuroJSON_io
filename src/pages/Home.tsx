@@ -1,4 +1,11 @@
-import { Box, Typography, Button, Container, Grid } from "@mui/material";
+import {
+	Box,
+	Typography,
+	Button,
+	Container,
+	Grid,
+	CircularProgress,
+} from "@mui/material";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -11,7 +18,7 @@ import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
 const Home: React.FC = () => {
 	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
-	const { registry } = useAppSelector(NeurojsonSelector);
+	const { registry, loading } = useAppSelector(NeurojsonSelector);
 
 	useEffect(() => {
 		dispatch(fetchRegistry());
@@ -35,10 +42,18 @@ const Home: React.FC = () => {
 					overflow: "hidden",
 				}}
 			>
-				{registry && registry.length > 0 ? (
+				{!registry ? (
+					<Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+						<CircularProgress sx={{ color: Colors.primary.main }} />
+					</Box>
+				) : registry && registry.length > 0 ? (
 					<NeuroJsonGraph registry={registry} />
 				) : (
-					<div>No data available to display</div>
+					<Box sx={{ textAlign: "center", mt: 4 }}>
+						<Typography variant="h6" color={Colors.textSecondary}>
+							No data available to display
+						</Typography>
+					</Box>
 				)}
 			</Box>
 

@@ -7,6 +7,7 @@ import {
 } from "./neurojson.action";
 import {
 	DBDatafields,
+	DBParticulars,
 	INeuroJsonState,
 	Row,
 } from "./types/neurojson.interface";
@@ -47,18 +48,28 @@ const neurojsonSlice = createSlice({
 			})
 			.addCase(
 				loadPaginatedData.fulfilled,
-				(state, action: PayloadAction<Row[]>) => {
-					const uniqueEntries = action.payload.filter(
+				(state, action: PayloadAction<DBDatafields>) => {
+					// Check if we received fewer items than the limit, indicating we've reached the end
+					console.log(action.payload.total_rows);
+					state.limit = action.payload.total_rows;
+					const reachedEnd = action.payload.rows.length < state.limit;
+
+					// Filter out duplicates while preserving order
+					const uniqueEntries = action.payload.rows.filter(
 						(newItem) =>
 							!state.data.some((existingItem) => existingItem.id === newItem.id)
 					);
+
 					state.loading = false;
 
 					if (uniqueEntries.length > 0) {
+						// Append new unique entries to existing data
 						state.data = [...state.data, ...uniqueEntries];
 						state.offset += uniqueEntries.length;
-						state.hasMore = true;
+						// Only set hasMore to true if we haven't reached the end
+						state.hasMore = !reachedEnd;
 					} else {
+						// If no new unique entries were found, we've reached the end
 						state.hasMore = false;
 					}
 				}
@@ -66,7 +77,7 @@ const neurojsonSlice = createSlice({
 			.addCase(loadPaginatedData.rejected, (state, action) => {
 				state.loading = false;
 				state.error = action.payload as string;
-				state.hasMore = false; // No more data to load
+				state.hasMore = false;
 			})
 			.addCase(loadAllDocuments.pending, (state) => {
 				state.loading = true;

@@ -30,9 +30,18 @@ export const loadPaginatedData = createAsyncThunk(
 			offset,
 			limit,
 		}: { dbName: string; offset: number; limit: number },
-		{ rejectWithValue }
+		{ rejectWithValue, dispatch, getState }
 	) => {
 		try {
+			// Get current state
+			const state = getState() as any;
+			const currentData = state.neurojson.data;
+
+			// If there is data and dbName changed, reset data first
+			if (currentData.length > 0 && currentData[0]?.dbName !== dbName) {
+				dispatch({ type: "neurojson/resetData" });
+			}
+
 			const response = await NeurojsonService.getPaginatedData(
 				dbName,
 				offset,
@@ -43,7 +52,13 @@ export const loadPaginatedData = createAsyncThunk(
 				return rejectWithValue("No more data to load.");
 			}
 
-			return response.rows;
+			// Add dbName to each row for tracking
+			response.rows = response.rows.map((row) => ({
+				...row,
+				dbName,
+			}));
+
+			return response;
 		} catch (error: any) {
 			return rejectWithValue(error.message || "Failed to load data.");
 		}

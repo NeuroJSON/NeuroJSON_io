@@ -14,19 +14,25 @@ import {
 	Chip,
 	Stack,
 	Button,
+	Select,
+	MenuItem,
+	FormControl,
+	InputLabel,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 const DatasetPage: React.FC = () => {
 	const { dbName } = useParams<{ dbName: string }>();
 	const dispatch = useAppDispatch();
-	const { loading, error, data, offset, limit, hasMore } = useAppSelector(
+	const { loading, error, data, limit, hasMore } = useAppSelector(
 		(state: { neurojson: any }) => state.neurojson
 	);
+	const [currentOffset, setCurrentOffset] = useState(0);
+	const [pageSize, setPageSize] = useState(10);
 
 	useEffect(() => {
 		if (dbName) {
@@ -35,25 +41,116 @@ const DatasetPage: React.FC = () => {
 				loadPaginatedData({
 					dbName: dbName.toLowerCase(),
 					offset: 0,
-					limit: 5,
+					limit: pageSize,
 				})
 			);
 		}
-	}, [dbName, dispatch]);
+	}, [dbName, dispatch, pageSize]);
 
 	const loadMoreData = () => {
-		if (dbName && hasMore && !loading) {
+		if (dbName && !loading) {
+			const nextOffset = currentOffset + pageSize;
+			setCurrentOffset(nextOffset);
 			dispatch(
-				loadPaginatedData({ dbName: dbName.toLowerCase(), offset, limit })
+				loadPaginatedData({
+					dbName: dbName.toLowerCase(),
+					offset: nextOffset,
+					limit: pageSize,
+				})
 			);
 		}
 	};
 
+	const handlePageSizeChange = (event: any) => {
+		setPageSize(event.target.value);
+		setCurrentOffset(0); // Reset offset when changing page size
+	};
+
 	return (
 		<Box sx={{ padding: { xs: 2, md: 4 } }}>
-			<Typography variant="h1" gutterBottom>
-				Database: {dbName || "N/A"}
-			</Typography>
+			<Box
+				sx={{
+					display: "flex",
+					alignItems: "center",
+					gap: 2,
+					justifyContent: "space-between",
+				}}
+			>
+				<Typography
+					variant="h1"
+					gutterBottom
+					sx={{
+						color: Colors.primary.dark,
+						fontWeight: 700,
+						fontSize: "2rem",
+					}}
+				>
+					Database: {dbName || "N/A"}
+				</Typography>
+
+				<Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
+					<FormControl
+						size="small"
+						sx={{
+							minWidth: 150,
+							backgroundColor: Colors.white,
+							borderRadius: 1,
+							boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+							"& .MuiInputLabel-root": {
+								color: Colors.textSecondary,
+								fontWeight: 500,
+							},
+							"& .MuiOutlinedInput-root": {
+								transition: "all 0.2s ease-in-out",
+								"& fieldset": {
+									borderColor: Colors.primary.main,
+									borderWidth: 2,
+								},
+								"&:hover fieldset": {
+									borderColor: Colors.primary.dark,
+									borderWidth: 2,
+								},
+								"&.Mui-focused fieldset": {
+									borderColor: Colors.primary.dark,
+									borderWidth: 2,
+								},
+							},
+						}}
+					>
+						<InputLabel>Items per page</InputLabel>
+						<Select
+							value={pageSize}
+							label="Items per page"
+							onChange={handlePageSizeChange}
+							sx={{
+								color: Colors.textPrimary,
+								fontWeight: 500,
+								"& .MuiSelect-icon": {
+									color: Colors.primary.main,
+									transition: "transform 0.2s ease-in-out",
+								},
+								"&:hover .MuiSelect-icon": {
+									transform: "rotate(180deg)",
+									color: Colors.primary.dark,
+								},
+							}}
+						>
+							<MenuItem value={10} sx={{ fontWeight: 500 }}>
+								10 items
+							</MenuItem>
+							<MenuItem value={25} sx={{ fontWeight: 500 }}>
+								25 items
+							</MenuItem>
+							<MenuItem value={50} sx={{ fontWeight: 500 }}>
+								50 items
+							</MenuItem>
+							<MenuItem value={100} sx={{ fontWeight: 500 }}>
+								100 items
+							</MenuItem>
+						</Select>
+					</FormControl>
+				</Box>
+			</Box>
 
 			{error && (
 				<Alert
@@ -194,11 +291,12 @@ const DatasetPage: React.FC = () => {
 				</Typography>
 			)}
 
-			{hasMore && !loading && (
+			{!loading && (
 				<Box sx={{ textAlign: "center", mt: 3 }}>
 					<Button
 						variant="contained"
 						onClick={loadMoreData}
+						disabled={data.length >= limit}
 						sx={{
 							backgroundColor: Colors.primary.main,
 							color: Colors.white,
@@ -207,7 +305,8 @@ const DatasetPage: React.FC = () => {
 							},
 						}}
 					>
-						Load More
+						Load More ({data.length} of {limit} items)
+						{data.length >= limit && " - Limit Reached"}
 					</Button>
 				</Box>
 			)}

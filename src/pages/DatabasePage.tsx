@@ -21,6 +21,7 @@ const DatabasePage: React.FC = () => {
 
 	useEffect(() => {
 		dispatch(fetchRegistry());
+		console.log(registry);
 	}, [dispatch]);
 
 	if (!registry || registry.length === 0) {
@@ -87,7 +88,7 @@ const DatabasePage: React.FC = () => {
 									boxShadow: 3,
 								},
 							}}
-							onClick={() => navigate(`/databases/${db.name}`)}
+							onClick={() => navigate(`/databases/${db.id}`)}
 						>
 							<Typography variant="h6" component="span">
 								{db.name}

@@ -1,4 +1,4 @@
-import { AppBar, Box, Grid, Toolbar, Typography } from "@mui/material";
+import { AppBar, Box, Button, Grid, Toolbar, Typography } from "@mui/material";
 import { Colors } from "design/theme";
 import useIsLargeScreen from "hooks/useIsLargeScreen";
 import { Outlet, useNavigate } from "react-router-dom";
@@ -33,19 +33,20 @@ const FullScreen = () => {
 						sx={{ maxWidth: "100%" }}
 					>
 						<Grid item sm={12} md={12} lg={5}>
-							<Box
+							<Button
 								sx={{
 									display: "flex",
 									alignItems: "center",
 									justifyContent: "center",
 									flexDirection: "column",
 								}}
+								onClick={() => navigate("/")}
 							>
 								<Typography variant="h1" sx={{ color: Colors.white }}>
 									NeuroJSON.io
 								</Typography>
 								<Typography variant="h2">Free Data Worth Sharing</Typography>
-							</Box>
+							</Button>
 						</Grid>
 
 						{[

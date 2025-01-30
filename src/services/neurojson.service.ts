@@ -24,7 +24,7 @@ export const NeurojsonService = {
 		const response = await api.get(
 			`${baseURL}/${dbName}/_design/qq/_view/dbinfo?limit=${limit}&skip=${offset}`
 		);
-		console.log(response);
+
 		return response.data;
 	},
 };
