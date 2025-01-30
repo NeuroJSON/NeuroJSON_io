@@ -1,13 +1,14 @@
 import axios from "axios";
+
 const COUCHDB_URL = "http://127.0.0.1:5984"; // Replace with your CouchDB URL
 const username = "admin"; // Replace with your username
 const password = "mypassword"; // Replace with your password
 
 // Create a reusable Axios instance
 const axiosInstance = axios.create({
-  baseURL: COUCHDB_URL,
-  auth: { username, password },
-  headers: { Accept: "application/json" },
+	baseURL: COUCHDB_URL,
+	auth: { username, password },
+	headers: { Accept: "application/json" },
 });
 
 /**
@@ -15,21 +16,21 @@ const axiosInstance = axios.create({
  * Filters out system databases starting with '_'.
  */
 export const fetchDatabases = async (): Promise<string[]> => {
-  try {
-    const response = await axios.get(`${COUCHDB_URL}/_all_dbs`, {
-      auth: { username, password },
-      headers: { Accept: "application/json" },
-    });
+	try {
+		const response = await axios.get(`${COUCHDB_URL}/_all_dbs`, {
+			auth: { username, password },
+			headers: { Accept: "application/json" },
+		});
 
-    if (Array.isArray(response.data)) {
-      return response.data.filter((db) => !db.startsWith("_"));
-    } else {
-      throw new Error("Unexpected response format");
-    }
-  } catch (error) {
-    console.error("Error fetching databases:", error);
-    throw error;
-  }
+		if (Array.isArray(response.data)) {
+			return response.data.filter((db) => !db.startsWith("_"));
+		} else {
+			throw new Error("Unexpected response format");
+		}
+	} catch (error) {
+		console.error("Error fetching databases:", error);
+		throw error;
+	}
 };
 
 /**
@@ -38,15 +39,15 @@ export const fetchDatabases = async (): Promise<string[]> => {
  * @param dbName - The name of the database.
  */
 export const fetchDbInfo = async (dbName: string) => {
-  try {
-    const response = await axios.get(`${COUCHDB_URL}/${dbName}`, {
-      auth: { username, password },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching DB info:", error);
-    throw error;
-  }
+	try {
+		const response = await axios.get(`${COUCHDB_URL}/${dbName}`, {
+			auth: { username, password },
+		});
+		return response.data;
+	} catch (error) {
+		console.error("Error fetching DB info:", error);
+		throw error;
+	}
 };
 
 /**
@@ -58,33 +59,34 @@ export const fetchDbInfo = async (dbName: string) => {
  */
 
 export const fetchBidsDocs = async (
-  dbName: string,
-  offset: number,
-  limit: number
+	dbName: string,
+	offset: number,
+	limit: number
 ): Promise<any[]> => {
-  const queryData = {
-    selector: {},
-    limit,
-    skip: offset,
-  };
+	const queryData = {
+		selector: {},
+		limit,
+		skip: offset,
+	};
 
-  try {
-    const response = await axiosInstance.post(`/${dbName}/_find`, queryData, {
-      headers: { "Content-Type": "application/json" },
-    });
+	try {
+		const response = await axiosInstance.post(`/${dbName}/_find`, queryData, {
+			headers: { "Content-Type": "application/json" },
+		});
 
-    // Process each document to calculate subject count and JSON size
-    return response.data.docs.map((doc: any) => {
-      const jsonSizeInKB = JSON.stringify(doc).length / 1024; // Calculate JSON size
-      const subjectCount = Object.keys(doc).filter((key) => key.startsWith("sub-")).length; // Count subjects
-      return { ...doc, jsonSizeInKB, subjectCount };
-    });
-  } catch (error) {
-    console.error(`Error fetching datasets from ${dbName}:`, error);
-    throw error;
-  }
+		// Process each document to calculate subject count and JSON size
+		return response.data.docs.map((doc: any) => {
+			const jsonSizeInKB = JSON.stringify(doc).length / 1024; // Calculate JSON size
+			const subjectCount = Object.keys(doc).filter((key) =>
+				key.startsWith("sub-")
+			).length; // Count subjects
+			return { ...doc, jsonSizeInKB, subjectCount };
+		});
+	} catch (error) {
+		console.error(`Error fetching datasets from ${dbName}:`, error);
+		throw error;
+	}
 };
-
 
 /**
  * Fetches all documents from a specific database.
@@ -93,17 +95,17 @@ export const fetchBidsDocs = async (
  * @param dbName - The name of the database to fetch documents from.
  */
 export const fetchDocuments = async (dbName: string): Promise<any[]> => {
-  try {
-    const response = await axios.get(`${COUCHDB_URL}/${dbName}/_all_docs`, {
-      auth: { username, password },
-      params: { include_docs: true },
-    });
+	try {
+		const response = await axios.get(`${COUCHDB_URL}/${dbName}/_all_docs`, {
+			auth: { username, password },
+			params: { include_docs: true },
+		});
 
-    return response.data.rows.map((row: { doc: any }) => row.doc) || [];
-  } catch (error) {
-    console.error(`Error fetching documents from ${dbName}:`, error);
-    throw error;
-  }
+		return response.data.rows.map((row: { doc: any }) => row.doc) || [];
+	} catch (error) {
+		console.error(`Error fetching documents from ${dbName}:`, error);
+		throw error;
+	}
 };
 
 /**
@@ -113,22 +115,22 @@ export const fetchDocuments = async (dbName: string): Promise<any[]> => {
  * @param documentId - The ID of the document to fetch.
  */
 export const fetchDocumentById = async (
-  dbName: string,
-  documentId: string
+	dbName: string,
+	documentId: string
 ): Promise<any> => {
-  try {
-    const response = await axios.get(`${COUCHDB_URL}/${dbName}/${documentId}`, {
-      auth: { username, password },
-    });
+	try {
+		const response = await axios.get(`${COUCHDB_URL}/${dbName}/${documentId}`, {
+			auth: { username, password },
+		});
 
-    return response.data;
-  } catch (error) {
-    console.error(
-      `Error fetching document with ID ${documentId} from ${dbName}:`,
-      error
-    );
-    throw error;
-  }
+		return response.data;
+	} catch (error) {
+		console.error(
+			`Error fetching document with ID ${documentId} from ${dbName}:`,
+			error
+		);
+		throw error;
+	}
 };
 
 /**
@@ -139,22 +141,22 @@ export const fetchDocumentById = async (
  * @param limit - The number of documents to fetch per page.
  */
 export const fetchPaginatedDocument = async (
-  dbName: string,
-  offset: number,
-  limit: number
+	dbName: string,
+	offset: number,
+	limit: number
 ): Promise<any[]> => {
-  try {
-    console.log("Fetching paginated data:", { dbName, offset, limit });
-    const response = await axios.get(`${COUCHDB_URL}/${dbName}/_all_docs`, {
-      auth: { username, password },
-      params: { skip: offset, limit, include_docs: true },
-    });
+	try {
+		console.log("Fetching paginated data:", { dbName, offset, limit });
+		const response = await axios.get(`${COUCHDB_URL}/${dbName}/_all_docs`, {
+			auth: { username, password },
+			params: { skip: offset, limit, include_docs: true },
+		});
 
-    return response.data.rows.map((row: { doc: any }) => row.doc) || [];
-  } catch (error) {
-    console.error("Error fetching paginated data:", error);
-    throw error;
-  }
+		return response.data.rows.map((row: { doc: any }) => row.doc) || [];
+	} catch (error) {
+		console.error("Error fetching paginated data:", error);
+		throw error;
+	}
 };
 
 /**
@@ -165,36 +167,36 @@ export const fetchPaginatedDocument = async (
  * @param offset - The starting offset for pagination.
  */
 export const fetchDbInfoView = async (
-  dbName: string,
-  limit: number,
-  offset: number
+	dbName: string,
+	limit: number,
+	offset: number
 ): Promise<any> => {
-  try {
-    const response = await axios.get(
-      `${COUCHDB_URL}/${dbName}/_design/qq/_view/dbinfo`,
-      {
-        params: { limit, skip: offset },
-        auth: { username, password },
-        headers: { Accept: "application/json" },
-      }
-    );
+	try {
+		const response = await axios.get(
+			`${COUCHDB_URL}/${dbName}/_design/qq/_view/dbinfo`,
+			{
+				params: { limit, skip: offset },
+				auth: { username, password },
+				headers: { Accept: "application/json" },
+			}
+		);
 
-    return response.data;
-  } catch (error) {
-    console.error(
-      `Error fetching dbinfo view for ${dbName} with offset ${offset}:`,
-      error
-    );
-    throw error;
-  }
+		return response.data;
+	} catch (error) {
+		console.error(
+			`Error fetching dbinfo view for ${dbName} with offset ${offset}:`,
+			error
+		);
+		throw error;
+	}
 };
 
 export default {
-  fetchDatabases,
-  fetchDbInfo,
-  fetchBidsDocs,
-  fetchDocuments,
-  fetchDocumentById,
-  fetchPaginatedDocument,
-  fetchDbInfoView,
+	fetchDatabases,
+	fetchDbInfo,
+	fetchBidsDocs,
+	fetchDocuments,
+	fetchDocumentById,
+	fetchPaginatedDocument,
+	fetchDbInfoView,
 };

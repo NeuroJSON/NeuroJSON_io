@@ -203,10 +203,11 @@ const FullScreen = () => {
 			<Box
 				sx={{
 					width: "100%",
-					minHeight: "calc(100vh - 6rem)", // Ensure full height minus the AppBar height (6rem)
+					height: "calc(100vh - 6rem)",
 					boxSizing: "border-box",
 					marginTop: "6rem",
-					background: Colors.primary.light,
+					background: "#f0f0f0",
+					overflow: "auto",
 				}}
 			>
 				<Outlet />
