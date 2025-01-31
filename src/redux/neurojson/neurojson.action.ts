@@ -1,9 +1,5 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import {
-	fetchDocumentById,
-	fetchDocuments,
-	fetchPaginatedDocument,
-} from "services/couchDb.service";
+import { fetchDocuments } from "services/couchDb.service";
 import { NeurojsonService } from "services/neurojson.service";
 
 export const fetchRegistry = createAsyncThunk(
@@ -84,7 +80,8 @@ export const fetchDocumentDetails = createAsyncThunk(
 		{ rejectWithValue }
 	) => {
 		try {
-			const data = await fetchDocumentById(dbName, docId);
+			const data = await NeurojsonService.getDocumentById(dbName, docId);
+			console.log(data);
 			return data;
 		} catch (error: any) {
 			console.error("Failed to fetch document details:", error);

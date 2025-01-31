@@ -1,16 +1,11 @@
 import {
-	fetchDocumentDetails,
 	fetchRegistry,
 	loadAllDocuments,
 	loadPaginatedData,
 	fetchDbInfo,
+	fetchDocumentDetails,
 } from "./neurojson.action";
-import {
-	DBDatafields,
-	DBParticulars,
-	INeuroJsonState,
-	Row,
-} from "./types/neurojson.interface";
+import { DBDatafields, INeuroJsonState } from "./types/neurojson.interface";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 const initialState: INeuroJsonState = {

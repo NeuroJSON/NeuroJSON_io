@@ -23,9 +23,11 @@ import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import RoutesEnum from "types/routes.enum";
 
 const DatasetPage: React.FC = () => {
+	const navigate = useNavigate();
 	const { dbName } = useParams<{ dbName: string }>();
 	const dispatch = useAppDispatch();
 	const { loading, error, data, limit, hasMore } = useAppSelector(
@@ -188,29 +190,30 @@ const DatasetPage: React.FC = () => {
 								}}
 							>
 								<CardContent sx={{ flex: 1 }}>
-									<Typography
-										variant="h2"
-										component="div"
-										sx={{ fontSize: "1.25rem", mb: 1 }}
+									<Button
+										onClick={() =>
+											navigate(`${RoutesEnum.DATABASES}/${dbName}/${doc.id}`)
+										}
+										sx={{
+											fontSize: "1.25rem",
+											margin: 0,
+											color: Colors.primary.main,
+											textTransform: "none",
+											justifyContent: "flex-start",
+										}}
 									>
-										<Link
-											href={`/db/${dbName}/${doc.id}`}
-											underline="hover"
-											sx={{ color: Colors.primary.main }}
-										>
-											{doc.value.name || "Untitled"}
-										</Link>
-									</Typography>
+										{doc.value.name || "Untitled"}
+									</Button>
 
 									<Typography
 										color={Colors.textSecondary}
 										variant="body2"
-										sx={{ mb: 2 }}
+										sx={{ mb: 2, marginLeft: 1 }}
 									>
 										ID: {doc.id}
 									</Typography>
 
-									<Stack spacing={2}>
+									<Stack spacing={2} margin={1}>
 										<Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
 											{doc.value.subj && (
 												<Chip

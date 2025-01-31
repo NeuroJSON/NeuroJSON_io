@@ -27,4 +27,18 @@ export const NeurojsonService = {
 
 		return response.data;
 	},
+	getDocumentById: async (dbName: string, documentId: string): Promise<any> => {
+		try {
+			console.log(`${baseURL}/${dbName}/${documentId}`);
+			const response = await api.get(`${baseURL}/${dbName}/${documentId}`);
+			console.log(response.data);
+			return response.data;
+		} catch (error) {
+			console.error(
+				`Error fetching document with ID ${documentId} from ${dbName}:`,
+				error
+			);
+			throw error;
+		}
+	},
 };

@@ -1,4 +1,3 @@
-import { fetchDocumentById } from "../services/couchDb.service";
 import {
 	Box,
 	Typography,
@@ -8,9 +7,14 @@ import {
 	Card,
 	CardContent,
 } from "@mui/material";
+import theme, { Colors } from "design/theme";
+import { useAppDispatch } from "hooks/useAppDispatch";
+import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect, useState } from "react";
 import ReactJson from "react-json-view";
 import { useParams, useNavigate } from "react-router-dom";
+import { fetchDocumentDetails } from "redux/neurojson/neurojson.action";
+import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
 
 interface ExternalDataLink {
 	name: string;
@@ -22,9 +26,12 @@ interface ExternalDataLink {
 const DatasetDetailPage: React.FC = () => {
 	const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
 	const navigate = useNavigate();
-	const [document, setDocument] = useState<any>(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
+	const dispatch = useAppDispatch();
+	const {
+		selectedDocument: document,
+		loading,
+		error,
+	} = useAppSelector(NeurojsonSelector);
 	const [externalLinks, setExternalLinks] = useState<ExternalDataLink[]>([]);
 
 	// Recursive function to find `_DataLink_`
@@ -35,22 +42,21 @@ const DatasetDetailPage: React.FC = () => {
 			for (const key in obj) {
 				if (obj.hasOwnProperty(key)) {
 					if (key === "_DataLink_" && typeof obj[key] === "string") {
-						// Use regex to remove anything starting from ':$' (non-greedy)
-						let correctedUrl = obj[key].replace(/:\$.*$/, ""); // Replace `:$<anything>` with ''
+						let correctedUrl = obj[key].replace(/:\$.*$/, "");
 
-						const sizeMatch = obj[key].match(/size=(\d+)/); // Extract size from the link
+						const sizeMatch = obj[key].match(/size=(\d+)/);
 						const size = sizeMatch
 							? `${(parseInt(sizeMatch[1], 10) / 1024 / 1024).toFixed(2)} MB`
 							: "Unknown Size";
 
-						const subMatch = path.match(/sub-\d+/); // Match the sub-field path
+						const subMatch = path.match(/sub-\d+/);
 						const subPath = subMatch ? subMatch[0] : "Unknown Sub";
 
 						links.push({
 							name: `NIFTIData (${size}) [/${subPath}]`,
 							size,
 							path: subPath,
-							url: correctedUrl, // Use the corrected URL
+							url: correctedUrl,
 						});
 					} else if (typeof obj[key] === "object") {
 						links.push(...extractDataLinks(obj[key], `${path}/${key}`));
@@ -64,27 +70,21 @@ const DatasetDetailPage: React.FC = () => {
 
 	useEffect(() => {
 		const fetchData = async () => {
-			try {
-				setError(null);
-				setLoading(true);
-				if (dbName && docId) {
-					const data = await fetchDocumentById(dbName, docId);
-					setDocument(data);
-
-					// Extract external links
-					const links = extractDataLinks(data, "");
-					setExternalLinks(links);
-				}
-			} catch (err) {
-				console.error("Error fetching document:", err);
-				setError("Failed to load dataset details. Please try again.");
-			} finally {
-				setLoading(false);
+			if (dbName && docId) {
+				await dispatch(fetchDocumentDetails({ dbName, docId }));
 			}
 		};
 
 		fetchData();
-	}, [dbName, docId]);
+	}, [dbName, docId, dispatch]);
+
+	useEffect(() => {
+		if (document) {
+			// Extract external links
+			const links = extractDataLinks(document, "");
+			setExternalLinks(links);
+		}
+	}, [document]);
 
 	if (loading) {
 		return (
@@ -96,7 +96,7 @@ const DatasetDetailPage: React.FC = () => {
 					height: "100vh",
 				}}
 			>
-				<CircularProgress />
+				<CircularProgress sx={{ color: Colors.primary.main }} />
 			</Box>
 		);
 	}
@@ -104,23 +104,24 @@ const DatasetDetailPage: React.FC = () => {
 	if (error) {
 		return (
 			<Box sx={{ textAlign: "center", padding: 4 }}>
-				<Alert severity="error">{error}</Alert>
+				<Alert severity="error" sx={{ color: Colors.error }}>
+					{error}
+				</Alert>
 			</Box>
 		);
 	}
 
 	return (
 		<Box sx={{ padding: 4 }}>
-			{/* Back Button */}
 			<Button
 				variant="contained"
-				onClick={() => navigate(-1)} // Navigates back to the previous page
-				sx={{ marginBottom: 2 }}
+				onClick={() => navigate(-1)}
+				sx={{ marginBottom: 2, backgroundColor: Colors.primary.main }}
 			>
 				Back
 			</Button>
 
-			<Typography variant="h4" gutterBottom>
+			<Typography variant="h4" gutterBottom color={Colors.primary.main}>
 				Dataset: {docId}
 			</Typography>
 
@@ -130,10 +131,9 @@ const DatasetDetailPage: React.FC = () => {
 					padding: 2,
 					borderRadius: "8px",
 					overflowX: "auto",
-					boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)", // Add some shadow for better UI
+					boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
 				}}
 			>
-				{/* Check if document is available */}
 				{document ? (
 					<ReactJson
 						src={document}
@@ -141,7 +141,7 @@ const DatasetDetailPage: React.FC = () => {
 						enableClipboard={true}
 						displayDataTypes={false}
 						displayObjectSize={true}
-						collapsed={2} // Collapse nested levels by default
+						collapsed={2}
 						style={{ fontSize: "14px", fontFamily: "monospace" }}
 					/>
 				) : (
@@ -151,35 +151,120 @@ const DatasetDetailPage: React.FC = () => {
 				)}
 			</Box>
 
-			{/* External Data Section */}
 			{externalLinks.length > 0 && (
 				<Box sx={{ marginTop: 4 }}>
-					<Typography variant="h5" gutterBottom>
+					<Typography variant="h5" gutterBottom color={Colors.primary.dark}>
 						External Data ({externalLinks.length} links)
 					</Typography>
 					<Box
 						sx={{
-							display: "grid",
-							gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-							gap: 2,
+							backgroundColor: Colors.white,
+							border: `1px solid ${Colors.lightGray}`,
+							borderRadius: "8px",
+							padding: 2,
+							boxShadow: "0px 2px 4px rgba(0,0,0,0.05)",
 						}}
 					>
-						{externalLinks.map((link, index) => (
-							<Card
-								key={index}
+						<Box
+							sx={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+								marginBottom: 2,
+								padding: "0 1rem",
+							}}
+						>
+							<Button
+								variant="contained"
 								sx={{
-									border: "1px solid #ddd",
-									borderRadius: "8px",
-									padding: 2,
-									backgroundColor: "#f9f9f9",
+									backgroundColor: Colors.primary.main,
+									"&:hover": {
+										backgroundColor: Colors.primary.dark,
+									},
 								}}
+								onClick={() =>
+									externalLinks.forEach((link) =>
+										window.open(link.url, "_blank")
+									)
+								}
 							>
-								<CardContent>
-									<Typography>{link.name}</Typography>
-									<Box sx={{ marginTop: 2, display: "flex", gap: 1 }}>
+								Download All Files
+							</Button>
+							<Typography variant="body2" color={Colors.textSecondary}>
+								Total Size:{" "}
+								{externalLinks
+									.reduce((acc, link) => {
+										const sizeMatch = link.size.match(/(\d+(\.\d+)?)/);
+										const sizeInMB = sizeMatch ? parseFloat(sizeMatch[1]) : 0;
+										return acc + sizeInMB;
+									}, 0)
+									.toFixed(2)}{" "}
+								MB
+							</Typography>
+						</Box>
+
+						<Box
+							sx={{
+								maxHeight: "400px",
+								overflowY: "auto",
+								"&::-webkit-scrollbar": {
+									width: "8px",
+								},
+								"&::-webkit-scrollbar-track": {
+									background: Colors.lightGray,
+									borderRadius: "4px",
+								},
+								"&::-webkit-scrollbar-thumb": {
+									background: Colors.primary.light,
+									borderRadius: "4px",
+								},
+							}}
+						>
+							{externalLinks.map((link, index) => (
+								<Box
+									key={index}
+									sx={{
+										padding: 2,
+										borderBottom:
+											index < externalLinks.length - 1
+												? `1px solid ${Colors.lightGray}`
+												: "none",
+										display: "flex",
+										justifyContent: "space-between",
+										alignItems: "center",
+										"&:hover": {
+											backgroundColor: Colors.lightGray,
+										},
+									}}
+								>
+									<Box>
+										<Typography
+											color={Colors.textPrimary}
+											sx={{
+												fontWeight: 500,
+												fontFamily: theme.typography.fontFamily,
+											}}
+										>
+											{link.name}
+										</Typography>
+										<Typography
+											variant="body2"
+											color={Colors.textSecondary}
+											sx={{ fontFamily: theme.typography.fontFamily }}
+										>
+											Size: {link.size}
+										</Typography>
+									</Box>
+									<Box sx={{ display: "flex", gap: 1 }}>
 										<Button
 											variant="contained"
 											size="small"
+											sx={{
+												backgroundColor: Colors.primary.main,
+												"&:hover": {
+													backgroundColor: Colors.primary.dark,
+												},
+											}}
 											onClick={() => window.open(link.url, "_blank")}
 										>
 											Download
@@ -187,29 +272,22 @@ const DatasetDetailPage: React.FC = () => {
 										<Button
 											variant="outlined"
 											size="small"
-											onClick={() => console.log("Preview", link.url)}
+											sx={{
+												color: Colors.secondary.main,
+												borderColor: Colors.secondary.main,
+												"&:hover": {
+													borderColor: Colors.secondary.dark,
+													color: Colors.secondary.dark,
+												},
+											}}
+											onClick={() => window.open(link.url)}
 										>
-											Preview
-										</Button>
-										<Button
-											variant="outlined"
-											size="small"
-											onClick={() => console.log("URL", link.url)}
-										>
-											URL
-										</Button>
-										<Button
-											variant="text"
-											size="small"
-											color="error"
-											onClick={() => console.log("Close", link.url)}
-										>
-											Close
+											View
 										</Button>
 									</Box>
-								</CardContent>
-							</Card>
-						))}
+								</Box>
+							))}
+						</Box>
 					</Box>
 				</Box>
 			)}

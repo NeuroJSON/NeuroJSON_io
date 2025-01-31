@@ -28,9 +28,6 @@ const Routes = () => (
 				element={<DatasetDetailPage />}
 			/>
 		</Route>
-
-		{/* Fallback Route */}
-		<Route path="*" element={<Navigate to={RoutesEnum.HOME} />} />
 	</RouterRoutes>
 );
 
