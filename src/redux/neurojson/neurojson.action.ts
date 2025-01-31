@@ -1,10 +1,5 @@
-import { LoadPaginatedDataPayload } from "./types/neurojson.interface";
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import {
-	fetchDocumentById,
-	fetchDocuments,
-	fetchPaginatedDocument,
-} from "services/couchDb.service";
+import { fetchDocuments } from "services/couchDb.service";
 import { NeurojsonService } from "services/neurojson.service";
 
 export const fetchRegistry = createAsyncThunk(
@@ -15,20 +10,51 @@ export const fetchRegistry = createAsyncThunk(
 	}
 );
 
+export const fetchDbInfo = createAsyncThunk(
+	"neurojson/fetchDbInfo",
+	async (dbName: string) => {
+		const response = await NeurojsonService.getDbInfo(dbName);
+		return response;
+	}
+);
+
 export const loadPaginatedData = createAsyncThunk(
 	"neurojson/loadPaginatedData",
 	async (
-		{ dbName, offset, limit }: LoadPaginatedDataPayload,
-		{ rejectWithValue }
+		{
+			dbName,
+			offset,
+			limit,
+		}: { dbName: string; offset: number; limit: number },
+		{ rejectWithValue, dispatch, getState }
 	) => {
 		try {
-			const dataChunk = await fetchPaginatedDocument(dbName, offset, limit);
+			// Get current state
+			const state = getState() as any;
+			const currentData = state.neurojson.data;
 
-			if (dataChunk.length === 0) {
+			// If there is data and dbName changed, reset data first
+			if (currentData.length > 0 && currentData[0]?.dbName !== dbName) {
+				dispatch({ type: "neurojson/resetData" });
+			}
+
+			const response = await NeurojsonService.getPaginatedData(
+				dbName,
+				offset,
+				limit
+			);
+
+			if (response.rows.length === 0) {
 				return rejectWithValue("No more data to load.");
 			}
 
-			return dataChunk;
+			// Add dbName to each row for tracking
+			response.rows = response.rows.map((row) => ({
+				...row,
+				dbName,
+			}));
+
+			return response;
 		} catch (error: any) {
 			return rejectWithValue(error.message || "Failed to load data.");
 		}
@@ -54,7 +80,8 @@ export const fetchDocumentDetails = createAsyncThunk(
 		{ rejectWithValue }
 	) => {
 		try {
-			const data = await fetchDocumentById(dbName, docId);
+			const data = await NeurojsonService.getDocumentById(dbName, docId);
+			console.log(data);
 			return data;
 		} catch (error: any) {
 			console.error("Failed to fetch document details:", error);
