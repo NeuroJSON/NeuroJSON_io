@@ -1,10 +1,4 @@
-import {
-	Box,
-	Typography,
-	Button,
-	Container,
-	CircularProgress,
-} from "@mui/material";
+import { Box, Typography, Button, Container } from "@mui/material";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -12,7 +6,6 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchRegistry } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
-import { Database } from "types/responses/registry.interface";
 
 const DatabasePage: React.FC = () => {
 	const navigate = useNavigate();
@@ -21,10 +14,9 @@ const DatabasePage: React.FC = () => {
 
 	useEffect(() => {
 		dispatch(fetchRegistry());
-		console.log(registry);
 	}, [dispatch]);
 
-	if (!registry || registry.length === 0) {
+	if (!registry || !Array.isArray(registry) || registry.length === 0) {
 		return (
 			<Container maxWidth="md">
 				<Box
@@ -66,35 +58,42 @@ const DatabasePage: React.FC = () => {
 						mt: 4,
 					}}
 				>
-					{registry.map((db) => (
-						<Button
-							key={db.id}
-							variant="contained"
-							sx={{
-								padding: 3,
-								textTransform: "none",
-								fontWeight: 600,
-								backgroundColor: Colors.primary.main,
-								color: Colors.white,
-								borderRadius: 2,
-								transition: "all 0.3s ease",
-								height: "100px",
-								display: "flex",
-								flexDirection: "column",
-								justifyContent: "center",
-								"&:hover": {
-									backgroundColor: Colors.primary.dark,
-									transform: "translateY(-2px)",
-									boxShadow: 3,
-								},
-							}}
-							onClick={() => navigate(`/databases/${db.id}`)}
-						>
-							<Typography variant="h6" component="span">
-								{db.name}
-							</Typography>
-						</Button>
-					))}
+					{registry.map((db) => {
+						if (!db?.id) {
+							console.warn("Database entry missing ID:", db);
+							return null;
+						}
+
+						return (
+							<Button
+								key={db.id}
+								variant="contained"
+								sx={{
+									padding: 3,
+									textTransform: "none",
+									fontWeight: 600,
+									backgroundColor: Colors.primary.main,
+									color: Colors.white,
+									borderRadius: 2,
+									transition: "all 0.3s ease",
+									height: "100px",
+									display: "flex",
+									flexDirection: "column",
+									justifyContent: "center",
+									"&:hover": {
+										backgroundColor: Colors.primary.dark,
+										transform: "translateY(-2px)",
+										boxShadow: 3,
+									},
+								}}
+								onClick={() => navigate(`/databases/${db.id}`)}
+							>
+								<Typography variant="h6" component="span">
+									{db.name || "Unnamed Database"}
+								</Typography>
+							</Button>
+						);
+					})}
 				</Box>
 			</Box>
 		</Container>

@@ -246,7 +246,9 @@ const DatasetPage: React.FC = () => {
 
 										<Typography variant="body2" color={Colors.textPrimary}>
 											<strong>Authors:</strong>{" "}
-											{doc.value.info?.Authors?.join(", ") || "Unknown"}
+											{Array.isArray(doc.value.info?.Authors)
+												? doc.value.info.Authors.join(", ")
+												: doc.value.info?.Authors || "Unknown"}
 										</Typography>
 
 										<Stack direction="row" spacing={2} alignItems="center">
