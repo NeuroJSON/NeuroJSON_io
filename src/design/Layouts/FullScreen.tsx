@@ -1,4 +1,4 @@
-import { AppBar, Box, Grid, Toolbar, Typography } from "@mui/material";
+import { AppBar, Box, Button, Grid, Toolbar, Typography } from "@mui/material";
 import { Colors } from "design/theme";
 import useIsLargeScreen from "hooks/useIsLargeScreen";
 import { Outlet, useNavigate } from "react-router-dom";
@@ -33,47 +33,83 @@ const FullScreen = () => {
 						sx={{ maxWidth: "100%" }}
 					>
 						<Grid item sm={12} md={12} lg={5}>
-							<Box
+							<Button
 								sx={{
 									display: "flex",
 									alignItems: "center",
 									justifyContent: "center",
 									flexDirection: "column",
 								}}
+								onClick={() => navigate("/")}
 							>
 								<Typography variant="h1" sx={{ color: Colors.white }}>
 									NeuroJSON.io
 								</Typography>
 								<Typography variant="h2">Free Data Worth Sharing</Typography>
-							</Box>
+							</Button>
 						</Grid>
 
 						{[
-							"Mission",
-							"Get Started",
-							"Contribute",
-							"Tools",
-							"Search",
-							"Forum",
-							"About",
-						].map((text) => (
+							{ text: "Mission", url: "https://neurojson.org/Doc/Start" },
+							{
+								text: "Get Started",
+								url: "https://neurojson.org/Doc/Start/User",
+							},
+							{
+								text: "Contribute",
+								url: "https://neurojson.org/Doc/Start/Contributor",
+							},
+							{ text: "Tools", url: "https://neurojson.org/#software" },
+							{ text: "Search", url: null },
+							{
+								text: "Forum",
+								url: "https://github.com/orgs/NeuroJSON/discussions",
+							},
+							{ text: "About", url: "https://neurojson.org/#people" },
+						].map(({ text, url }) => (
 							<Grid item sm={3} md={2} lg={1} key={text} mt={"3rem"}>
-								<Typography
-									align="center"
-									fontWeight={600}
-									lineHeight={"1.5rem"}
-									letterSpacing={"0.05rem"}
-									sx={{
-										transition: "color 0.3s ease, transform 0.3s ease",
-										"&:hover": {
-											color: Colors.white,
-											transform: "scale(1.05)",
-											cursor: "pointer",
-										},
-									}}
-								>
-									{text}
-								</Typography>
+								{url ? (
+									<a
+										href={url}
+										target="_blank"
+										rel="noopener noreferrer"
+										style={{ textDecoration: "none" }}
+									>
+										<Typography
+											align="center"
+											fontWeight={600}
+											lineHeight={"1.5rem"}
+											letterSpacing={"0.05rem"}
+											sx={{
+												transition: "color 0.3s ease, transform 0.3s ease",
+												"&:hover": {
+													color: Colors.white,
+													transform: "scale(1.05)",
+													cursor: "pointer",
+												},
+											}}
+										>
+											{text}
+										</Typography>
+									</a>
+								) : (
+									<Typography
+										align="center"
+										fontWeight={600}
+										lineHeight={"1.5rem"}
+										letterSpacing={"0.05rem"}
+										sx={{
+											transition: "color 0.3s ease, transform 0.3s ease",
+											"&:hover": {
+												color: Colors.white,
+												transform: "scale(1.05)",
+												cursor: "pointer",
+											},
+										}}
+									>
+										{text}
+									</Typography>
+								)}
 							</Grid>
 						))}
 					</Grid>

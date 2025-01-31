@@ -1,11 +1,12 @@
 import {
-	fetchDocumentDetails,
 	fetchRegistry,
 	loadAllDocuments,
 	loadPaginatedData,
+	fetchDbInfo,
+	fetchDocumentDetails,
 } from "./neurojson.action";
-import { INeuroJsonState } from "./types/neurojson.interface";
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { DBDatafields, INeuroJsonState } from "./types/neurojson.interface";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 const initialState: INeuroJsonState = {
 	loading: false,
@@ -28,7 +29,7 @@ const neurojsonSlice = createSlice({
 			state.offset = 0;
 			state.error = null;
 			state.loading = false;
-			state.hasMore = true; // Reset pagination availability
+			state.hasMore = true;
 		},
 		setLoading: (state, action: PayloadAction<boolean>) => {
 			state.loading = action.payload;
@@ -42,20 +43,28 @@ const neurojsonSlice = createSlice({
 			})
 			.addCase(
 				loadPaginatedData.fulfilled,
-				(state, action: PayloadAction<any[]>) => {
-					const uniqueEntries = action.payload.filter(
+				(state, action: PayloadAction<DBDatafields>) => {
+					// Check if we received fewer items than the limit, indicating we've reached the end
+					console.log(action.payload.total_rows);
+					state.limit = action.payload.total_rows;
+					const reachedEnd = action.payload.rows.length < state.limit;
+
+					// Filter out duplicates while preserving order
+					const uniqueEntries = action.payload.rows.filter(
 						(newItem) =>
-							!state.data.some(
-								(existingItem) => existingItem._id === newItem._id
-							)
+							!state.data.some((existingItem) => existingItem.id === newItem.id)
 					);
+
 					state.loading = false;
 
 					if (uniqueEntries.length > 0) {
+						// Append new unique entries to existing data
 						state.data = [...state.data, ...uniqueEntries];
 						state.offset += uniqueEntries.length;
-						state.hasMore = true;
+						// Only set hasMore to true if we haven't reached the end
+						state.hasMore = !reachedEnd;
 					} else {
+						// If no new unique entries were found, we've reached the end
 						state.hasMore = false;
 					}
 				}
@@ -63,7 +72,7 @@ const neurojsonSlice = createSlice({
 			.addCase(loadPaginatedData.rejected, (state, action) => {
 				state.loading = false;
 				state.error = action.payload as string;
-				state.hasMore = false; // No more data to load
+				state.hasMore = false;
 			})
 			.addCase(loadAllDocuments.pending, (state) => {
 				state.loading = true;
@@ -108,6 +117,17 @@ const neurojsonSlice = createSlice({
 			.addCase(fetchRegistry.pending, (state) => {
 				state.loading = true;
 				state.error = null;
+			})
+			.addCase(fetchDbInfo.pending, (state) => {
+				state.loading = true;
+				state.error = null;
+			})
+			.addCase(fetchDbInfo.fulfilled, (state, action: PayloadAction<any>) => {
+				state.loading = false;
+			})
+			.addCase(fetchDbInfo.rejected, (state, action) => {
+				state.loading = false;
+				state.error = action.payload as string;
 			});
 	},
 });

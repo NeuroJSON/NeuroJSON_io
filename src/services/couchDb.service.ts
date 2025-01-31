@@ -108,38 +108,6 @@ export const fetchDocuments = async (dbName: string): Promise<any[]> => {
 	}
 };
 
-/**
- * Fetches a specific document by its ID from a given database.
- *
- * @param dbName - The name of the database.
- * @param documentId - The ID of the document to fetch.
- */
-export const fetchDocumentById = async (
-	dbName: string,
-	documentId: string
-): Promise<any> => {
-	try {
-		const response = await axios.get(`${COUCHDB_URL}/${dbName}/${documentId}`, {
-			auth: { username, password },
-		});
-
-		return response.data;
-	} catch (error) {
-		console.error(
-			`Error fetching document with ID ${documentId} from ${dbName}:`,
-			error
-		);
-		throw error;
-	}
-};
-
-/**
- * Fetches paginated data from a specific database using `_all_docs`.
- *
- * @param dbName - The name of the database.
- * @param offset - The starting offset for pagination.
- * @param limit - The number of documents to fetch per page.
- */
 export const fetchPaginatedDocument = async (
 	dbName: string,
 	offset: number,
@@ -196,7 +164,6 @@ export default {
 	fetchDbInfo,
 	fetchBidsDocs,
 	fetchDocuments,
-	fetchDocumentById,
 	fetchPaginatedDocument,
 	fetchDbInfoView,
 };
