@@ -29,11 +29,8 @@ export const loadPaginatedData = createAsyncThunk(
 		{ rejectWithValue, dispatch, getState }
 	) => {
 		try {
-			// Get current state
 			const state = getState() as any;
 			const currentData = state.neurojson.data;
-
-			// If there is data and dbName changed, reset data first
 			if (currentData.length > 0 && currentData[0]?.dbName !== dbName) {
 				dispatch({ type: "neurojson/resetData" });
 			}
@@ -48,7 +45,6 @@ export const loadPaginatedData = createAsyncThunk(
 				return rejectWithValue("No more data to load.");
 			}
 
-			// Add dbName to each row for tracking
 			response.rows = response.rows.map((row) => ({
 				...row,
 				dbName,
@@ -81,10 +77,8 @@ export const fetchDocumentDetails = createAsyncThunk(
 	) => {
 		try {
 			const data = await NeurojsonService.getDocumentById(dbName, docId);
-			console.log(data);
 			return data;
 		} catch (error: any) {
-			console.error("Failed to fetch document details:", error);
 			return rejectWithValue("Failed to fetch document details.");
 		}
 	}
