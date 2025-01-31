@@ -1,6 +1,7 @@
 import ForceGraph3D from "3d-force-graph";
 import { Colors } from "design/theme";
 import React, { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import {
 	CSS2DObject,
@@ -20,6 +21,7 @@ export interface NodeObject {
 }
 
 const NeuroJsonGraph: React.FC<{ registry: Database[] }> = ({ registry }) => {
+	const navigate = useNavigate();
 	const graphRef = useRef<HTMLDivElement>(null);
 
 	// Function to determine color and size based on node size
@@ -76,33 +78,67 @@ const NeuroJsonGraph: React.FC<{ registry: Database[] }> = ({ registry }) => {
 			.graphData(graphData)
 			.nodeRelSize(2)
 			.nodeColor((node) => (node as NodeObject).color)
-			.linkWidth(2) // Set the thickness of the links
-			.backgroundColor("rgba(0,0,0,0)") // Transparent background
+			.linkWidth(2)
+			.backgroundColor("rgba(0,0,0,0)")
 			.nodeLabel("name")
+			.onNodeHover((node) => {
+				// Change cursor on hover
+				graphRef.current!.style.cursor = node ? "pointer" : "default";
+			})
+			.onNodeClick((node) => {
+				const castNode = node as NodeObject;
+				navigate(`/databases/${castNode.id}`);
+			})
 			.nodeThreeObject((node) => {
 				const castNode = node as NodeObject;
+
+				// Create a group to hold sphere and glow
+				const group = new THREE.Group();
 
 				// Create a 3D sphere for the node
 				const sphereGeometry = new THREE.SphereGeometry(
 					(castNode as any).size,
 					16,
 					16
-				); // Dynamic radius
+				);
 				const sphereMaterial = new THREE.MeshBasicMaterial({
 					color: (castNode as any).color,
 				});
 				const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+				group.add(sphere);
+
+				// Create glow effect
+				const glowGeometry = new THREE.SphereGeometry(
+					(castNode as any).size * 1.2,
+					16,
+					16
+				);
+				const glowMaterial = new THREE.MeshBasicMaterial({
+					color: (castNode as any).color,
+					transparent: true,
+					opacity: 0.2,
+				});
+				const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+
+				// Animate glow
+				const animate = () => {
+					glow.scale.setScalar(1 + Math.sin(Date.now() * 0.003) * 0.1);
+					requestAnimationFrame(animate);
+				};
+				animate();
+
+				group.add(glow);
 
 				// Add label as CSS2DObject
 				const label = new CSS2DObject(document.createElement("div"));
 				label.element.textContent = castNode.dbname || "Unnamed";
 				label.element.style.color = Colors.primary.main;
 				label.element.style.fontSize = "12px";
-				label.element.style.pointerEvents = "none"; // Prevent interaction
-				label.position.set(0, 10, 0); // Position label above the node
-				sphere.add(label);
+				label.element.style.pointerEvents = "none";
+				label.position.set(0, 10, 0);
+				group.add(label);
 
-				return sphere;
+				return group;
 			});
 
 		// Initialize CSS2DRenderer for 2D labels
