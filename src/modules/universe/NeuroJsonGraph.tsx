@@ -18,9 +18,10 @@ export interface NodeObject {
 	support: string;
 	url: string;
 	datasets: number;
+	standard: string[]; // define type of standard property 
 }
 
-const NeuroJsonGraph: React.FC<{ registry: Database[] }> = ({ registry }) => {
+const NeuroJsonGraph: React.FC<{ registry: Database[], onNodeClick?: (node: NodeObject) => void }> = ({ registry, onNodeClick }) => {
 	const navigate = useNavigate();
 	const graphRef = useRef<HTMLDivElement>(null);
 
@@ -57,6 +58,7 @@ const NeuroJsonGraph: React.FC<{ registry: Database[] }> = ({ registry }) => {
 					url: db.url,
 					datasets: db.datasets,
 					size: size,
+					standard: db.standard || [],// add standard property
 				};
 			}),
 			links: registry.flatMap((db, index) => {
@@ -87,7 +89,10 @@ const NeuroJsonGraph: React.FC<{ registry: Database[] }> = ({ registry }) => {
 			})
 			.onNodeClick((node) => {
 				const castNode = node as NodeObject;
-				navigate(`/databases/${castNode.id}`);
+				if (onNodeClick) {
+					onNodeClick(castNode);
+				}
+				// navigate(`/databases/${castNode.id}`);
 			})
 			.nodeThreeObject((node) => {
 				const castNode = node as NodeObject;
