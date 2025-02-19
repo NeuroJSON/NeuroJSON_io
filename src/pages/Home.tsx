@@ -10,19 +10,31 @@ import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import NeuroJsonGraph from "modules/universe/NeuroJsonGraph";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchRegistry } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
+import NodeInfoPanel from "components/NodeInfoPanel";
+import { NodeObject } from "modules/universe/NeuroJsonGraph";
 
 const Home: React.FC = () => {
 	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
 	const { registry, loading } = useAppSelector(NeurojsonSelector);
 
+	// State for selected node and panel visibility
+	const [selectedNode, setSelectedNode] = useState<NodeObject | null>(null);
+	const [panelOpen, setPanelOpen] = useState(false);
+
 	useEffect(() => {
 		dispatch(fetchRegistry());
 	}, [dispatch]);
+
+	// Handle node click: Set selected node and open panel
+	const handleNodeClick = (node: NodeObject) => {
+		setSelectedNode(node);
+		setPanelOpen(true);
+	};
 
 	return (
 		<Container
@@ -47,7 +59,7 @@ const Home: React.FC = () => {
 						<CircularProgress sx={{ color: Colors.primary.main }} />
 					</Box>
 				) : registry && registry.length > 0 ? (
-					<NeuroJsonGraph registry={registry} />
+					<NeuroJsonGraph registry={registry} onNodeClick={handleNodeClick} />
 				) : (
 					<Box sx={{ textAlign: "center", mt: 4 }}>
 						<Typography variant="h6" color={Colors.textSecondary}>
@@ -101,6 +113,8 @@ const Home: React.FC = () => {
 					</Button>
 				</Box>
 			</Box>
+
+			<NodeInfoPanel open={panelOpen} onClose={() => setPanelOpen(false)} nodeData={selectedNode} />
 		</Container>
 	);
 };
