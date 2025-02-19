@@ -17,6 +17,7 @@ const initialState: INeuroJsonState = {
 	limit: 100,
 	hasMore: true,
 	registry: null,
+	dbInfo: null, // add dbInfo in neurojson.interface.ts
 };
 
 const neurojsonSlice = createSlice({
@@ -124,6 +125,7 @@ const neurojsonSlice = createSlice({
 			})
 			.addCase(fetchDbInfo.fulfilled, (state, action: PayloadAction<any>) => {
 				state.loading = false;
+				state.dbInfo = action.payload; // store database info in Redux
 			})
 			.addCase(fetchDbInfo.rejected, (state, action) => {
 				state.loading = false;
