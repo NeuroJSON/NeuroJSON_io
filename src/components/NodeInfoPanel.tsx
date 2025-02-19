@@ -1,8 +1,14 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Box, Typography, IconButton, Drawer, Grid, Card, CardContent, CardActions, Button } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { NodeObject } from "modules/universe/NeuroJsonGraph";
 import { Colors} from "design/theme";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch } from "hooks/useAppDispatch";
+import { useAppSelector } from "hooks/useAppSelector";
+import { RootState } from "redux/store";
+import { fetchDbInfo } from "redux/neurojson/neurojson.action";
+
 
 interface NodeInfoPanelProps {
     open: boolean;
@@ -11,13 +17,25 @@ interface NodeInfoPanelProps {
 }
 
 const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }) => {
-    console.log("nodeData:", nodeData);
+    // console.log("nodeData:", nodeData);
+    const navigate = useNavigate();
+    const dispatch = useAppDispatch();
+    const dbInfo = useAppSelector((state: RootState) => state.neurojson.dbInfo);
+    const loading = useAppSelector((state: RootState) => state.neurojson.loading);
+    console.log("dbInfo", dbInfo);
+
+    useEffect(() => {
+        if (nodeData?.id) {
+            dispatch(fetchDbInfo(nodeData.id.toLowerCase()));
+        }
+    }, [nodeData, dispatch])
+
     return (
         <Drawer
         anchor="right"
-        // open={true}
         open={open}
         onClose={onClose}
+        // container={document.body}
         sx={{
             "& .MuiDrawer-paper": {
                 width: "30%",
@@ -53,34 +71,40 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
 
                     <Grid item xs={12}>
                         <Typography>Data Types</Typography>
-                        <Typography>{nodeData.datatype.join(",")}</Typography>
+                        <Typography>{nodeData.datatype.join(", ")}</Typography>
                     </Grid>
 
                     <Grid item xs={12}>
                         <Typography>Data Standards</Typography>
-                        <Typography>{nodeData.standard.join(",")}</Typography>
+                        <Typography>{nodeData.standard.join(", ")}</Typography>
                     </Grid>
 
                     <Grid item xs={12}>
                         <Typography>Upstream Contact</Typography>
-                        <Typography>{nodeData.support}</Typography>
+                        <a href={`mailto:${nodeData.support}`} style={{ textDecoration: "none", color: "blue"}}>
+                            <Typography>{nodeData.support}</Typography>
+                        </a>
                     </Grid>
 
                     <Grid item xs={12}>
                         <Typography>NeuroJSON-Cuated Datasets</Typography>
+                        {dbInfo?(<Typography>{dbInfo.doc_count - 1}</Typography>) : "Coming soon "}
                     </Grid>
                 </Grid>
                 {/*database info card*/}
-                <Card sx={{ mt:2, backgroundColor: Colors.white }}>
+                {dbInfo? (
+                    <Card sx={{ mt:2, backgroundColor: Colors.white }}>
                     <CardContent>
                         <Grid container spacing={1}>
                             <Grid item xs={12}>
                                 <Typography>NeuroJSON.io Database Name</Typography>
-                                <Typography></Typography>
+                                <Typography>{dbInfo.db_name}</Typography>
                             </Grid>
                             <Grid item xs={12}>
                                 <Typography>REST-API URL</Typography>
-                                <Typography></Typography>
+                                <a href={`https://neurojson.io:7777/${dbInfo.db_name}`} target="_blank" rel="noopener noreferrer">
+                                    {`https://neurojson.io:7777/${dbInfo.db_name}`}
+                                </a>
                             </Grid>
                             <Grid item xs={12}>
                                 <Typography>Database Creation Time</Typography>
@@ -109,6 +133,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
                                             backgroundColor: Colors.primary.dark,
                                         },
                                     }}
+                                    onClick={() => navigate(`/databases/${nodeData.id}`)}
                                 >
                                     Browse Database
                                 </Button>
@@ -154,6 +179,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
                                             backgroundColor: Colors.primary.dark,
                                         },
                                     }}
+                                    onClick={() => window.open(`https://github.com/NeuroJSON-io/${nodeData.id}`, "_blank", "noopener noreferrer")}
                                 >
                                     DownLoad Database
                                 </Button>
@@ -162,18 +188,13 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
                     </CardActions>
 
                 </Card>
-                {/* <Box display="flex" flexDirection="column">
-                    <Box>
-                        <Typography><strong>NeuroJSON.io Database Name</strong></Typography>
-                        <Typography><strong>REST-API URL</strong></Typography>
-                        <Typography><strong>Database Creation Time</strong></Typography>
-                        <Typography><strong>Searchable Database Size</strong></Typography>
-                        <Typography><strong>DatabaseDisk Size_compressed</strong></Typography>
-                    </Box>
-                </Box> */}
+                ) : (
+                    <Typography>Select a node to see database info.</Typography>
+                )}
+                
                 </>
                 ) : (
-                    <Typography>Select a node to see metadata.</Typography>
+                    <Typography>Select a node to see database info.</Typography>
                 )}
             </Box>
         </Drawer>

@@ -9,6 +9,7 @@ export interface INeuroJsonState {
 	offset: number;
 	limit: number;
 	hasMore: boolean;
+	dbInfo: DBParticulars | null; // add dbInfo type 
 }
 
 export interface DBParticulars {
