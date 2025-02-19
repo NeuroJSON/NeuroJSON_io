@@ -16,8 +16,25 @@ interface NodeInfoPanelProps {
     nodeData: NodeObject | null;
 }
 
+// helper function to covert the database size format
+const formatSize = (bytes?: number): string =>{
+    if (bytes === undefined) return "N/A";
+    if (bytes >= 1_073_741_824) {
+        return `${Math.floor(bytes / 1_073_741_824)} Gb`;
+    } else if (bytes >= 1_048_576) {
+        return `${Math.floor(bytes / 1_048_576)} Mb`;
+    } else if (bytes >= 1024) {
+        return `${Math.floor(bytes / 1024)} Kb`;
+    } else {
+        return `${bytes} Bytes`; 
+    }
+};
+
+// 1 Kilobyte (KB)  = 1,024 Bytes
+// 1 Megabyte (MB)  = 1,024 KB      = 1,048,576 Bytes (1024*1024)
+// 1 Gigabyte (GB)  = 1,024 MB      = 1,073,741,824 Bytes (1024*1024*1024)
+
 const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }) => {
-    // console.log("nodeData:", nodeData);
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const dbInfo = useAppSelector((state: RootState) => state.neurojson.dbInfo);
@@ -35,7 +52,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
         anchor="right"
         open={open}
         onClose={onClose}
-        // container={document.body}
+        container={document.body}
         sx={{
             "& .MuiDrawer-paper": {
                 width: "30%",
@@ -112,11 +129,11 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
                             </Grid>
                             <Grid item xs={12}>
                                 <Typography>Searchable Database Size</Typography>
-                                <Typography></Typography>
+                                <Typography>{formatSize(dbInfo.sizes?.external)}</Typography>
                             </Grid>
                             <Grid item xs={12}>
-                                <Typography>DatabaseDisk Size_compressed</Typography>
-                                <Typography></Typography>
+                                <Typography>DatabaseDisk Size (compressed)</Typography>
+                                <Typography>{formatSize(dbInfo.sizes?.file)}</Typography>
                             </Grid>
                         </Grid>
                     </CardContent>
