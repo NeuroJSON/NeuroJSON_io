@@ -16,7 +16,9 @@ interface NodeInfoPanelProps {
     nodeData: NodeObject | null;
 }
 
-// helper function to covert the database size format
+// helper functions
+
+// covert the database size format
 const formatSize = (bytes?: number): string =>{
     if (bytes === undefined) return "N/A";
     if (bytes >= 1_073_741_824) {
@@ -29,10 +31,24 @@ const formatSize = (bytes?: number): string =>{
         return `${bytes} Bytes`; 
     }
 };
-
 // 1 Kilobyte (KB)  = 1,024 Bytes
 // 1 Megabyte (MB)  = 1,024 KB      = 1,048,576 Bytes (1024*1024)
 // 1 Gigabyte (GB)  = 1,024 MB      = 1,073,741,824 Bytes (1024*1024*1024)
+
+// convert the date format
+const dateCoverter = (date?: string): string => {
+    if (date === undefined) return "N/A";
+    const newDate = new Date(Number(date) * 1000);
+    const result = new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        second: "numeric"
+    }).format(newDate);
+    return result;
+}
 
 const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }) => {
     const navigate = useNavigate();
@@ -125,7 +141,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
                             </Grid>
                             <Grid item xs={12}>
                                 <Typography>Database Creation Time</Typography>
-                                <Typography></Typography>
+                                <Typography>{dateCoverter(dbInfo.instance_start_time)}</Typography>
                             </Grid>
                             <Grid item xs={12}>
                                 <Typography>Searchable Database Size</Typography>
