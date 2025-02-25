@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react"; // add useRef
 import { Box, Typography, IconButton, Drawer, Grid, Card, CardContent, CardActions, Button } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { NodeObject } from "modules/universe/NeuroJsonGraph";
@@ -54,6 +54,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
     const dbInfo = useAppSelector((state: RootState) => state.neurojson.dbInfo);
+    // const drawerRef = useRef<HTMLDivElement>(null); // Reference to the Drawer content
     // const loading = useAppSelector((state: RootState) => state.neurojson.loading);
     // console.log("dbInfo", dbInfo);
 
@@ -61,7 +62,9 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
         if (nodeData?.id) {
             dispatch(fetchDbInfo(nodeData.id.toLowerCase()));
         }
-    }, [nodeData, dispatch])
+    }, [nodeData, dispatch]);
+
+    
 
     return (
         <Drawer
