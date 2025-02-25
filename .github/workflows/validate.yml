@@ -5,6 +5,10 @@ on:
     branches:
       - "*"
 
+  push:
+    branches:
+      - main  # Runs on push to main
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -26,3 +30,13 @@ jobs:
 
       - name: Run Security Audit
         run: yarn audit --level moderate
+
+      - name: Copy files to the server via SFTP
+        if: github.ref == 'refs/heads/main'
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          server: ${{ secrets.NEUROJ_SERVER }}
+          username: ${{ secrets.NEUROJ_SERVER_USER }}
+          ssh_private_key: ${{ secrets.NEUROJ_SERVER_SSH_KEY }}
+          local_path: "./*" 
+          remote_path: "/var/www/html/dev/${{ github.actor }}/"
