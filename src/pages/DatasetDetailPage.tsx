@@ -1,3 +1,5 @@
+import ExpandLess from "@mui/icons-material/ExpandLess";
+import ExpandMore from "@mui/icons-material/ExpandMore";
 import {
 	Box,
 	Typography,
@@ -6,6 +8,7 @@ import {
 	Button,
 	Card,
 	CardContent,
+	Collapse,
 } from "@mui/material";
 import theme, { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
@@ -33,6 +36,7 @@ const DatasetDetailPage: React.FC = () => {
 		error,
 	} = useAppSelector(NeurojsonSelector);
 	const [externalLinks, setExternalLinks] = useState<ExternalDataLink[]>([]);
+	const [isExpanded, setIsExpanded] = useState(false);
 
 	// Recursive function to find `_DataLink_`
 	const extractDataLinks = (obj: any, path: string): ExternalDataLink[] => {
@@ -150,145 +154,170 @@ const DatasetDetailPage: React.FC = () => {
 					</Typography>
 				)}
 			</Box>
-
 			{externalLinks.length > 0 && (
 				<Box sx={{ marginTop: 4 }}>
-					<Typography variant="h5" gutterBottom color={Colors.primary.dark}>
-						External Data ({externalLinks.length} links)
-					</Typography>
 					<Box
+						onClick={() => setIsExpanded(!isExpanded)}
 						sx={{
-							backgroundColor: Colors.white,
-							border: `1px solid ${Colors.lightGray}`,
-							borderRadius: "8px",
-							padding: 2,
-							boxShadow: "0px 2px 4px rgba(0,0,0,0.05)",
+							display: "flex",
+							alignItems: "center",
+							cursor: "pointer",
+							marginBottom: 2,
 						}}
 					>
-						<Box
-							sx={{
-								display: "flex",
-								justifyContent: "space-between",
-								alignItems: "center",
-								marginBottom: 2,
-								padding: "0 1rem",
-							}}
+						<Typography
+							variant="h5"
+							color={Colors.primary.dark}
+							sx={{ marginRight: 1 }}
 						>
-							<Button
-								variant="contained"
-								sx={{
-									backgroundColor: Colors.primary.main,
-									"&:hover": {
-										backgroundColor: Colors.primary.dark,
-									},
-								}}
-								onClick={() =>
-									externalLinks.forEach((link) =>
-										window.open(link.url, "_blank")
-									)
-								}
-							>
-								Download All Files
-							</Button>
-							<Typography variant="body2" color={Colors.textSecondary}>
-								Total Size:{" "}
-								{externalLinks
-									.reduce((acc, link) => {
-										const sizeMatch = link.size.match(/(\d+(\.\d+)?)/);
-										const sizeInMB = sizeMatch ? parseFloat(sizeMatch[1]) : 0;
-										return acc + sizeInMB;
-									}, 0)
-									.toFixed(2)}{" "}
-								MB
-							</Typography>
-						</Box>
+							External Data ({externalLinks.length} links)
+						</Typography>
+						{isExpanded ? <ExpandLess /> : <ExpandMore />}
+					</Box>
 
+					<Collapse in={isExpanded}>
 						<Box
 							sx={{
-								maxHeight: "400px",
-								overflowY: "auto",
-								"&::-webkit-scrollbar": {
-									width: "8px",
-								},
-								"&::-webkit-scrollbar-track": {
-									background: Colors.lightGray,
-									borderRadius: "4px",
-								},
-								"&::-webkit-scrollbar-thumb": {
-									background: Colors.primary.light,
-									borderRadius: "4px",
-								},
+								backgroundColor: Colors.white,
+								border: `1px solid ${Colors.lightGray}`,
+								borderRadius: "8px",
+								padding: 2,
+								boxShadow: "0px 2px 4px rgba(0,0,0,0.05)",
 							}}
 						>
-							{externalLinks.map((link, index) => (
-								<Box
-									key={index}
+							<Box
+								sx={{
+									display: "flex",
+									justifyContent: "space-between",
+									alignItems: "center",
+									marginBottom: 2,
+									padding: "0 1rem",
+								}}
+							>
+								<Button
+									variant="contained"
 									sx={{
-										padding: 2,
-										borderBottom:
-											index < externalLinks.length - 1
-												? `1px solid ${Colors.lightGray}`
-												: "none",
-										display: "flex",
-										justifyContent: "space-between",
-										alignItems: "center",
+										backgroundColor: Colors.primary.main,
 										"&:hover": {
-											backgroundColor: Colors.lightGray,
+											backgroundColor: Colors.primary.dark,
 										},
 									}}
+									onClick={() =>
+										externalLinks.forEach((link) =>
+											window.open(link.url, "_blank")
+										)
+									}
 								>
-									<Box>
-										<Typography
-											color={Colors.textPrimary}
+									Download All Files
+								</Button>
+								<Typography variant="body2" color={Colors.textSecondary}>
+									Total Size:{" "}
+									{externalLinks
+										.reduce((acc, link) => {
+											const sizeMatch = link.size.match(/(\d+(\.\d+)?)/);
+											const sizeInMB = sizeMatch ? parseFloat(sizeMatch[1]) : 0;
+											return acc + sizeInMB;
+										}, 0)
+										.toFixed(2)}{" "}
+									MB
+								</Typography>
+							</Box>
+
+							<Box
+								sx={{
+									maxHeight: "400px",
+									overflowY: "auto",
+									"&::-webkit-scrollbar": {
+										width: "8px",
+									},
+									"&::-webkit-scrollbar-track": {
+										background: Colors.lightGray,
+										borderRadius: "4px",
+									},
+									"&::-webkit-scrollbar-thumb": {
+										background: Colors.primary.light,
+										borderRadius: "4px",
+									},
+								}}
+							>
+								<Box
+									sx={{
+										display: "grid",
+										gridTemplateColumns: "repeat(3, 1fr)",
+										gap: 2,
+										padding: 1,
+									}}
+								>
+									{externalLinks.map((link, index) => (
+										<Box
+											key={index}
 											sx={{
-												fontWeight: 500,
-												fontFamily: theme.typography.fontFamily,
-											}}
-										>
-											{link.name}
-										</Typography>
-										<Typography
-											variant="body2"
-											color={Colors.textSecondary}
-											sx={{ fontFamily: theme.typography.fontFamily }}
-										>
-											Size: {link.size}
-										</Typography>
-									</Box>
-									<Box sx={{ display: "flex", gap: 1 }}>
-										<Button
-											variant="contained"
-											size="small"
-											sx={{
-												backgroundColor: Colors.primary.main,
+												padding: 2,
+												border: `1px solid ${Colors.lightGray}`,
+												borderRadius: "8px",
+												display: "flex",
+												flexDirection: "column",
+												justifyContent: "space-between",
+												backgroundColor: Colors.white,
 												"&:hover": {
-													backgroundColor: Colors.primary.dark,
+													backgroundColor: Colors.lightGray,
 												},
 											}}
-											onClick={() => window.open(link.url, "_blank")}
 										>
-											Download
-										</Button>
-										<Button
-											variant="outlined"
-											size="small"
-											sx={{
-												color: Colors.secondary.main,
-												borderColor: Colors.secondary.main,
-												"&:hover": {
-													borderColor: Colors.secondary.dark,
-													color: Colors.secondary.dark,
-												},
-											}}
-											onClick={() => window.open(link.url)}
-										>
-											View
-										</Button>
-									</Box>
+											<Box>
+												<Typography
+													color={Colors.textPrimary}
+													sx={{
+														fontWeight: 500,
+														fontFamily: theme.typography.fontFamily,
+													}}
+												>
+													{link.name}
+												</Typography>
+												<Typography
+													variant="body2"
+													color={Colors.textSecondary}
+													sx={{ fontFamily: theme.typography.fontFamily }}
+												>
+													Size: {link.size}
+												</Typography>
+											</Box>
+											<Box sx={{ display: "flex", gap: 1, marginTop: 2 }}>
+												<Button
+													variant="contained"
+													size="small"
+													sx={{
+														backgroundColor: Colors.primary.main,
+														"&:hover": {
+															backgroundColor: Colors.primary.dark,
+														},
+													}}
+													onClick={() => window.open(link.url, "_blank")}
+												>
+													Download
+												</Button>
+												<Button
+													variant="outlined"
+													size="small"
+													sx={{
+														color: Colors.secondary.main,
+														borderColor: Colors.secondary.main,
+														"&:hover": {
+															borderColor: Colors.secondary.dark,
+															color: Colors.secondary.dark,
+														},
+													}}
+													onClick={() => console.log("preview")}
+												>
+													Preview
+												</Button>
+											</Box>
+										</Box>
+									))}
 								</Box>
-							))}
+							</Box>
 						</Box>
-					</Box>
+					</Collapse>
 				</Box>
 			)}
 		</Box>
