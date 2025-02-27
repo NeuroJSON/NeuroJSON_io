@@ -26,14 +26,25 @@ jobs:
         id: get_branch
         run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
+      - name: Setup SSH Key
+        run: |
+          echo "${{ secrets.NEUROJ_SERVER_SSH_KEY }}" > neuroj_key.pem
+          chmod 600 neuroj_key.pem
+          mkdir -p ~/.ssh
+          eval "$(ssh-agent -s)"
+          ssh-add neuroj_key.pem
+
       - name: Copy files to the server via SCP
         run: |
           echo "Deploying to /var/www/html/dev/${{ env.BRANCH_NAME }}/"
-          scp -r -o StrictHostKeyChecking=no ./build/* ${{ secrets.NEUROJ_SERVER_USER }}@${{ secrets.NEUROJ_SERVER }}:/var/www/html/dev/${{ env.BRANCH_NAME }}/
+          scp -i neuroj_key.pem -o StrictHostKeyChecking=no -r ./build/* ${{ secrets.NEUROJ_SERVER_USER }}@${{ secrets.NEUROJ_SERVER }}:/var/www/html/dev/${{ env.BRANCH_NAME }}/
 
       - name: Restart Server (Only in the deployed folder)
         run: |
           echo "Restarting services in /var/www/html/dev/${{ env.BRANCH_NAME }}/"
-          ssh -o StrictHostKeyChecking=no ${{ secrets.NEUROJ_SERVER_USER }}@${{ secrets.NEUROJ_SERVER }} << EOF
+          ssh -i neuroj_key.pem -o StrictHostKeyChecking=no ${{ secrets.NEUROJ_SERVER_USER }}@${{ secrets.NEUROJ_SERVER }} << EOF
             cd /var/www/html/dev/${{ env.BRANCH_NAME }}/ && pm2 restart all || echo "No PM2 processes found in this directory"
           EOF
+
+      - name: Cleanup SSH Key
+        run: rm -f neuroj_key.pem
