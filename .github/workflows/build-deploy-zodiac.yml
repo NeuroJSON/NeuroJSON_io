@@ -1,0 +1,36 @@
+name: Deploy Zodiac Server
+
+on:
+  push:
+    branches:
+      - dev_hari
+      - dev-fan
+      - dev_mario
+      - dev_fang
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build React App
+        run: yarn build
+
+      - name: Determine Branch Name
+        id: get_branch
+        run: echo "branch_name=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
+      - name: Copy files to the server via SFTP
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          server: ${{ secrets.NEUROJ_SERVER }}
+          username: ${{ secrets.NEUROJ_SERVER_USER }}
+          ssh_private_key: ${{ secrets.NEUROJ_SERVER_SSH_KEY }}
+          local_path: "./build/*"
+          remote_path: "/var/www/html/dev/${{ env.branch_name }}/"
