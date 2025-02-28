@@ -37,7 +37,6 @@ jobs:
           remote_path: "/var/www/html/dev/${{ env.BRANCH_NAME }}/"
 
       - name: Copy to the server via SCP (fallback)
-        if: ${{ !(github.repository_owner == 'fangq' && github.event_name != 'pull_request')}}
         run: |
           echo "Deploying to /var/www/html/dev/${{ env.BRANCH_NAME }}/"
 
