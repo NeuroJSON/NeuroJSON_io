@@ -26,10 +26,15 @@ jobs:
         id: get_branch
         run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
-      - name: Setup SSH Key (if needed)
+      - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
+          echo "${{ secrets.NEUROJ_SERVER_SSH_KEY_PRIVATE }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.NEUROJ_SERVER }} >> ~/.ssh/known_hosts
+
+      - name: Test SSH Connection
+        run: ssh -v njweb@${{ secrets.NEUROJ_SERVER }} "echo 'SSH Connection Successful'"
 
       - name: Deploy to Server via SCP
         run: |
@@ -42,3 +47,6 @@ jobs:
           ssh njweb@${{ secrets.NEUROJ_SERVER }} << EOF
             cd /var/www/html/dev/${{ env.BRANCH_NAME }}/ && pm2 restart all || echo "No PM2 processes found in this directory"
           EOF
+
+      - name: Cleanup SSH Key
+        run: rm -f ~/.ssh/id_rsa
