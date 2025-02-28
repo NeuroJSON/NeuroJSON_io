@@ -28,11 +28,11 @@ jobs:
 
       - name: Setup SSH Key
         run: |
-          echo "${{ secrets.NEUROJ_SERVER_SSH_KEY }}" > neuroj_key.pem
-          chmod 600 neuroj_key.pem
           mkdir -p ~/.ssh
+          echo "${{ secrets.NEUROJ_SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
           eval "$(ssh-agent -s)"
-          ssh-add neuroj_key.pem
+          ssh-add ~/.ssh/id_rsa
 
       - name: Copy files to the server via SCP
         run: |
