@@ -34,7 +34,7 @@ jobs:
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/id_rsa
 
-      - name: Copy files to the server via SCP
+      - name: Copy to the server via SCP
         run: |
           echo "Deploying to /var/www/html/dev/${{ env.BRANCH_NAME }}/"
           scp -i neuroj_key.pem -o StrictHostKeyChecking=no -r ./build/* ${{ secrets.NEUROJ_SERVER_USER }}@${{ secrets.NEUROJ_SERVER }}:/var/www/html/dev/${{ env.BRANCH_NAME }}/
