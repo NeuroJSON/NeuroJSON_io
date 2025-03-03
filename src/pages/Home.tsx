@@ -103,8 +103,10 @@ const Home: React.FC = () => {
 						sx={{
 							backgroundColor: Colors.green,
 							color: Colors.white,
+							fontWeight: "Bold",
 							"&:hover": {
-								backgroundColor: Colors.primary.dark,
+								backgroundColor: Colors.darkgreen,
+								boxShadow: `0px 0px 15px ${Colors.green}`
 							},
 						}}
 						onClick={() => navigate("/databases")}
