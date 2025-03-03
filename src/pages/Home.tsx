@@ -77,7 +77,7 @@ const Home: React.FC = () => {
 					position: "absolute",
 					top: "6%",
 					left: "5%",
-					backgroundColor: "rgba(255, 255, 255, 0.8)",
+					backgroundColor: "none",
 					padding: "1.5rem",
 					borderRadius: "8px",
 					boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
@@ -87,11 +87,11 @@ const Home: React.FC = () => {
 				<Typography
 					variant="h3"
 					gutterBottom
-					sx={{ color: Colors.primary.dark }}
+					sx={{ color: Colors.white }}
 				>
 					Discover NeuroJSON IO
 				</Typography>
-				<Typography variant="body1" sx={{ color: Colors.textSecondary }}>
+				<Typography variant="body1" sx={{ color: Colors.white }}>
 					Efficiently manage and explore your CouchDB databases and datasets
 					with ease.
 				</Typography>
@@ -101,7 +101,7 @@ const Home: React.FC = () => {
 					<Button
 						variant="contained"
 						sx={{
-							backgroundColor: Colors.primary.main,
+							backgroundColor: Colors.green,
 							color: Colors.white,
 							"&:hover": {
 								backgroundColor: Colors.primary.dark,
