@@ -56,7 +56,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
     const dbInfo = useAppSelector((state: RootState) => state.neurojson.dbInfo);
     // const drawerRef = useRef<HTMLDivElement>(null); // Reference to the Drawer content
     // const loading = useAppSelector((state: RootState) => state.neurojson.loading);
-    // console.log("dbInfo", dbInfo);
+  
 
     useEffect(() => {
         if (nodeData?.id) {
@@ -76,8 +76,9 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
             "& .MuiDrawer-paper": {
                 width: "30%",
                 padding: "1rem",
-                backgroundColor: Colors.lightGray,
-                boxShadow: "-2px 0 8px rgba(0, 0, 0, 0.2)",
+                boxShadow: `0px 0px 15px ${Colors.lightGray}`,
+                backgroundColor: "rgba(97, 109, 243, 0.1)", 
+                backdropFilter: "blur(15px)",
             },
         }}
         >
@@ -85,46 +86,46 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
                 {nodeData? (
                 <>
                 {/* Close Button */}
-                <Box display="flex" justifyContent="space-between" alignItems="center" paddingLeft={2}>
-                    <Typography variant="h6" sx={{color: Colors.primary.dark, fontWeight: "Bold"}}>{nodeData.name}</Typography>
-                    <IconButton onClick={onClose} sx={{color: Colors.primary.main}}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" paddingLeft={2} marginBottom={2}>
+                    <Typography variant="h6" sx={{color: Colors.orange, fontWeight: "Bold"}}>{nodeData.name}</Typography>
+                    <IconButton onClick={onClose} sx={{color: Colors.lightGray}}>
                         <CloseIcon />
                     </IconButton>
                 </Box>
                 {/* Node Metadata */}
                 <Grid container spacing={2} sx={{pl: 2}}>
                     <Grid item xs={12}>
-                        <Typography sx={{color: Colors.primary.main, fontWeight: "Bold"}}>Website</Typography>
+                        <Typography sx={{color: Colors.green, fontWeight: "Bold"}}>Website</Typography>
                         <Typography>
-                            <a href={nodeData.url} target="_blank" style={{textDecoration: "none", color: Colors.textPrimary}}>{nodeData.url}</a>
+                            <a href={nodeData.url} target="_blank" style={{textDecoration: "none", color: Colors.lightGray}}>{nodeData.url}</a>
                         </Typography>
                     </Grid>
 
                     <Grid item xs={12}>
-                        <Typography sx={{color: Colors.primary.main, fontWeight: "Bold"}}>Number of Datasets</Typography>
-                        <Typography>{nodeData.datasets}</Typography>
+                        <Typography sx={{color: Colors.green, fontWeight: "Bold"}}>Number of Datasets</Typography>
+                        <Typography sx={{color: Colors.lightGray}}>{nodeData.datasets}</Typography>
                     </Grid>
 
                     <Grid item xs={12}>
-                        <Typography sx={{color: Colors.primary.main, fontWeight: "Bold"}}>Data Types</Typography>
-                        <Typography>{nodeData.datatype.join(", ")}</Typography>
+                        <Typography sx={{color: Colors.green, fontWeight: "Bold"}}>Data Types</Typography>
+                        <Typography sx={{color: Colors.lightGray}}>{nodeData.datatype.join(", ")}</Typography>
                     </Grid>
 
                     <Grid item xs={12}>
-                        <Typography sx={{color: Colors.primary.main, fontWeight: "Bold"}}>Data Standards</Typography>
-                        <Typography>{nodeData.standard.join(", ")}</Typography>
+                        <Typography sx={{color: Colors.green, fontWeight: "Bold"}}>Data Standards</Typography>
+                        <Typography sx={{color: Colors.lightGray}}>{nodeData.standard.join(", ")}</Typography>
                     </Grid>
 
                     <Grid item xs={12}>
-                        <Typography sx={{color: Colors.primary.main, fontWeight: "Bold"}}>Upstream Contact</Typography>
-                        <a href={`mailto:${nodeData.support}`} style={{ textDecoration: "none", color: "blue"}}>
-                            <Typography>{nodeData.support}</Typography>
+                        <Typography sx={{color: Colors.green, fontWeight: "Bold"}}>Upstream Contact</Typography>
+                        <a href={`mailto:${nodeData.support}`} style={{ textDecoration: "none"}}>
+                            <Typography sx={{color: Colors.lightGray}}>{nodeData.support}</Typography>
                         </a>
                     </Grid>
 
                     <Grid item xs={12}>
-                        <Typography sx={{color: Colors.primary.main, fontWeight: "Bold"}}>NeuroJSON-Cuated Datasets</Typography>
-                        {dbInfo?(<Typography>{dbInfo.doc_count - 1}</Typography>) : "Coming soon "}
+                        <Typography sx={{color: Colors.green, fontWeight: "Bold"}}>NeuroJSON-Cuated Datasets</Typography>
+                        {dbInfo?(<Typography sx={{color: Colors.lightGray}}>{dbInfo.doc_count - 1}</Typography>) : "Coming soon "}
                     </Grid>
                 </Grid>
                 {/*database info card*/}
@@ -133,25 +134,25 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
                     <CardContent>
                         <Grid container spacing={1}>
                             <Grid item xs={12}>
-                                <Typography sx={{color: Colors.primary.main, fontWeight: "Bold"}}>NeuroJSON.io Database Name</Typography>
+                                <Typography sx={{color: Colors.darkpurple, fontWeight: "Bold"}}>NeuroJSON.io Database Name</Typography>
                                 <Typography>{dbInfo.db_name}</Typography>
                             </Grid>
                             <Grid item xs={12}>
-                                <Typography sx={{color: Colors.primary.main, fontWeight: "Bold"}}>REST-API URL</Typography>
+                                <Typography sx={{color: Colors.darkpurple, fontWeight: "Bold"}}>REST-API URL</Typography>
                                 <a href={`https://neurojson.io:7777/${dbInfo.db_name}`} target="_blank" rel="noopener noreferrer" style={{textDecoration: "none", color: Colors.textPrimary}}>
                                     {`https://neurojson.io:7777/${dbInfo.db_name}`}
                                 </a>
                             </Grid>
                             <Grid item xs={12}>
-                                <Typography sx={{color: Colors.primary.main, fontWeight: "Bold"}}>Database Creation Time</Typography>
+                                <Typography sx={{color: Colors.darkpurple, fontWeight: "Bold"}}>Database Creation Time</Typography>
                                 <Typography>{dateCoverter(dbInfo.instance_start_time)}</Typography>
                             </Grid>
                             <Grid item xs={12}>
-                                <Typography sx={{color: Colors.primary.main, fontWeight: "Bold"}}>Searchable Database Size</Typography>
+                                <Typography sx={{color: Colors.darkpurple, fontWeight: "Bold"}}>Searchable Database Size</Typography>
                                 <Typography>{formatSize(dbInfo.sizes?.external)}</Typography>
                             </Grid>
                             <Grid item xs={12}>
-                                <Typography sx={{color: Colors.primary.main, fontWeight: "Bold"}}>DatabaseDisk Size (compressed)</Typography>
+                                <Typography sx={{color: Colors.darkpurple, fontWeight: "Bold"}}>DatabaseDisk Size (compressed)</Typography>
                                 <Typography>{formatSize(dbInfo.sizes?.file)}</Typography>
                             </Grid>
                         </Grid>
@@ -163,10 +164,10 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
                                     variant="contained"
                                     fullWidth
                                     sx={{
-                                        backgroundColor: Colors.primary.main,
+                                        backgroundColor: Colors.orange,
                                         color: Colors.white,
                                         "&:hover": {
-                                            backgroundColor: Colors.primary.dark,
+                                            backgroundColor: Colors.darkorange,
                                         },
                                     }}
                                     onClick={() => navigate(`/databases/${nodeData.id}`)}
@@ -179,10 +180,10 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
                                     variant="contained" 
                                     fullWidth
                                     sx={{
-                                        backgroundColor: Colors.primary.main,
+                                        backgroundColor: Colors.orange,
                                         color: Colors.white,
                                         "&:hover": {
-                                            backgroundColor: Colors.primary.dark,
+                                            backgroundColor: Colors.darkorange,
                                         },
                                     }}
                                 >
@@ -194,10 +195,10 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
                                     variant="contained" 
                                     fullWidth
                                     sx={{
-                                        backgroundColor: Colors.primary.main,
+                                        backgroundColor: Colors.orange,
                                         color: Colors.white,
                                         "&:hover": {
-                                            backgroundColor: Colors.primary.dark,
+                                            backgroundColor: Colors.darkorange,
                                         },
                                     }}
                                 >
@@ -209,10 +210,10 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ open, onClose, nodeData }
                                     variant="contained" 
                                     fullWidth
                                     sx={{
-                                        backgroundColor: Colors.primary.main,
+                                        backgroundColor: Colors.orange,
                                         color: Colors.white,
                                         "&:hover": {
-                                            backgroundColor: Colors.primary.dark,
+                                            backgroundColor: Colors.darkorange,
                                         },
                                     }}
                                     onClick={() => window.open(`https://github.com/NeuroJSON-io/${nodeData.id}`, "_blank", "noopener noreferrer")}

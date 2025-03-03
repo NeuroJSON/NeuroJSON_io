@@ -1,4 +1,4 @@
-import { purple } from "@mui/material/colors";
+import { orange, purple } from "@mui/material/colors";
 import { createTheme } from "@mui/material/styles";
 
 const primary = {
@@ -24,9 +24,12 @@ export const Colors = {
 	textPrimary: "#212121",
 	textSecondary: "#494747",
 	green: "#02DEC4",
+	darkgreen: "#49c6ae",
 	yellow: "#FFDD31",
 	purple: "#5865F2",
 	darkpurple: "#282C56",
+	orange: "#FF9F2F",
+	darkorange: "#E88C25",
 	primary,
 	secondary,
 };
