@@ -89,7 +89,7 @@ const Home: React.FC = () => {
 					gutterBottom
 					sx={{ color: Colors.white }}
 				>
-					Discover NeuroJSON IO
+					Discover NeuroJSON.io
 				</Typography>
 				<Typography variant="body1" sx={{ color: Colors.white }}>
 					Efficiently manage and explore your CouchDB databases and datasets

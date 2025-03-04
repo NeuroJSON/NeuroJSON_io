@@ -2,69 +2,73 @@ import { orange, purple } from "@mui/material/colors";
 import { createTheme } from "@mui/material/styles";
 
 const primary = {
-	dark: "#5c6386",
-	main: "#7b81a5",
-	light: "#a0a5c2",
+  dark: "#5c6386",
+  main: "#7b81a5",
+  light: "#a0a5c2",
 };
 
 const secondary = {
-	dark: "#374056",
-	main: "#48556B",
-	light: "#7487a0",
+  dark: "#374056",
+  main: "#48556B",
+  light: "#7487a0",
 };
 
 export const Colors = {
-	white: "#FFFFFF",
-	black: "#000000",
-	lightGray: "#f2f2f2",
-	darkGray: "#4A4A4A",
-	accent: "#D5A021",
-	success: "#03BB50",
-	error: "#D9534F",
-	textPrimary: "#212121",
-	textSecondary: "#494747",
-	green: "#02DEC4",
-	darkgreen: "#49c6ae",
-	yellow: "#FFDD31",
-	purple: "#5865F2",
-	darkpurple: "#282C56",
-	orange: "#FF9F2F",
-	darkorange: "#E88C25",
-	primary,
-	secondary,
+  white: "#FFFFFF",
+  black: "#000000",
+  lightGray: "#f2f2f2",
+  darkGray: "#4A4A4A",
+  accent: "#D5A021",
+  success: "#03BB50",
+  error: "#D9534F",
+  textPrimary: "#212121",
+  textSecondary: "#494747",
+  green: "#02DEC4",
+  darkgreen: "#49c6ae",
+  yellow: "#FFDD31",
+  purple: "#5865F2",
+  darkpurple: "#282C56",
+  orange: "#FF9F2F",
+  darkorange: "#E88C25",
+  primary,
+  secondary,
 };
 
 const theme = createTheme({
-	typography: {
-		fontFamily: [
-			'"IBM Plex Sans"',
-			"-apple-system",
-			"BlinkMacSystemFont",
-			'"Segoe UI"',
-			"Roboto",
-			'"Helvetica Neue"',
-			"Arial",
-			"sans-serif",
-		].join(","),
-		h1: {
-			fontWeight: 700,
-			fontSize: "2rem",
-			color: Colors.primary.dark,
-		},
-		h2: {
-			fontWeight: 600,
-			fontSize: "1.75rem",
-			color: Colors.secondary.main,
-		},
-		body1: {
-			fontSize: "1rem",
-			color: Colors.textPrimary,
-		},
-		body2: {
-			fontSize: "0.875rem",
-			color: Colors.textSecondary,
-		},
-	},
+  typography: {
+    fontFamily: [
+      "Raleway",
+      "Ubuntu",
+      '"IBM Plex Sans"',
+      "-apple-system",
+      "BlinkMacSystemFont",
+      '"Segoe UI"',
+      "Roboto",
+      '"Helvetica Neue"',
+      "Arial",
+      "sans-serif",
+    ].join(","),
+    h1: {
+      fontFamily: "Raleway",
+      fontWeight: 700,
+      fontSize: "2rem",
+      color: Colors.yellow,
+      textTransform: "none",
+    },
+    h2: {
+      fontWeight: 600,
+      fontSize: "1.75rem",
+      color: Colors.secondary.main,
+    },
+    body1: {
+      fontSize: "1rem",
+      color: Colors.textPrimary,
+    },
+    body2: {
+      fontSize: "0.875rem",
+      color: Colors.textSecondary,
+    },
+  },
 });
 
 export default theme;
