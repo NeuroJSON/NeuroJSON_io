@@ -4,192 +4,256 @@ import React, { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import {
-	CSS2DObject,
-	CSS2DRenderer,
+  CSS2DObject,
+  CSS2DRenderer,
 } from "three/examples/jsm/renderers/CSS2DRenderer";
 import { Database } from "types/responses/registry.interface";
 
 export interface NodeObject {
-	id: string;
-	name: string;
-	dbname: string;
-	color: string;
-	datatype: string[];
-	support: string;
-	url: string;
-	datasets: number;
-	standard: string[]; // define type of standard property 
+  id: string;
+  name: string;
+  dbname: string;
+  color: string;
+  datatype: string[];
+  support: string;
+  url: string;
+  datasets: number;
+  standard: string[]; // define type of standard property
 }
 
-const NeuroJsonGraph: React.FC<{ registry: Database[], onNodeClick?: (node: NodeObject) => void }> = ({ registry, onNodeClick }) => {
-	const navigate = useNavigate();
-	const graphRef = useRef<HTMLDivElement>(null);
+const NeuroJsonGraph: React.FC<{
+  registry: Database[];
+  onNodeClick?: (node: NodeObject) => void;
+}> = ({ registry, onNodeClick }) => {
+  const navigate = useNavigate();
+  const graphRef = useRef<HTMLDivElement>(null);
 
-	// Function to determine color and size based on node size
-	const size2colorAndSize = (size: number) => {
-		if (size > 32) return { color: Colors.primary.dark, size: 10 };
-		if (size > 3) return { color: Colors.primary.main, size: 7 };
-		return { color: Colors.primary.light, size: 5 };
-	};
+  // Define the datatype to color mapping
+  const DATA_TYPE_COLORS: Record<string, [number, number, number]> = {
+    mri: [79, 51, 130],
+    fmri: [10, 81, 20],
+    pet: [0, 105, 192],
+    meg: [156, 57, 0],
+    eeg: [134, 31, 55],
+    ieeg: [18, 109, 62],
+    beh: [12, 93, 210],
+    fmap: [255, 255, 59],
+    dwi: [200, 9, 12],
+    fnirs: [255, 193, 7],
+    phenotype: [255, 87, 34],
+  };
 
-	useEffect(() => {
-		// Ensure registry and graphRef are properly initialized
-		if (!registry || registry.length === 0) {
-			console.error("Registry is empty or undefined:", registry);
-			return;
-		}
+  // Function to blend colors based on datatypes
+  const blendColors = (datatypes: string[]): string => {
+    if (datatypes.length === 0) return "rgb(255,255,255)"; // Default white
 
-		if (!graphRef.current) {
-			console.error("Graph ref is null");
-			return;
-		}
+    let totalR = 0,
+      totalG = 0,
+      totalB = 0;
+    let count = 0;
 
-		// Prepare graph data
-		const graphData = {
-			nodes: registry.map((db) => {
-				const { color, size } = size2colorAndSize(db.datasets);
-				return {
-					id: db.id,
-					name: db.fullname || db.name,
-					dbname: db.name,
-					color: color,
-					datatype: db.datatype,
-					support: db.support,
-					url: db.url,
-					datasets: db.datasets,
-					size: size,
-					standard: db.standard || [],// add standard property
-				};
-			}),
-			links: registry.flatMap((db, index) => {
-				const connections = [];
-				const nextIndex = (index + 1) % registry.length;
-				const { color } = size2colorAndSize(db.datasets);
-				connections.push({
-					source: db.id,
-					target: registry[nextIndex].id,
-					color: color,
-					visible: true,
-				});
-				return connections;
-			}),
-		};
+    datatypes.forEach((type) => {
+      const color = DATA_TYPE_COLORS[type];
+      if (color) {
+        totalR += color[0];
+        totalG += color[1];
+        totalB += color[2];
+        count++;
+      }
+    });
 
-		// Initialize 3D Force Graph
-		const Graph = new ForceGraph3D(graphRef.current)
-			.graphData(graphData)
-			.nodeRelSize(2)
-			.nodeColor((node) => (node as NodeObject).color)
-			.linkWidth(2)
-			.backgroundColor("rgba(0,0,0,0)")
-			.nodeLabel("name")
-			.onNodeHover((node) => {
-				// Change cursor on hover
-				graphRef.current!.style.cursor = node ? "pointer" : "default";
-			})
-			.onNodeClick((node) => {
-				const castNode = node as NodeObject;
-				if (onNodeClick) {
-					onNodeClick(castNode);
-				}
-				// navigate(`/databases/${castNode.id}`);
-			})
-			.nodeThreeObject((node) => {
-				const castNode = node as NodeObject;
+    if (count === 0) count = 1; // Prevent division by zero
 
-				// Create a group to hold sphere and glow
-				const group = new THREE.Group();
+    const avgR = Math.floor(totalR / count);
+    const avgG = Math.floor(totalG / count);
+    const avgB = Math.floor(totalB / count);
 
-				// Create a 3D sphere for the node
-				const sphereGeometry = new THREE.SphereGeometry(
-					(castNode as any).size,
-					16,
-					16
-				);
-				const sphereMaterial = new THREE.MeshBasicMaterial({
-					color: (castNode as any).color,
-				});
-				const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-				group.add(sphere);
+    return `rgb(${avgR}, ${avgG}, ${avgB})`;
+  };
 
-				// Create glow effect
-				const glowGeometry = new THREE.SphereGeometry(
-					(castNode as any).size * 1.2,
-					16,
-					16
-				);
-				const glowMaterial = new THREE.MeshBasicMaterial({
-					color: (castNode as any).color,
-					transparent: true,
-					opacity: 0.2,
-				});
-				const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+  // Function to determine color and size based on node size
+  //   const size2colorAndSize = (size: number) => {
+  //     if (size > 32) return { color: Colors.primary.dark, size: 10 };
+  //     if (size > 3) return { color: Colors.primary.main, size: 7 };
+  //     return { color: Colors.primary.light, size: 5 };
+  //   };
 
-				// Animate glow
-				const animate = () => {
-					glow.scale.setScalar(1 + Math.sin(Date.now() * 0.003) * 0.1);
-					requestAnimationFrame(animate);
-				};
-				animate();
+  useEffect(() => {
+    // Ensure registry and graphRef are properly initialized
+    if (!registry || registry.length === 0) {
+      console.error("Registry is empty or undefined:", registry);
+      return;
+    }
 
-				group.add(glow);
+    if (!graphRef.current) {
+      console.error("Graph ref is null");
+      return;
+    }
 
-				// Add label as CSS2DObject
-				const label = new CSS2DObject(document.createElement("div"));
-				label.element.textContent = castNode.dbname || "Unnamed";
-				label.element.style.color = Colors.primary.main;
-				label.element.style.fontSize = "12px";
-				label.element.style.pointerEvents = "none";
-				label.position.set(0, 10, 0);
-				group.add(label);
+    // Prepare graph data
+    const graphData = {
+      nodes: registry.map((db) => {
+        // const { color, size } = size2colorAndSize(db.datasets);
+        const color = blendColors(db.datatype);
+        const size = db.datasets > 32 ? 10 : db.datasets > 3 ? 7 : 5;
 
-				return group;
-			});
+        return {
+          id: db.id,
+          name: db.fullname || db.name,
+          dbname: db.name,
+          color: color,
+          datatype: db.datatype,
+          support: db.support,
+          url: db.url,
+          datasets: db.datasets,
+          size: size,
+          standard: db.standard || [], // add standard property
+        };
+      }),
+      links: registry.flatMap((db, index) => {
+        const connections = [];
+        const nextIndex = (index + 1) % registry.length;
+        // const { color } = size2colorAndSize(db.datasets);
+        const color = blendColors(db.datatype);
+        connections.push({
+          source: db.id,
+          target: registry[nextIndex].id,
+          color: color,
+          visible: true,
+        });
+        return connections;
 
-		// Initialize CSS2DRenderer for 2D labels
-		const labelRenderer = new CSS2DRenderer();
-		labelRenderer.setSize(window.innerWidth, window.innerHeight);
-		labelRenderer.domElement.style.position = "absolute";
-		labelRenderer.domElement.style.top = "0px";
-		labelRenderer.domElement.style.pointerEvents = "none";
-		graphRef.current?.appendChild(labelRenderer.domElement);
+        // non-circle rendering
+        // const similarNodes = registry.filter(
+        //   (otherDb) =>
+        //     db.datatype.some((type) => otherDb.datatype.includes(type)) &&
+        //     db.id !== otherDb.id
+        // );
 
-		// Animate label rendering
-		const animate = () => {
-			requestAnimationFrame(animate);
-			labelRenderer.render(Graph.scene(), Graph.camera());
-		};
-		animate();
+        // return similarNodes.map((otherDb) => ({
+        //   source: db.id,
+        //   target: otherDb.id,
+        //   color: blendColors(db.datatype), // Link color based on datatype
+        //   visible: true,
+        // }));
+      }),
+    };
 
-		// Handle window resize
-		const resizeGraph = () => {
-			Graph.width(window.innerWidth).height(window.innerHeight);
-			labelRenderer.setSize(window.innerWidth, window.innerHeight);
-		};
-		resizeGraph();
-		window.addEventListener("resize", resizeGraph);
+    // Initialize 3D Force Graph
+    const Graph = new ForceGraph3D(graphRef.current)
+      .graphData(graphData)
+      .nodeRelSize(2)
+      .nodeColor((node) => (node as NodeObject).color)
+      .linkWidth(2)
+      .backgroundColor("rgba(0,0,0,0)")
+      .nodeLabel("name")
+      .onNodeHover((node) => {
+        // Change cursor on hover
+        graphRef.current!.style.cursor = node ? "pointer" : "default";
+      })
+      .onNodeClick((node) => {
+        const castNode = node as NodeObject;
+        if (onNodeClick) {
+          onNodeClick(castNode);
+        }
+        // navigate(`/databases/${castNode.id}`);
+      })
+      .nodeThreeObject((node) => {
+        const castNode = node as NodeObject;
 
-		// Cleanup on component unmount
-		return () => {
-			window.removeEventListener("resize", resizeGraph);
-			if (graphRef.current) {
-				graphRef.current.removeChild(labelRenderer.domElement);
-			}
-		};
-	}, [registry]);
+        // Create a group to hold sphere and glow
+        const group = new THREE.Group();
 
-	return (
-		<div
-			ref={graphRef}
-			style={{
-				width: "100%",
-				maxHeight: "99%",
-				backgroundColor: "transparent",
-				position: "relative",
-				overflow: "hidden",
-			}}
-		/>
-	);
+        // Create a 3D sphere for the node
+        const sphereGeometry = new THREE.SphereGeometry(
+          (castNode as any).size,
+          16,
+          16
+        );
+        const sphereMaterial = new THREE.MeshBasicMaterial({
+          color: (castNode as any).color,
+        });
+        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        group.add(sphere);
+
+        // Create glow effect
+        const glowGeometry = new THREE.SphereGeometry(
+          (castNode as any).size * 1.2,
+          16,
+          16
+        );
+        const glowMaterial = new THREE.MeshBasicMaterial({
+          color: (castNode as any).color,
+          transparent: true,
+          opacity: 0.2,
+        });
+        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+
+        // Animate glow
+        const animate = () => {
+          glow.scale.setScalar(1 + Math.sin(Date.now() * 0.003) * 0.1);
+          requestAnimationFrame(animate);
+        };
+        animate();
+
+        group.add(glow);
+
+        // Add label as CSS2DObject
+        const label = new CSS2DObject(document.createElement("div"));
+        label.element.textContent = castNode.dbname || "Unnamed";
+        label.element.style.color = Colors.primary.main;
+        label.element.style.fontSize = "12px";
+        label.element.style.pointerEvents = "none";
+        label.position.set(0, 10, 0);
+        group.add(label);
+
+        return group;
+      });
+
+    // Initialize CSS2DRenderer for 2D labels
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.domElement.style.position = "absolute";
+    labelRenderer.domElement.style.top = "0px";
+    labelRenderer.domElement.style.pointerEvents = "none";
+    graphRef.current?.appendChild(labelRenderer.domElement);
+
+    // Animate label rendering
+    const animate = () => {
+      requestAnimationFrame(animate);
+      labelRenderer.render(Graph.scene(), Graph.camera());
+    };
+    animate();
+
+    // Handle window resize
+    const resizeGraph = () => {
+      Graph.width(window.innerWidth).height(window.innerHeight);
+      labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    };
+    resizeGraph();
+    window.addEventListener("resize", resizeGraph);
+
+    // Cleanup on component unmount
+    return () => {
+      window.removeEventListener("resize", resizeGraph);
+      if (graphRef.current) {
+        graphRef.current.removeChild(labelRenderer.domElement);
+      }
+    };
+  }, [registry]);
+
+  return (
+    <div
+      ref={graphRef}
+      style={{
+        width: "100%",
+        maxHeight: "99%",
+        backgroundColor: "transparent",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    />
+  );
 };
 
 export default NeuroJsonGraph;

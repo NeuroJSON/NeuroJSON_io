@@ -191,7 +191,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                   <Grid container spacing={1}>
                     <Grid item xs={12}>
                       <Typography
-                        sx={{ color: Colors.darkpurple, fontWeight: "Bold" }}
+                        sx={{ color: Colors.darkPurple, fontWeight: "Bold" }}
                       >
                         NeuroJSON.io Database Name
                       </Typography>
@@ -199,7 +199,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                     </Grid>
                     <Grid item xs={12}>
                       <Typography
-                        sx={{ color: Colors.darkpurple, fontWeight: "Bold" }}
+                        sx={{ color: Colors.darkPurple, fontWeight: "Bold" }}
                       >
                         REST-API URL
                       </Typography>
@@ -217,7 +217,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                     </Grid>
                     <Grid item xs={12}>
                       <Typography
-                        sx={{ color: Colors.darkpurple, fontWeight: "Bold" }}
+                        sx={{ color: Colors.darkPurple, fontWeight: "Bold" }}
                       >
                         Database Creation Time
                       </Typography>
@@ -227,7 +227,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                     </Grid>
                     <Grid item xs={12}>
                       <Typography
-                        sx={{ color: Colors.darkpurple, fontWeight: "Bold" }}
+                        sx={{ color: Colors.darkPurple, fontWeight: "Bold" }}
                       >
                         Searchable Database Size
                       </Typography>
@@ -237,7 +237,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                     </Grid>
                     <Grid item xs={12}>
                       <Typography
-                        sx={{ color: Colors.darkpurple, fontWeight: "Bold" }}
+                        sx={{ color: Colors.darkPurple, fontWeight: "Bold" }}
                       >
                         DatabaseDisk Size (compressed)
                       </Typography>
@@ -255,7 +255,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                           backgroundColor: Colors.orange,
                           color: Colors.white,
                           "&:hover": {
-                            backgroundColor: Colors.darkorange,
+                            backgroundColor: Colors.darkOrange,
                           },
                         }}
                         onClick={() => navigate(`/databases/${nodeData.id}`)}
@@ -271,7 +271,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                           backgroundColor: Colors.orange,
                           color: Colors.white,
                           "&:hover": {
-                            backgroundColor: Colors.darkorange,
+                            backgroundColor: Colors.darkOrange,
                           },
                         }}
                       >
@@ -286,7 +286,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                           backgroundColor: Colors.orange,
                           color: Colors.white,
                           "&:hover": {
-                            backgroundColor: Colors.darkorange,
+                            backgroundColor: Colors.darkOrange,
                           },
                         }}
                       >
@@ -301,7 +301,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                           backgroundColor: Colors.orange,
                           color: Colors.white,
                           "&:hover": {
-                            backgroundColor: Colors.darkorange,
+                            backgroundColor: Colors.darkOrange,
                           },
                         }}
                         onClick={() =>
