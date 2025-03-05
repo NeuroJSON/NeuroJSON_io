@@ -46,10 +46,9 @@ const FullScreen = () => {
               >
                 <Typography
                   variant="h1"
-                  //   sx={{
-                  //     color: Colors.yellow,
-                  //     textTransform: "none",
-                  //   }}
+                  sx={{
+                    color: Colors.yellow,
+                  }}
                 >
                   NeuroJSON.io
                 </Typography>
@@ -57,7 +56,6 @@ const FullScreen = () => {
                   variant="h2"
                   sx={{
                     color: Colors.lightGray,
-                    textTransform: "none",
                   }}
                 >
                   Free Data Worth Sharing
