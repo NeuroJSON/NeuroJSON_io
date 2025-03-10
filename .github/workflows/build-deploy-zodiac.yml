@@ -28,7 +28,7 @@ jobs:
 
       - name: Copy package to server
         if: ${{ github.repository_owner == 'fangq' && github.event_name != 'pull_request'}}
-        uses: NeuroJSON/SFTP-Deploy-Action
+        uses: NeuroJSON/SFTP-Deploy-Action@1.2.5
         with:
           server: ${{ secrets.NEUROJ_SERVER }}
           username: ${{ secrets.NEUROJ_SERVER_USER }}
