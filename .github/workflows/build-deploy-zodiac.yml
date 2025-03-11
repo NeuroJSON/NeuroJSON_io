@@ -20,9 +20,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build React App
-        run: |
-          yarn dist
-          ls -l
+        run: yarn build
 
       - name: Determine Branch Name
         id: get_branch
@@ -34,5 +32,5 @@ jobs:
           server: ${{ secrets.NEUROJ_SERVER }}
           username: ${{ secrets.NEUROJ_SERVER_USER }}
           ssh_private_key: ${{ secrets.NEUROJ_SERVER_SSH_KEY }}
-          local_path: "./dist/*"
+          local_path: "./build/*"
           remote_path: "${{ secrets.NEUROJ_CI_PATH }}/${{ env.BRANCH_NAME }}"
