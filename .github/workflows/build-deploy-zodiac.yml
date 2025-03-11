@@ -20,7 +20,9 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build React App
-        run: yarn build
+        run:|
+          yarn build
+          ls -l
 
       - name: Determine Branch Name
         id: get_branch
