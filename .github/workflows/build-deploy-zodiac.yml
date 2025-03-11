@@ -27,7 +27,6 @@ jobs:
         run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
       - name: Copy package to server
-        if: ${{ github.repository_owner == 'fangq' && github.event_name != 'pull_request'}}
         uses: NeuroJSON/SFTP-Deploy-Action@v1.2.5
         with:
           server: ${{ secrets.NEUROJ_SERVER }}
@@ -35,10 +34,3 @@ jobs:
           ssh_private_key: ${{ secrets.NEUROJ_SERVER_SSH_KEY }}
           local_path: "./build/*"
           remote_path: "${{ secrets.NEUROJ_CI_PATH }}/${{ env.BRANCH_NAME }}"
-
-      - name: Restart Server (Only in the deployed folder)
-        run: |
-          echo "Restarting services in /var/www/html/dev/${{ env.BRANCH_NAME }}/"
-          ssh -o StrictHostKeyChecking=no ${{ secrets.NEUROJ_SERVER_USER }}@${{ secrets.NEUROJ_SERVER }} << EOF
-            cd /var/www/html/dev/${{ env.BRANCH_NAME }}/ && pm2 restart all || echo "No PM2 processes found in this directory"
-          EOF
