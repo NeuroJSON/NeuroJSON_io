@@ -77,6 +77,27 @@ const NeuroJsonGraph: React.FC<{
   //     if (size > 3) return { color: Colors.primary.main, size: 7 };
   //     return { color: Colors.primary.light, size: 5 };
   //   };
+  // Custom random number generator (same as `mulberry32`)
+  const mulberry32 = (a: number) => {
+    return function () {
+      let t = (a += 0x6d2b79f5);
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+
+  const rngfun = mulberry32(0x123456789); // Seeded random function
+
+  //   // Shuffle nodes
+  //   const nodenum = registry.length;
+  //   const randnode = [...Array(nodenum).keys()];
+
+  // Fisher-Yates Shuffle
+  //   for (let i = 0; i < nodenum; i++) {
+  //     const j = Math.floor(rngfun() * (i + 1));
+  //     [randnode[i], randnode[j]] = [randnode[j], randnode[i]];
+  //   }
 
   useEffect(() => {
     // Ensure registry and graphRef are properly initialized
@@ -89,6 +110,33 @@ const NeuroJsonGraph: React.FC<{
       console.error("Graph ref is null");
       return;
     }
+
+    let colorlist: { brightness: number; index: number }[] = registry.map(
+      (db, index) => {
+        const colorStr = blendColors(db.datatype); // Get color in "rgb(R,G,B)" format
+
+        // **Extract RGB values from the string**
+        const match = colorStr.match(/\d+/g); // Get numbers from "rgb(R,G,B)"
+        if (!match) return { brightness: 255, index }; // Default to white if extraction fails
+
+        const [r, g, b] = match.map(Number); // Convert to numbers
+        const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b; // Compute brightness
+
+        return { brightness, index };
+      }
+    );
+
+    // **2️⃣ Sort nodes by brightness (dark → bright)**
+    colorlist.sort((a, b) => a.brightness - b.brightness);
+
+    // // **3️⃣ Create shuffled node list using Fisher-Yates algorithm**
+    // const nodenum = registry.length;
+    // const randnode = colorlist.map((item) => item.index); // Get sorted indices
+
+    // for (let i = 0; i < nodenum; i++) {
+    //   const j = Math.floor(rngfun() * (i + 1));
+    //   [randnode[i], randnode[j]] = [randnode[j], randnode[i]];
+    // }
 
     // Prepare graph data
     const graphData = {
@@ -107,35 +155,81 @@ const NeuroJsonGraph: React.FC<{
           url: db.url,
           datasets: db.datasets,
           size: size,
-          standard: db.standard || [], // add standard property
+          standard: db.standard || [],
         };
       }),
+
       links: registry.flatMap((db, index) => {
-        const connections = [];
-        const nextIndex = (index + 1) % registry.length;
-        // const { color } = size2colorAndSize(db.datasets);
-        const color = blendColors(db.datatype);
-        connections.push({
-          source: db.id,
-          target: registry[nextIndex].id,
-          color: color,
-          visible: true,
-        });
-        return connections;
+        // const color = blendColors(db.datatype);
+        // return registry
+        //   .filter(
+        //     (otherDb) =>
+        //       db.id !== otherDb.id &&
+        //       db.datatype.some((type) => otherDb.datatype.includes(type))
+        //   )
+        //   .map((otherDB) => ({
+        //     source: db.id,
+        //     target: otherDB.id,
+        //     color: Colors.lightGray,
+        //     visible: true,
+        //   }));
 
-        // non-circle rendering
-        // const similarNodes = registry.filter(
-        //   (otherDb) =>
-        //     db.datatype.some((type) => otherDb.datatype.includes(type)) &&
-        //     db.id !== otherDb.id
-        // );
-
-        // return similarNodes.map((otherDb) => ({
+        // const connections = [];
+        // const nextIndex = (index + 1) % registry.length;
+        // // const { color } = size2colorAndSize(db.datasets);
+        // const color = blendColors(db.datatype);
+        // connections.push({
         //   source: db.id,
-        //   target: otherDb.id,
-        //   color: blendColors(db.datatype), // Link color based on datatype
+        //   target: registry[nextIndex].id,
+        //   color: color,
         //   visible: true,
-        // }));
+        // });
+        // return connections;
+
+        // use original website logic
+        const coloridx = index;
+        const i = colorlist[coloridx].index; // Get shuffled node index
+        const node = registry[i]; // Get actual node
+
+        // Determine number of connections (proportional to dataset size)
+        const conn = 1 + Math.round(rngfun() * Math.max(1, node.datasets / 20));
+        // const numConnections = 4;
+        const connections: {
+          source: string;
+          target: string;
+          color: string;
+          visible: boolean;
+        }[] = [];
+
+        // for (let j = -conn; j <= conn; j++) {
+        //   if (j === 0) continue; // Skip linking to itself
+        //   if (coloridx + j >= nodenum) break; // Prevent out-of-bounds errors
+
+        //   const targetNode = registry[randnode[Math.max(0, coloridx + j)]]; // Pick a nearby node from shuffled list
+
+        //   connections.push({
+        //     source: node.id,
+        //     target: targetNode.id,
+        //     color: blendColors(node.datatype), // Match node's color
+        //     visible: true, // Make links visible
+        //   });
+        // }
+
+        for (let j = 1; j <= conn; j++) {
+          if (index + j >= registry.length) break; // Prevent out-of-bounds errors
+
+          const targetIdx = colorlist[index + j].index; // Get next closest in brightness
+          const targetNode = registry[targetIdx];
+
+          connections.push({
+            source: node.id,
+            target: targetNode.id,
+            color: blendColors(node.datatype), // Keep consistent coloring
+            visible: true, // Make links visible
+          });
+        }
+
+        return connections;
       }),
     };
 
@@ -144,7 +238,7 @@ const NeuroJsonGraph: React.FC<{
       .graphData(graphData)
       .nodeRelSize(2)
       .nodeColor((node) => (node as NodeObject).color)
-      .linkWidth(2)
+      .linkWidth(0.5)
       .backgroundColor("rgba(0,0,0,0)")
       .nodeLabel("name")
       .onNodeHover((node) => {
@@ -201,7 +295,7 @@ const NeuroJsonGraph: React.FC<{
         // Add label as CSS2DObject
         const label = new CSS2DObject(document.createElement("div"));
         label.element.textContent = castNode.dbname || "Unnamed";
-        label.element.style.color = Colors.primary.main;
+        label.element.style.color = Colors.white;
         label.element.style.fontSize = "12px";
         label.element.style.pointerEvents = "none";
         label.position.set(0, 10, 0);
