@@ -27,12 +27,10 @@ jobs:
         run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
       - name: Copy package to server
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.5
+        uses: NeuroJSON/SFTP-Deploy-Action@v1.2.5
         with:
           server: ${{ secrets.NEUROJ_SERVER }}
           username: ${{ secrets.NEUROJ_SERVER_USER }}
           ssh_private_key: ${{ secrets.NEUROJ_SERVER_SSH_KEY }}
           local_path: "./build/*"
-          remote_path: "${{ secrets.NEUROJ_CI_PATH }}/${{ env.BRANCH_NAME }}"
-          rsyncArgs: '--exclude=*.map'
-          sftpArgs: '-o ConnectTimeout=5'
+          remote_path: "${{ secrets.NEUROJ_CI_PATH }}/${{ github.actor }}_${{ env.BRANCH_NAME }}"
