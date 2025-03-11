@@ -20,7 +20,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build React App
-        run:|
+        run: |
           yarn build
           ls -l
 
