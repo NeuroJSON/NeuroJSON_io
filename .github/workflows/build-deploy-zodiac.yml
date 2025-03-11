@@ -33,4 +33,4 @@ jobs:
           username: ${{ secrets.NEUROJ_SERVER_USER }}
           ssh_private_key: ${{ secrets.NEUROJ_SERVER_SSH_KEY }}
           local_path: "./build/*"
-          remote_path: "${{ secrets.NEUROJ_CI_PATH }}/${{ github.actor }}_${{ env.BRANCH_NAME }}"
+          remote_path: "${{ secrets.NEUROJ_CI_PATH }}/${{ env.BRANCH_NAME }}"
