@@ -21,7 +21,7 @@ jobs:
 
       - name: Build React App
         run: |
-          yarn build
+          yarn dist
           ls -l
 
       - name: Determine Branch Name
@@ -34,5 +34,5 @@ jobs:
           server: ${{ secrets.NEUROJ_SERVER }}
           username: ${{ secrets.NEUROJ_SERVER_USER }}
           ssh_private_key: ${{ secrets.NEUROJ_SERVER_SSH_KEY }}
-          local_path: "./build/*"
+          local_path: "./dist/*"
           remote_path: "${{ secrets.NEUROJ_CI_PATH }}/${{ env.BRANCH_NAME }}"
