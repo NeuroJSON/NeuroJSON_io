@@ -97,11 +97,12 @@ const Home: React.FC = () => {
             variant="contained"
             sx={{
               backgroundColor: Colors.green,
-              color: Colors.white,
+              color: Colors.darkPurple,
               fontWeight: "Bold",
               "&:hover": {
-                backgroundColor: Colors.darkGreen,
-                boxShadow: `0px 0px 15px ${Colors.green}`,
+                backgroundColor: Colors.darkPurple,
+                color: Colors.green,
+                boxShadow: `0px 0px 15px ${Colors.darkGreen}`,
               },
             }}
             onClick={() => navigate("/databases")}
