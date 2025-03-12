@@ -435,15 +435,18 @@ json data(datafile);`}
         <Typography>Install:</Typography>
         <code style={flashcardStyles.codeBlock}>npm install jda numjs pako atob</code>
         <Typography>Load:</Typography>
-        <code style={flashcardStyles.codeBlock} dangerouslySetInnerHTML={{
-  __html: `const fs = require("fs");<br>
-const jd = require("jda");<br>
-global.atob = require("atob");<br><br>
-const fn = "${docname}.json";<br>
-var jstr = fs.readFileSync(fn).toString().replace(/\\n/g, "");<br>
-var data = new jd(JSON.parse(jstr));<br>
-data = data.decode();`
-}} />
+        <pre>
+          <code style={flashcardStyles.codeBlock}>
+            {`const fs = require("fs");\n`}
+            {`const jd = require("jda");\n`}
+            {`global.atob = require("atob");\n\n`}
+            {`const fn = "${docname}.json";\n`}
+            {`var jstr = fs.readFileSync(fn).toString().replace(/\\n/g, "");\n`}
+            {`var data = new jd(JSON.parse(jstr));\n`}
+            {`data = data.decode();`}
+          </code>
+        </pre>
+
         <Typography>Read value:</Typography>
         <code style={flashcardStyles.codeBlock}>
           {`console.log(data.data["${onekey}"]);`}
