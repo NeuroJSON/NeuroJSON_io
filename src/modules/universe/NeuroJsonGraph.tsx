@@ -172,7 +172,7 @@ const NeuroJsonGraph: React.FC<{
     // Initialize 3D Force Graph
     const Graph = new ForceGraph3D(graphRef.current)
       .graphData(graphData)
-      .nodeRelSize(1)
+      .nodeRelSize(2)
       .nodeColor((node) => (node as NodeObject).color)
       .linkWidth(1)
       .backgroundColor("rgba(0,0,0,0)")
@@ -215,7 +215,7 @@ const NeuroJsonGraph: React.FC<{
         const glowMaterial = new THREE.MeshBasicMaterial({
           color: (castNode as any).color,
           transparent: true,
-          opacity: 0.2,
+          opacity: 0.5,
         });
         const glow = new THREE.Mesh(glowGeometry, glowMaterial);
 
