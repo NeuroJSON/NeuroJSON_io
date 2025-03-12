@@ -11,6 +11,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-22.04
+    env:
+      CI: false
 
     steps:
       - name: Check out the repository
