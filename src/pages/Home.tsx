@@ -72,15 +72,14 @@ const Home: React.FC = () => {
       <Box
         sx={{
           overflow: "hidden",
-          maxWidth: "42%",
+          maxWidth: "35%",
           zIndex: "3",
           position: "absolute",
           top: "6%",
-          left: "5%",
+          left: "1%",
           backgroundColor: "none",
           padding: "1.5rem",
           borderRadius: "8px",
-          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
         }}
       >
         {/* Header Section */}

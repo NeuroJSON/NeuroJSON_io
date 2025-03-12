@@ -18,7 +18,7 @@ export interface NodeObject {
   support: string;
   url: string;
   datasets: number;
-  standard: string[]; // define type of standard property
+  standard: string[];
 }
 
 const NeuroJsonGraph: React.FC<{
@@ -71,14 +71,7 @@ const NeuroJsonGraph: React.FC<{
     return `rgb(${avgR}, ${avgG}, ${avgB})`;
   };
 
-  // Function to determine color and size based on node size
-  //   const size2colorAndSize = (size: number) => {
-  //     if (size > 32) return { color: Colors.primary.dark, size: 10 };
-  //     if (size > 3) return { color: Colors.primary.main, size: 7 };
-  //     return { color: Colors.primary.light, size: 5 };
-  //   };
-
-  // Custom random number generator
+  // Custom random number generator for link connection usage
   const mulberry32 = (a: number) => {
     return function () {
       let t = (a += 0x6d2b79f5);
@@ -102,20 +95,19 @@ const NeuroJsonGraph: React.FC<{
       return;
     }
 
-    let colorlist: { brightness: number; index: number }[] = registry.map(
-      (db, index) => {
+    // create a colorlist after blend colors for nodes
+    let colorlist: { brightness: number; index: number; color: string }[] =
+      registry.map((db, index) => {
         const colorStr = blendColors(db.datatype); // Get color in "rgb(R,G,B)" format
-
-        // Extract RGB values from the string
         const match = colorStr.match(/\d+/g); // Get numbers from "rgb(R,G,B)"
-        if (!match) return { brightness: 255, index }; // Default to white if extraction fails
+        if (!match)
+          return { brightness: 255, index, color: "rgb(255, 255, 255)" }; // Default to white if extraction fails
 
         const [r, g, b] = match.map(Number); // Convert to numbers
         const brightness = 0.2126 * r + 0.7152 * g + 0.0722 * b; // Compute brightness
 
-        return { brightness, index };
-      }
-    );
+        return { brightness, index, color: colorStr };
+      });
 
     // Sort nodes by brightness
     colorlist.sort((a, b) => a.brightness - b.brightness);
@@ -123,12 +115,10 @@ const NeuroJsonGraph: React.FC<{
     // Prepare graph data
     const graphData = {
       nodes: registry.map((db) => {
-        // const { color, size } = size2colorAndSize(db.datasets);
         const color = blendColors(db.datatype);
-        // const size = db.datasets > 32 ? 10 : db.datasets > 3 ? 7 : 5;
-
-        let size = db.datasets > 100 ? Math.log(db.datasets) : db.datasets / 5;
-        size = Math.max(size, 2);
+        let size =
+          db.datasets > 100 ? Math.log(db.datasets) * 2.5 : db.datasets / 6;
+        size = Math.max(size, 4);
 
         return {
           id: db.id,
@@ -144,13 +134,13 @@ const NeuroJsonGraph: React.FC<{
         };
       }),
 
-      links: registry.flatMap((db, index) => {
-        const coloridx = index;
-        const i = colorlist[coloridx].index; // Get shuffled node index
-        const node = registry[i]; // Get actual node
-
-        // Determine number of connections (proportional to dataset size)
-        const conn = 1 + Math.round(rngfun() * Math.max(1, node.datasets / 20));
+      links: colorlist.flatMap(({ index, color }, colorIdx) => {
+        const node = registry[index];
+        // Determine number of connections
+        const scaledDatasets =
+          node.datasets > 100 ? Math.log(node.datasets) : node.datasets;
+        const conn =
+          1 + Math.round(rngfun() * Math.max(1, scaledDatasets / 20));
 
         const connections: {
           source: string;
@@ -159,17 +149,19 @@ const NeuroJsonGraph: React.FC<{
           visible: boolean;
         }[] = [];
 
-        for (let j = 1; j <= conn; j++) {
-          if (index + j >= registry.length) break; // Prevent out-of-bounds errors
-
-          const targetIdx = colorlist[index + j].index; // Get next closest in brightness
-          const targetNode = registry[targetIdx];
+        for (let j = -conn; j <= conn; j++) {
+          if (j === 0) continue;
+          const targetColorIdx = colorIdx + j;
+          if (targetColorIdx < 0 || targetColorIdx >= colorlist.length)
+            continue; // Prevent out-of-bounds errors
+          const targetIdx = colorlist[targetColorIdx].index; // Get registry node index in colorlist order
+          const targetNode = registry[targetIdx]; // Get target node info in registry
 
           connections.push({
             source: node.id,
             target: targetNode.id,
-            color: blendColors(node.datatype), // Keep consistent coloring
-            visible: true, // Make links visible
+            color: blendColors(node.datatype),
+            visible: true,
           });
         }
 
@@ -180,7 +172,7 @@ const NeuroJsonGraph: React.FC<{
     // Initialize 3D Force Graph
     const Graph = new ForceGraph3D(graphRef.current)
       .graphData(graphData)
-      .nodeRelSize(2)
+      .nodeRelSize(1)
       .nodeColor((node) => (node as NodeObject).color)
       .linkWidth(1)
       .backgroundColor("rgba(0,0,0,0)")
@@ -239,8 +231,8 @@ const NeuroJsonGraph: React.FC<{
         // Add label as CSS2DObject
         const label = new CSS2DObject(document.createElement("div"));
         label.element.textContent = castNode.dbname || "Unnamed";
-        label.element.style.color = Colors.white;
-        label.element.style.fontSize = "12px";
+        label.element.style.color = Colors.lightYellow;
+        label.element.style.fontSize = "16px";
         label.element.style.pointerEvents = "none";
         label.position.set(0, 10, 0);
         group.add(label);
