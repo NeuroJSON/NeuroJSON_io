@@ -18,6 +18,10 @@ import ReactJson from "react-json-view";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchDocumentDetails } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
+import PreviewModal from "../components/PreviewModal";
+import DatasetFlashcards from "../components/DatasetFlashcards";
+import { TextField } from "@mui/material";
+
 
 interface ExternalDataLink {
 	name: string;
@@ -30,13 +34,22 @@ const DatasetDetailPage: React.FC = () => {
 	const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
 	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
+	// const {
+	// 	selectedDocument: document,
+	// 	loading,
+	// 	error,
+	// } = useAppSelector(NeurojsonSelector);
 	const {
-		selectedDocument: document,
+		selectedDocument: datasetDocument,
 		loading,
 		error,
 	} = useAppSelector(NeurojsonSelector);
+
 	const [externalLinks, setExternalLinks] = useState<ExternalDataLink[]>([]);
 	const [isExpanded, setIsExpanded] = useState(false);
+	const [searchTerm, setSearchTerm] = useState("");
+	const [matches, setMatches] = useState<HTMLElement[]>([]);
+	const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
 	// Recursive function to find `_DataLink_`
 	const extractDataLinks = (obj: any, path: string): ExternalDataLink[] => {
@@ -83,12 +96,138 @@ const DatasetDetailPage: React.FC = () => {
 	}, [dbName, docId, dispatch]);
 
 	useEffect(() => {
-		if (document) {
+		if (datasetDocument) {
 			// Extract external links
-			const links = extractDataLinks(document, "");
+			const links = extractDataLinks(datasetDocument, "");
 			setExternalLinks(links);
 		}
-	}, [document]);
+	}, [datasetDocument]);
+	
+
+	// Function to handle the "Preview" functionality
+	// const handlePreview = (url: string) => {
+	// 	// Open the preview window or render the preview modal
+	// 	window.alert(`Preview functionality triggered for URL: ${url}`);
+	// };
+
+	const [previewOpen, setPreviewOpen] = useState(false);
+	const [previewDataKey, setPreviewDataKey] = useState<any>(null);
+	
+
+	useEffect(() => {
+		if (searchTerm) {
+			highlightMatches(searchTerm);
+		}
+	}, [searchTerm, datasetDocument]); // ✅ Run search when dataset loads	
+	
+
+
+	// const handlePreview = (key: any) => {
+	// 	setPreviewDataKey(key);
+	// 	setPreviewOpen(true);
+	// };
+
+	const handlePreview = (url: string) => {
+	
+		// Check if the file is NIfTI (.nii, .nii.gz), JData (.jdt, .jdb), or Mesh (.bmsh, .jmsh)
+		if (/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(url)) {
+			if (typeof (window as any).previewdataurl === "function") {
+				(window as any).previewdataurl(url, 0); // Calls preview immediately
+			} else {
+				console.error("❌ previewdataurl() is not defined!");
+			}
+		} else {
+			console.warn("⚠️ Unsupported file format for preview:", url);
+		}
+	
+		setPreviewDataKey(url); // Store the preview key
+		setPreviewOpen(true); // Open the preview modal
+	};
+	  
+	// const handleClosePreview = () => {
+	// 	setPreviewOpen(false);
+	// 	setPreviewDataKey(null);
+	// };
+
+	const handleClosePreview = () => {
+		console.log("🛑 Closing preview modal.");
+		setPreviewOpen(false);
+		setPreviewDataKey(null);
+	
+		// Stop any Three.js rendering when modal closes
+		if (typeof (window as any).update === "function") {
+			cancelAnimationFrame((window as any).reqid);
+		}
+	};
+
+	const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setSearchTerm(e.target.value);
+		setHighlightedIndex(-1);
+		highlightMatches(e.target.value);
+	};	
+	
+	const highlightMatches = (keyword: string) => {
+		if (!keyword.trim()) {
+			// ✅ Clear highlights when search is empty
+			document.querySelectorAll(".highlighted").forEach((el) => {
+				const element = el as HTMLElement;
+				if (element.dataset.originalText) {
+					element.innerText = element.dataset.originalText;
+				}
+				element.classList.remove("highlighted");
+			});
+			setMatches([]);
+			setHighlightedIndex(-1);
+			return;
+		}
+
+		const nodes: HTMLElement[] = [];
+		const elements = document.querySelectorAll(".react-json-view span"); // ✅ Select JSON values only
+
+		elements.forEach((el) => {
+			const element = el as HTMLElement;
+			if (!element.textContent) return; // Skip empty elements
+
+			const regex = new RegExp(`(${keyword})`, "gi");
+			const originalText = element.dataset.originalText || element.textContent;
+
+			if (originalText.toLowerCase().includes(keyword.toLowerCase())) {
+				if (!element.dataset.originalText) {
+					element.dataset.originalText = originalText;
+				}
+
+				// ✅ Safe highlight without breaking structure
+				element.innerHTML = originalText.replace(
+					regex,
+					`<mark class="highlighted" style="background-color: lightyellow; color: black;">$1</mark>`
+				);
+
+				nodes.push(element);
+			}
+		});
+
+		setMatches(nodes); // ✅ Store matches for "Find Next"
+		setHighlightedIndex(-1);
+	};
+
+
+	const findNext = () => {
+		if (matches.length === 0) return;
+
+		setHighlightedIndex((prevIndex) => {
+			const nextIndex = (prevIndex + 1) % matches.length;
+
+			matches.forEach((match) => {
+				match.style.backgroundColor = "lightyellow"; // Reset all highlights
+			});
+
+			matches[nextIndex].scrollIntoView({ behavior: "smooth", block: "center" });
+			matches[nextIndex].style.backgroundColor = "orange"; // Highlight current match
+
+			return nextIndex;
+		});
+	};
+	
 
 	if (loading) {
 		return (
@@ -125,9 +264,64 @@ const DatasetDetailPage: React.FC = () => {
 				Back
 			</Button>
 
-			<Typography variant="h4" gutterBottom color={Colors.primary.main}>
+			{/* <Typography variant="h4" gutterBottom color={Colors.primary.main}>
 				Dataset: {docId}
-			</Typography>
+			</Typography> */}
+
+			{/* <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+				<Typography variant="h4" color={Colors.primary.main}>
+					Dataset: {docId}
+				</Typography> */}
+
+				{/* 🔍 Search Box & Find Next Button
+				<Box display="flex" alignItems="center" gap={1}>
+					<TextField
+						size="small"
+						variant="outlined"
+						placeholder="Find keyword in dataset"
+						value={searchTerm}
+						onChange={handleSearch}
+						sx={{ width: "250px" }}
+					/>
+					<Button variant="contained" onClick={findNext} disabled={matches.length === 0}>
+						Find Next
+					</Button>
+				</Box>
+			</Box> */}
+
+			<Box 
+				sx={{ 
+					position: "sticky", // ✅ Keeps title & search bar fixed
+					top: 0, // ✅ Sticks to the top
+					backgroundColor: "white", // ✅ Ensures smooth UI
+					zIndex: 10, // ✅ Keeps it above scrollable content
+					paddingBottom: 2, // ✅ Adds space for clarity
+					borderBottom: `1px solid ${Colors.lightGray}`, // ✅ Adds subtle separator
+				}}>
+
+				<Box display="flex" alignItems="center" justifyContent="space-between">
+					<Typography variant="h4" color={Colors.primary.main}>
+						Dataset: {docId}
+					</Typography>
+
+					{/* 🔍 Search Box & Find Next Button */}
+					<Box display="flex" alignItems="center" gap={1}>
+						<TextField
+							size="small"
+							variant="outlined"
+							placeholder="Find keyword in dataset"
+							value={searchTerm}
+							onChange={handleSearch}
+							sx={{ width: "250px" }}
+						/>
+						<Button variant="contained" onClick={findNext} disabled={matches.length === 0}>
+							Find Next
+						</Button>
+					</Box>
+				</Box>
+			</Box>
+
+
 
 			<Box
 				sx={{
@@ -135,10 +329,11 @@ const DatasetDetailPage: React.FC = () => {
 					padding: 2,
 					borderRadius: "8px",
 					overflowX: "auto",
+					maxHeight: "calc(100vh - 150px)", // ✅ Adjusts height dynamically
 					boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
 				}}
 			>
-				{document ? (
+				{/* {document ? (
 					<ReactJson
 						src={document}
 						name={false}
@@ -152,8 +347,24 @@ const DatasetDetailPage: React.FC = () => {
 					<Typography sx={{ textAlign: "center", marginTop: 4 }}>
 						No data available for this dataset.
 					</Typography>
+				)} */}
+				{datasetDocument ? (
+					<ReactJson
+						src={datasetDocument}
+						name={false}
+						enableClipboard={true}
+						displayDataTypes={false}
+						displayObjectSize={true}
+						collapsed={2}
+						style={{ fontSize: "14px", fontFamily: "monospace" }}
+					/>
+				) : (
+					<Typography sx={{ textAlign: "center", marginTop: 4 }}>
+						No data available for this dataset.
+					</Typography>
 				)}
 			</Box>
+			
 			{externalLinks.length > 0 && (
 				<Box sx={{ marginTop: 4 }}>
 					<Box
@@ -307,7 +518,24 @@ const DatasetDetailPage: React.FC = () => {
 															color: Colors.secondary.dark,
 														},
 													}}
-													onClick={() => console.log("preview")}
+													// onClick={() => console.log("preview")}
+													onClick={() => window.open(link.url)}
+												>
+											
+													View
+												</Button>
+												<Button
+													variant="outlined"
+													size="small"
+													sx={{
+														color: Colors.primary.main,
+														borderColor: Colors.primary.main,
+														"&:hover": {
+															borderColor: Colors.primary.dark,
+															color: Colors.primary.dark,
+														},
+													}}
+													onClick={() => handlePreview(link.url)}
 												>
 													Preview
 												</Button>
@@ -320,6 +548,22 @@ const DatasetDetailPage: React.FC = () => {
 					</Collapse>
 				</Box>
 			)}
+			{/* ✅ ADD FLASHCARDS COMPONENT HERE ✅ */}
+
+			<DatasetFlashcards
+				pagename={docId ?? ""}
+				docname={datasetDocument?.Name || ""}
+				dbname={dbName || ""}
+				serverUrl={"https://neurojson.io:7777/"}
+				datasetDocument={datasetDocument} 
+				onekey={"dataset_description.json"} 
+			/>
+			{/* Preview Modal Component - Add Here */}
+			<PreviewModal
+      			isOpen={previewOpen}
+				dataKey={previewDataKey}
+				onClose={handleClosePreview}
+    		/>
 		</Box>
 	);
 };
