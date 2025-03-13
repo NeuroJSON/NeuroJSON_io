@@ -21,8 +21,8 @@ jobs:
 
       - name: Build React App with Dynamic PUBLIC_URL
         run: |
-          echo "Building for /dev/${{ env.BRANCH_NAME}}/"
-          PUBLIC_URL="/dev/${{ env.BRANCH_NAME}}/" yarn build
+          echo "Building for /dev/dev-fan/"
+          PUBLIC_URL="/dev/dev-fan/" yarn build
 
       - name: Determine Branch Name
         id: get_branch
