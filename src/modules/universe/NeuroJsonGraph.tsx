@@ -30,17 +30,22 @@ const NeuroJsonGraph: React.FC<{
 
   // Define the datatype to color mapping
   const DATA_TYPE_COLORS: Record<string, [number, number, number]> = {
-    mri: [79, 51, 130],
-    fmri: [10, 81, 20],
-    pet: [0, 105, 192],
-    meg: [156, 57, 0],
-    eeg: [134, 31, 55],
-    ieeg: [18, 109, 62],
-    beh: [12, 93, 210],
-    fmap: [255, 255, 59],
-    dwi: [200, 9, 12],
-    fnirs: [255, 193, 7],
-    phenotype: [255, 87, 34],
+    // mri: [79, 51, 130], // deep purple
+    mri: [160, 138, 233], // soft laender
+    anat: [160, 138, 233],
+    // fmri: [10, 81, 20], // dark green
+    fmri: [152, 202, 32], // bright lime green
+    func: [152, 202, 32],
+
+    pet: [0, 105, 192], // deep blue
+    meg: [156, 57, 0], // dark reddish-brown
+    eeg: [134, 31, 55], // dark red-pink
+    ieeg: [18, 109, 62], // forest green
+    beh: [12, 93, 210], // bright blue
+    fmap: [255, 255, 59], // vivid yellow
+    dwi: [200, 9, 12], // deep red
+    fnirs: [255, 193, 7], // golden yellow
+    phenotype: [255, 87, 34], // vibrant orange-red
   };
 
   // Function to blend colors based on datatypes
@@ -64,9 +69,9 @@ const NeuroJsonGraph: React.FC<{
 
     if (count === 0) count = 1; // Prevent division by zero
 
-    const avgR = Math.floor(totalR / count);
-    const avgG = Math.floor(totalG / count);
-    const avgB = Math.floor(totalB / count);
+    let avgR = Math.floor(totalR / count);
+    let avgG = Math.floor(totalG / count);
+    let avgB = Math.floor(totalB / count);
 
     return `rgb(${avgR}, ${avgG}, ${avgB})`;
   };
@@ -117,7 +122,7 @@ const NeuroJsonGraph: React.FC<{
       nodes: registry.map((db) => {
         const color = blendColors(db.datatype);
         let size =
-          db.datasets > 100 ? Math.log(db.datasets) * 2.5 : db.datasets / 6;
+          db.datasets > 100 ? Math.log(db.datasets) * 2.5 : db.datasets / 7;
         size = Math.max(size, 4);
 
         return {
@@ -172,9 +177,9 @@ const NeuroJsonGraph: React.FC<{
     // Initialize 3D Force Graph
     const Graph = new ForceGraph3D(graphRef.current)
       .graphData(graphData)
-      .nodeRelSize(2)
+      .nodeRelSize(1)
       .nodeColor((node) => (node as NodeObject).color)
-      .linkWidth(1)
+      .linkWidth(2)
       .backgroundColor("rgba(0,0,0,0)")
       .nodeLabel("name")
       .onNodeHover((node) => {
