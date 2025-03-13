@@ -25,7 +25,8 @@ jobs:
         run: yarn lint
 
       - name: Compile TypeScript
-        run: yarn build
+        run: |
+          PUBLIC_URL="/dev/${{ github.head_ref }}/" yarn build
 
       - name: Run Security Audit
         run: yarn audit --level moderate
