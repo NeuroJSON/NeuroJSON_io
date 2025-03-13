@@ -19,8 +19,10 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Build React App
-        run: yarn build
+      - name: Build React App with Dynamic PUBLIC_URL
+        run: |
+          echo "Building for /dev/${{ env.BRANCH_NAME}}/"
+          PUBLIC_URL="/dev/${{ env.BRANCH_NAME}}/" yarn build
 
       - name: Determine Branch Name
         id: get_branch
