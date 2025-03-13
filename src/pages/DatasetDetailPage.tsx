@@ -28,6 +28,7 @@ interface ExternalDataLink {
 	size: string;
 	path: string;
 	url: string;
+	index: number;
 }
 
 const DatasetDetailPage: React.FC = () => {
@@ -74,6 +75,7 @@ const DatasetDetailPage: React.FC = () => {
 							size,
 							path: subPath,
 							url: correctedUrl,
+							index: links.length,
 						});
 					} else if (typeof obj[key] === "object") {
 						links.push(...extractDataLinks(obj[key], `${path}/${key}`));
@@ -95,13 +97,27 @@ const DatasetDetailPage: React.FC = () => {
 		fetchData();
 	}, [dbName, docId, dispatch]);
 
+	// useEffect(() => {
+	// 	if (datasetDocument) {
+	// 		// Extract external links
+	// 		const links = extractDataLinks(datasetDocument, "");
+	// 		setExternalLinks(links);
+	// 	}
+	// }, [datasetDocument]);
+
 	useEffect(() => {
 		if (datasetDocument) {
-			// Extract external links
-			const links = extractDataLinks(datasetDocument, "");
+			// ✅ Extract links and ensure each link gets a proper `index`
+			const links = extractDataLinks(datasetDocument, "").map((link, index) => ({
+				...link,
+				index,  // ✅ Assign index correctly
+			}));
+			
+			console.log("🟢 Extracted external links with index:", links); // Debugging
 			setExternalLinks(links);
 		}
 	}, [datasetDocument]);
+	
 	
 
 	// Function to handle the "Preview" functionality
@@ -127,12 +143,31 @@ const DatasetDetailPage: React.FC = () => {
 	// 	setPreviewOpen(true);
 	// };
 
-	const handlePreview = (url: string) => {
+	// const handlePreview = (url: string) => {
 	
-		// Check if the file is NIfTI (.nii, .nii.gz), JData (.jdt, .jdb), or Mesh (.bmsh, .jmsh)
+	// 	// Check if the file is NIfTI (.nii, .nii.gz), JData (.jdt, .jdb), or Mesh (.bmsh, .jmsh)
+	// 	if (/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(url)) {
+	// 		if (typeof (window as any).previewdataurl === "function") {
+	// 			(window as any).previewdataurl(url, 0); // Calls preview immediately
+	// 		} else {
+	// 			console.error("❌ previewdataurl() is not defined!");
+	// 		}
+	// 	} else {
+	// 		console.warn("⚠️ Unsupported file format for preview:", url);
+	// 	}
+	
+	// 	setPreviewDataKey(url); // Store the preview key
+	// 	setPreviewOpen(true); // Open the preview modal
+	// };
+
+	const handlePreview = (url: string, idx: number) => {
+		console.log("🟢 Preview button clicked for:", url, "Index:", idx);
+	
+		// ✅ Check if the file type is supported
 		if (/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(url)) {
 			if (typeof (window as any).previewdataurl === "function") {
-				(window as any).previewdataurl(url, 0); // Calls preview immediately
+				console.log("✅ Calling previewdataurl() for:", url, "Index:", idx);
+				(window as any).previewdataurl(url, idx);  // ✅ Correctly passing `idx`
 			} else {
 				console.error("❌ previewdataurl() is not defined!");
 			}
@@ -140,9 +175,10 @@ const DatasetDetailPage: React.FC = () => {
 			console.warn("⚠️ Unsupported file format for preview:", url);
 		}
 	
-		setPreviewDataKey(url); // Store the preview key
-		setPreviewOpen(true); // Open the preview modal
+		setPreviewDataKey(url); // ✅ Store the preview key
+		setPreviewOpen(true);   // ✅ Open the preview modal
 	};
+	
 	  
 	// const handleClosePreview = () => {
 	// 	setPreviewOpen(false);
@@ -535,7 +571,8 @@ const DatasetDetailPage: React.FC = () => {
 															color: Colors.primary.dark,
 														},
 													}}
-													onClick={() => handlePreview(link.url)}
+													onClick={() => handlePreview(link.url, link.index)}  // ✅ Ensure `idx` is dynamically set
+
 												>
 													Preview
 												</Button>
