@@ -6,7 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 const App = () => {
 	return (
 		<ThemeProvider theme={theme}>
-			<BrowserRouter>
+			<BrowserRouter basename={process.env.PUBLIC_URL}>
 				<Routes />
 			</BrowserRouter>
 		</ThemeProvider>
