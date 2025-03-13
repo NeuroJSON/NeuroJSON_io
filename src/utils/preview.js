@@ -1413,327 +1413,451 @@ function update() {
 
 import { baseURL } from "../services/instance"; // Import CORS proxy
 
+// function previewdataurl(url, idx) {
+//   console.log("🟢 previewdataurl() called for:", url, "Index:", idx);
+//   console.log("🔎 Checking file format for:", url);
+//   console.log("🔎 Extracted extension:", url.split('.').pop());
+
+
+//   // ✅ Ensure valid file types before proceeding
+//   // if (!/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh)$/i.test(url)) {
+//   //   console.warn("⚠️ Unsupported file format for previe:", url);
+//   //   return;
+//   // }
+
+//   if (!/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh|bnii|gz)$/i.test(url)) {
+//     console.warn("⚠️ Unsupported file format for preview:", url);
+//     return;
+//   }
+
+//   // ✅ Fix CORS Proxy Handling
+//   // const proxiedURL = `${baseURL.replace(/\/$/, '')}/${url.replace(/^https:\/\/neurojson\.(io|org)(:7777)?\/?/, "")}`;
+//   const proxiedURL = `${baseURL.replace(/\/$/, '')}/${url.replace(/^https:\/\/neurojson\.(io|org)(:7777)?\/?/, "")}`;
+
+//   console.log("📌 Final Proxied URL:", proxiedURL);
+
+//   // ✅ Check if data is already cached
+//   if (urldata.hasOwnProperty(proxiedURL)) {
+//     console.log("✅ Using cached preview data.");
+//     previewdata(urldata[proxiedURL], idx, false);
+//     return;
+//   }
+
+//   $('#loadingdiv').css('display', 'block');
+//   $('#loadingstatus').text('Loading from external URL');
+
+//   var oReq = new XMLHttpRequest();
+//   oReq.open("GET", proxiedURL, true);
+//   oReq.setRequestHeader("X-Requested-With", "XMLHttpRequest");  // ✅ Required Header
+//   // oReq.setRequestHeader("Origin", window.location.origin);       // ✅ Origin Header
+//   oReq.responseType = "arraybuffer";
+
+
+//   // oReq.onload = function () {
+  
+//   //   let arrayBuffer = oReq.response;
+//   //   console.log("📥 Fetched data size:", oReq.response ? oReq.response.byteLength : "No response");
+//   //   if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+//   //     console.error("❌ No valid response received from:", proxiedURL);
+//   //     return;
+//   //   }
+//   //   console.log("📥 Raw Response (First 100 chars):", new TextDecoder().decode(arrayBuffer.slice(0, 100)));
+//   //   console.log("📥 Full Response Length:", arrayBuffer.byteLength);
+
+
+//   //   let bjd;
+//   //   if (url.match(/\.nii\.gz/)) {
+//   //     console.log("🔄 Processing NIfTI file...");
+//   //     let origdata = pako.ungzip(arrayBuffer);
+//   //     const header = new DataView(origdata.buffer);
+//   //     let ndim = header.getUint16(40, true);
+//   //     let datatype = header.getUint16(70, true);
+
+//   //     let dims = [], totallen = 1;
+//   //     for (let i = 1; i <= ndim; i++) {
+//   //       dims.push(header.getUint16(40 + i * 2, true));
+//   //       totallen *= dims[i - 1];
+//   //     }
+
+//   //     let voxelsize = [];
+//   //     for (let i = 1; i <= ndim; i++) {
+//   //       voxelsize.push(header.getFloat32(76 + i * 4, true));
+//   //     }
+//   //     let voxeloffset = header.getFloat32(108, true);
+//   //     let type = niitype[datatype];
+
+//   //     let typename = type.charAt(0).toUpperCase() + type.slice(1) + "Array";
+//   //     let typecast = new Function('d,o,l', `return new ${typename}(d,o,l)`);
+
+//   //     bjd = nj.array(typecast(origdata.buffer, Math.floor(voxeloffset), totallen), niitype[datatype]);
+//   //     bjd = { NIFTIHeader: { VoxelSize: voxelsize }, NIFTIData: bjd.reshape(dims.reverse()).transpose() };
+//   //   } else {
+//   //     console.log("🔄 Processing BJData...");
+//   //     bjd = bjdata.decode(new Uint8Array(arrayBuffer));
+//   //     let jd = new jdata(bjd[0], { base64: false });
+//   //     bjd = jd.decode().data;
+//   //   }
+
+//   //   let plotdata = bjd;
+
+//   //   // ✅ Restore `linkpath` processing if required
+//   //   let linkpath = url.split(/:*\$\./);
+//   //   if (linkpath.length > 1 && !linkpath[1].match(/^Mesh[NSEVT]/)) {
+//   //     let objpath = linkpath[1].split(/(?<!\\)\./);
+//   //     for (let i = 0; i < objpath.length; i++) {
+//   //       if (plotdata.hasOwnProperty(objpath[i])) {
+//   //         plotdata = plotdata[objpath[i]];
+//   //       }
+//   //     }
+//   //   }
+
+//   //   // ✅ Handle NIfTI VoxelSize if present
+//   //   if (bjd.hasOwnProperty('NIFTIHeader') && bjd['NIFTIHeader'].hasOwnProperty('VoxelSize')) {
+//   //     xyzscale = bjd['NIFTIHeader']['VoxelSize'];
+//   //     plotdata = bjd.NIFTIData;
+//   //   }
+
+//   //   // ✅ Fix MeshNode & MeshSurf conversion
+//   //   if (bjd.hasOwnProperty('MeshVertex3') && !bjd.hasOwnProperty('MeshNode'))
+//   //     bjd.MeshNode = bjd.MeshVertex3;
+
+//   //   if (bjd.hasOwnProperty('MeshTri3') && !bjd.hasOwnProperty('MeshSurf'))
+//   //     bjd.MeshSurf = bjd.MeshTri3;
+
+//   //   // ✅ Fix MeshElem processing
+//   //   if (!plotdata.hasOwnProperty('MeshSurf') && plotdata.hasOwnProperty('MeshElem')) {
+//   //     if (plotdata.MeshElem instanceof nj.NdArray) {
+//   //       const dat = plotdata;
+//   //       let f123 = nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 1)]);
+//   //       let f124 = nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 2)]);
+//   //       let f134 = nj.stack([dat.MeshElem.pick(null, 2), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 3)]);
+//   //       let f234 = nj.stack([dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 2)]);
+//   //       let tris = nj.concatenate(f123, f124, f134, f234).T;
+//   //       let surftri = {};
+
+//   //       for (let i = 0; i < tris.shape[0]; i++) {
+//   //         let trikey = tris.pick(i).tolist().sort((a, b) => a - b).toString();
+//   //         if (surftri.hasOwnProperty(trikey)) {
+//   //           surftri[trikey] = -1;
+//   //         } else {
+//   //           surftri[trikey] = i;
+//   //         }
+//   //       }
+
+//   //       surftri = Object.values(surftri).filter(num => num >= 0);
+//   //       plotdata.MeshSurf = nj.zeros([surftri.length, 3], 'uint32');
+//   //       for (let i = 0; i < surftri.length; i++) {
+//   //         plotdata.MeshSurf.set(i, 0, tris.pick(surftri[i]).get(0));
+//   //         plotdata.MeshSurf.set(i, 1, tris.pick(surftri[i]).get(1));
+//   //         plotdata.MeshSurf.set(i, 2, tris.pick(surftri[i]).get(2));
+//   //       }
+//   //     }
+//   //   }
+
+//   //   // ✅ Fix time-series data preview
+//   //   if (plotdata.hasOwnProperty('data') && plotdata.data.hasOwnProperty('dataTimeSeries')) {
+//   //     let serieslabel = true;
+//   //     if (plotdata.data.hasOwnProperty('measurementList')) {
+//   //       serieslabel = Array(plotdata.data.measurementList.length);
+//   //       for (let i = 0; i < serieslabel.length; i++) {
+//   //         serieslabel[i] = 'S' + plotdata.data.measurementList[i].sourceIndex + 'D' + plotdata.data.measurementList[i].detectorIndex;
+//   //       }
+//   //     }
+//   //     previewdata(nj.concatenate(plotdata.data.time.reshape(plotdata.data.time.size, 1), plotdata.data.dataTimeSeries).T, idx, false, serieslabel);
+//   //   }
+
+//   //   // ✅ Cache the processed data
+//   //   urldata[proxiedURL] = plotdata;
+
+//   //   console.log("✅ Data cached for:", proxiedURL);
+
+//   //   // ✅ Send to preview renderer
+//   //   if (plotdata instanceof nj.NdArray || plotdata.hasOwnProperty('MeshNode')) {
+//   //     console.log("✅ Sending data to preview renderer.");
+//   //     previewdata(plotdata, idx, false);
+//   //   } else {
+//   //     console.warn("⚠️ No valid preview data found.");
+//   //   }
+//   // };
+
+//   oReq.onload = function () {
+//     let arrayBuffer = oReq.response;
+//     console.log("📥 Fetched data size:", arrayBuffer ? arrayBuffer.byteLength : "No response");
+
+//     if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+//         console.error("❌ No valid response received from:", proxiedURL);
+//         return;
+//     }
+
+//     // ✅ Check if response is an error (HTML page or JSON response)
+//     const textResponse = new TextDecoder().decode(arrayBuffer.slice(0, 100));
+//     if (textResponse.startsWith("<!DOCTYPE html") || textResponse.includes("<html")) {
+//         console.error("❌ Received an HTML error page instead of binary data.");
+//         console.error("🔍 Response Preview:", textResponse);
+//         return;
+//     }
+//     if (textResponse.includes("{") && textResponse.includes("error")) {
+//         console.error("❌ Received JSON error response:", textResponse);
+//         return;
+//     }
+
+//     console.log("✅ Valid binary file received. Processing...");
+//     let bjd;
+
+//     // ✅ Process NIfTI (.nii.gz) Files
+//     if (url.match(/\.nii\.gz/)) {
+//         console.log("🔄 Processing NIfTI file...");
+//         let origdata = pako.ungzip(arrayBuffer);
+//         const header = new DataView(origdata.buffer);
+//         let ndim = header.getUint16(40, true);
+//         let datatype = header.getUint16(70, true);
+
+//         let dims = [], totallen = 1;
+//         for (let i = 1; i <= ndim; i++) {
+//             dims.push(header.getUint16(40 + i * 2, true));
+//             totallen *= dims[i - 1];
+//         }
+
+//         let voxelsize = [];
+//         for (let i = 1; i <= ndim; i++) {
+//             voxelsize.push(header.getFloat32(76 + i * 4, true));
+//         }
+//         let voxeloffset = header.getFloat32(108, true);
+//         let type = niitype[datatype];
+
+//         let typename = type.charAt(0).toUpperCase() + type.slice(1) + "Array";
+//         let typecast = new Function('d,o,l', `return new ${typename}(d,o,l)`);
+
+//         bjd = nj.array(typecast(origdata.buffer, Math.floor(voxeloffset), totallen), niitype[datatype]);
+//         bjd = { NIFTIHeader: { VoxelSize: voxelsize }, NIFTIData: bjd.reshape(dims.reverse()).transpose() };
+//     } 
+//     // ✅ Process BJData
+//     else {
+//         console.log("🔄 Processing BJData...");
+//         try {
+//             bjd = bjdata.decode(new Uint8Array(arrayBuffer));
+//             let jd = new jdata(bjd[0], { base64: false });
+//             bjd = jd.decode().data;
+//         } catch (error) {
+//             console.error("❌ Failed to decode BJData:", error);
+//             return;
+//         }
+//     }
+
+//     let plotdata = bjd;
+
+//     // ✅ Restore `linkpath` processing if required
+//     let linkpath = url.split(/:*\$\./);
+//     if (linkpath.length > 1 && !linkpath[1].match(/^Mesh[NSEVT]/)) {
+//         let objpath = linkpath[1].split(/(?<!\\)\./);
+//         for (let i = 0; i < objpath.length; i++) {
+//             if (plotdata.hasOwnProperty(objpath[i])) {
+//                 plotdata = plotdata[objpath[i]];
+//             }
+//         }
+//     }
+
+//     // ✅ Handle NIfTI VoxelSize if present
+//     if (bjd.hasOwnProperty('NIFTIHeader') && bjd['NIFTIHeader'].hasOwnProperty('VoxelSize')) {
+//         xyzscale = bjd['NIFTIHeader']['VoxelSize'];
+//         plotdata = bjd.NIFTIData;
+//     }
+
+//     // ✅ Fix MeshNode & MeshSurf conversion
+//     if (bjd.hasOwnProperty('MeshVertex3') && !bjd.hasOwnProperty('MeshNode'))
+//         bjd.MeshNode = bjd.MeshVertex3;
+
+//     if (bjd.hasOwnProperty('MeshTri3') && !bjd.hasOwnProperty('MeshSurf'))
+//         bjd.MeshSurf = bjd.MeshTri3;
+
+//     // ✅ Fix MeshElem processing
+//     if (!plotdata.hasOwnProperty('MeshSurf') && plotdata.hasOwnProperty('MeshElem')) {
+//         if (plotdata.MeshElem instanceof nj.NdArray) {
+//             const dat = plotdata;
+//             let f123 = nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 1)]);
+//             let f124 = nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 2)]);
+//             let f134 = nj.stack([dat.MeshElem.pick(null, 2), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 3)]);
+//             let f234 = nj.stack([dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 2)]);
+//             let tris = nj.concatenate(f123, f124, f134, f234).T;
+//             let surftri = {};
+
+//             for (let i = 0; i < tris.shape[0]; i++) {
+//                 let trikey = tris.pick(i).tolist().sort((a, b) => a - b).toString();
+//                 if (surftri.hasOwnProperty(trikey)) {
+//                     surftri[trikey] = -1;
+//                 } else {
+//                     surftri[trikey] = i;
+//                 }
+//             }
+
+//             surftri = Object.values(surftri).filter(num => num >= 0);
+//             plotdata.MeshSurf = nj.zeros([surftri.length, 3], 'uint32');
+//             for (let i = 0; i < surftri.length; i++) {
+//                 plotdata.MeshSurf.set(i, 0, tris.pick(surftri[i]).get(0));
+//                 plotdata.MeshSurf.set(i, 1, tris.pick(surftri[i]).get(1));
+//                 plotdata.MeshSurf.set(i, 2, tris.pick(surftri[i]).get(2));
+//             }
+//         }
+//     }
+
+//     // ✅ Fix time-series data preview
+//     if (plotdata.hasOwnProperty('data') && plotdata.data.hasOwnProperty('dataTimeSeries')) {
+//         let serieslabel = true;
+//         if (plotdata.data.hasOwnProperty('measurementList')) {
+//             serieslabel = Array(plotdata.data.measurementList.length);
+//             for (let i = 0; i < serieslabel.length; i++) {
+//                 serieslabel[i] = 'S' + plotdata.data.measurementList[i].sourceIndex + 'D' + plotdata.data.measurementList[i].detectorIndex;
+//             }
+//         }
+//         previewdata(nj.concatenate(plotdata.data.time.reshape(plotdata.data.time.size, 1), plotdata.data.dataTimeSeries).T, idx, false, serieslabel);
+//     }
+
+//     // ✅ Cache the processed data
+//     urldata[proxiedURL] = plotdata;
+
+//     console.log("✅ Data cached for:", proxiedURL);
+
+//     // ✅ Send to preview renderer
+//     if (plotdata instanceof nj.NdArray || plotdata.hasOwnProperty('MeshNode')) {
+//         console.log("✅ Sending data to preview renderer.");
+//         previewdata(plotdata, idx, false);
+//     } else {
+//         console.warn("⚠️ No valid preview data found.");
+//     }
+//   };
+
+
+//   oReq.onerror = function () {
+//     console.error("❌ Network error while fetching:", proxiedURL);
+//   };
+
+//   oReq.send();
+// }
+
 function previewdataurl(url, idx) {
-  console.log("🟢 previewdataurl() called for:", url, "Index:", idx);
-  console.log("🔎 Checking file format for:", url);
-  console.log("🔎 Extracted extension:", url.split('.').pop());
-
-
-  // ✅ Ensure valid file types before proceeding
-  // if (!/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh)$/i.test(url)) {
-  //   console.warn("⚠️ Unsupported file format for previe:", url);
-  //   return;
-  // }
 
   if (!/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh|bnii|gz)$/i.test(url)) {
-    console.warn("⚠️ Unsupported file format for preview:", url);
+        console.warn("⚠️ Unsupported file format for preview:", url);
+        return;
+      }
+
+  if(urldata.hasOwnProperty(url)) {
+    if(urldata[url] instanceof nj.NdArray || urldata[url].hasOwnProperty('MeshNode')) {
+       previewdata(urldata[url], idx, false)
+    }
     return;
   }
 
-  // ✅ Fix CORS Proxy Handling
-  // const proxiedURL = `${baseURL.replace(/\/$/, '')}/${url.replace(/^https:\/\/neurojson\.(io|org)(:7777)?\/?/, "")}`;
-  const proxiedURL = `${baseURL.replace(/\/$/, '')}/${url.replace(/^https:\/\/neurojson\.(io|org)(:7777)?\/?/, "")}`;
-
-  console.log("📌 Final Proxied URL:", proxiedURL);
-
-  // ✅ Check if data is already cached
-  if (urldata.hasOwnProperty(proxiedURL)) {
-    console.log("✅ Using cached preview data.");
-    previewdata(urldata[proxiedURL], idx, false);
-    return;
-  }
+  let linkpath = url.split(/:*\$\./);
 
   $('#loadingdiv').css('display', 'block');
   $('#loadingstatus').text('Loading from external URL');
 
   var oReq = new XMLHttpRequest();
-  oReq.open("GET", proxiedURL, true);
-  oReq.setRequestHeader("X-Requested-With", "XMLHttpRequest");  // ✅ Required Header
-  // oReq.setRequestHeader("Origin", window.location.origin);       // ✅ Origin Header
+  oReq.open("GET", linkpath[0], true);
   oReq.responseType = "arraybuffer";
 
+  oReq.onload = function(oEvent) {
+    var arrayBuffer = oReq.response;
 
-  // oReq.onload = function () {
-  
-  //   let arrayBuffer = oReq.response;
-  //   console.log("📥 Fetched data size:", oReq.response ? oReq.response.byteLength : "No response");
-  //   if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-  //     console.error("❌ No valid response received from:", proxiedURL);
-  //     return;
-  //   }
-  //   console.log("📥 Raw Response (First 100 chars):", new TextDecoder().decode(arrayBuffer.slice(0, 100)));
-  //   console.log("📥 Full Response Length:", arrayBuffer.byteLength);
-
-
-  //   let bjd;
-  //   if (url.match(/\.nii\.gz/)) {
-  //     console.log("🔄 Processing NIfTI file...");
-  //     let origdata = pako.ungzip(arrayBuffer);
-  //     const header = new DataView(origdata.buffer);
-  //     let ndim = header.getUint16(40, true);
-  //     let datatype = header.getUint16(70, true);
-
-  //     let dims = [], totallen = 1;
-  //     for (let i = 1; i <= ndim; i++) {
-  //       dims.push(header.getUint16(40 + i * 2, true));
-  //       totallen *= dims[i - 1];
-  //     }
-
-  //     let voxelsize = [];
-  //     for (let i = 1; i <= ndim; i++) {
-  //       voxelsize.push(header.getFloat32(76 + i * 4, true));
-  //     }
-  //     let voxeloffset = header.getFloat32(108, true);
-  //     let type = niitype[datatype];
-
-  //     let typename = type.charAt(0).toUpperCase() + type.slice(1) + "Array";
-  //     let typecast = new Function('d,o,l', `return new ${typename}(d,o,l)`);
-
-  //     bjd = nj.array(typecast(origdata.buffer, Math.floor(voxeloffset), totallen), niitype[datatype]);
-  //     bjd = { NIFTIHeader: { VoxelSize: voxelsize }, NIFTIData: bjd.reshape(dims.reverse()).transpose() };
-  //   } else {
-  //     console.log("🔄 Processing BJData...");
-  //     bjd = bjdata.decode(new Uint8Array(arrayBuffer));
-  //     let jd = new jdata(bjd[0], { base64: false });
-  //     bjd = jd.decode().data;
-  //   }
-
-  //   let plotdata = bjd;
-
-  //   // ✅ Restore `linkpath` processing if required
-  //   let linkpath = url.split(/:*\$\./);
-  //   if (linkpath.length > 1 && !linkpath[1].match(/^Mesh[NSEVT]/)) {
-  //     let objpath = linkpath[1].split(/(?<!\\)\./);
-  //     for (let i = 0; i < objpath.length; i++) {
-  //       if (plotdata.hasOwnProperty(objpath[i])) {
-  //         plotdata = plotdata[objpath[i]];
-  //       }
-  //     }
-  //   }
-
-  //   // ✅ Handle NIfTI VoxelSize if present
-  //   if (bjd.hasOwnProperty('NIFTIHeader') && bjd['NIFTIHeader'].hasOwnProperty('VoxelSize')) {
-  //     xyzscale = bjd['NIFTIHeader']['VoxelSize'];
-  //     plotdata = bjd.NIFTIData;
-  //   }
-
-  //   // ✅ Fix MeshNode & MeshSurf conversion
-  //   if (bjd.hasOwnProperty('MeshVertex3') && !bjd.hasOwnProperty('MeshNode'))
-  //     bjd.MeshNode = bjd.MeshVertex3;
-
-  //   if (bjd.hasOwnProperty('MeshTri3') && !bjd.hasOwnProperty('MeshSurf'))
-  //     bjd.MeshSurf = bjd.MeshTri3;
-
-  //   // ✅ Fix MeshElem processing
-  //   if (!plotdata.hasOwnProperty('MeshSurf') && plotdata.hasOwnProperty('MeshElem')) {
-  //     if (plotdata.MeshElem instanceof nj.NdArray) {
-  //       const dat = plotdata;
-  //       let f123 = nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 1)]);
-  //       let f124 = nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 2)]);
-  //       let f134 = nj.stack([dat.MeshElem.pick(null, 2), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 3)]);
-  //       let f234 = nj.stack([dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 2)]);
-  //       let tris = nj.concatenate(f123, f124, f134, f234).T;
-  //       let surftri = {};
-
-  //       for (let i = 0; i < tris.shape[0]; i++) {
-  //         let trikey = tris.pick(i).tolist().sort((a, b) => a - b).toString();
-  //         if (surftri.hasOwnProperty(trikey)) {
-  //           surftri[trikey] = -1;
-  //         } else {
-  //           surftri[trikey] = i;
-  //         }
-  //       }
-
-  //       surftri = Object.values(surftri).filter(num => num >= 0);
-  //       plotdata.MeshSurf = nj.zeros([surftri.length, 3], 'uint32');
-  //       for (let i = 0; i < surftri.length; i++) {
-  //         plotdata.MeshSurf.set(i, 0, tris.pick(surftri[i]).get(0));
-  //         plotdata.MeshSurf.set(i, 1, tris.pick(surftri[i]).get(1));
-  //         plotdata.MeshSurf.set(i, 2, tris.pick(surftri[i]).get(2));
-  //       }
-  //     }
-  //   }
-
-  //   // ✅ Fix time-series data preview
-  //   if (plotdata.hasOwnProperty('data') && plotdata.data.hasOwnProperty('dataTimeSeries')) {
-  //     let serieslabel = true;
-  //     if (plotdata.data.hasOwnProperty('measurementList')) {
-  //       serieslabel = Array(plotdata.data.measurementList.length);
-  //       for (let i = 0; i < serieslabel.length; i++) {
-  //         serieslabel[i] = 'S' + plotdata.data.measurementList[i].sourceIndex + 'D' + plotdata.data.measurementList[i].detectorIndex;
-  //       }
-  //     }
-  //     previewdata(nj.concatenate(plotdata.data.time.reshape(plotdata.data.time.size, 1), plotdata.data.dataTimeSeries).T, idx, false, serieslabel);
-  //   }
-
-  //   // ✅ Cache the processed data
-  //   urldata[proxiedURL] = plotdata;
-
-  //   console.log("✅ Data cached for:", proxiedURL);
-
-  //   // ✅ Send to preview renderer
-  //   if (plotdata instanceof nj.NdArray || plotdata.hasOwnProperty('MeshNode')) {
-  //     console.log("✅ Sending data to preview renderer.");
-  //     previewdata(plotdata, idx, false);
-  //   } else {
-  //     console.warn("⚠️ No valid preview data found.");
-  //   }
-  // };
-
-  oReq.onload = function () {
-    let arrayBuffer = oReq.response;
-    console.log("📥 Fetched data size:", arrayBuffer ? arrayBuffer.byteLength : "No response");
-
-    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-        console.error("❌ No valid response received from:", proxiedURL);
-        return;
-    }
-
-    // ✅ Check if response is an error (HTML page or JSON response)
-    const textResponse = new TextDecoder().decode(arrayBuffer.slice(0, 100));
-    if (textResponse.startsWith("<!DOCTYPE html") || textResponse.includes("<html")) {
-        console.error("❌ Received an HTML error page instead of binary data.");
-        console.error("🔍 Response Preview:", textResponse);
-        return;
-    }
-    if (textResponse.includes("{") && textResponse.includes("error")) {
-        console.error("❌ Received JSON error response:", textResponse);
-        return;
-    }
-
-    console.log("✅ Valid binary file received. Processing...");
     let bjd;
+    if(url.match(/\.nii\.gz/)){
+      var origdata = pako.ungzip(arrayBuffer);
+      const header=new DataView(origdata.buffer);
+      let headerlen = header.getUint32(0, true);
+      let ndim = header.getUint16(40, true);
+      let datatype = header.getUint16(70, true);
 
-    // ✅ Process NIfTI (.nii.gz) Files
-    if (url.match(/\.nii\.gz/)) {
-        console.log("🔄 Processing NIfTI file...");
-        let origdata = pako.ungzip(arrayBuffer);
-        const header = new DataView(origdata.buffer);
-        let ndim = header.getUint16(40, true);
-        let datatype = header.getUint16(70, true);
+      let dims=[], totallen=1;
+      for(let i=1;i<=ndim;i++) {
+        dims.push(header.getUint16(40+i*2, true));
+        totallen*=dims[i-1];
+      }
+      let voxelsize=[];
+      for(let i=1;i<=ndim;i++)
+        voxelsize.push(header.getFloat32(76+i*4, true));
+      let voxeloffset = header.getFloat32(108, true);
+      let type = niitype[datatype];
 
-        let dims = [], totallen = 1;
-        for (let i = 1; i <= ndim; i++) {
-            dims.push(header.getUint16(40 + i * 2, true));
-            totallen *= dims[i - 1];
-        }
+      let typename=type.charAt(0).toUpperCase() + type.substring(1) + "Array";
+      if(type=='int64' || type=='uint64')
+        typename='Big'+typename;
 
-        let voxelsize = [];
-        for (let i = 1; i <= ndim; i++) {
-            voxelsize.push(header.getFloat32(76 + i * 4, true));
-        }
-        let voxeloffset = header.getFloat32(108, true);
-        let type = niitype[datatype];
+      if(typedfun[typename] == null)
+        typedfun[typename]=new Function('d,o,l', 'return new '+typename+'(d,o,l)');
 
-        let typename = type.charAt(0).toUpperCase() + type.slice(1) + "Array";
-        let typecast = new Function('d,o,l', `return new ${typename}(d,o,l)`);
+      let typecast=typedfun[typename];
 
-        bjd = nj.array(typecast(origdata.buffer, Math.floor(voxeloffset), totallen), niitype[datatype]);
-        bjd = { NIFTIHeader: { VoxelSize: voxelsize }, NIFTIData: bjd.reshape(dims.reverse()).transpose() };
-    } 
-    // ✅ Process BJData
-    else {
-        console.log("🔄 Processing BJData...");
-        try {
-            bjd = bjdata.decode(new Uint8Array(arrayBuffer));
-            let jd = new jdata(bjd[0], { base64: false });
-            bjd = jd.decode().data;
-        } catch (error) {
-            console.error("❌ Failed to decode BJData:", error);
-            return;
-        }
-    }
-
-    let plotdata = bjd;
-
-    // ✅ Restore `linkpath` processing if required
-    let linkpath = url.split(/:*\$\./);
-    if (linkpath.length > 1 && !linkpath[1].match(/^Mesh[NSEVT]/)) {
-        let objpath = linkpath[1].split(/(?<!\\)\./);
-        for (let i = 0; i < objpath.length; i++) {
-            if (plotdata.hasOwnProperty(objpath[i])) {
-                plotdata = plotdata[objpath[i]];
-            }
-        }
-    }
-
-    // ✅ Handle NIfTI VoxelSize if present
-    if (bjd.hasOwnProperty('NIFTIHeader') && bjd['NIFTIHeader'].hasOwnProperty('VoxelSize')) {
-        xyzscale = bjd['NIFTIHeader']['VoxelSize'];
-        plotdata = bjd.NIFTIData;
-    }
-
-    // ✅ Fix MeshNode & MeshSurf conversion
-    if (bjd.hasOwnProperty('MeshVertex3') && !bjd.hasOwnProperty('MeshNode'))
-        bjd.MeshNode = bjd.MeshVertex3;
-
-    if (bjd.hasOwnProperty('MeshTri3') && !bjd.hasOwnProperty('MeshSurf'))
-        bjd.MeshSurf = bjd.MeshTri3;
-
-    // ✅ Fix MeshElem processing
-    if (!plotdata.hasOwnProperty('MeshSurf') && plotdata.hasOwnProperty('MeshElem')) {
-        if (plotdata.MeshElem instanceof nj.NdArray) {
-            const dat = plotdata;
-            let f123 = nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 1)]);
-            let f124 = nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 2)]);
-            let f134 = nj.stack([dat.MeshElem.pick(null, 2), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 3)]);
-            let f234 = nj.stack([dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 2)]);
-            let tris = nj.concatenate(f123, f124, f134, f234).T;
-            let surftri = {};
-
-            for (let i = 0; i < tris.shape[0]; i++) {
-                let trikey = tris.pick(i).tolist().sort((a, b) => a - b).toString();
-                if (surftri.hasOwnProperty(trikey)) {
-                    surftri[trikey] = -1;
-                } else {
-                    surftri[trikey] = i;
-                }
-            }
-
-            surftri = Object.values(surftri).filter(num => num >= 0);
-            plotdata.MeshSurf = nj.zeros([surftri.length, 3], 'uint32');
-            for (let i = 0; i < surftri.length; i++) {
-                plotdata.MeshSurf.set(i, 0, tris.pick(surftri[i]).get(0));
-                plotdata.MeshSurf.set(i, 1, tris.pick(surftri[i]).get(1));
-                plotdata.MeshSurf.set(i, 2, tris.pick(surftri[i]).get(2));
-            }
-        }
-    }
-
-    // ✅ Fix time-series data preview
-    if (plotdata.hasOwnProperty('data') && plotdata.data.hasOwnProperty('dataTimeSeries')) {
-        let serieslabel = true;
-        if (plotdata.data.hasOwnProperty('measurementList')) {
-            serieslabel = Array(plotdata.data.measurementList.length);
-            for (let i = 0; i < serieslabel.length; i++) {
-                serieslabel[i] = 'S' + plotdata.data.measurementList[i].sourceIndex + 'D' + plotdata.data.measurementList[i].detectorIndex;
-            }
-        }
-        previewdata(nj.concatenate(plotdata.data.time.reshape(plotdata.data.time.size, 1), plotdata.data.dataTimeSeries).T, idx, false, serieslabel);
-    }
-
-    // ✅ Cache the processed data
-    urldata[proxiedURL] = plotdata;
-
-    console.log("✅ Data cached for:", proxiedURL);
-
-    // ✅ Send to preview renderer
-    if (plotdata instanceof nj.NdArray || plotdata.hasOwnProperty('MeshNode')) {
-        console.log("✅ Sending data to preview renderer.");
-        previewdata(plotdata, idx, false);
+      bjd=nj.array(typecast(origdata.buffer, Math.floor(voxeloffset), totallen), niitype[datatype]);
+      bjd={'NIFTIHeader': {'VoxelSize': voxelsize}, 'NIFTIData': bjd.reshape(dims.reverse()).transpose()};
     } else {
-        console.warn("⚠️ No valid preview data found.");
+      bjd = bjdata.decode(buffer.Buffer.from(arrayBuffer));
+      let jd=new jdata(bjd[0],{base64:false});
+      bjd = jd.decode().data;
+    }
+
+    var plotdata = bjd;
+
+    if(linkpath.length > 1 && !(linkpath[1].match(/^Mesh[NSEVT]/))) {
+       let objpath = linkpath[1].split(/(?<!\\)\./);
+       for(let i=0; i< objpath.length; i++) {
+         if(plotdata.hasOwnProperty(objpath[i]))
+             plotdata=plotdata[objpath[i]];
+       }
+    }
+    if(bjd.hasOwnProperty('NIFTIHeader') && bjd['NIFTIHeader'].hasOwnProperty('VoxelSize')) {
+       xyzscale = bjd['NIFTIHeader']['VoxelSize'];
+       plotdata=bjd.NIFTIData;
+    }
+
+    if(bjd.hasOwnProperty('MeshVertex3') && !bjd.hasOwnProperty('MeshNode'))
+       delete Object.assign(bjd, {['MeshNode']: bjd['MeshVertex3'] })['MeshVertex3'];
+    if(bjd.hasOwnProperty('MeshTri3') && !bjd.hasOwnProperty('MeshSurf'))
+       delete Object.assign(bjd, {['MeshSurf']: bjd['MeshTri3'] })['MeshTri3'];
+
+    if(!plotdata.hasOwnProperty('MeshSurf') && plotdata.hasOwnProperty('MeshElem')) {
+      if(plotdata.MeshElem instanceof nj.NdArray) {
+        const dat = plotdata;
+        let f123=nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 1)]);
+        let f124=nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 2)]);
+        let f134=nj.stack([dat.MeshElem.pick(null, 2), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 3)]);
+        let f234=nj.stack([dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 2)]);
+        let tris=nj.concatenate(f123,f124, f134, f234).T;
+        let surftri = {};
+        for(let i=0; i<tris.shape[0]; i++) {
+           let trikey = tris.pick(i).tolist().sort((a,b) => a-b).toString();
+           if(surftri.hasOwnProperty(trikey))
+             surftri[trikey]=-1;
+           else
+             surftri[trikey]=i;
+        }
+        surftri=Object.values(surftri).filter(num => num >= 0);
+        plotdata.MeshSurf = nj.zeros([surftri.length, 3], 'uint32');
+        for(let i=0; i<surftri.length; i++) {
+           plotdata.MeshSurf.set(i,0, tris.pick(surftri[i]).get(0));
+           plotdata.MeshSurf.set(i,1, tris.pick(surftri[i]).get(1));
+           plotdata.MeshSurf.set(i,2, tris.pick(surftri[i]).get(2));
+        }
+      }
+    }
+    if(plotdata.hasOwnProperty('data') && plotdata.data.hasOwnProperty('dataTimeSeries')) {
+      let serieslabel=true;
+      if(plotdata.data.hasOwnProperty('measurementList')) {
+        serieslabel=Array(plotdata.data.measurementList.length);
+        for(let i=0; i< serieslabel.length; i++) {
+          serieslabel[i] = 'S'+plotdata.data.measurementList[i].sourceIndex +'D'+plotdata.data.measurementList[i].detectorIndex;
+        }
+      }
+      previewdata(nj.concatenate(plotdata.data.time.reshape(plotdata.data.time.size, 1), plotdata.data.dataTimeSeries).T, idx, false, serieslabel)
+    }
+    urldata[url]=plotdata;
+
+    if(plotdata instanceof nj.NdArray || plotdata.hasOwnProperty('MeshNode')) {
+       previewdata(plotdata, idx, false)
     }
   };
-
-
-  oReq.onerror = function () {
-    console.error("❌ Network error while fetching:", proxiedURL);
-  };
-
   oReq.send();
 }
-
 
 function previewdata(key, idx, isinternal, hastime) {
   console.log("🟢 previewdata() triggered. Key:", key, "Index:", idx);
