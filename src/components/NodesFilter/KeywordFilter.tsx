@@ -31,12 +31,8 @@ const KeywordFilter: React.FC<FilterSearchProps> = ({
       onChange={handleChange}
       sx={{
         width: 250,
-        // position: "absolute",
-        // top: 20,
-        // right: 20,
         background: "white",
         borderRadius: 1,
-        // zIndex: 10,
       }}
     />
   );

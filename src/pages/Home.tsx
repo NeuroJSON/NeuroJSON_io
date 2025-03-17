@@ -111,7 +111,7 @@ const Home: React.FC = () => {
       </Box>
       <Box
         sx={{
-          zIndex: "4",
+          zIndex: "2",
           position: "relative",
           width: "100%",
           overflow: "hidden",
@@ -143,7 +143,9 @@ const Home: React.FC = () => {
           position: "absolute",
           top: "6%",
           left: "1%",
-          backgroundColor: "none",
+          backgroundColor: "rgba(97, 109, 243, 0.1)",
+          backdropFilter: "blur(10px)",
+          boxShadow: `0px 0px 5px ${Colors.lightYellow}`,
           padding: "1.5rem",
           borderRadius: "8px",
         }}
