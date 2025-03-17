@@ -282,6 +282,7 @@ const NeuroJsonGraph: React.FC<{
       ref={graphRef}
       style={{
         width: "100%",
+        marginLeft: "5%",
         maxHeight: "99%",
         backgroundColor: "transparent",
         position: "relative",
