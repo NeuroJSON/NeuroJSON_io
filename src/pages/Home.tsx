@@ -7,6 +7,9 @@ import {
   CircularProgress,
 } from "@mui/material";
 import NodeInfoPanel from "components/NodeInfoPanel";
+// import KeywordFilter from "components/NodesFilter/KeywordFilter";
+// import ModalitiesFilter from "components/NodesFilter/ModalitiesFilter";
+import FilterMenu from "components/NodesFilter/FilterMenu";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -25,6 +28,8 @@ const Home: React.FC = () => {
   // State for selected node and panel visibility
   const [selectedNode, setSelectedNode] = useState<NodeObject | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [filterKeyword, setFilterKeyword] = useState<string>(""); // State for filter input
+  const [selectedModalities, setSelectedModalities] = useState<string[]>([]);
 
   useEffect(() => {
     dispatch(fetchRegistry());
@@ -36,6 +41,37 @@ const Home: React.FC = () => {
     setPanelOpen(true);
   };
 
+  // const filteredRegistry = registry
+  //   ? registry.filter((node) =>
+  //       node.name.toLowerCase().includes(filterKeyword.toLowerCase())
+  //     )
+  //   : [];
+
+  // filter logic
+  const filteredRegistry = registry
+    ? registry.filter((node) => {
+        const matchKeyword = node.name
+          .toLowerCase()
+          .includes(filterKeyword.toLowerCase());
+        const matchModalities =
+          selectedModalities.length === 0 ||
+          // selectedModalities.some((modality) =>
+          //   node.datatype.includes(modality)
+          // );
+          selectedModalities.some((modality) =>
+            Array.isArray(node.datatype)
+              ? node.datatype.includes(modality)
+              : node.datatype === modality
+          );
+
+        return matchKeyword && matchModalities;
+      })
+    : [];
+
+  // const handleModalitiesFilter = (modalities: string[]) => {
+  //   setSelectedModalities(modalities);
+  // };
+
   return (
     <Container
       style={{
@@ -44,11 +80,38 @@ const Home: React.FC = () => {
         padding: 0,
         overflow: "hidden",
         position: "relative",
+        minHeight: "500px", // make sure the view databases card won't be cut when no nodes showing
       }}
     >
+      {/* <Box sx={{ position: "absolute", top: 20, right: 20, zIndex: 10 }}>
+        <KeywordFilter onFilter={(query: string) => setFilterKeyword(query)} />
+      </Box>
       <Box
         sx={{
-          zIndex: "2",
+          position: "absolute",
+          top: 100,
+          right: 20,
+          zIndex: 10,
+          backgroundColor: "white",
+          p: 2,
+          borderRadius: 2,
+        }}
+      >
+        <ModalitiesFilter onFilter={handleModalitiesFilter} />
+      </Box> */}
+
+      {/* Filter Menu Button */}
+      <Box sx={{ position: "absolute", top: 20, right: 20, zIndex: 10 }}>
+        <FilterMenu
+          onKeywordFilter={setFilterKeyword}
+          onModalitiesFilter={setSelectedModalities}
+          filterKeyword={filterKeyword}
+          homeSelectedModalities={selectedModalities}
+        />
+      </Box>
+      <Box
+        sx={{
+          zIndex: "4",
           position: "relative",
           width: "100%",
           overflow: "hidden",
@@ -58,12 +121,15 @@ const Home: React.FC = () => {
           <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
             <CircularProgress sx={{ color: Colors.primary.main }} />
           </Box>
-        ) : registry && registry.length > 0 ? (
-          <NeuroJsonGraph registry={registry} onNodeClick={handleNodeClick} />
+        ) : filteredRegistry.length > 0 ? (
+          <NeuroJsonGraph
+            registry={filteredRegistry}
+            onNodeClick={handleNodeClick}
+          />
         ) : (
           <Box sx={{ textAlign: "center", mt: 4 }}>
             <Typography variant="h6" color={Colors.textSecondary}>
-              No data available to display
+              No matching nodes found
             </Typography>
           </Box>
         )}
