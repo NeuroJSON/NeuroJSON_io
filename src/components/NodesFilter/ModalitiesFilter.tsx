@@ -1,4 +1,6 @@
 import { Box, FormControlLabel, Checkbox, Typography } from "@mui/material";
+import { Colors } from "design/theme";
+import { DATA_TYPE_COLORS } from "modules/universe/NeuroJsonGraph";
 import React, { useEffect, useState } from "react";
 
 interface ModalitiesFilterProps {
@@ -30,21 +32,46 @@ const ModalitiesFilter: React.FC<ModalitiesFilterProps> = ({
 
   return (
     <Box>
-      {/* <Typography variant="subtitle1"> Select Modalities</Typography> */}
-      {modalitiesList.map((modality) => (
-        <Box sx={{ display: "flex", flexDirection: "column" }}>
-          <FormControlLabel
+      {modalitiesList.map((modality) => {
+        const bgColor = DATA_TYPE_COLORS[modality]
+          ? `rgb(${DATA_TYPE_COLORS[modality].join(",")})`
+          : "transparent";
+        return (
+          <Box
             key={modality}
-            control={
-              <Checkbox
-                checked={selectedModalities.includes(modality)}
-                onChange={() => handleModalityChange(modality)}
-              />
-            }
-            label={modality}
-          />
-        </Box>
-      ))}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <FormControlLabel
+              // key={modality}
+              control={
+                <Checkbox
+                  sx={{ color: Colors.primary.dark }}
+                  checked={selectedModalities.includes(modality)}
+                  onChange={() => handleModalityChange(modality)}
+                />
+              }
+              label={
+                <Typography
+                  sx={{
+                    color: Colors.lightGray,
+                    backgroundColor: bgColor,
+                    borderRadius: "5px",
+                    padding: "5px",
+                    marginBottom: "5px",
+                    fontWeight: "bold",
+                    minWidth: "45px",
+                  }}
+                >
+                  {modality}
+                </Typography>
+              }
+            />
+          </Box>
+        );
+      })}
     </Box>
   );
 };

@@ -51,11 +51,27 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
   return (
     <Box>
       {/* Filter Icon Button */}
-      <IconButton onClick={handleClick}>
-        <FilterListIcon sx={{ color: Colors.lightGray }} />
-        <Typography sx={{ color: Colors.lightGray, fontWeight: "bold" }}>
+      <IconButton
+        onClick={handleClick}
+        sx={{
+          color: Colors.lightGray,
+          "&:hover": {
+            color: Colors.green,
+            backgroundColor: Colors.darkPurple,
+            boxShadow: `0px 0px 15px ${Colors.darkGreen}`,
+            padding: "10px",
+          },
+        }}
+      >
+        <FilterListIcon />
+        {/* <Typography
+          sx={{
+            color: Colors.lightGray,
+            fontWeight: "bold",
+          }}
+        >
           Databases Filter
-        </Typography>
+        </Typography> */}
       </IconButton>
 
       {/* Dropdown Menu */}
@@ -63,25 +79,48 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleClose}
-        // sx={{ padding: "10px" }}
         disablePortal // Ensures positioning inside the DOM
         sx={{
           transition: "transform 0.3s ease, opacity 0.3s ease",
           transformOrigin: "top right",
+          "& .MuiPaper-root": {
+            backgroundColor: Colors.lightGray, // Override Paper's default background
+            // boxShadow: `0px 0px 15px ${Colors.lightGray}`,
+          },
         }}
       >
-        {/* unified panel version */}
-        <Box sx={{ minWidth: 300, padding: "10px" }}>
+        {/* unified panel */}
+        <Box
+          sx={{
+            backgroundColor: Colors.lightGray,
+            minWidth: 300,
+            padding: "10px",
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: "large",
+              fontWeight: "bold",
+              color: Colors.darkPurple,
+            }}
+          >
+            Databases Filter
+          </Typography>
+
+          <Divider sx={{ marginY: 2 }} />
+
           {/* Keyword Filter */}
           <Box
             sx={{
               display: "flex",
               flexDirection: "column",
-              //   position: "relative",
               gap: "2px",
             }}
           >
-            <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ color: Colors.darkOrange, fontWeight: "bold" }}
+            >
               Filter by Keyword
             </Typography>
             <KeywordFilter
@@ -97,11 +136,13 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
             sx={{
               display: "flex",
               flexDirection: "column",
-              position: "relative",
               gap: "2px",
             }}
           >
-            <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ color: Colors.darkOrange, fontWeight: "bold" }}
+            >
               Filter by Modalities
             </Typography>
             <ModalitiesFilter
@@ -110,43 +151,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
             />
           </Box>
         </Box>
-
-        {/* split panel version*/}
-        {/* <Box sx={{ display: "flex", minWidth: 400, padding: "10px" }}>
-          Left Side - Filter Options
-          <Box sx={{ width: "40%", paddingRight: "10px" }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-              Filter Options
-            </Typography>
-            <Divider sx={{ marginY: 1 }} />
-            <MenuItem
-              onClick={() => setFilterType("keyword")}
-              selected={filterType === "keyword"}
-            >
-              Filter by Keyword
-            </MenuItem>
-            <MenuItem
-              onClick={() => setFilterType("modalities")}
-              selected={filterType === "modalities"}
-            >
-              Filter by Modalities
-            </MenuItem>
-          </Box>
-          Right Side - Dynamic Filter Panel
-          <Box sx={{ width: "60%", paddingLeft: "10px" }}>
-            {filterType === "keyword" && (
-              <KeywordFilter onFilter={onKeywordFilter} />
-            )}
-            {filterType === "modalities" && (
-              <ModalitiesFilter onFilter={onModalitiesFilter} />
-            )}
-            {!filterType && (
-              <Typography variant="body2" sx={{ color: Colors.textSecondary }}>
-                Select a filter option on the left.
-              </Typography>
-            )}
-          </Box>
-        </Box> */}
       </Menu>
     </Box>
   );
