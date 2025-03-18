@@ -84,30 +84,38 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
           transition: "transform 0.3s ease, opacity 0.3s ease",
           transformOrigin: "top right",
           "& .MuiPaper-root": {
-            backgroundColor: Colors.lightGray, // Override Paper's default background
-            // boxShadow: `0px 0px 15px ${Colors.lightGray}`,
+            // backgroundColor: "rgba(40, 44, 86, 0.1)", // Override Paper's default background
+            backgroundColor: Colors.lightGray,
+            // boxShadow: `0px 0px 5px ${Colors.lightGray}`,
+            backdropFilter: "blur(15px)",
           },
         }}
       >
         {/* unified panel */}
         <Box
           sx={{
-            backgroundColor: Colors.lightGray,
+            // backgroundColor: Colors.darkPurple,
+            // backdropFilter: "blur(15px)",
             minWidth: 300,
             padding: "10px",
           }}
         >
           <Typography
             sx={{
-              fontSize: "large",
+              fontSize: "x-large",
               fontWeight: "bold",
-              color: Colors.darkPurple,
+              color: Colors.orange,
             }}
           >
             Databases Filter
           </Typography>
 
-          <Divider sx={{ marginY: 2 }} />
+          <Divider
+            sx={{
+              marginY: 2,
+              //   borderColor: Colors.darkPurple,
+            }}
+          />
 
           {/* Keyword Filter */}
           <Box
@@ -119,7 +127,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
           >
             <Typography
               variant="subtitle1"
-              sx={{ color: Colors.darkOrange, fontWeight: "bold" }}
+              sx={{ color: Colors.darkGreen, fontWeight: "bold" }}
             >
               Filter by Keyword
             </Typography>
@@ -129,7 +137,12 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
             />
           </Box>
 
-          <Divider sx={{ marginY: 2 }} />
+          <Divider
+            sx={{
+              marginY: 2,
+              // borderColor: Colors.lightGray
+            }}
+          />
 
           {/* Modalities Filter */}
           <Box
@@ -141,7 +154,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
           >
             <Typography
               variant="subtitle1"
-              sx={{ color: Colors.darkOrange, fontWeight: "bold" }}
+              sx={{ color: Colors.darkGreen, fontWeight: "bold" }}
             >
               Filter by Modalities
             </Typography>
