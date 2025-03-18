@@ -1,4 +1,10 @@
-import { Box, FormControlLabel, Checkbox, Typography } from "@mui/material";
+import {
+  Box,
+  FormControlLabel,
+  Checkbox,
+  Typography,
+  Button,
+} from "@mui/material";
 import { Colors } from "design/theme";
 import { DATA_TYPE_COLORS } from "modules/universe/NeuroJsonGraph";
 import React, { useEffect, useState } from "react";
@@ -28,6 +34,12 @@ const ModalitiesFilter: React.FC<ModalitiesFilterProps> = ({
       : [...selectedModalities, modality];
     setSelectedModalities(updatedModalities);
     onFilter(updatedModalities);
+  };
+
+  // reset function to clear all selected checkedboxes
+  const handleReset = () => {
+    setSelectedModalities([]); // clear the local state
+    onFilter([]); // notify parent that selection is reset
   };
 
   return (
@@ -77,6 +89,7 @@ const ModalitiesFilter: React.FC<ModalitiesFilterProps> = ({
                     marginBottom: "5px",
                     fontWeight: "bold",
                     minWidth: "45px",
+                    textAlign: "center",
                   }}
                 >
                   {modality}
@@ -86,6 +99,24 @@ const ModalitiesFilter: React.FC<ModalitiesFilterProps> = ({
           </Box>
         );
       })}
+      {/* Reset button */}
+      <Button
+        variant="contained"
+        sx={{
+          marginTop: "10px",
+          backgroundColor: Colors.white,
+          color: Colors.purple,
+          fontWeight: "bold",
+          "&:hover": {
+            backgroundColor: Colors.darkPurple,
+            color: Colors.green,
+            boxShadow: `0px 0px 15px ${Colors.darkGreen}`,
+          },
+        }}
+        onClick={handleReset}
+      >
+        Clear
+      </Button>
     </Box>
   );
 };
