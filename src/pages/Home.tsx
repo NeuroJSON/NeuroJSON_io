@@ -143,15 +143,22 @@ const Home: React.FC = () => {
           position: "absolute",
           top: "6%",
           left: "1%",
-          backgroundColor: "rgba(97, 109, 243, 0.1)",
+          backgroundColor: "rgba(97, 109, 243, 0.4)",
+          // backgroundColor: "rgba(160, 165, 194, 0.4)",
+          // backgroundColor: Colors.primary.dark,
+
           backdropFilter: "blur(10px)",
-          boxShadow: `0px 0px 5px ${Colors.lightYellow}`,
+          // boxShadow: `2px 2px 5px ${Colors.lightGray}`,
           padding: "1.5rem",
           borderRadius: "8px",
         }}
       >
         {/* Header Section */}
-        <Typography variant="h3" gutterBottom sx={{ color: Colors.white }}>
+        <Typography
+          variant="h3"
+          gutterBottom
+          sx={{ color: Colors.white, fontWeight: "medium" }}
+        >
           Discover NeuroJSON.io
         </Typography>
         <Typography variant="body1" sx={{ color: Colors.white }}>
