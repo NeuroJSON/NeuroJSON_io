@@ -7,8 +7,6 @@ import {
   CircularProgress,
 } from "@mui/material";
 import NodeInfoPanel from "components/NodeInfoPanel";
-// import KeywordFilter from "components/NodesFilter/KeywordFilter";
-// import ModalitiesFilter from "components/NodesFilter/ModalitiesFilter";
 import FilterMenu from "components/NodesFilter/FilterMenu";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
@@ -90,25 +88,10 @@ const Home: React.FC = () => {
         overflow: "hidden",
         position: "relative",
         minHeight: "500px", // make sure the view databases card won't be cut when no nodes showing
+        // display: "flex",
+        // flexDirection: "column",
       }}
     >
-      {/* <Box sx={{ position: "absolute", top: 20, right: 20, zIndex: 10 }}>
-        <KeywordFilter onFilter={(query: string) => setFilterKeyword(query)} />
-      </Box>
-      <Box
-        sx={{
-          position: "absolute",
-          top: 100,
-          right: 20,
-          zIndex: 10,
-          backgroundColor: "white",
-          p: 2,
-          borderRadius: 2,
-        }}
-      >
-        <ModalitiesFilter onFilter={handleModalitiesFilter} />
-      </Box> */}
-
       {/* Filter Menu Button */}
       <Box sx={{ position: "absolute", top: 20, right: 20, zIndex: 10 }}>
         <FilterMenu
@@ -148,14 +131,14 @@ const Home: React.FC = () => {
         sx={{
           overflow: "hidden",
           maxWidth: "35%",
+          // border: "2px yellow solid",
+          // width: "100%",
           zIndex: "3",
           position: "absolute",
-          top: "6%",
+          top: "10%",
           left: "1%",
           backgroundColor: "rgba(97, 109, 243, 0.4)",
           // backgroundColor: "rgba(160, 165, 194, 0.4)",
-          // backgroundColor: Colors.primary.dark,
-
           backdropFilter: "blur(10px)",
           // boxShadow: `2px 2px 5px ${Colors.lightGray}`,
           padding: "1.5rem",

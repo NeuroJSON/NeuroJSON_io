@@ -179,7 +179,7 @@ const NeuroJsonGraph: React.FC<{
       .graphData(graphData)
       .nodeRelSize(1)
       .nodeColor((node) => (node as NodeObject).color)
-      .linkWidth(1)
+      .linkWidth(0.5)
       .backgroundColor("rgba(0,0,0,0)")
       .nodeLabel("name")
       .onNodeHover((node) => {
@@ -284,7 +284,6 @@ const NeuroJsonGraph: React.FC<{
       ref={graphRef}
       style={{
         width: "100%",
-        marginLeft: "5%",
         maxHeight: "99%",
         backgroundColor: "transparent",
         position: "relative",
