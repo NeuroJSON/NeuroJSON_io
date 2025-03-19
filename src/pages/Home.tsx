@@ -15,7 +15,7 @@ import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import NeuroJsonGraph from "modules/universe/NeuroJsonGraph";
 import { NodeObject } from "modules/universe/NeuroJsonGraph";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchRegistry } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
@@ -36,41 +36,50 @@ const Home: React.FC = () => {
   }, [dispatch]);
 
   // Handle node click: Set selected node and open panel
-  const handleNodeClick = (node: NodeObject) => {
+  // const handleNodeClick = (node: NodeObject) => {
+  //   setSelectedNode(node);
+  //   setPanelOpen(true);
+  // };
+  const handleNodeClick = useCallback((node: NodeObject) => {
     setSelectedNode(node);
     setPanelOpen(true);
-  };
-
-  // const filteredRegistry = registry
-  //   ? registry.filter((node) =>
-  //       node.name.toLowerCase().includes(filterKeyword.toLowerCase())
-  //     )
-  //   : [];
+  }, []);
 
   // filter logic
-  const filteredRegistry = registry
-    ? registry.filter((node) => {
-        const matchKeyword = node.name
-          .toLowerCase()
-          .includes(filterKeyword.toLowerCase());
-        const matchModalities =
-          selectedModalities.length === 0 ||
-          // selectedModalities.some((modality) =>
-          //   node.datatype.includes(modality)
-          // );
-          selectedModalities.some((modality) =>
-            Array.isArray(node.datatype)
-              ? node.datatype.includes(modality)
-              : node.datatype === modality
-          );
+  // const filteredRegistry = registry
+  //   ? registry.filter((node) => {
+  //       const matchKeyword = node.name
+  //         .toLowerCase()
+  //         .includes(filterKeyword.toLowerCase());
+  //       const matchModalities =
+  //         selectedModalities.length === 0 ||
+  //         selectedModalities.some((modality) =>
+  //           Array.isArray(node.datatype)
+  //             ? node.datatype.includes(modality)
+  //             : node.datatype === modality
+  //         );
 
-        return matchKeyword && matchModalities;
-      })
-    : [];
+  //       return matchKeyword && matchModalities;
+  //     })
+  //   : [];
 
-  // const handleModalitiesFilter = (modalities: string[]) => {
-  //   setSelectedModalities(modalities);
-  // };
+  const filteredRegistry = useMemo(() => {
+    return registry
+      ? registry.filter((node) => {
+          const matchKeyword = node.name
+            .toLowerCase()
+            .includes(filterKeyword.toLowerCase());
+          const matchModalities =
+            selectedModalities.length === 0 ||
+            selectedModalities.some((modality) =>
+              Array.isArray(node.datatype)
+                ? node.datatype.includes(modality)
+                : node.datatype === modality
+            );
+          return matchKeyword && matchModalities;
+        })
+      : [];
+  }, [registry, filterKeyword, selectedModalities]);
 
   return (
     <Container
