@@ -44,9 +44,14 @@ var texture;
 
 
 function drawpreview(cfg){
+  console.log("🛠️ Rendering in drawpreview()");
+  console.log("🟢 Data received:", cfg);
+
   scene.remove.apply(scene, scene.children);
   if(cfg.hasOwnProperty('Shapes')){
+    console.log("📦 Drawing Shapes...");
     if(cfg.Shapes instanceof nj.NdArray) {
+      console.log("🟢 Detected NumJS Array. Calling drawvolume()");
       if(isWebGL2Available()){
         let box={Grid: {Size: cfg.Shapes.shape}};
         drawshape(box,0);
@@ -71,17 +76,25 @@ function drawpreview(cfg){
        cfg.Shapes.forEach(drawshape);
    }
   }else{
-   if(cfg.hasOwnProperty('MeshNode') && cfg.hasOwnProperty('MeshSurf')) {
+    if(cfg.hasOwnProperty('MeshNode') && cfg.hasOwnProperty('MeshSurf')) {
      if(cfg.MeshNode instanceof nj.NdArray) {
-       drawsurf(cfg.MeshNode, cfg.MeshSurf);
+      console.log("✅ Rendering MeshNode & MeshSurf!");
+      console.log("🔍 Rendering MeshNode & MeshSurf!");
+      console.log("📌 MeshNode Data:", cfg.MeshNode);
+      console.log("📌 MeshSurf Data:", cfg.MeshSurf);
+      console.log("📌 MeshNode Shape:", cfg.MeshNode.shape);
+      console.log("📌 MeshSurf Shape:", cfg.MeshSurf.shape);
+      drawsurf(cfg.MeshNode, cfg.MeshSurf);
      } else {
        if(cfg.MeshNode.hasOwnProperty('_ArraySize_')) {
          let nodesize = cfg.MeshNode._ArraySize_;
          let surfsize = cfg.MeshSurf._ArraySize_;
          let jd=new jdata(cfg,{});
          cfg=jd.decode().data;
+          console.log("🔄 Converting MeshNode & MeshSurf to ndarrays...");
          drawsurf(nj.array(cfg.MeshNode, 'float32'), nj.array(cfg.MeshSurf, 'uint32'));
        } else {
+          console.log("🔄 Converting MeshNode & MeshSurf from plain arrays...");
          drawsurf(nj.array(Array.from(cfg.MeshNode), 'float32').reshape(cfg.MeshNode.length/3, 3), nj.array(Array.from(cfg.MeshSurf), 'uint32').reshape(cfg.MeshSurf.length/3, 3));
        }
      }
@@ -146,198 +159,6 @@ function drawpreview(cfg){
   return cfg;
 }
 
-
-// function dopreview(key, idx, isinternal, hastime) {
-//   console.log("🟢 dopreview() started for key:", key, "Index:", idx);
-
-//   console.log("🟢 dopreview() called with key:", key, "Index:", idx, "Internal:", isinternal);
-
-
-//     let ndim = 0;
- 
-//     if (hastime === undefined) hastime = [];
-//     if (isinternal === undefined) isinternal = true;
- 
-//     let dataroot = isinternal ? intdata[idx][2] : key;
-
-//     console.log("📊 Data received in dopreview:", dataroot);
-
-//     console.log("✅ Clearing scene...");
-//     scene.children.forEach((child) => scene.remove(child));
-//     console.log("✅ Scene cleared. Adding new objects...");
-
-//     const testCube = new THREE.Mesh(
-//       new THREE.BoxGeometry(50, 50, 50),
-//       new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
-//     );
-//     scene.add(testCube);
-//     console.log("✅ Test cube added to scene.");
-  
-
- 
-//     if (dataroot.hasOwnProperty('_ArraySize_')) {
-//        ndim = dataroot._ArraySize_.length;
-//        let jd = new jdata(dataroot, {});
- 
-//        if (isinternal) {
-//           intdata[idx][2] = jd.decode().data;
-//           dataroot = intdata[idx][2];
-//        } else {
-//           extdata[idx][2] = jd.decode().data;
-//           dataroot = extdata[idx][2];
-//        }
-//     } else if (dataroot instanceof nj.NdArray) {
-//        ndim = dataroot.shape.length;
-//     }
- 
-//     if (ndim < 3 && ndim > 0) {
-//        const opts = {
-//           title: `Preview for ${isinternal ? intdata[idx][3] : extdata[idx][3]}`,
-//           width: 1100,
-//           height: 400,
-//           series: [{}, {}],
-//           axes: [{}, {}],
-//           scales: { x: { time: false } }
-//        };
- 
-//        $('#chartpanel').css('padding', '10px').show();
-//        $('#chartpanel').html('<h4>Data preview</h4><a href="javascript:void(0)" class="closebtn" onclick="$(\'#chartpanel\').hide()" title="Close">&times;</a><div id="plotchart"></div>');
- 
-//        if (dataroot instanceof nj.NdArray) {
-//           if (dataroot.shape[0] > dataroot.shape[1]) dataroot = dataroot.transpose();
-//           let plotdata = dataroot.tolist();
- 
-//           if (hastime.length === 0) {
-//              plotdata = plotdata[0] instanceof Array ? plotdata.unshift([...Array(plotdata[0].length).keys()]) : [[...Array(plotdata.length).keys()], plotdata];
-//           }
- 
-//           opts.series = [];
-//           for (let i = 0; i < plotdata.length; i++) {
-//              opts.series.push({
-//                 stroke: `rgba(${(materialcolor[i] & 0xff)}, ${((materialcolor[i] & 0xff00) >>> 8)}, ${((materialcolor[i] & 0xff000000) >>> 24)}, 1)`,
-//                 label: i === 0 ? (hastime.length === 0 ? 'x' : "Time") : (hastime.length === 0 ? `y${i}` : hastime[i])
-//              });
-//           }
- 
-//           new uPlot(opts, plotdata, document.getElementById('plotchart'));
-//        } else {
-//           new uPlot(opts, [[...Array(dataroot.length).keys()], dataroot], document.getElementById('plotchart'));
-//        }
- 
-//        $('body').animate({ scrollTop: $('#chartpanel').offset().top - 20 }, 'fast');
-//     } else {
-//        if (typeof scene === 'undefined') {
-//           initcanvas();
-
-//           console.log("✅ Calling initcanvas()...");
-//           initcanvas();
-//           console.log("✅ initcanvas() executed.");
-
-//        }
- 
-//        $("#credits").show();
-//        if (reqid !== undefined) cancelAnimationFrame(reqid);
-//        reqid = requestAnimationFrame(update);
- 
-//        if (isinternal) intdata[idx][2] = drawpreview(dataroot);
-//        else extdata[idx][2] = drawpreview(dataroot);
- 
-//        window.scrollTo(0, 0);
-//     }
- 
-//     $('#loadingdiv').css('display', 'none');
-
-//     console.log("Previewing data:", key);
-//     console.log("Index:", idx, "Internal:", isinternal, "Has time:", hastime);
-
-//     console.log("🟢 Running dopreview() for:", key, "Index:", idx);
-    
-//     console.log("📊 Data received last:", dataroot);
-
-
-//  }
-
-// function dopreview(key, idx, isinternal, hastime) {
-//   let ndim=0;
-
-//   if(hastime === undefined)
-//      hastime=[];
-//   if(isinternal === undefined)
-//      isinternal=true;
-//   let dataroot = (isinternal) ? intdata[idx][2] : key;
-//   if(dataroot.hasOwnProperty('_ArraySize_')) {
-//      ndim = dataroot._ArraySize_.length;
-//      let jd=new jdata(dataroot, {});
-//      if(isinternal) {
-//        intdata[idx][2] = jd.decode().data;
-//        dataroot = intdata[idx][2];
-//      } else {
-//        extdata[idx][2] = jd.decode().data;
-//        dataroot = extdata[idx][2];
-//      }
-//   } else if(dataroot instanceof nj.NdArray) {
-//      ndim = dataroot.shape.length;
-//   }
-
-//   if(ndim < 3 && ndim > 0) {
-//     const opts = {
-//       title: "Preview for "+(isinternal ? intdata[idx][3] : extdata[idx][3]),
-//       width: 1100,
-//       height: 400,
-//       series: [
-//   {},{}
-//       ],
-//       axes: [
-//   {},{}
-//       ],
-//       scales: {
-//         "x": {
-//            time: false
-//         }
-//       }
-//     };
-//     $('#chartpanel').css('padding','10px');
-//     $('#chartpanel').show();
-//     $('#chartpanel').html('<h4>Data preview</h4><a href="javascript:void(0)" class="closebtn" onclick="$(\'#chartpanel\').hide()" title="Close">&times;</a><div id="plotchart"></div>');
-//     if(dataroot instanceof nj.NdArray) {
-//       if(dataroot.shape[0] > dataroot.shape[1])
-//          dataroot=dataroot.transpose();
-//       let plotdata = dataroot.tolist();
-//       if(hastime.length == 0) {
-//         if(plotdata[0] instanceof Array)
-//            plotdata.unshift([...Array(plotdata[0].length).keys()]);
-//         else
-//            plotdata=[ [...Array(plotdata.length).keys()], plotdata ];
-//       }
-//       opts.series=[];
-//       for(let i=0; i<plotdata.length; i++) {
-//           opts.series.push({stroke: "rgba("+(materialcolor[i] & 0xff)+","+ ((materialcolor[i] & 0xff00) >>> 8)+","+ ((materialcolor[i] & 0xff000000) >>> 24)+", 1)"});
-//           opts.series[i].label=((i==0)? ((hastime.length == 0) ? 'x' : "Time") : ((hastime.length == 0) ? 'y'+i : hastime[i]));
-//       }
-//       let u = new uPlot(opts, plotdata, document.getElementById('plotchart'));
-//     } else {
-//       let u = new uPlot(opts, [ [...Array(dataroot.length).keys()], dataroot ], document.getElementById('plotchart'));
-//     }
-//     $('body').animate({ scrollTop: $('#chartpanel').offset().top - 20  }, 'fast');
-//   } else {
-//     if (typeof scene === 'undefined') {
-//       initcanvas();
-//     }
-//     $("#credits").show();
-//     if(reqid !== undefined) {
-//        cancelAnimationFrame(reqid);
-//     }
-//     reqid=requestAnimationFrame(update);
-
-//     if(isinternal)
-//       intdata[idx][2] = drawpreview(dataroot);
-//     else
-//       extdata[idx][2] = drawpreview(dataroot);
-//     window.scrollTo(0, 0);
-//   }
-//   $('#loadingdiv').css('display', 'none');
-// }
-
 function dopreview(key, idx, isinternal, hastime) {
   let ndim=0;
 
@@ -364,16 +185,22 @@ function dopreview(key, idx, isinternal, hastime) {
     ndim = dataroot._ArraySize_.length;
     let jd = new jdata(dataroot, {});
 
+    let decodedData = jd.decode().data;
+
     // ✅ Ensure intdata[idx] or extdata[idx] exists before setting properties
     if (isinternal) {
         if (!intdata[idx]) intdata[idx] = [];  // ✅ Fix: Initialize if undefined
-        intdata[idx][2] = jd.decode().data;
+        // intdata[idx][2] = jd.decode().data;
+        intdata[idx][2] = decodedData;
         dataroot = intdata[idx][2];
     } else {
         if (!extdata[idx]) extdata[idx] = [];  // ✅ Fix: Initialize if undefined
-        extdata[idx][2] = jd.decode().data;
+        // extdata[idx][2] = jd.decode().data;
+        extdata[idx][2] = decodedData;
         dataroot = extdata[idx][2];
     }
+
+    console.log("✅ Decoding Completed in dopreview() - New Data Root:", dataroot);
   } else if (dataroot instanceof nj.NdArray) {
     ndim = dataroot.shape.length;
   }
@@ -495,6 +322,7 @@ function drawshape(shape,index){
         geometry = new THREE.SphereGeometry(shape.Sphere.R, 32,32);
         //geometry.applyMatrix4( new THREE.Matrix4().makeTranslation(shape.Sphere.O[0],shape.Sphere.O[1],shape.Sphere.O[2]) );
         material = new THREE.MeshBasicMaterial( { color: materialcolor[shape.Sphere.Tag], wireframe: true, transparent: true,  } );
+        console.log("📌 Mesh Material:", material);
         obj = new THREE.Mesh( geometry, material );
         obj.position.set(shape.Sphere.O[0],shape.Sphere.O[1],shape.Sphere.O[2]);
         boundingbox.add( obj );
@@ -511,6 +339,7 @@ function drawshape(shape,index){
         geometry.lookAt( dc );
         geometry.translate((c0.x+c1.x), (c0.y+c1.y), (c0.z+c1.z))
         material = new THREE.MeshBasicMaterial( { color: materialcolor[shape.Cylinder.Tag], wireframe: true, transparent: false } );
+        console.log("📌 Mesh Material:", material);
         obj = new THREE.Mesh( geometry, material );
         boundingbox.add( obj );
         break;
@@ -531,23 +360,52 @@ function mulberry32(a) {
 }
 
 function drawsurf(node, tri){
+  console.log("🔷 Inside drawsurf()");
+  console.log("📌 Received MeshNode:", node);
+  console.log("📌 Received MeshSurf:", tri);
+  console.log("📌 MeshNode Shape:", node.shape);
+  console.log("📌 MeshSurf Shape:", tri.shape);
     $("#mip-radio-button,#iso-radio-button,#interp-radio-button").prop( "disabled", true);
   
     const geometry = new THREE.BufferGeometry();
     tri = tri.subtract(1);
     node = nj.array(node.slice(null, [0,3]).tolist(), 'float32');
+
     geometry.setIndex( new THREE.BufferAttribute(tri.selection.data, 1) );
     geometry.setAttribute( 'position', new THREE.BufferAttribute(node.selection.data, 3 ) );
     geometry.computeVertexNormals();
-    var material = new THREE.MeshNormalMaterial( {
-      color: 0xFFFF00,
+
+    geometry.computeBoundingBox();
+    geometry.computeBoundingSphere();
+    console.log("📌 Computed Bounding Box:", geometry.boundingBox);
+    console.log("📌 Computed Bounding Sphere:", geometry.boundingSphere);
+
+    var material = new THREE.MeshBasicMaterial( {
+      color: 0xff0000,
       polygonOffset: true,
       polygonOffsetFactor: 1, // positive value pushes polygon further away
       polygonOffsetUnits: 1,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
+      wireframe: false
     } );
+    console.log("📌 Mesh Material:", material);
     lastvolume = new THREE.Mesh( geometry, material );
+    lastvolume.scale.set(10, 10, 10);
     scene.add( lastvolume )
+
+    console.log("🟢 Mesh Added to Scene:", lastvolume);
+    console.log("📌 Mesh Position:", lastvolume.position);
+    console.log("📌 Mesh Bounding Box:", lastvolume.geometry.boundingBox);
+    console.log("📌 Mesh Bounding Sphere:", lastvolume.geometry.boundingSphere);
+
+    const center = geometry.boundingSphere.center;
+    const radius = geometry.boundingSphere.radius;
+
+    camera.position.set(center.x, center.y, center.z + radius * 5);
+    camera.lookAt(center);
+    controls.target.set(center);
+    controls.update();
+
   
     var geo = new THREE.WireframeGeometry( lastvolume.geometry ); // or WireframeGeometry
     var mat = new THREE.LineBasicMaterial( { color: 0x666666 } );
@@ -565,6 +423,10 @@ function drawsurf(node, tri){
     drawshape(box,0);
   
     boundingbox.add( lastvolume )
+
+    // ✅ Ensure Scene Renders
+    renderer.render(scene, camera);
+    console.log("🔄 Scene Render Triggered");
   }
 
 function resetscene(s){
@@ -610,7 +472,8 @@ function resetscene(s){
 function createbox(bsize, orig, tag){
     const geometry = new THREE.BoxGeometry(bsize[0],bsize[1],bsize[2]);
     geometry.translate(bsize[0]*0.5+orig[0],bsize[1]*0.5+orig[1],bsize[2]*0.5+orig[2]);
-    const material = new THREE.MeshNormalMaterial( { transparent: true, opacity: 0.6, side:THREE.DoubleSide, wireframe: false, depthWrite :false } );
+    const material = new THREE.MeshBasicMaterial( {
+      side: THREE.DoubleSide,  transparent: true, opacity: 0.6, side:THREE.DoubleSide, wireframe: false, depthTest: true, depthWrite :true } );
     const obj = new THREE.Mesh( geometry, material );
     return obj;
 }
@@ -763,27 +626,27 @@ function initcanvas() {
 
   console.log("🔍 Checking canvas before accessing width:", canvas);
 
-  // ✅ Fix: Correctly set up the Orthographic Camera
-  // camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
-
   camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
-
-  // camera.up = new THREE.Vector3(0, 0, 1);
-  // camera.lookAt(new THREE.Vector3(0, 0, 0));
 
   camera.up = new THREE.Vector3(0, 0, 1);
   camera.lookAt(new THREE.Vector3(0, 0, 0));
   camera.updateProjectionMatrix();
 
+  console.log("📌 Camera Position Before Rendering:", camera.position);
+  console.log("📌 Camera LookAt:", camera.lookAt);
+
   renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(width, height);
 
-  // ✅ Fix: Ensure renderer attaches to the correct canvas
-  // canvas.appendChild(renderer.domElement);
-
-  document.getElementById("canvas")?.appendChild(renderer.domElement);
-
+  // document.getElementById("canvas")?.appendChild(renderer.domElement);
+  let renderContainer = document.getElementById("canvas");
+  if (renderContainer) {
+      renderContainer.appendChild(renderer.domElement);
+      console.log("✅ Renderer attached to canvas.");
+  } else {
+      console.error("❌ Error: Could not attach renderer to canvas.");
+  }
 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.minZoom = 0.5;
@@ -792,11 +655,22 @@ function initcanvas() {
 
   controls.update();
 
+  console.log("✅ Orbit Controls initialized.");
+
   function onPositionChange(o) {
     renderer.updateComplete = false;
   }
-  controls.addEventListener("change", onPositionChange);
+  // controls.addEventListener("change", onPositionChange);
   console.log("✅ Three.js Initialized Successfully.");
+
+  // ✅ Add Listener to Detect Changes in Controls
+  controls.addEventListener("change", function () {
+    console.log("🔄 Orbit Controls Updated.");
+    renderer.updateComplete = false;
+  });
+
+  console.log("📌 Camera Position Final:", camera.position);
+  console.log("📌 Camera Target Final:", controls.target);
 
   stats = createStats();
   document.getElementById("renderpanel").appendChild(stats.domElement);
@@ -806,6 +680,7 @@ function initcanvas() {
   // ✅ Attach Event Listeners
   $("#camera-near").on("input", function () {
     camera.near = parseFloat($(this).val());
+    console.log("📌 Updated Camera Near:", camera.near);
     renderer.render(scene, camera);
     controls.update();
     renderer.updateComplete = false;
@@ -813,10 +688,16 @@ function initcanvas() {
 
   $("#camera-far").on("input", function () {
     camera.far = parseFloat($(this).val());
+    console.log("📌 Updated Camera Far:", camera.far);
     renderer.render(scene, camera);
     controls.update();
     renderer.updateComplete = false;
   });
+
+  console.log("✅ Three.js Fully Initialized.");
+  console.log("📌 Final Scene State:", scene);
+  console.log("📌 Final Camera State:", camera);
+  console.log("📌 Final Renderer State:", renderer);
 
   $("#clim-low").on("input", function () {
     $(this).prop("title", $(this).val() + " [" + $(this).prop("min") + "," + $(this).prop("max") + "]");
@@ -1396,8 +1277,8 @@ function setControlAngles(polar, azimuth) {
 }
 
 function render(){
-    renderer.render( scene, camera );
-  }
+  renderer.render( scene, camera );
+}
 
 function update() {
     reqid=requestAnimationFrame(update);
@@ -1413,328 +1294,10 @@ function update() {
 
 import { baseURL } from "../services/instance"; // Import CORS proxy
 
-// function previewdataurl(url, idx) {
-//   console.log("🟢 previewdataurl() called for:", url, "Index:", idx);
-//   console.log("🔎 Checking file format for:", url);
-//   console.log("🔎 Extracted extension:", url.split('.').pop());
-
-
-//   // ✅ Ensure valid file types before proceeding
-//   // if (!/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh)$/i.test(url)) {
-//   //   console.warn("⚠️ Unsupported file format for previe:", url);
-//   //   return;
-//   // }
-
-//   if (!/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh|bnii|gz)$/i.test(url)) {
-//     console.warn("⚠️ Unsupported file format for preview:", url);
-//     return;
-//   }
-
-//   // ✅ Fix CORS Proxy Handling
-//   // const proxiedURL = `${baseURL.replace(/\/$/, '')}/${url.replace(/^https:\/\/neurojson\.(io|org)(:7777)?\/?/, "")}`;
-//   const proxiedURL = `${baseURL.replace(/\/$/, '')}/${url.replace(/^https:\/\/neurojson\.(io|org)(:7777)?\/?/, "")}`;
-
-//   console.log("📌 Final Proxied URL:", proxiedURL);
-
-//   // ✅ Check if data is already cached
-//   if (urldata.hasOwnProperty(proxiedURL)) {
-//     console.log("✅ Using cached preview data.");
-//     previewdata(urldata[proxiedURL], idx, false);
-//     return;
-//   }
-
-//   $('#loadingdiv').css('display', 'block');
-//   $('#loadingstatus').text('Loading from external URL');
-
-//   var oReq = new XMLHttpRequest();
-//   oReq.open("GET", proxiedURL, true);
-//   oReq.setRequestHeader("X-Requested-With", "XMLHttpRequest");  // ✅ Required Header
-//   // oReq.setRequestHeader("Origin", window.location.origin);       // ✅ Origin Header
-//   oReq.responseType = "arraybuffer";
-
-
-//   // oReq.onload = function () {
-  
-//   //   let arrayBuffer = oReq.response;
-//   //   console.log("📥 Fetched data size:", oReq.response ? oReq.response.byteLength : "No response");
-//   //   if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-//   //     console.error("❌ No valid response received from:", proxiedURL);
-//   //     return;
-//   //   }
-//   //   console.log("📥 Raw Response (First 100 chars):", new TextDecoder().decode(arrayBuffer.slice(0, 100)));
-//   //   console.log("📥 Full Response Length:", arrayBuffer.byteLength);
-
-
-//   //   let bjd;
-//   //   if (url.match(/\.nii\.gz/)) {
-//   //     console.log("🔄 Processing NIfTI file...");
-//   //     let origdata = pako.ungzip(arrayBuffer);
-//   //     const header = new DataView(origdata.buffer);
-//   //     let ndim = header.getUint16(40, true);
-//   //     let datatype = header.getUint16(70, true);
-
-//   //     let dims = [], totallen = 1;
-//   //     for (let i = 1; i <= ndim; i++) {
-//   //       dims.push(header.getUint16(40 + i * 2, true));
-//   //       totallen *= dims[i - 1];
-//   //     }
-
-//   //     let voxelsize = [];
-//   //     for (let i = 1; i <= ndim; i++) {
-//   //       voxelsize.push(header.getFloat32(76 + i * 4, true));
-//   //     }
-//   //     let voxeloffset = header.getFloat32(108, true);
-//   //     let type = niitype[datatype];
-
-//   //     let typename = type.charAt(0).toUpperCase() + type.slice(1) + "Array";
-//   //     let typecast = new Function('d,o,l', `return new ${typename}(d,o,l)`);
-
-//   //     bjd = nj.array(typecast(origdata.buffer, Math.floor(voxeloffset), totallen), niitype[datatype]);
-//   //     bjd = { NIFTIHeader: { VoxelSize: voxelsize }, NIFTIData: bjd.reshape(dims.reverse()).transpose() };
-//   //   } else {
-//   //     console.log("🔄 Processing BJData...");
-//   //     bjd = bjdata.decode(new Uint8Array(arrayBuffer));
-//   //     let jd = new jdata(bjd[0], { base64: false });
-//   //     bjd = jd.decode().data;
-//   //   }
-
-//   //   let plotdata = bjd;
-
-//   //   // ✅ Restore `linkpath` processing if required
-//   //   let linkpath = url.split(/:*\$\./);
-//   //   if (linkpath.length > 1 && !linkpath[1].match(/^Mesh[NSEVT]/)) {
-//   //     let objpath = linkpath[1].split(/(?<!\\)\./);
-//   //     for (let i = 0; i < objpath.length; i++) {
-//   //       if (plotdata.hasOwnProperty(objpath[i])) {
-//   //         plotdata = plotdata[objpath[i]];
-//   //       }
-//   //     }
-//   //   }
-
-//   //   // ✅ Handle NIfTI VoxelSize if present
-//   //   if (bjd.hasOwnProperty('NIFTIHeader') && bjd['NIFTIHeader'].hasOwnProperty('VoxelSize')) {
-//   //     xyzscale = bjd['NIFTIHeader']['VoxelSize'];
-//   //     plotdata = bjd.NIFTIData;
-//   //   }
-
-//   //   // ✅ Fix MeshNode & MeshSurf conversion
-//   //   if (bjd.hasOwnProperty('MeshVertex3') && !bjd.hasOwnProperty('MeshNode'))
-//   //     bjd.MeshNode = bjd.MeshVertex3;
-
-//   //   if (bjd.hasOwnProperty('MeshTri3') && !bjd.hasOwnProperty('MeshSurf'))
-//   //     bjd.MeshSurf = bjd.MeshTri3;
-
-//   //   // ✅ Fix MeshElem processing
-//   //   if (!plotdata.hasOwnProperty('MeshSurf') && plotdata.hasOwnProperty('MeshElem')) {
-//   //     if (plotdata.MeshElem instanceof nj.NdArray) {
-//   //       const dat = plotdata;
-//   //       let f123 = nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 1)]);
-//   //       let f124 = nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 2)]);
-//   //       let f134 = nj.stack([dat.MeshElem.pick(null, 2), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 3)]);
-//   //       let f234 = nj.stack([dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 2)]);
-//   //       let tris = nj.concatenate(f123, f124, f134, f234).T;
-//   //       let surftri = {};
-
-//   //       for (let i = 0; i < tris.shape[0]; i++) {
-//   //         let trikey = tris.pick(i).tolist().sort((a, b) => a - b).toString();
-//   //         if (surftri.hasOwnProperty(trikey)) {
-//   //           surftri[trikey] = -1;
-//   //         } else {
-//   //           surftri[trikey] = i;
-//   //         }
-//   //       }
-
-//   //       surftri = Object.values(surftri).filter(num => num >= 0);
-//   //       plotdata.MeshSurf = nj.zeros([surftri.length, 3], 'uint32');
-//   //       for (let i = 0; i < surftri.length; i++) {
-//   //         plotdata.MeshSurf.set(i, 0, tris.pick(surftri[i]).get(0));
-//   //         plotdata.MeshSurf.set(i, 1, tris.pick(surftri[i]).get(1));
-//   //         plotdata.MeshSurf.set(i, 2, tris.pick(surftri[i]).get(2));
-//   //       }
-//   //     }
-//   //   }
-
-//   //   // ✅ Fix time-series data preview
-//   //   if (plotdata.hasOwnProperty('data') && plotdata.data.hasOwnProperty('dataTimeSeries')) {
-//   //     let serieslabel = true;
-//   //     if (plotdata.data.hasOwnProperty('measurementList')) {
-//   //       serieslabel = Array(plotdata.data.measurementList.length);
-//   //       for (let i = 0; i < serieslabel.length; i++) {
-//   //         serieslabel[i] = 'S' + plotdata.data.measurementList[i].sourceIndex + 'D' + plotdata.data.measurementList[i].detectorIndex;
-//   //       }
-//   //     }
-//   //     previewdata(nj.concatenate(plotdata.data.time.reshape(plotdata.data.time.size, 1), plotdata.data.dataTimeSeries).T, idx, false, serieslabel);
-//   //   }
-
-//   //   // ✅ Cache the processed data
-//   //   urldata[proxiedURL] = plotdata;
-
-//   //   console.log("✅ Data cached for:", proxiedURL);
-
-//   //   // ✅ Send to preview renderer
-//   //   if (plotdata instanceof nj.NdArray || plotdata.hasOwnProperty('MeshNode')) {
-//   //     console.log("✅ Sending data to preview renderer.");
-//   //     previewdata(plotdata, idx, false);
-//   //   } else {
-//   //     console.warn("⚠️ No valid preview data found.");
-//   //   }
-//   // };
-
-//   oReq.onload = function () {
-//     let arrayBuffer = oReq.response;
-//     console.log("📥 Fetched data size:", arrayBuffer ? arrayBuffer.byteLength : "No response");
-
-//     if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-//         console.error("❌ No valid response received from:", proxiedURL);
-//         return;
-//     }
-
-//     // ✅ Check if response is an error (HTML page or JSON response)
-//     const textResponse = new TextDecoder().decode(arrayBuffer.slice(0, 100));
-//     if (textResponse.startsWith("<!DOCTYPE html") || textResponse.includes("<html")) {
-//         console.error("❌ Received an HTML error page instead of binary data.");
-//         console.error("🔍 Response Preview:", textResponse);
-//         return;
-//     }
-//     if (textResponse.includes("{") && textResponse.includes("error")) {
-//         console.error("❌ Received JSON error response:", textResponse);
-//         return;
-//     }
-
-//     console.log("✅ Valid binary file received. Processing...");
-//     let bjd;
-
-//     // ✅ Process NIfTI (.nii.gz) Files
-//     if (url.match(/\.nii\.gz/)) {
-//         console.log("🔄 Processing NIfTI file...");
-//         let origdata = pako.ungzip(arrayBuffer);
-//         const header = new DataView(origdata.buffer);
-//         let ndim = header.getUint16(40, true);
-//         let datatype = header.getUint16(70, true);
-
-//         let dims = [], totallen = 1;
-//         for (let i = 1; i <= ndim; i++) {
-//             dims.push(header.getUint16(40 + i * 2, true));
-//             totallen *= dims[i - 1];
-//         }
-
-//         let voxelsize = [];
-//         for (let i = 1; i <= ndim; i++) {
-//             voxelsize.push(header.getFloat32(76 + i * 4, true));
-//         }
-//         let voxeloffset = header.getFloat32(108, true);
-//         let type = niitype[datatype];
-
-//         let typename = type.charAt(0).toUpperCase() + type.slice(1) + "Array";
-//         let typecast = new Function('d,o,l', `return new ${typename}(d,o,l)`);
-
-//         bjd = nj.array(typecast(origdata.buffer, Math.floor(voxeloffset), totallen), niitype[datatype]);
-//         bjd = { NIFTIHeader: { VoxelSize: voxelsize }, NIFTIData: bjd.reshape(dims.reverse()).transpose() };
-//     } 
-//     // ✅ Process BJData
-//     else {
-//         console.log("🔄 Processing BJData...");
-//         try {
-//             bjd = bjdata.decode(new Uint8Array(arrayBuffer));
-//             let jd = new jdata(bjd[0], { base64: false });
-//             bjd = jd.decode().data;
-//         } catch (error) {
-//             console.error("❌ Failed to decode BJData:", error);
-//             return;
-//         }
-//     }
-
-//     let plotdata = bjd;
-
-//     // ✅ Restore `linkpath` processing if required
-//     let linkpath = url.split(/:*\$\./);
-//     if (linkpath.length > 1 && !linkpath[1].match(/^Mesh[NSEVT]/)) {
-//         let objpath = linkpath[1].split(/(?<!\\)\./);
-//         for (let i = 0; i < objpath.length; i++) {
-//             if (plotdata.hasOwnProperty(objpath[i])) {
-//                 plotdata = plotdata[objpath[i]];
-//             }
-//         }
-//     }
-
-//     // ✅ Handle NIfTI VoxelSize if present
-//     if (bjd.hasOwnProperty('NIFTIHeader') && bjd['NIFTIHeader'].hasOwnProperty('VoxelSize')) {
-//         xyzscale = bjd['NIFTIHeader']['VoxelSize'];
-//         plotdata = bjd.NIFTIData;
-//     }
-
-//     // ✅ Fix MeshNode & MeshSurf conversion
-//     if (bjd.hasOwnProperty('MeshVertex3') && !bjd.hasOwnProperty('MeshNode'))
-//         bjd.MeshNode = bjd.MeshVertex3;
-
-//     if (bjd.hasOwnProperty('MeshTri3') && !bjd.hasOwnProperty('MeshSurf'))
-//         bjd.MeshSurf = bjd.MeshTri3;
-
-//     // ✅ Fix MeshElem processing
-//     if (!plotdata.hasOwnProperty('MeshSurf') && plotdata.hasOwnProperty('MeshElem')) {
-//         if (plotdata.MeshElem instanceof nj.NdArray) {
-//             const dat = plotdata;
-//             let f123 = nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 1)]);
-//             let f124 = nj.stack([dat.MeshElem.pick(null, 3), dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 2)]);
-//             let f134 = nj.stack([dat.MeshElem.pick(null, 2), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 3)]);
-//             let f234 = nj.stack([dat.MeshElem.pick(null, 1), dat.MeshElem.pick(null, 0), dat.MeshElem.pick(null, 2)]);
-//             let tris = nj.concatenate(f123, f124, f134, f234).T;
-//             let surftri = {};
-
-//             for (let i = 0; i < tris.shape[0]; i++) {
-//                 let trikey = tris.pick(i).tolist().sort((a, b) => a - b).toString();
-//                 if (surftri.hasOwnProperty(trikey)) {
-//                     surftri[trikey] = -1;
-//                 } else {
-//                     surftri[trikey] = i;
-//                 }
-//             }
-
-//             surftri = Object.values(surftri).filter(num => num >= 0);
-//             plotdata.MeshSurf = nj.zeros([surftri.length, 3], 'uint32');
-//             for (let i = 0; i < surftri.length; i++) {
-//                 plotdata.MeshSurf.set(i, 0, tris.pick(surftri[i]).get(0));
-//                 plotdata.MeshSurf.set(i, 1, tris.pick(surftri[i]).get(1));
-//                 plotdata.MeshSurf.set(i, 2, tris.pick(surftri[i]).get(2));
-//             }
-//         }
-//     }
-
-//     // ✅ Fix time-series data preview
-//     if (plotdata.hasOwnProperty('data') && plotdata.data.hasOwnProperty('dataTimeSeries')) {
-//         let serieslabel = true;
-//         if (plotdata.data.hasOwnProperty('measurementList')) {
-//             serieslabel = Array(plotdata.data.measurementList.length);
-//             for (let i = 0; i < serieslabel.length; i++) {
-//                 serieslabel[i] = 'S' + plotdata.data.measurementList[i].sourceIndex + 'D' + plotdata.data.measurementList[i].detectorIndex;
-//             }
-//         }
-//         previewdata(nj.concatenate(plotdata.data.time.reshape(plotdata.data.time.size, 1), plotdata.data.dataTimeSeries).T, idx, false, serieslabel);
-//     }
-
-//     // ✅ Cache the processed data
-//     urldata[proxiedURL] = plotdata;
-
-//     console.log("✅ Data cached for:", proxiedURL);
-
-//     // ✅ Send to preview renderer
-//     if (plotdata instanceof nj.NdArray || plotdata.hasOwnProperty('MeshNode')) {
-//         console.log("✅ Sending data to preview renderer.");
-//         previewdata(plotdata, idx, false);
-//     } else {
-//         console.warn("⚠️ No valid preview data found.");
-//     }
-//   };
-
-
-//   oReq.onerror = function () {
-//     console.error("❌ Network error while fetching:", proxiedURL);
-//   };
-
-//   oReq.send();
-// }
-
 function previewdataurl(url, idx) {
+
+  console.log("🌍 Fetching external data from:", url);
+  console.log("🔍 Index:", idx);
 
   if (!/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh|bnii|gz)$/i.test(url)) {
         console.warn("⚠️ Unsupported file format for preview:", url);
@@ -1762,7 +1325,9 @@ function previewdataurl(url, idx) {
 
     let bjd;
     if(url.match(/\.nii\.gz/)){
+      console.log("🔄 Processing NIfTI file...");
       var origdata = pako.ungzip(arrayBuffer);
+      console.log("✅ Unzipped Data Length:", origdata.byteLength);
       const header=new DataView(origdata.buffer);
       let headerlen = header.getUint32(0, true);
       let ndim = header.getUint16(40, true);
@@ -1791,7 +1356,9 @@ function previewdataurl(url, idx) {
       bjd=nj.array(typecast(origdata.buffer, Math.floor(voxeloffset), totallen), niitype[datatype]);
       bjd={'NIFTIHeader': {'VoxelSize': voxelsize}, 'NIFTIData': bjd.reshape(dims.reverse()).transpose()};
     } else {
-      bjd = bjdata.decode(buffer.Buffer.from(arrayBuffer));
+      console.log("🔄 Processing BJData...");
+      // bjd = bjdata.decode(buffer.Buffer.from(arrayBuffer));
+      bjd = bjdata.decode(new Uint8Array(arrayBuffer));
       let jd=new jdata(bjd[0],{base64:false});
       bjd = jd.decode().data;
     }
@@ -1860,7 +1427,73 @@ function previewdataurl(url, idx) {
 }
 
 function previewdata(key, idx, isinternal, hastime) {
-  console.log("🟢 previewdata() triggered. Key:", key, "Index:", idx);
+  console.log("🔍 Running previewdata()");
+  console.log("🟢 Key Received:", key);
+  console.log("🟢 Index:", idx, "Is Internal:", isinternal, "Has Time:", hastime);
+
+  if (!key) {
+    console.error("❌ No key received! Aborting previewdata()");
+    return;
+  }
+
+  if (!key) {
+    console.error("❌ No key received! Aborting previewdata()");
+    return;
+  }
+
+  if (typeof key === "object") {
+      console.log("🟢 Data Type:", typeof key);
+      console.log("🟢 Checking if it contains MeshNode or NIFTIData...");
+      console.log("   - MeshNode Exists:", key.hasOwnProperty("MeshNode"));
+      console.log("   - MeshSurf Exists:", key.hasOwnProperty("MeshSurf"));
+      console.log("   - NIFTIData Exists:", key.hasOwnProperty("NIFTIData"));
+  }
+
+  if (!key.hasOwnProperty("MeshNode") && !key.hasOwnProperty("NIFTIData")) {
+      console.warn("⚠️ The data does not contain MeshNode or NIFTIData!");
+  }
+
+  if (key.hasOwnProperty("MeshNode") && key.MeshNode.hasOwnProperty("_ArrayZipData_")) {
+    console.log("🔄 Decoding MeshNode...");
+    let jd = new jdata(key.MeshNode, {});
+    key.MeshNode = jd.decode().data;
+    console.log("✅ Decoded MeshNode:", key.MeshNode);
+  }
+
+  if (key.hasOwnProperty("MeshSurf") && key.MeshSurf.hasOwnProperty("_ArrayZipData_")) {
+    console.log("🔄 Decoding MeshSurf...");
+    let jd = new jdata(key.MeshSurf, {});
+    key.MeshSurf = jd.decode().data;
+    console.log("✅ Decoded MeshSurf:", key.MeshSurf);
+  }
+
+  if (key.hasOwnProperty("NIFTIData") && key.NIFTIData.hasOwnProperty("_ArrayZipData_")) {
+    console.log("🔄 Decoding NIFTIData...");
+    let jd = new jdata(key.NIFTIData, {});
+    key.NIFTIData = jd.decode().data;
+    console.log("✅ Decoded NIFTIData:", key.NIFTIData);
+  }
+
+  // Log final size
+  console.log("🎯 Checking Final MeshNode Size...");
+  if (key.MeshNode instanceof nj.NdArray) {
+      console.log("✅ MeshNode is NdArray, Shape:", key.MeshNode.shape, "Size:", key.MeshNode.size);
+  } else if (Array.isArray(key.MeshNode)) {
+      console.log("✅ MeshNode is an Array, Length:", key.MeshNode.length);
+  } else {
+      console.log("❌ MeshNode decoding failed! Type:", typeof key.MeshNode, "Value:", key.MeshNode);
+  }
+
+  console.log("🎯 Checking Final MeshSurf Size...");
+  if (key.MeshSurf instanceof nj.NdArray) {
+      console.log("✅ MeshSurf is NdArray, Shape:", key.MeshSurf.shape, "Size:", key.MeshSurf.size);
+  } else if (Array.isArray(key.MeshSurf)) {
+      console.log("✅ MeshSurf is an Array, Length:", key.MeshSurf.length);
+  } else {
+      console.log("❌ MeshSurf decoding failed! Type:", typeof key.MeshSurf, "Value:", key.MeshSurf);
+  }
+
+  // console.log("🎯 Final NIFTIData Size:", key.NIFTIData ? key.NIFTIData.length : "❌ Decoding failed!");
 
   if (!window.THREE) {
     console.error("❌ Error: THREE.js is not loaded!");

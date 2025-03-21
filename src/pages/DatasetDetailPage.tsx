@@ -21,6 +21,8 @@ import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
 import PreviewModal from "../components/PreviewModal";
 import DatasetFlashcards from "../components/DatasetFlashcards";
 import { TextField } from "@mui/material";
+import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import DescriptionIcon from "@mui/icons-material/Description";
 
 
 interface ExternalDataLink {
@@ -31,15 +33,17 @@ interface ExternalDataLink {
 	index: number;
 }
 
+interface InternalDataLink {
+	name: string;
+	data: any;
+	index: number;
+	arraySize?: number[];
+}
+
 const DatasetDetailPage: React.FC = () => {
 	const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
 	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
-	// const {
-	// 	selectedDocument: document,
-	// 	loading,
-	// 	error,
-	// } = useAppSelector(NeurojsonSelector);
 	const {
 		selectedDocument: datasetDocument,
 		loading,
@@ -47,10 +51,13 @@ const DatasetDetailPage: React.FC = () => {
 	} = useAppSelector(NeurojsonSelector);
 
 	const [externalLinks, setExternalLinks] = useState<ExternalDataLink[]>([]);
+	const [internalLinks, setInternalLinks] = useState<InternalDataLink[]>([]);
 	const [isExpanded, setIsExpanded] = useState(false);
+	const [isInternalExpanded, setIsInternalExpanded] = useState<boolean>(false);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [matches, setMatches] = useState<HTMLElement[]>([]);
 	const [highlightedIndex, setHighlightedIndex] = useState(-1);
+	const [downloadScript, setDownloadScript] = useState<string>("");
 
 	// Recursive function to find `_DataLink_`
 	const extractDataLinks = (obj: any, path: string): ExternalDataLink[] => {
@@ -87,6 +94,61 @@ const DatasetDetailPage: React.FC = () => {
 		return links;
 	};
 
+	const extractInternalData = (obj: any, path = ""): InternalDataLink[] => {
+		const internalLinks: InternalDataLink[] = [];
+	
+		if (obj && typeof obj === "object") {
+			if (
+				obj.hasOwnProperty("MeshNode") &&
+				(obj.hasOwnProperty("MeshSurf") || obj.hasOwnProperty("MeshElem"))
+			) {
+				if (
+					obj.MeshNode.hasOwnProperty("_ArrayZipData_") &&
+					typeof obj.MeshNode["_ArrayZipData_"] === "string"
+				) {
+					internalLinks.push({
+						name: `JMesh`,
+						data: obj,
+						index: internalLinks.length,
+						arraySize: obj.MeshNode._ArraySize_,
+					});
+				}
+			} else if (obj.hasOwnProperty("NIFTIData")) {
+				if (
+					obj.NIFTIData.hasOwnProperty("_ArrayZipData_") &&
+					typeof obj.NIFTIData["_ArrayZipData_"] === "string"
+				) {
+					internalLinks.push({
+						name: `JNIfTI`,
+						data: obj,
+						index: internalLinks.length,
+						arraySize: obj.NIFTIData._ArraySize_,
+					});
+				}
+			} else if (obj.hasOwnProperty("_ArraySize_") && !path.match("_EnumValue_$")) {
+				if (
+					obj.hasOwnProperty("_ArrayZipData_") &&
+					typeof obj["_ArrayZipData_"] === "string"
+				) {
+					internalLinks.push({
+						name: `JData`,
+						data: obj,
+						index: internalLinks.length,
+						arraySize: obj._ArraySize_,
+					});
+				}
+			} else {
+				Object.keys(obj).forEach((key) => {
+					if (typeof obj[key] === "object") {
+						internalLinks.push(...extractInternalData(obj[key], `${path}.${key.replace(/\./g, "\\.")}`));
+					}
+				});
+			}
+		}
+	
+		return internalLinks;
+	};		
+
 	useEffect(() => {
 		const fetchData = async () => {
 			if (dbName && docId) {
@@ -97,34 +159,31 @@ const DatasetDetailPage: React.FC = () => {
 		fetchData();
 	}, [dbName, docId, dispatch]);
 
-	// useEffect(() => {
-	// 	if (datasetDocument) {
-	// 		// Extract external links
-	// 		const links = extractDataLinks(datasetDocument, "");
-	// 		setExternalLinks(links);
-	// 	}
-	// }, [datasetDocument]);
-
 	useEffect(() => {
 		if (datasetDocument) {
-			// ✅ Extract links and ensure each link gets a proper `index`
+			// ✅ Extract External Data & Assign `index`
 			const links = extractDataLinks(datasetDocument, "").map((link, index) => ({
 				...link,
-				index,  // ✅ Assign index correctly
+				index, // ✅ Assign index correctly
 			}));
-			
-			console.log("🟢 Extracted external links with index:", links); // Debugging
+	
+			// ✅ Extract Internal Data & Assign `index`
+			const internalData = extractInternalData(datasetDocument).map((data, index) => ({
+				...data,
+				index, // ✅ Assign index correctly
+			}));
+	
+			console.log("🟢 Extracted external links:", links);
+			console.log("🟢 Extracted internal data:", internalData);
+	
 			setExternalLinks(links);
-		}
-	}, [datasetDocument]);
-	
-	
+			setInternalLinks(internalData);
 
-	// Function to handle the "Preview" functionality
-	// const handlePreview = (url: string) => {
-	// 	// Open the preview window or render the preview modal
-	// 	window.alert(`Preview functionality triggered for URL: ${url}`);
-	// };
+			// ✅ Construct download script dynamically
+			const script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"`;
+			setDownloadScript(script);
+		}
+	}, [datasetDocument]);	
 
 	const [previewOpen, setPreviewOpen] = useState(false);
 	const [previewDataKey, setPreviewDataKey] = useState<any>(null);
@@ -134,56 +193,64 @@ const DatasetDetailPage: React.FC = () => {
 		if (searchTerm) {
 			highlightMatches(searchTerm);
 		}
-	}, [searchTerm, datasetDocument]); // ✅ Run search when dataset loads	
+	}, [searchTerm, datasetDocument]); // ✅ Run search when dataset loads
 	
+	const handleDownloadDataset = () => {
+		if (!datasetDocument) return;
+		const jsonData = JSON.stringify(datasetDocument, null, 2);
+		const blob = new Blob([jsonData], { type: "application/json" });
+		const link = document.createElement("a");
+		link.href = URL.createObjectURL(blob);
+		link.download = `${docId}.json`;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	};
 
+	const handleDownloadScript = () => {
+		const blob = new Blob([downloadScript], { type: "text/plain" });
+		const link = document.createElement("a");
+		link.href = URL.createObjectURL(blob);
+		link.download = `${docId}.sh`;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	};
 
-	// const handlePreview = (key: any) => {
-	// 	setPreviewDataKey(key);
-	// 	setPreviewOpen(true);
-	// };
-
-	// const handlePreview = (url: string) => {
+	const handlePreview = (dataOrUrl: string | any, idx: number, isInternal: boolean = false) => {
+		console.log("🟢 Preview button clicked for:", dataOrUrl, "Index:", idx, "Is Internal:", isInternal);
 	
-	// 	// Check if the file is NIfTI (.nii, .nii.gz), JData (.jdt, .jdb), or Mesh (.bmsh, .jmsh)
-	// 	if (/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(url)) {
-	// 		if (typeof (window as any).previewdataurl === "function") {
-	// 			(window as any).previewdataurl(url, 0); // Calls preview immediately
-	// 		} else {
-	// 			console.error("❌ previewdataurl() is not defined!");
-	// 		}
-	// 	} else {
-	// 		console.warn("⚠️ Unsupported file format for preview:", url);
-	// 	}
+		if (isInternal) {
+			try {
+				// ✅ Create a writable deep copy to avoid modifying read-only properties
+				const writableData = JSON.parse(JSON.stringify(dataOrUrl));
 	
-	// 	setPreviewDataKey(url); // Store the preview key
-	// 	setPreviewOpen(true); // Open the preview modal
-	// };
-
-	const handlePreview = (url: string, idx: number) => {
-		console.log("🟢 Preview button clicked for:", url, "Index:", idx);
-	
-		// ✅ Check if the file type is supported
-		if (/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(url)) {
-			if (typeof (window as any).previewdataurl === "function") {
-				console.log("✅ Calling previewdataurl() for:", url, "Index:", idx);
-				(window as any).previewdataurl(url, idx);  // ✅ Correctly passing `idx`
-			} else {
-				console.error("❌ previewdataurl() is not defined!");
+				if (typeof (window as any).previewdata === "function") {
+					console.log("✅ Calling previewdata() for internal data:", writableData);
+					(window as any).previewdata(writableData, idx, false);  // ✅ Pass writable copy
+				} else {
+					console.error("❌ previewdata() is not defined!");
+				}
+			} catch (error) {
+				console.error("❌ Error processing internal data:", error);
 			}
 		} else {
-			console.warn("⚠️ Unsupported file format for preview:", url);
+			// ✅ External Data Preview
+			if (/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(dataOrUrl)) {
+				if (typeof (window as any).previewdataurl === "function") {
+					console.log("✅ Calling previewdataurl() for:", dataOrUrl);
+					(window as any).previewdataurl(dataOrUrl, idx);
+				} else {
+					console.error("❌ previewdataurl() is not defined!");
+				}
+			} else {
+				console.warn("⚠️ Unsupported file format for preview:", dataOrUrl);
+			}
 		}
 	
-		setPreviewDataKey(url); // ✅ Store the preview key
+		setPreviewDataKey(dataOrUrl); // ✅ Store the preview key
 		setPreviewOpen(true);   // ✅ Open the preview modal
 	};
-	
-	  
-	// const handleClosePreview = () => {
-	// 	setPreviewOpen(false);
-	// 	setPreviewDataKey(null);
-	// };
 
 	const handleClosePreview = () => {
 		console.log("🛑 Closing preview modal.");
@@ -300,31 +367,6 @@ const DatasetDetailPage: React.FC = () => {
 				Back
 			</Button>
 
-			{/* <Typography variant="h4" gutterBottom color={Colors.primary.main}>
-				Dataset: {docId}
-			</Typography> */}
-
-			{/* <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-				<Typography variant="h4" color={Colors.primary.main}>
-					Dataset: {docId}
-				</Typography> */}
-
-				{/* 🔍 Search Box & Find Next Button
-				<Box display="flex" alignItems="center" gap={1}>
-					<TextField
-						size="small"
-						variant="outlined"
-						placeholder="Find keyword in dataset"
-						value={searchTerm}
-						onChange={handleSearch}
-						sx={{ width: "250px" }}
-					/>
-					<Button variant="contained" onClick={findNext} disabled={matches.length === 0}>
-						Find Next
-					</Button>
-				</Box>
-			</Box> */}
-
 			<Box 
 				sx={{ 
 					position: "sticky", // ✅ Keeps title & search bar fixed
@@ -335,29 +377,121 @@ const DatasetDetailPage: React.FC = () => {
 					borderBottom: `1px solid ${Colors.lightGray}`, // ✅ Adds subtle separator
 				}}>
 
-				<Box display="flex" alignItems="center" justifyContent="space-between">
-					<Typography variant="h4" color={Colors.primary.main}>
-						Dataset: {docId}
+				{/* ✅ Dataset Title (From dataset_description.json) */}
+				<Typography
+					variant="h4"
+					color={Colors.primary.main}
+					sx={{ fontWeight: "bold", mb: 1 }}
+				>
+					{datasetDocument?.["dataset_description.json"]?.Name ?? `Dataset: ${docId}`}
+				</Typography>
+
+				{/* ✅ Dataset Author (If Exists) */}
+				{datasetDocument?.["dataset_description.json"]?.Authors && (
+				<Typography variant="h6" sx={{ fontStyle: "italic", color: Colors.textSecondary }}>
+					{Array.isArray(datasetDocument["dataset_description.json"].Authors)
+						? datasetDocument["dataset_description.json"].Authors.join(", ")
+						: datasetDocument["dataset_description.json"].Authors}
+				</Typography>
+    )}
+
+				{/* ✅ Breadcrumb Navigation (🏠 Home → Database → Dataset) */}
+				<Box sx={{ display: "flex", alignItems: "center", marginBottom: 2 }}>
+					{/* 🏠 Home Icon Button */}
+					<Button
+						onClick={() => navigate("/")}
+						sx={{
+							backgroundColor: "transparent",
+							padding: 0,
+							minWidth: "auto",
+							"&:hover": { backgroundColor: "transparent" },
+						}}
+					>
+						<Typography variant="h5" color={Colors.primary.main} sx={{ fontWeight: "bold" }}>
+							🏠
+						</Typography>
+					</Button>
+
+					<Typography variant="h5" sx={{ marginX: 1, fontWeight: "bold" }}>
+						»
 					</Typography>
 
-					{/* 🔍 Search Box & Find Next Button */}
-					<Box display="flex" alignItems="center" gap={1}>
-						<TextField
-							size="small"
-							variant="outlined"
-							placeholder="Find keyword in dataset"
-							value={searchTerm}
-							onChange={handleSearch}
-							sx={{ width: "250px" }}
-						/>
-						<Button variant="contained" onClick={findNext} disabled={matches.length === 0}>
-							Find Next
+					{/* Database Name (Clickable) */}
+					<Button
+						onClick={() => navigate(`/RoutesEnum.DATABASES/${dbName}`)}
+						sx={{
+							textTransform: "none",
+							fontSize: "1.2rem",
+							fontWeight: "bold",
+							color: Colors.primary.dark,
+						}}
+					>
+						{dbName?.toLowerCase()}
+					</Button>
+
+					<Typography variant="h5" sx={{ marginX: 1, fontWeight: "bold" }}>
+						»
+					</Typography>
+
+					{/* Dataset Name (_id field) */}
+					<Typography variant="h5" sx={{ fontWeight: "bold", color: Colors.textPrimary }}>
+						{docId}
+					</Typography>
+				</Box>
+
+				<Box
+					sx={{
+						display: "flex",
+						alignItems: "center",
+						flexWrap: "wrap",
+						gap: 2,
+						mb: 2,
+						backgroundColor: "#f5f5f5",
+						padding: "12px",
+						borderRadius: "8px",
+					}}
+				>
+					<Button
+						variant="contained"
+						startIcon={<CloudDownloadIcon />}
+						onClick={handleDownloadDataset}
+						sx={{
+							backgroundColor: "#ffb300",
+							color: "black",
+							"&:hover": { backgroundColor: "#ff9100" },
+						}}
+					>
+						Download Dataset (1 Mb)
 						</Button>
-					</Box>
+
+						<Button
+							variant="contained"
+							startIcon={<DescriptionIcon />}
+							onClick={handleDownloadScript}
+							sx={{
+								backgroundColor: "#ffb300",
+								color: "black",
+								"&:hover": { backgroundColor: "#ff9100" },
+							}}
+						>
+							Script to Download All Files (138 Bytes) (links: 0)
+						</Button>
+
+						<Box display="flex" alignItems="center" gap={1} sx={{ ml: "auto" }}>
+							<TextField
+								size="small"
+								variant="outlined"
+								placeholder="Find keyword in dataset"
+								value={searchTerm}
+								onChange={handleSearch}
+								sx={{ width: "250px" }}
+							/>
+							<Button variant="contained" disabled>
+								Find Next
+							</Button>
+						</Box>
 				</Box>
 			</Box>
-
-
 
 			<Box
 				sx={{
@@ -369,21 +503,6 @@ const DatasetDetailPage: React.FC = () => {
 					boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
 				}}
 			>
-				{/* {document ? (
-					<ReactJson
-						src={document}
-						name={false}
-						enableClipboard={true}
-						displayDataTypes={false}
-						displayObjectSize={true}
-						collapsed={2}
-						style={{ fontSize: "14px", fontFamily: "monospace" }}
-					/>
-				) : (
-					<Typography sx={{ textAlign: "center", marginTop: 4 }}>
-						No data available for this dataset.
-					</Typography>
-				)} */}
 				{datasetDocument ? (
 					<ReactJson
 						src={datasetDocument}
@@ -585,6 +704,91 @@ const DatasetDetailPage: React.FC = () => {
 					</Collapse>
 				</Box>
 			)}
+			
+			{internalLinks.length > 0 && (
+    <Box sx={{ marginTop: 4 }}>
+        <Box
+            onClick={() => setIsInternalExpanded(!isInternalExpanded)}
+            sx={{
+                display: "flex",
+                alignItems: "center",
+                cursor: "pointer",
+                marginBottom: 2,
+            }}
+        >
+            <Typography variant="h5" color={Colors.primary.dark} sx={{ marginRight: 1 }}>
+                Internal Data ({internalLinks.length} objects)
+            </Typography>
+            {isInternalExpanded ? <ExpandLess /> : <ExpandMore />}
+        </Box>
+
+        <Collapse in={isInternalExpanded} timeout="auto" unmountOnExit>
+            <Box
+                sx={{
+                    backgroundColor: Colors.white,
+                    border: `1px solid ${Colors.lightGray}`,
+                    borderRadius: "8px",
+                    padding: 2,
+                    boxShadow: "0px 2px 4px rgba(0,0,0,0.05)",
+                }}
+            >
+                <Box
+                    sx={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(3, 1fr)",
+                        gap: 2,
+                        padding: 1,
+                    }}
+                >
+                    {internalLinks.map((link, index) => (
+                        <Box
+                            key={index}
+                            sx={{
+                                padding: 2,
+                                border: `1px solid ${Colors.lightGray}`,
+                                borderRadius: "8px",
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "space-between",
+                                backgroundColor: Colors.white,
+                                "&:hover": {
+                                    backgroundColor: Colors.lightGray,
+                                },
+                            }}
+                        >
+                            <Box>
+                                <Typography color={Colors.textPrimary} sx={{ fontWeight: 500 }}>
+                                    {link.name}
+                                </Typography>
+                                <Typography variant="body2" color={Colors.textSecondary}>
+                                    Index: {link.index}
+                                </Typography>
+                            </Box>
+                            <Box sx={{ display: "flex", gap: 1, marginTop: 2 }}>
+                                <Button
+                                    variant="contained"
+                                    size="small"
+                                    sx={{
+                                        backgroundColor: Colors.primary.main,
+                                        "&:hover": {
+                                            backgroundColor: Colors.primary.dark,
+                                        },
+                                    }}
+                                    onClick={() => handlePreview(link.data, link.index, true)}
+                                >
+                                    Preview
+                                </Button>
+                            </Box>
+                        </Box>
+                    ))}
+                </Box>
+            </Box>
+        </Collapse>
+    </Box>
+)}
+
+
+
 			{/* ✅ ADD FLASHCARDS COMPONENT HERE ✅ */}
 
 			<DatasetFlashcards
