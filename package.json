@@ -6,6 +6,7 @@
     "3d-force-graph": "^1.73.4",
     "@babel/helpers": "7.26.10",
     "@babel/runtime": "7.26.10",
+    "@craco/craco": "^7.1.0",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.14.3",
@@ -60,12 +61,12 @@
     "prettier": "^2.3.1"
   },
   "scripts": {
-  "start": "craco start || react-scripts start",
-  "build": "craco build || react-scripts build",
-  "test": "craco test || react-scripts test",
-  "eject": "craco eject || react-scripts eject",
-  "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --ext .js,.jsx,.ts,.tsx"
-},
+    "start": "craco start || react-scripts start",
+    "build": "craco build || react-scripts build",
+    "test": "craco test || react-scripts test",
+    "eject": "craco eject || react-scripts eject",
+    "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --ext .js,.jsx,.ts,.tsx"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
