@@ -26,7 +26,7 @@ const FullScreen = () => {
           borderBottom: `2px solid ${Colors.primary.dark}`,
           boxShadow: `0px 0px 10px ${Colors.lightGray}`,
           left: "0",
-          height: "6rem",
+          minHeight: "6rem",
         }}
       >
         <Toolbar sx={{ marginTop: "0.5rem" }}>
@@ -36,7 +36,7 @@ const FullScreen = () => {
             justifyContent={justifyContentValue}
             sx={{ maxWidth: "100%" }}
           >
-            <Grid item sm={12} md={12} lg={5}>
+            <Grid item sm={12} md={5} lg={5}>
               <Button
                 sx={{
                   display: "flex",
@@ -65,8 +65,13 @@ const FullScreen = () => {
               </Button>
             </Grid>
             {/* Navigation links*/}
-            <Grid item>
-              <Grid container spacing={3} justifyContent="flex-end">
+            <Grid item paddingLeft="2rem">
+              <Grid
+                container
+                spacing={3}
+                justifyContent="center"
+                // border="2px solid red"
+              >
                 {[
                   { text: "ABOUT", url: "https://neurojson.org/Doc/Start" },
                   { text: "WIKI", url: "https://neurojson.org/Wiki" },
