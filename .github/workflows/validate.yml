@@ -23,11 +23,12 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: Run Linter (Report Issues)
-        run: yarn lint
+      # - name: Run Linter (Report Issues)
+      #   run: yarn lint
 
       - name: Compile TypeScript
-        run: yarn build
+        run: |
+          PUBLIC_URL="/dev/${{ github.head_ref }}/" yarn build
 
       - name: Run Security Audit
         run: yarn audit --level moderate

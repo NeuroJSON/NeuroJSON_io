@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@craco/craco": "^7.1.0",
+    "3d-force-graph": "^1.73.4",
+    "@babel/helpers": "7.26.10",
+    "@babel/runtime": "7.26.10",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.14.3",
@@ -16,7 +18,6 @@
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "@types/three": "^0.174.0",
-    "3d-force-graph": "^1.73.4",
     "ajv": "^8",
     "ajv-keywords": "^5",
     "axios": "^1.4.0",
@@ -59,11 +60,12 @@
     "prettier": "^2.3.1"
   },
   "scripts": {
-    "start": "craco start",
-    "build": "craco build",
-    "test": "craco test",
-    "eject": "craco eject"
-  },
+  "start": "craco start || react-scripts start",
+  "build": "craco build || react-scripts build",
+  "test": "craco test || react-scripts test",
+  "eject": "craco eject || react-scripts eject",
+  "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --ext .js,.jsx,.ts,.tsx"
+},
   "browserslist": {
     "production": [
       ">0.2%",
@@ -79,6 +81,7 @@
   "resolutions": {
     "postcss": "^8.4.31",
     "nth-check": "^2.0.1",
-    "three": "0.174.0"
+    "@babel/runtime": "7.26.10",
+    "@babel/helpers": "7.26.10"
   }
 }
