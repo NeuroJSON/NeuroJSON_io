@@ -246,6 +246,7 @@ const NeuroJsonGraph: React.FC<{
       });
 
     Graph.d3Force("link")?.distance(100);
+    Graph.cameraPosition({ z: 1000 }); // Adjust zoom level
 
     // Initialize CSS2DRenderer for 2D labels
     const labelRenderer = new CSS2DRenderer();

@@ -8,6 +8,7 @@ import {
 } from "@mui/material";
 import NodeInfoPanel from "components/NodeInfoPanel";
 import FilterMenu from "components/NodesFilter/FilterMenu";
+import StatisticsBanner from "components/StatisticsBanner";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -184,6 +185,7 @@ const Home: React.FC = () => {
         onClose={() => setPanelOpen(false)}
         nodeData={selectedNode}
       />
+      <StatisticsBanner />
     </Container>
   );
 };
