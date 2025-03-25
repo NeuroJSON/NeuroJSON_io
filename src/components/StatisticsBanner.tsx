@@ -4,7 +4,6 @@ import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import StorageIcon from "@mui/icons-material/Storage";
 import TopicIcon from "@mui/icons-material/Topic";
 import { Box, Typography } from "@mui/material";
-import axios from "axios";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -51,16 +50,21 @@ const StatisticsBanner: React.FC = () => {
     <Box
       sx={{
         backgroundColor: "rgba(0, 0, 0, 0.5)",
+        backdropFilter: "blur(15px)",
         borderRadius: "8px",
-        backdropFilter: "blur(20px)",
         zIndex: 100,
-        padding: "1rem 2rem",
+        padding: "1rem",
         position: "absolute",
-        bottom: "5%",
+        // top: "2%",
+        // top: "20%",
+        // left: "8%",
+        bottom: "13%",
         left: "50%",
         transform: "translateX(-50%)",
         display: "flex",
-        gap: "5rem",
+        // flexDirection: "column",
+        // flexWrap: "wrap",
+        gap: "2rem",
       }}
     >
       {/* Databases */}
