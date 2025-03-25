@@ -1,36 +1,3 @@
-// import React, { useEffect } from "react";
-
-// const PreviewModal: React.FC<{
-//   isOpen: boolean;
-//   dataKey: any;
-//   onClose: () => void;
-// }> = ({ isOpen, dataKey, onClose }) => {
-//   useEffect(() => {
-//     if (isOpen) {
-//       console.log("🟢 Opening PreviewModal for:", dataKey);
-//       // Call JavaScript previewdataurl function
-//       (window as any).previewdataurl(dataKey, 0); // Ensure previewdataurl is on the window object
-//     }
-//   }, [isOpen, dataKey]);
-
-//   if (!isOpen) return null;
-
-//   return (
-//     <div className="preview-modal">
-//       <div className="modal-header">
-//         <h3>Preview</h3>
-//         <button className="close-btn" onClick={onClose}>
-//           ×
-//         </button>
-//       </div>
-//       <div id="renderpanel" style={{ width: "100%", height: "500px" }}></div>
-//       <div id="canvas"></div>
-//     </div>
-//   );
-// };
-
-// export default PreviewModal;
-
 import React, { useEffect } from "react";
 
 const PreviewModal: React.FC<{
@@ -43,45 +10,24 @@ const PreviewModal: React.FC<{
       console.log("🟢 Opening PreviewModal for:", dataKey);
 
       setTimeout(() => {
-        let canvas = document.querySelector("#canvas");
+        // let canvas = document.querySelector("#canvas");
 
-        if (!canvas) {
-          console.error("❌ Error: #canvas element not found in DOM!");
-          return;
-        }
+        // if (!canvas) {
+        //   console.error("❌ Error: #canvas element not found in DOM!");
+        //   return;
+        // }
 
-        if (typeof (window as any).initcanvas === "function") {
-          console.log("✅ Initializing Three.js...");
-          (window as any).initcanvas();
+        if (typeof (window as any).previewdata === "function") {
+          console.log("Calling previewdata to handle Three.js init...");
+          (window as any).previewdata(dataKey, 0, true, false);
         } else {
-          console.error("❌ initcanvas() is not defined!");
+          console.error("❌ previewdata() is not defined!");
         }
       }, 100); // Small delay ensures modal is rendered first
     }
   }, [isOpen, dataKey]);
 
   if (!isOpen) return null;
-
-  // return (
-  //   <div className="preview-modal">
-  //     <div className="modal-header">
-  //       <h3>Preview</h3>
-  //       <button className="close-btn" onClick={onClose}>×</button>
-  //     </div>
-
-  //     {/* ✅ Render Panel UI (Needed for UI controls) */}
-  //     <div id="renderpanel" style={{ width: "100%", height: "200px", backgroundColor: "#222", padding: "10px" }}>
-  //       <label>Display Mode:</label>
-  //       <input type="radio" id="mip-radio-button" name="displaymode" value="mip" defaultChecked />
-  //       <label htmlFor="mip-radio-button">MIP</label>
-  //       <input type="radio" id="iso-radio-button" name="displaymode" value="iso" />
-  //       <label htmlFor="iso-radio-button">Isosurface</label>
-  //     </div>
-
-  //     {/* ✅ Use an actual <canvas> element (Fixes `canvas.width is not a function`) */}
-  //     <canvas id="canvas" style={{ width: "100%", height: "500px", backgroundColor: "#000" }}></canvas>
-  //   </div>
-  // );
   return (
     <div className="preview-modal">
         <div className="modal-header">
@@ -153,7 +99,17 @@ const PreviewModal: React.FC<{
         <button id="pos-z-view">+Z</button>
 
         {/* ✅ Ensure proper rendering with <canvas> */}
-        <canvas id="canvas" style={{ width: "100%", height: "500px", backgroundColor: "#000" }}></canvas>
+        <div
+          id="canvas"
+          style={{
+            backgroundColor: '#000',
+            width: '937px',
+            height: '750px',
+            border: '1px solid black',
+            padding: 0,
+            float: 'left',
+          }}
+        ></div>
     </div>
   );
 
