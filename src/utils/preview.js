@@ -187,6 +187,7 @@ function drawpreview(cfg){
 }
 
 function previewdata(key, idx, isinternal, hastime) {
+  console.log("📦 previewdata() input:", { key, idx, isinternal, intdata: window.intdata });
   if(!hasthreejs) {
     $.when(
       $.getScript( "https://mcx.space/cloud/js/OrbitControls.js" ),
@@ -210,7 +211,34 @@ function dopreview(key, idx, isinternal, hastime) {
      hastime=[];
   if(isinternal === undefined)
      isinternal=true;
-  let dataroot = (isinternal) ? window.intdata[idx][2] : key;
+  // let dataroot = (isinternal) ? window.intdata[idx][2] : key;
+  // let dataroot = key;
+  // if (isinternal) {
+  //   if (window.intdata && window.intdata[idx] && window.intdata[idx][2]) {
+  //     dataroot = window.intdata[idx][2];
+  //   } else {
+  //     console.error("❌ Internal data not ready for index", idx);
+  //     return;
+  //   }
+  // }
+
+  let dataroot;
+  if (isinternal) {
+    if (window.intdata && window.intdata[idx] && window.intdata[idx][2]) {
+      dataroot = window.intdata[idx][2];
+    } else {
+      console.error("❌ Internal data not ready for index", idx);
+      return;
+    }
+  } else {
+    if (window.extdata && window.extdata[idx] && window.extdata[idx][2]) {
+      dataroot = window.extdata[idx][2];
+    } else {
+      console.error("❌ External data not ready for index", idx);
+      return;
+    }
+  }
+
   if(dataroot.hasOwnProperty('_ArraySize_')) {
      ndim = dataroot._ArraySize_.length;
      let jd=new jdata(dataroot, {});
@@ -275,11 +303,29 @@ function dopreview(key, idx, isinternal, hastime) {
     }
     reqid=requestAnimationFrame(update);
 
-    if(isinternal)
-      intdata[idx][2] = drawpreview(dataroot);
-    else
-      extdata[idx][2] = drawpreview(dataroot);
+    // if(isinternal)
+    //   intdata[idx][2] = drawpreview(dataroot);
+    // else
+    //   extdata[idx][2] = drawpreview(dataroot);
+    // window.scrollTo(0, 0);
+    if (isinternal) {
+      if (window.intdata && window.intdata[idx]) {
+        window.intdata[idx][2] = drawpreview(dataroot);
+      } else {
+        console.error("❌ intdata not ready at index", idx);
+        return;
+      }
+    } else {
+      if (window.extdata && window.extdata[idx]) {
+        window.extdata[idx][2] = drawpreview(dataroot);
+      } else {
+        console.error("❌ extdata not ready at index", idx);
+        return;
+      }
+    }
+    
     window.scrollTo(0, 0);
+    
   }
   $('#loadingdiv').css('display', 'none');
 }
@@ -1437,110 +1483,50 @@ function previewdataurl(url, idx) {
       }
       previewdata(nj.concatenate(plotdata.data.time.reshape(plotdata.data.time.size, 1), plotdata.data.dataTimeSeries).T, idx, false, serieslabel)
     }
-    urldata[url]=plotdata;
+    // urldata[url]=plotdata;
 
-    if(plotdata instanceof nj.NdArray || plotdata.hasOwnProperty('MeshNode')) {
-       previewdata(plotdata, idx, false)
-    }
+    // if(plotdata instanceof nj.NdArray || plotdata.hasOwnProperty('MeshNode')) {
+    //    previewdata(plotdata, idx, false)
+    // }
+
+    // ✅ Store for reuse
+urldata[url] = plotdata;
+
+// ✅ Safely store into extdata[]
+window.extdata = window.extdata || [];
+if (!window.extdata[idx]) {
+  window.extdata[idx] = ["", "", null, `External ${idx}`];
+}
+window.extdata[idx][2] = plotdata;
+
+// ✅ Special case: time series preview
+if (plotdata?.data?.dataTimeSeries) {
+  let serieslabel = true;
+  if (plotdata.data.measurementList) {
+    serieslabel = Array(plotdata.data.measurementList.length).fill('').map((_, i) =>
+      'S' + plotdata.data.measurementList[i].sourceIndex + 'D' + plotdata.data.measurementList[i].detectorIndex
+    );
+  }
+
+  previewdata(
+    nj.concatenate(
+      plotdata.data.time.reshape(plotdata.data.time.size, 1),
+      plotdata.data.dataTimeSeries
+    ).T,
+    idx,
+    false,
+    serieslabel
+  );
+}
+
+// ✅ Mesh or volumetric data
+if (plotdata instanceof nj.NdArray || plotdata.hasOwnProperty('MeshNode')) {
+  previewdata(plotdata, idx, false);
+}
+
   };
   oReq.send();
 }
-
-// function previewdata(key, idx, isinternal, hastime) {
-//   console.log("🔍 Running previewdata()");
-//   console.log("🟢 Key Received:", key);
-//   console.log("🟢 Index:", idx, "Is Internal:", isinternal, "Has Time:", hastime);
-
-//   if (!key) {
-//     console.error("❌ No key received! Aborting previewdata()");
-//     return;
-//   }
-
-//   if (!key) {
-//     console.error("❌ No key received! Aborting previewdata()");
-//     return;
-//   }
-
-//   if (typeof key === "object") {
-//       console.log("🟢 Data Type:", typeof key);
-//       console.log("🟢 Checking if it contains MeshNode or NIFTIData...");
-//       console.log("   - MeshNode Exists:", key.hasOwnProperty("MeshNode"));
-//       console.log("   - MeshSurf Exists:", key.hasOwnProperty("MeshSurf"));
-//       console.log("   - NIFTIData Exists:", key.hasOwnProperty("NIFTIData"));
-//   }
-
-//   if (!key.hasOwnProperty("MeshNode") && !key.hasOwnProperty("NIFTIData")) {
-//       console.warn("⚠️ The data does not contain MeshNode or NIFTIData!");
-//   }
-
-//   if (key.hasOwnProperty("MeshNode") && key.MeshNode.hasOwnProperty("_ArrayZipData_")) {
-//     console.log("🔄 Decoding MeshNode...");
-//     let jd = new jdata(key.MeshNode, {});
-//     key.MeshNode = jd.decode().data;
-//     console.log("✅ Decoded MeshNode:", key.MeshNode);
-//   }
-
-//   if (key.hasOwnProperty("MeshSurf") && key.MeshSurf.hasOwnProperty("_ArrayZipData_")) {
-//     console.log("🔄 Decoding MeshSurf...");
-//     let jd = new jdata(key.MeshSurf, {});
-//     key.MeshSurf = jd.decode().data;
-//     console.log("✅ Decoded MeshSurf:", key.MeshSurf);
-//   }
-
-//   if (key.hasOwnProperty("NIFTIData") && key.NIFTIData.hasOwnProperty("_ArrayZipData_")) {
-//     console.log("🔄 Decoding NIFTIData...");
-//     let jd = new jdata(key.NIFTIData, {});
-//     key.NIFTIData = jd.decode().data;
-//     console.log("✅ Decoded NIFTIData:", key.NIFTIData);
-//   }
-
-//   // Log final size
-//   console.log("🎯 Checking Final MeshNode Size...");
-//   if (key.MeshNode instanceof nj.NdArray) {
-//       console.log("✅ MeshNode is NdArray, Shape:", key.MeshNode.shape, "Size:", key.MeshNode.size);
-//   } else if (Array.isArray(key.MeshNode)) {
-//       console.log("✅ MeshNode is an Array, Length:", key.MeshNode.length);
-//   } else {
-//       console.log("❌ MeshNode decoding failed! Type:", typeof key.MeshNode, "Value:", key.MeshNode);
-//   }
-
-//   console.log("🎯 Checking Final MeshSurf Size...");
-//   if (key.MeshSurf instanceof nj.NdArray) {
-//       console.log("✅ MeshSurf is NdArray, Shape:", key.MeshSurf.shape, "Size:", key.MeshSurf.size);
-//   } else if (Array.isArray(key.MeshSurf)) {
-//       console.log("✅ MeshSurf is an Array, Length:", key.MeshSurf.length);
-//   } else {
-//       console.log("❌ MeshSurf decoding failed! Type:", typeof key.MeshSurf, "Value:", key.MeshSurf);
-//   }
-
-//   // console.log("🎯 Final NIFTIData Size:", key.NIFTIData ? key.NIFTIData.length : "❌ Decoding failed!");
-
-//   if (!window.THREE) {
-//     console.error("❌ Error: THREE.js is not loaded!");
-//   } else {
-//     console.log("✅ THREE.js is available.");
-//   }
-
-//     if(!hasthreejs) {
-//       $.when(
-//         $.getScript( "https://mcx.space/cloud/js/OrbitControls.js" ),
-//         $.Deferred(function( deferred ){
-//             $( deferred.resolve );
-//         })
-//       ).done(function(){
-//         hasthreejs=true;
-//         dopreview(key, idx, isinternal, hastime);
-//         console.log("🟢 IF previewdata() running with key:", key, "Index:", idx, "Internal:", isinternal);
-
-//       });
-//     } else {
-//       dopreview(key, idx, isinternal, hastime);
-//       console.log("🟢 else previewdata() running with key:", key, "Index:", idx, "Internal:", isinternal);
-//     }
-//   console.log("✅ previewdata() completed successfully. Calling dopreview...");
-
-//   }
-  
 
 export {
   createStats,
