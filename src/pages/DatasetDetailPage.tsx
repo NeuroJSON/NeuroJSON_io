@@ -220,19 +220,41 @@ const DatasetDetailPage: React.FC = () => {
 	const handlePreview = (dataOrUrl: string | any, idx: number, isInternal: boolean = false) => {
 		console.log("🟢 Preview button clicked for:", dataOrUrl, "Index:", idx, "Is Internal:", isInternal);
 	
+		// if (isInternal) {
+		// 	try {
+		// 		// ✅ Create a writable deep copy to avoid modifying read-only properties
+		// 		const writableData = JSON.parse(JSON.stringify(dataOrUrl));
+	
+		// 		if (typeof (window as any).previewdata === "function") {
+		// 			console.log("✅ Calling previewdata() for internal data:", writableData);
+		// 			(window as any).previewdata(writableData, idx, false);  // ✅ Pass writable copy
+		// 		} else {
+		// 			console.error("❌ previewdata() is not defined!");
+		// 		}
+		// 	} catch (error) {
+		// 		console.error("❌ Error processing internal data:", error);
+		// 	}
+		// }
 		if (isInternal) {
 			try {
-				// ✅ Create a writable deep copy to avoid modifying read-only properties
-				const writableData = JSON.parse(JSON.stringify(dataOrUrl));
-	
-				if (typeof (window as any).previewdata === "function") {
-					console.log("✅ Calling previewdata() for internal data:", writableData);
-					(window as any).previewdata(writableData, idx, false);  // ✅ Pass writable copy
-				} else {
-					console.error("❌ previewdata() is not defined!");
-				}
-			} catch (error) {
-				console.error("❌ Error processing internal data:", error);
+			  // 🔐 Step 1: Ensure global intdata exists
+			  if (!(window as any).intdata) {
+				(window as any).intdata = [];
+			  }
+		  
+			  // 🔐 Step 2: Ensure intdata[idx] is at least a 4-element array
+			  if (!(window as any).intdata[idx]) {
+				(window as any).intdata[idx] = ["", "", null, `Internal ${idx}`];
+			  }
+		  
+			  // 🔐 Step 3: Replace the [2] slot with your actual data
+			  (window as any).intdata[idx][2] = JSON.parse(JSON.stringify(dataOrUrl));
+		  
+			  // ✅ Call previewdata
+			  console.log("🧪 Calling previewdata with intdata[idx]:", (window as any).intdata[idx]);
+			  (window as any).previewdata((window as any).intdata[idx][2], idx, true, []);
+			} catch (err) {
+			  console.error("❌ Error in internal preview:", err);
 			}
 		} else {
 			// ✅ External Data Preview
@@ -791,6 +813,8 @@ const DatasetDetailPage: React.FC = () => {
 
 			{/* ✅ ADD FLASHCARDS COMPONENT HERE ✅ */}
 
+			<div id="chartpanel"></div>
+
 			<DatasetFlashcards
 				pagename={docId ?? ""}
 				docname={datasetDocument?.Name || ""}
@@ -805,6 +829,7 @@ const DatasetDetailPage: React.FC = () => {
 				dataKey={previewDataKey}
 				onClose={handleClosePreview}
     		/>
+			{/* <div id="chartpanel" style={{ display: "none" }}></div> */}
 		</Box>
 	);
 };

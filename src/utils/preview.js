@@ -1,19 +1,26 @@
-import * as THREE from "three"; // For rendering 3D objects
-import * as pako from "pako"; // For decompressing gzipped files
-import $ from "jquery";
-import Stats from "stats-js";
-import nj from "numjs";
-import jdata from "jda";
-import bjdata from "bjd";
-import uPlot from "uplot";
-import { Buffer } from "buffer";
-import { Data3DTexture } from "three";
-// import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-window.THREE = THREE;
+// import * as THREE from "three"; // For rendering 3D objects
+// import * as pako from "pako"; // For decompressing gzipped files
+// import $ from "jquery";
+// import Stats from "stats-js";
+// import nj from "numjs";
+// import jdata from "jda";
+// import bjdata from "bjd";
+// import uPlot from "uplot";
+// import { Buffer } from "buffer";
+// import { Data3DTexture } from "three";
+// window.THREE = THREE;
 
+const THREE = window.THREE;
+const pako = window.pako;
+const $ = window.$;
+const Stats = window.Stats;
+const nj = window.nj;
+const jd = window.jd;
+const bjdata = window.bjdata;
+const uPlot = window.uPlot;
+const Buffer = window.buffer_module.Buffer;
 
-const urldata = {}; // Cache for fetched data
+var urldata = {}; // Cache for fetched data
 const niitype = {
   2: "uint8",
   4: "int16",
@@ -23,25 +30,45 @@ const niitype = {
   64: "float64",
 }; // Data type mapping for NIFTI files
 
-var controls;
 let hasthreejs=false;
 var lastvolume=null;
-var lastvolumedim=[];
 var lastvolumedata=null;
+var lastvolumedim=[];
 var lastclim=0;
-var renderer;
-var camera;
-let extdata=[];
-let intdata=[];
-var xyzscale;
-var scene;
-var stats;
-var boundingbox;
-var reqid;
+var reqid=undefined;
+
+var canvas = null;
 var bbxsize=[0,0,0];;
 var randseed=1648335518;
-var texture;
 
+var scene;
+var boundingbox;
+var camera;
+var renderer;
+var controls;
+var stats;
+var texture;
+var urlparams={};
+var xyzscale;
+var linkfilesize={};
+var downloadall = '';
+
+var materialcolor=[];
+for(let i=0;i<256;i++){
+    randseed=mulberry32(randseed);
+    materialcolor.push(randseed);
+}
+
+window.intdata = window.intdata || [];
+window.extdata = window.extdata || [];
+
+var typedfun={
+  "Float32Array":null,"Float64Array":null,
+  "Int8Array":null,  "Uint8Array":null, 
+  "Int16Array":null, "Uint16Array":null,
+  "Int32Array":null, "Uint32Array":null,
+  "BigInt64Array":null, "BigUint64Array":null
+};
 
 function drawpreview(cfg){
   console.log("🛠️ Rendering in drawpreview()");
@@ -159,50 +186,43 @@ function drawpreview(cfg){
   return cfg;
 }
 
+function previewdata(key, idx, isinternal, hastime) {
+  if(!hasthreejs) {
+    $.when(
+      $.getScript( "https://mcx.space/cloud/js/OrbitControls.js" ),
+      $.Deferred(function( deferred ){
+          $( deferred.resolve );
+      })
+    ).done(function(){
+      hasthreejs=true;
+      dopreview(key, idx, isinternal, hastime);
+    });
+  } else {
+    dopreview(key, idx, isinternal, hastime);
+  }
+}
+
 function dopreview(key, idx, isinternal, hastime) {
+  console.log("🧪 dopreview input:", { key, idx, isinternal, intdata: intdata[idx] });
   let ndim=0;
 
   if(hastime === undefined)
      hastime=[];
   if(isinternal === undefined)
      isinternal=true;
-  let dataroot = (isinternal) ? intdata[idx][2] : key;
-  // if(dataroot.hasOwnProperty('_ArraySize_')) {
-  //    ndim = dataroot._ArraySize_.length;
-  //    let jd=new jdata(dataroot, {});
-  //    if(isinternal) {
-  //      intdata[idx][2] = jd.decode().data;
-  //      dataroot = intdata[idx][2];
-  //    } else {
-  //      extdata[idx][2] = jd.decode().data;
-  //      dataroot = extdata[idx][2];
-  //    }
-  // } else if(dataroot instanceof nj.NdArray) {
-  //    ndim = dataroot.shape.length;
-  // }
-
-  if (dataroot?.hasOwnProperty('_ArraySize_')) {
-    ndim = dataroot._ArraySize_.length;
-    let jd = new jdata(dataroot, {});
-
-    let decodedData = jd.decode().data;
-
-    // ✅ Ensure intdata[idx] or extdata[idx] exists before setting properties
-    if (isinternal) {
-        if (!intdata[idx]) intdata[idx] = [];  // ✅ Fix: Initialize if undefined
-        // intdata[idx][2] = jd.decode().data;
-        intdata[idx][2] = decodedData;
-        dataroot = intdata[idx][2];
-    } else {
-        if (!extdata[idx]) extdata[idx] = [];  // ✅ Fix: Initialize if undefined
-        // extdata[idx][2] = jd.decode().data;
-        extdata[idx][2] = decodedData;
-        dataroot = extdata[idx][2];
-    }
-
-    console.log("✅ Decoding Completed in dopreview() - New Data Root:", dataroot);
-  } else if (dataroot instanceof nj.NdArray) {
-    ndim = dataroot.shape.length;
+  let dataroot = (isinternal) ? window.intdata[idx][2] : key;
+  if(dataroot.hasOwnProperty('_ArraySize_')) {
+     ndim = dataroot._ArraySize_.length;
+     let jd=new jdata(dataroot, {});
+     if(isinternal) {
+       intdata[idx][2] = jd.decode().data;
+       dataroot = intdata[idx][2];
+     } else {
+       extdata[idx][2] = jd.decode().data;
+       dataroot = extdata[idx][2];
+     }
+  } else if(dataroot instanceof nj.NdArray) {
+     ndim = dataroot.shape.length;
   }
 
   if(ndim < 3 && ndim > 0) {
@@ -255,17 +275,10 @@ function dopreview(key, idx, isinternal, hastime) {
     }
     reqid=requestAnimationFrame(update);
 
-    // if(isinternal)
-    //   intdata[idx][2] = drawpreview(dataroot);
-    // else
-    //   extdata[idx][2] = drawpreview(dataroot);
-    if (isinternal) {
-      if (!intdata[idx]) intdata[idx] = [];  // ✅ Fix: Initialize if undefined
+    if(isinternal)
       intdata[idx][2] = drawpreview(dataroot);
-    } else {
-      if (!extdata[idx]) extdata[idx] = [];  // ✅ Fix: Initialize if undefined
+    else
       extdata[idx][2] = drawpreview(dataroot);
-    }
     window.scrollTo(0, 0);
   }
   $('#loadingdiv').css('display', 'none');
@@ -346,12 +359,6 @@ function drawshape(shape,index){
     }
 }
 
-var materialcolor=[];
-for(let i=0;i<256;i++){
-    randseed=mulberry32(randseed);
-    materialcolor.push(randseed);
-}
-
 function mulberry32(a) {
   let t = a += 0x6D2B79F5;
   t = Math.imul(t ^ t >>> 15, t | 1);
@@ -375,10 +382,10 @@ function drawsurf(node, tri){
     geometry.setAttribute( 'position', new THREE.BufferAttribute(node.selection.data, 3 ) );
     geometry.computeVertexNormals();
 
-    geometry.computeBoundingBox();
-    geometry.computeBoundingSphere();
-    console.log("📌 Computed Bounding Box:", geometry.boundingBox);
-    console.log("📌 Computed Bounding Sphere:", geometry.boundingSphere);
+    // geometry.computeBoundingBox();
+    // geometry.computeBoundingSphere();
+    // console.log("📌 Computed Bounding Box:", geometry.boundingBox);
+    // console.log("📌 Computed Bounding Sphere:", geometry.boundingSphere);
 
     var material = new THREE.MeshBasicMaterial( {
       color: 0xff0000,
@@ -390,7 +397,7 @@ function drawsurf(node, tri){
     } );
     console.log("📌 Mesh Material:", material);
     lastvolume = new THREE.Mesh( geometry, material );
-    lastvolume.scale.set(10, 10, 10);
+    // lastvolume.scale.set(1, 1, 1);
     scene.add( lastvolume )
 
     console.log("🟢 Mesh Added to Scene:", lastvolume);
@@ -398,13 +405,13 @@ function drawsurf(node, tri){
     console.log("📌 Mesh Bounding Box:", lastvolume.geometry.boundingBox);
     console.log("📌 Mesh Bounding Sphere:", lastvolume.geometry.boundingSphere);
 
-    const center = geometry.boundingSphere.center;
-    const radius = geometry.boundingSphere.radius;
+    // const center = geometry.boundingSphere.center;
+    // const radius = geometry.boundingSphere.radius;
 
-    camera.position.set(center.x, center.y, center.z + radius * 5);
-    camera.lookAt(center);
-    controls.target.set(center);
-    controls.update();
+    // camera.position.set(center.x, center.y, center.z + radius * 5);
+    // camera.lookAt(center);
+    // controls.target.set(center);
+    // controls.update();
 
   
     var geo = new THREE.WireframeGeometry( lastvolume.geometry ); // or WireframeGeometry
@@ -424,9 +431,16 @@ function drawsurf(node, tri){
   
     boundingbox.add( lastvolume )
 
+    console.log("👁 Camera Pos:", camera.position);
+    console.log("👁 Controls Target:", controls.target);
+    console.log("👁 Mesh Pos:", lastvolume.position);
+    console.log("👁 Bounding Sphere:", geometry.boundingSphere);
+    console.log("👁 Canvas size:", canvas.width(), canvas.height());
+
+
     // ✅ Ensure Scene Renders
-    renderer.render(scene, camera);
-    console.log("🔄 Scene Render Triggered");
+    // renderer.render(scene, camera);
+    // console.log("🔄 Scene Render Triggered");
   }
 
 function resetscene(s){
@@ -515,7 +529,7 @@ function drawvolume(volume){
   
     lastvolumedata=nj.array(volume.transpose().flatten().selection.data, 'float32');
   
-    texture = new Data3DTexture(lastvolumedata.selection.data, dim[0], dim[1], dim[2]);
+    texture = new THREE.DataTexture3D(lastvolumedata.selection.data, dim[0], dim[1], dim[2]);
     texture.format = THREE.RedFormat;
     texture.type = THREE.FloatType; //texture_dtype[lastvolumedata.dtype];
     texture.minFilter = texture.magFilter = THREE.LinearFilter;
@@ -594,218 +608,199 @@ function drawvolume(volume){
     return mesh;
 }
 
-
 function initcanvas() {
-
-  console.log("✅ initcanvas() is running...");
-  console.log("🔍 Checking if canvas exists:", document.getElementById("canvas"));
-
-
-  // ✅ Ensure #canvas exists before proceeding
-  let canvas = document.querySelector("#canvas");
-
-  if (!canvas) {
-      console.error("❌ Error: #canvas element not found in DOM!");
-      return;
-  }
-
-  if (!(canvas instanceof HTMLCanvasElement)) {
-      console.error("❌ Error: canvas is not a real <canvas> element!", canvas);
-      return;
-  }
-
-  console.log("✅ Canvas initialized:", canvas);
-
-  const width = canvas.clientWidth || 800; // Default width if missing
-  const height = canvas.clientHeight || 600; // Default height if missing
-
-  console.log("✅ Canvas dimensions:", { width, height });
-
   scene = new THREE.Scene();
-  boundingbox = scene;
+  boundingbox=scene;
 
-  console.log("🔍 Checking canvas before accessing width:", canvas);
+  //const camera = new THREE.PerspectiveCamera( 50, canvas.width()/canvas.height(), 1, 2000 );
+  canvas = $("#canvas");
+  camera = new THREE.OrthographicCamera(canvas.width() / -2, canvas.width() / 2, canvas.height() / 2, canvas.height() / -2, 1, 1000);
 
-  camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
-
-  camera.up = new THREE.Vector3(0, 0, 1);
-  camera.lookAt(new THREE.Vector3(0, 0, 0));
+  camera.up = new THREE.Vector3(0,0,1);
+  camera.lookAt(new THREE.Vector3(0,0,0));
   camera.updateProjectionMatrix();
 
-  console.log("📌 Camera Position Before Rendering:", camera.position);
-  console.log("📌 Camera LookAt:", camera.lookAt);
+  renderer = new THREE.WebGLRenderer({preserveDrawingBuffer: true});
+  renderer.setPixelRatio( window.devicePixelRatio );
+  renderer.setSize( canvas.width(), canvas.height());
+  //renderer.state.enable("logarithmicDepthBuffer");
+  canvas.append( renderer.domElement );
 
-  renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(width, height);
-
-  // document.getElementById("canvas")?.appendChild(renderer.domElement);
-  let renderContainer = document.getElementById("canvas");
-  if (renderContainer) {
-      renderContainer.appendChild(renderer.domElement);
-      console.log("✅ Renderer attached to canvas.");
-  } else {
-      console.error("❌ Error: Could not attach renderer to canvas.");
-  }
-
-  controls = new OrbitControls(camera, renderer.domElement);
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.minZoom = 0.5;
   controls.maxZoom = 40;
-  controls.enableKeys = false;
+  controls.enableKeys=false;
 
   controls.update();
-
-  console.log("✅ Orbit Controls initialized.");
 
   function onPositionChange(o) {
     renderer.updateComplete = false;
   }
-  // controls.addEventListener("change", onPositionChange);
-  console.log("✅ Three.js Initialized Successfully.");
-
-  // ✅ Add Listener to Detect Changes in Controls
-  controls.addEventListener("change", function () {
-    console.log("🔄 Orbit Controls Updated.");
-    renderer.updateComplete = false;
-  });
-
-  console.log("📌 Camera Position Final:", camera.position);
-  console.log("📌 Camera Target Final:", controls.target);
+  controls.addEventListener('change', onPositionChange);
 
   stats = createStats();
-  document.getElementById("renderpanel").appendChild(stats.domElement);
+  document.getElementById('renderpanel').appendChild( stats.domElement );
 
-  console.log("✅ Three.js Initialized Successfully.");
-
-  // ✅ Attach Event Listeners
-  $("#camera-near").on("input", function () {
-    camera.near = parseFloat($(this).val());
-    console.log("📌 Updated Camera Near:", camera.near);
+  $("#camera-near").on('input', function() {
+    camera.near=parseFloat($(this).val());
     renderer.render(scene, camera);
     controls.update();
     renderer.updateComplete = false;
   });
 
-  $("#camera-far").on("input", function () {
-    camera.far = parseFloat($(this).val());
-    console.log("📌 Updated Camera Far:", camera.far);
+  $("#camera-far").on('input', function() {
+    camera.far=parseFloat($(this).val());
     renderer.render(scene, camera);
     controls.update();
     renderer.updateComplete = false;
   });
 
-  console.log("✅ Three.js Fully Initialized.");
-  console.log("📌 Final Scene State:", scene);
-  console.log("📌 Final Camera State:", camera);
-  console.log("📌 Final Renderer State:", renderer);
-
-  $("#clim-low").on("input", function () {
-    $(this).prop("title", $(this).val() + " [" + $(this).prop("min") + "," + $(this).prop("max") + "]");
-    if (lastvolume !== null) {
-        let val = lastvolume.material.uniforms["u_clim"].value;
-        lastvolume.material.uniforms["u_clim"].value.set(parseFloat($(this).val()), val.y);
+  $("#clim-low").on('input', function() {
+    $(this).prop('title', ''+$(this).val()+' ['+$(this).prop('min')+','+$(this).prop('max')+']');
+    if(lastvolume !== null){
+        let val=lastvolume.material.uniforms[ "u_clim" ].value;
+        lastvolume.material.uniforms[ "u_clim" ].value.set( parseFloat($(this).val()), val.y );
         renderer.updateComplete = false;
     }
   });
 
-  $("#clim-hi").on("input", function () {
-    $(this).prop("title", $(this).val() + " [" + $(this).prop("min") + "," + $(this).prop("max") + "]");
-    if (lastvolume !== null) {
-        let val = lastvolume.material.uniforms["u_clim"].value;
-        lastvolume.material.uniforms["u_clim"].value.set(val.x, parseFloat($(this).val()));
+  $("#clim-hi").on('input', function() {
+    $(this).prop('title', ''+$(this).val()+' ['+$(this).prop('min')+','+$(this).prop('max')+']');
+    if(lastvolume !== null){
+        let val=lastvolume.material.uniforms[ "u_clim" ].value;
+        lastvolume.material.uniforms[ "u_clim" ].value.set( val.x, parseFloat($(this).val()) );
         renderer.updateComplete = false;
     }
   });
 
-  $("#isothreshold").on("input", function () {
-    $(this).prop("title", $(this).val() + " [" + $(this).prop("min") + "," + $(this).prop("max") + "]");
-    if (lastvolume !== null) {
-        let val = lastvolume.material.uniforms["u_renderthreshold"].value;
-        lastvolume.material.uniforms["u_renderthreshold"].value = parseFloat($(this).val());
+  $("#isothreshold").on('input', function() {
+    $(this).prop('title', ''+$(this).val()+' ['+$(this).prop('min')+','+$(this).prop('max')+']');
+    if(lastvolume !== null){
+        let val=lastvolume.material.uniforms[ "u_renderthreshold" ].value;
+        lastvolume.material.uniforms[ "u_renderthreshold" ].value = parseFloat($(this).val());
         renderer.updateComplete = false;
     }
   });
 
-  $("#mip-radio-button").on("change", function () {
-    if (lastvolume !== null) {
+  $("#mip-radio-button").on('change', function() {
+    if(lastvolume !== null){
       const unfs = lastvolume.material.uniforms;
-      lastvolume.material = new THREE.ShaderMaterial({
-        uniforms: THREE.UniformsUtils.clone(MipRenderShader.uniforms),
-        vertexShader: MipRenderShader.vertexShader,
-        fragmentShader: MipRenderShader.fragmentShader,
-        side: THREE.BackSide
-      });
+      lastvolume.material = new THREE.ShaderMaterial( {
+	uniforms: THREE.UniformsUtils.clone( MipRenderShader.uniforms ),
+	vertexShader: MipRenderShader.vertexShader,
+	fragmentShader: MipRenderShader.fragmentShader,
+	side: THREE.BackSide
+      } );
       lastvolume.material.uniforms = unfs;
       renderer.updateComplete = false;
     }
   });
 
-  $("#iso-radio-button").on("change", function () {
-    if (lastvolume !== null) {
+  $("#iso-radio-button").on('change', function() {
+    if(lastvolume !== null){
       const unfs = lastvolume.material.uniforms;
-      lastvolume.material = new THREE.ShaderMaterial({
-        uniforms: THREE.UniformsUtils.clone(IsoRenderShader.uniforms),
+      lastvolume.material = new THREE.ShaderMaterial( {
+        uniforms: THREE.UniformsUtils.clone( IsoRenderShader.uniforms ),
         vertexShader: IsoRenderShader.vertexShader,
         fragmentShader: IsoRenderShader.fragmentShader,
         side: THREE.BackSide
-      });
+      } );
       lastvolume.material.uniforms = unfs;
       renderer.updateComplete = false;
    }
-  });
+  } );
 
-  $("#interp-radio-button").on("change", function () {
-    if (lastvolume !== null) {
+  $("#interp-radio-button").on('change', function() {
+    if(lastvolume !== null){
       const unfs = lastvolume.material.uniforms;
-      lastvolume.material = new THREE.RawShaderMaterial(InterpRenderShader());
+      lastvolume.material = new THREE.RawShaderMaterial( InterpRenderShader() );
       lastvolume.material.uniforms = unfs;
-      lastvolume.material.uniforms.cameraPos.value.copy(camera.position);
+      lastvolume.material.uniforms.cameraPos.value.copy( camera.position );
       renderer.updateComplete = false;
     }
   });
 
-  $("#cross-x-low, #cross-y-low, #cross-z-low, #cross-x-hi, #cross-y-hi, #cross-z-hi").on("input", function () {
+  $("#cross-x-low").on('input', function() {
       setcrosssectionsizes(this);
   });
 
-  $("#x_thickness, #y_thickness, #z_thickness").on("input", function () {
-      let eid = $(this).attr("id");
-      let linkedLow = `#cross-${eid.replace("_thickness", "-low")}`;
-      let linkedHigh = `#cross-${eid.replace("_thickness", "-hi")}`;
-
-      if ($(this).val() == 0) {
-          $(linkedLow).val(0);
-          $(linkedHigh).val(1);
-      } else {
-          $(linkedLow).val(($(linkedLow).val() + $(linkedHigh).val()) * 0.5);
-      }
-      setcrosssectionsizes($(linkedLow));
+  $("#cross-y-low").on('input', function() {
+      setcrosssectionsizes(this);
   });
 
-  $("#pos-x-view, #neg-x-view, #pos-y-view, #neg-y-view, #pos-z-view, #neg-z-view").on("click", function () {
-      setControlAngles(Math.PI * 90 / 180, Math.PI * 90 / 180);
-      renderer.updateComplete = false;
+  $("#cross-z-low").on('input', function() {
+      setcrosssectionsizes(this);
+  });
+
+  $("#cross-x-hi").on('input', function() {
+      setcrosssectionsizes(this);
+  });
+
+  $("#cross-y-hi").on('input', function() {
+      setcrosssectionsizes(this);
+  });
+
+  $("#cross-z-hi").on('input', function() {
+      setcrosssectionsizes(this);
+  });
+
+  $("#x_thickness, #y_thickness, #z_thickness").on('input', function() {
+      let eid=$(this).attr('id');
+       let linkedeid1=eid.replace(/_thickness/,'-low').replace(/^/,'cross-');
+       let linkedeid2=eid.replace(/_thickness/,'-hi').replace(/^/,'cross-');
+       if($(this).val() == 0) {
+           $('#'+linkedeid1).val(0);
+           $('#'+linkedeid2).val(1);
+       } else {
+           $('#'+linkedeid1).val(($('#'+linkedeid1).val() + $('#'+linkedeid2).val())*0.5);
+       }
+       setcrosssectionsizes($('#'+linkedeid1));
+  });
+
+  $("#pos-x-view").on('click', function() {
+    setControlAngles(Math.PI * 90 / 180, Math.PI * 90 / 180);
+    renderer.updateComplete = false;
+  });
+
+  $("#neg-x-view").on('click', function() {
+    setControlAngles(Math.PI * 90 / 180, Math.PI * 270 / 180);
+  });
+
+  $("#pos-y-view").on('click', function() {
+    setControlAngles(Math.PI * 90 / 180, Math.PI * 180 / 180);
+  });
+
+  $("#neg-y-view").on('click', function() {
+    setControlAngles(Math.PI * 90 / 180, Math.PI * 0 / 180);
+  });
+
+  $("#pos-z-view").on('click', function() {
+    setControlAngles(0, 0);
+  });
+
+  $("#neg-z-view").on('click', function() {
+    setControlAngles(Math.PI * 180 / 180, 0);
   });
 
   $('#cross-t').on('mouseup', function() {
-    $(this).prop('title', $(this).val() + ' [' + $(this).prop('min') + ',' + $(this).prop('max') + ']');
-    if (lastvolume !== null && lastvolumedata !== undefined) {
+    $(this).prop('title', ''+$(this).val()+' ['+$(this).prop('min')+','+$(this).prop('max')+']');
+    if(lastvolume !== null && lastvolumedata !== undefined){
       let dim = lastvolumedim;
-      let offset = (Math.min($(this).val(), dim[3] - 2) * dim[0] * dim[1] * dim[2]);
+      let offset=(Math.min($(this).val(), dim[3]-2)*dim[0]*dim[1]*dim[2]);
 
-      let texture = new Data3DTexture(lastvolumedata.selection.data.slice(offset - 1, offset + dim[0] * dim[1] * dim[2] - 1), dim[0], dim[1], dim[2]);
+      let texture = new THREE.DataTexture3D(lastvolumedata.selection.data.slice(offset-1, offset+dim[0]*dim[1]*dim[2]-1), dim[0], dim[1], dim[2]);
       texture.format = THREE.RedFormat;
       texture.type = texture_dtype[lastvolumedata.dtype];
       texture.minFilter = texture.magFilter = THREE.LinearFilter;
       texture.unpackAlignment = 1;
       texture.needsUpdate = true;
 
-      lastvolume.material.uniforms["u_data"].value = texture;
+      lastvolume.material.uniforms[ "u_data" ].value = texture;
       renderer.updateComplete = false;
-    }
+   }
   });
-}
 
+}
 
 function createFragmentShader(mode) {
     return [
@@ -1214,9 +1209,16 @@ function InterpRenderShader() {
           if ( color.a == 0.0 ) discard;
       }
     `;
+
+    const baseUniforms = THREE.UniformsUtils.clone(MipRenderShader.uniforms);
+
+    // ✅ Add missing slice uniforms used by setcrosssectionsizes
+    baseUniforms["u_minslice"] = { value: new THREE.Vector3(0, 0, 0) };
+    baseUniforms["u_maxslice"] = { value: new THREE.Vector3(1, 1, 1) };
   
      const material = new THREE.RawShaderMaterial( {
       uniforms: THREE.UniformsUtils.clone( MipRenderShader.uniforms ),
+      // uniforms: baseUniforms,
       vertexShader: interpVertexShader,
       fragmentShader: interpFragmentShader,
       glslVersion: THREE.GLSL3
@@ -1234,31 +1236,49 @@ function createStats() {
 }
 
 function setcrosssectionsizes(e) {
-  let eid=$(e).attr('id');
-  let deltaeid=eid.replace('cross-','').replace(/-(low|hi)$/,'_thickness');
-  let dvalue=parseInt($('#'+deltaeid).val());
+  let eid = $(e).attr('id');
+  let deltaeid = eid.replace('cross-', '').replace(/-(low|hi)$/, '_thickness');
+  let dvalue = parseInt($('#' + deltaeid).val());
 
-  if(dvalue>0) {
-     let othereid='';
-     dvalue /= (eid.match(/-x-/) ? lastvolumedim[0] : (eid.match(/-y-/) ? lastvolumedim[1]: lastvolumedim[2]));
+  if (dvalue > 0) {
+    let othereid = '';
+    dvalue /= (eid.match(/-x-/) ? lastvolumedim[0] : (eid.match(/-y-/) ? lastvolumedim[1] : lastvolumedim[2]));
 
-     if(eid.match(/-low/)) {
-        othereid='#'+eid.replace(/-low$/, '-hi');
-        $(othereid).val(Math.min(parseFloat($(e).val())+dvalue, 1))
-     } else {
-        othereid='#'+eid.replace(/-hi$/, '-low');
-        $(othereid).val(Math.max(parseFloat($(e).val())-dvalue, 0))
-     }
-     $(othereid).prop('title', ''+$(othereid).val()+' ['+$(othereid).prop('min')+','+$(othereid).prop('max')+']');
+    if (eid.match(/-low/)) {
+      othereid = '#' + eid.replace(/-low$/, '-hi');
+      $(othereid).val(Math.min(parseFloat($(e).val()) + dvalue, 1));
+    } else {
+      othereid = '#' + eid.replace(/-hi$/, '-low');
+      $(othereid).val(Math.max(parseFloat($(e).val()) - dvalue, 0));
+    }
+    $(othereid).prop('title', $(othereid).val() + ' [' + $(othereid).prop('min') + ',' + $(othereid).prop('max') + ']');
   }
 
-  $(e).prop('title', ''+$(e).val()+' ['+$(e).prop('min')+','+$(e).prop('max')+']');
-  if(lastvolume !== null){
-    lastvolume.material.uniforms[ "u_minslice" ].value.set( parseFloat($("#cross-x-low").val()), parseFloat($("#cross-y-low").val()), parseFloat($("#cross-z-low").val()) );
-    lastvolume.material.uniforms[ "u_maxslice" ].value.set( parseFloat($("#cross-x-hi").val()), parseFloat($("#cross-y-hi").val()), parseFloat($("#cross-z-hi").val()) );
-    renderer.updateComplete = false;
+  $(e).prop('title', $(e).val() + ' [' + $(e).prop('min') + ',' + $(e).prop('max') + ']');
+
+  // 🔐 Ensure uniform exists
+  if (!lastvolume || !lastvolume.material || !lastvolume.material.uniforms || 
+      !lastvolume.material.uniforms["u_minslice"] || !lastvolume.material.uniforms["u_maxslice"]) {
+    console.warn("⚠️ Skipping slice update — uniforms missing (not a volume shader)");
+    return;
   }
+
+  // ✅ Update uniforms if valid
+  lastvolume.material.uniforms["u_minslice"].value.set(
+    parseFloat($("#cross-x-low").val()),
+    parseFloat($("#cross-y-low").val()),
+    parseFloat($("#cross-z-low").val())
+  );
+  lastvolume.material.uniforms["u_maxslice"].value.set(
+    parseFloat($("#cross-x-hi").val()),
+    parseFloat($("#cross-y-hi").val()),
+    parseFloat($("#cross-z-hi").val())
+  );
+
+  renderer.updateComplete = false;
 }
+
+
 
 function setControlAngles(polar, azimuth) {
     let mi = controls.minAzimuthAngle;
@@ -1357,8 +1377,8 @@ function previewdataurl(url, idx) {
       bjd={'NIFTIHeader': {'VoxelSize': voxelsize}, 'NIFTIData': bjd.reshape(dims.reverse()).transpose()};
     } else {
       console.log("🔄 Processing BJData...");
-      // bjd = bjdata.decode(buffer.Buffer.from(arrayBuffer));
-      bjd = bjdata.decode(new Uint8Array(arrayBuffer));
+      bjd = bjdata.decode(buffer.Buffer.from(arrayBuffer));
+      // bjd = bjdata.decode(new Uint8Array(arrayBuffer));
       let jd=new jdata(bjd[0],{base64:false});
       bjd = jd.decode().data;
     }
@@ -1426,100 +1446,100 @@ function previewdataurl(url, idx) {
   oReq.send();
 }
 
-function previewdata(key, idx, isinternal, hastime) {
-  console.log("🔍 Running previewdata()");
-  console.log("🟢 Key Received:", key);
-  console.log("🟢 Index:", idx, "Is Internal:", isinternal, "Has Time:", hastime);
+// function previewdata(key, idx, isinternal, hastime) {
+//   console.log("🔍 Running previewdata()");
+//   console.log("🟢 Key Received:", key);
+//   console.log("🟢 Index:", idx, "Is Internal:", isinternal, "Has Time:", hastime);
 
-  if (!key) {
-    console.error("❌ No key received! Aborting previewdata()");
-    return;
-  }
+//   if (!key) {
+//     console.error("❌ No key received! Aborting previewdata()");
+//     return;
+//   }
 
-  if (!key) {
-    console.error("❌ No key received! Aborting previewdata()");
-    return;
-  }
+//   if (!key) {
+//     console.error("❌ No key received! Aborting previewdata()");
+//     return;
+//   }
 
-  if (typeof key === "object") {
-      console.log("🟢 Data Type:", typeof key);
-      console.log("🟢 Checking if it contains MeshNode or NIFTIData...");
-      console.log("   - MeshNode Exists:", key.hasOwnProperty("MeshNode"));
-      console.log("   - MeshSurf Exists:", key.hasOwnProperty("MeshSurf"));
-      console.log("   - NIFTIData Exists:", key.hasOwnProperty("NIFTIData"));
-  }
+//   if (typeof key === "object") {
+//       console.log("🟢 Data Type:", typeof key);
+//       console.log("🟢 Checking if it contains MeshNode or NIFTIData...");
+//       console.log("   - MeshNode Exists:", key.hasOwnProperty("MeshNode"));
+//       console.log("   - MeshSurf Exists:", key.hasOwnProperty("MeshSurf"));
+//       console.log("   - NIFTIData Exists:", key.hasOwnProperty("NIFTIData"));
+//   }
 
-  if (!key.hasOwnProperty("MeshNode") && !key.hasOwnProperty("NIFTIData")) {
-      console.warn("⚠️ The data does not contain MeshNode or NIFTIData!");
-  }
+//   if (!key.hasOwnProperty("MeshNode") && !key.hasOwnProperty("NIFTIData")) {
+//       console.warn("⚠️ The data does not contain MeshNode or NIFTIData!");
+//   }
 
-  if (key.hasOwnProperty("MeshNode") && key.MeshNode.hasOwnProperty("_ArrayZipData_")) {
-    console.log("🔄 Decoding MeshNode...");
-    let jd = new jdata(key.MeshNode, {});
-    key.MeshNode = jd.decode().data;
-    console.log("✅ Decoded MeshNode:", key.MeshNode);
-  }
+//   if (key.hasOwnProperty("MeshNode") && key.MeshNode.hasOwnProperty("_ArrayZipData_")) {
+//     console.log("🔄 Decoding MeshNode...");
+//     let jd = new jdata(key.MeshNode, {});
+//     key.MeshNode = jd.decode().data;
+//     console.log("✅ Decoded MeshNode:", key.MeshNode);
+//   }
 
-  if (key.hasOwnProperty("MeshSurf") && key.MeshSurf.hasOwnProperty("_ArrayZipData_")) {
-    console.log("🔄 Decoding MeshSurf...");
-    let jd = new jdata(key.MeshSurf, {});
-    key.MeshSurf = jd.decode().data;
-    console.log("✅ Decoded MeshSurf:", key.MeshSurf);
-  }
+//   if (key.hasOwnProperty("MeshSurf") && key.MeshSurf.hasOwnProperty("_ArrayZipData_")) {
+//     console.log("🔄 Decoding MeshSurf...");
+//     let jd = new jdata(key.MeshSurf, {});
+//     key.MeshSurf = jd.decode().data;
+//     console.log("✅ Decoded MeshSurf:", key.MeshSurf);
+//   }
 
-  if (key.hasOwnProperty("NIFTIData") && key.NIFTIData.hasOwnProperty("_ArrayZipData_")) {
-    console.log("🔄 Decoding NIFTIData...");
-    let jd = new jdata(key.NIFTIData, {});
-    key.NIFTIData = jd.decode().data;
-    console.log("✅ Decoded NIFTIData:", key.NIFTIData);
-  }
+//   if (key.hasOwnProperty("NIFTIData") && key.NIFTIData.hasOwnProperty("_ArrayZipData_")) {
+//     console.log("🔄 Decoding NIFTIData...");
+//     let jd = new jdata(key.NIFTIData, {});
+//     key.NIFTIData = jd.decode().data;
+//     console.log("✅ Decoded NIFTIData:", key.NIFTIData);
+//   }
 
-  // Log final size
-  console.log("🎯 Checking Final MeshNode Size...");
-  if (key.MeshNode instanceof nj.NdArray) {
-      console.log("✅ MeshNode is NdArray, Shape:", key.MeshNode.shape, "Size:", key.MeshNode.size);
-  } else if (Array.isArray(key.MeshNode)) {
-      console.log("✅ MeshNode is an Array, Length:", key.MeshNode.length);
-  } else {
-      console.log("❌ MeshNode decoding failed! Type:", typeof key.MeshNode, "Value:", key.MeshNode);
-  }
+//   // Log final size
+//   console.log("🎯 Checking Final MeshNode Size...");
+//   if (key.MeshNode instanceof nj.NdArray) {
+//       console.log("✅ MeshNode is NdArray, Shape:", key.MeshNode.shape, "Size:", key.MeshNode.size);
+//   } else if (Array.isArray(key.MeshNode)) {
+//       console.log("✅ MeshNode is an Array, Length:", key.MeshNode.length);
+//   } else {
+//       console.log("❌ MeshNode decoding failed! Type:", typeof key.MeshNode, "Value:", key.MeshNode);
+//   }
 
-  console.log("🎯 Checking Final MeshSurf Size...");
-  if (key.MeshSurf instanceof nj.NdArray) {
-      console.log("✅ MeshSurf is NdArray, Shape:", key.MeshSurf.shape, "Size:", key.MeshSurf.size);
-  } else if (Array.isArray(key.MeshSurf)) {
-      console.log("✅ MeshSurf is an Array, Length:", key.MeshSurf.length);
-  } else {
-      console.log("❌ MeshSurf decoding failed! Type:", typeof key.MeshSurf, "Value:", key.MeshSurf);
-  }
+//   console.log("🎯 Checking Final MeshSurf Size...");
+//   if (key.MeshSurf instanceof nj.NdArray) {
+//       console.log("✅ MeshSurf is NdArray, Shape:", key.MeshSurf.shape, "Size:", key.MeshSurf.size);
+//   } else if (Array.isArray(key.MeshSurf)) {
+//       console.log("✅ MeshSurf is an Array, Length:", key.MeshSurf.length);
+//   } else {
+//       console.log("❌ MeshSurf decoding failed! Type:", typeof key.MeshSurf, "Value:", key.MeshSurf);
+//   }
 
-  // console.log("🎯 Final NIFTIData Size:", key.NIFTIData ? key.NIFTIData.length : "❌ Decoding failed!");
+//   // console.log("🎯 Final NIFTIData Size:", key.NIFTIData ? key.NIFTIData.length : "❌ Decoding failed!");
 
-  if (!window.THREE) {
-    console.error("❌ Error: THREE.js is not loaded!");
-  } else {
-    console.log("✅ THREE.js is available.");
-  }
+//   if (!window.THREE) {
+//     console.error("❌ Error: THREE.js is not loaded!");
+//   } else {
+//     console.log("✅ THREE.js is available.");
+//   }
 
-    if(!hasthreejs) {
-      $.when(
-        $.getScript( "https://mcx.space/cloud/js/OrbitControls.js" ),
-        $.Deferred(function( deferred ){
-            $( deferred.resolve );
-        })
-      ).done(function(){
-        hasthreejs=true;
-        dopreview(key, idx, isinternal, hastime);
-        console.log("🟢 IF previewdata() running with key:", key, "Index:", idx, "Internal:", isinternal);
+//     if(!hasthreejs) {
+//       $.when(
+//         $.getScript( "https://mcx.space/cloud/js/OrbitControls.js" ),
+//         $.Deferred(function( deferred ){
+//             $( deferred.resolve );
+//         })
+//       ).done(function(){
+//         hasthreejs=true;
+//         dopreview(key, idx, isinternal, hastime);
+//         console.log("🟢 IF previewdata() running with key:", key, "Index:", idx, "Internal:", isinternal);
 
-      });
-    } else {
-      dopreview(key, idx, isinternal, hastime);
-      console.log("🟢 else previewdata() running with key:", key, "Index:", idx, "Internal:", isinternal);
-    }
-  console.log("✅ previewdata() completed successfully. Calling dopreview...");
+//       });
+//     } else {
+//       dopreview(key, idx, isinternal, hastime);
+//       console.log("🟢 else previewdata() running with key:", key, "Index:", idx, "Internal:", isinternal);
+//     }
+//   console.log("✅ previewdata() completed successfully. Calling dopreview...");
 
-  }
+//   }
   
 
 export {
