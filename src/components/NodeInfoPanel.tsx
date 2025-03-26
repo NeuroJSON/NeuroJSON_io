@@ -40,9 +40,6 @@ const formatSize = (bytes?: number): string => {
     return `${bytes} Bytes`;
   }
 };
-// 1 Kilobyte (KB)  = 1,024 Bytes
-// 1 Megabyte (MB)  = 1,024 KB      = 1,048,576 Bytes (1024*1024)
-// 1 Gigabyte (GB)  = 1,024 MB      = 1,073,741,824 Bytes (1024*1024*1024)
 
 // convert the date format
 const dateCoverter = (date?: string): string => {
@@ -81,7 +78,8 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
       anchor="right"
       open={open}
       onClose={onClose}
-      container={document.body}
+      ModalProps={{ keepMounted: true }} // Keeps Drawer in DOM even when closed
+      disableEnforceFocus //  prevents MUI from trapping focus inside the drawer
       sx={{
         "& .MuiDrawer-paper": {
           width: "30%",

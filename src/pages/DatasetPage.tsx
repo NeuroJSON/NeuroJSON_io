@@ -176,34 +176,35 @@ const DatasetPage: React.FC = () => {
         />
       )}
 
-      {!loading && !error && data.length > 0 && (
-        <Grid container spacing={3}>
-          {data.map((doc: any) => (
-            <Grid item xs={12} sm={6} key={doc.id}>
-              <Card
-                sx={{
-                  backgroundColor: Colors.white,
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <CardContent sx={{ flex: 1 }}>
-                  <Button
-                    onClick={() =>
-                      navigate(`${RoutesEnum.DATABASES}/${dbName}/${doc.id}`)
-                    }
-                    sx={{
-                      fontSize: "1.25rem",
-                      margin: 0,
-                      color: Colors.primary.main,
-                      textTransform: "none",
-                      justifyContent: "flex-start",
-                    }}
-                  >
-                    {doc.value.name || "Untitled"}
-                  </Button>
+			{!loading && !error && data.length > 0 && (
+				<Grid container spacing={3}>
+					{data.map((doc: any) => (
+						<Grid item xs={12} sm={6} key={doc.id}>
+							<Card
+								sx={{
+									backgroundColor: Colors.white,
+									boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+									height: "100%",
+									display: "flex",
+									flexDirection: "column",
+								}}
+							>
+								<CardContent sx={{ flex: 1 }}>
+									<Button
+										onClick={() =>
+											// navigate(`${RoutesEnum.DATABASES}/${dbName}/${doc.id}`)
+											navigate(`${RoutesEnum.DATABASES}/${encodeURIComponent(dbName ?? '')}/${encodeURIComponent(doc.id ?? '')}`)
+										}
+										sx={{
+											fontSize: "1.25rem",
+											margin: 0,
+											color: Colors.primary.main,
+											textTransform: "none",
+											justifyContent: "flex-start",
+										}}
+									>
+										{doc.value.name || "Untitled"}
+									</Button>
 
                   <Typography
                     color={Colors.textSecondary}
@@ -296,27 +297,28 @@ const DatasetPage: React.FC = () => {
         </Typography>
       )}
 
-      {!loading && (
-        <Box sx={{ textAlign: "center", mt: 3 }}>
-          <Button
-            variant="contained"
-            onClick={loadMoreData}
-            disabled={data.length >= limit}
-            sx={{
-              backgroundColor: Colors.primary.main,
-              color: Colors.white,
-              "&:hover": {
-                backgroundColor: Colors.primary.dark,
-              },
-            }}
-          >
-            Load More ({data.length} of {limit} items)
-            {data.length >= limit && " - Limit Reached"}
-          </Button>
-        </Box>
-      )}
-    </Box>
-  );
+			{!loading && (
+				<Box sx={{ textAlign: "center", mt: 3 }}>
+					<Button
+						variant="contained"
+						onClick={loadMoreData}
+						// disabled={data.length >= limit}
+						disabled={!hasMore}
+						sx={{
+							backgroundColor: Colors.primary.main,
+							color: Colors.white,
+							"&:hover": {
+								backgroundColor: Colors.primary.dark,
+							},
+						}}
+					>
+						Load More ({data.length} of {limit} items)
+						{data.length >= limit && " - Limit Reached"}
+					</Button>
+				</Box>
+			)}
+		</Box>
+	);
 };
 
 export default DatasetPage;

@@ -37,37 +37,30 @@ export const Colors = {
 
 const theme = createTheme({
   typography: {
-    fontFamily: [
-      "Raleway",
-      "Ubuntu",
-      '"IBM Plex Sans"',
-      "-apple-system",
-      "BlinkMacSystemFont",
-      '"Segoe UI"',
-      "Roboto",
-      '"Helvetica Neue"',
-      "Arial",
-      "sans-serif",
-    ].join(","),
+    fontFamily: ["Raleway", "Ubuntu"].join(","),
     h1: {
       fontFamily: "Raleway",
       fontWeight: 700,
-      fontSize: "2rem",
+      // fontSize: "2rem",
+      fontSize: "2.5rem",
       textTransform: "none",
     },
     h2: {
       fontWeight: 600,
-      fontSize: "1.75rem",
+      // fontSize: "1.75rem",
+      fontSize: "1.2rem",
       textTransform: "none",
       color: Colors.secondary.main,
     },
     body1: {
       fontSize: "1rem",
       color: Colors.textPrimary,
+      fontFamily: "Ubuntu",
     },
     body2: {
       fontSize: "0.875rem",
       color: Colors.textSecondary,
+      fontFamily: "Ubuntu",
     },
   },
 });

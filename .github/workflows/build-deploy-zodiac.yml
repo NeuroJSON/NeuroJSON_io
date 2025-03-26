@@ -7,10 +7,13 @@ on:
       - dev-fan
       - dev_mario
       - dev_fang
+      - staging
 
 jobs:
   deploy:
     runs-on: ubuntu-22.04
+    env:
+      CI: false
 
     steps:
       - name: Check out the repository
@@ -27,6 +30,11 @@ jobs:
         run: |
           echo "Building for /dev/${{ env.BRANCH_NAME }}/"
           PUBLIC_URL="/dev/${{ env.BRANCH_NAME }}/" yarn build
+      
+      - name: Copy JS libraries (jdata, bjdata etc.)
+        run: |
+          mkdir -p build/js
+          cp -r public/js/* build/js/
 
       - name: Copy package to server
         uses: NeuroJSON/SFTP-Deploy-Action@v1.2.5

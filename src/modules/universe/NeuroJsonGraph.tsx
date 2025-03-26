@@ -21,32 +21,32 @@ export interface NodeObject {
   standard: string[];
 }
 
+// Define the datatype to color mapping
+export const DATA_TYPE_COLORS: Record<string, [number, number, number]> = {
+  // mri: [79, 51, 130], // deep purple
+  mri: [160, 138, 233], // soft laender
+  anat: [160, 138, 233],
+  // fmri: [10, 81, 20], // dark green
+  fmri: [152, 202, 32], // bright lime green
+  func: [152, 202, 32],
+
+  pet: [0, 105, 192], // deep blue
+  meg: [156, 57, 0], // dark reddish-brown
+  eeg: [134, 31, 55], // dark red-pink
+  ieeg: [18, 109, 62], // forest green
+  beh: [12, 93, 210], // bright blue
+  fmap: [255, 255, 59], // vivid yellow
+  dwi: [200, 9, 12], // deep red
+  fnirs: [255, 193, 7], // golden yellow
+  phenotype: [255, 87, 34], // vibrant orange-red
+};
+
 const NeuroJsonGraph: React.FC<{
   registry: Database[];
   onNodeClick?: (node: NodeObject) => void;
-}> = ({ registry, onNodeClick }) => {
+}> = React.memo(({ registry, onNodeClick }) => {
   const navigate = useNavigate();
   const graphRef = useRef<HTMLDivElement>(null);
-
-  // Define the datatype to color mapping
-  const DATA_TYPE_COLORS: Record<string, [number, number, number]> = {
-    // mri: [79, 51, 130], // deep purple
-    mri: [160, 138, 233], // soft laender
-    anat: [160, 138, 233],
-    // fmri: [10, 81, 20], // dark green
-    fmri: [152, 202, 32], // bright lime green
-    func: [152, 202, 32],
-
-    pet: [0, 105, 192], // deep blue
-    meg: [156, 57, 0], // dark reddish-brown
-    eeg: [134, 31, 55], // dark red-pink
-    ieeg: [18, 109, 62], // forest green
-    beh: [12, 93, 210], // bright blue
-    fmap: [255, 255, 59], // vivid yellow
-    dwi: [200, 9, 12], // deep red
-    fnirs: [255, 193, 7], // golden yellow
-    phenotype: [255, 87, 34], // vibrant orange-red
-  };
 
   // Function to blend colors based on datatypes
   const blendColors = (datatypes: string[]): string => {
@@ -179,7 +179,7 @@ const NeuroJsonGraph: React.FC<{
       .graphData(graphData)
       .nodeRelSize(1)
       .nodeColor((node) => (node as NodeObject).color)
-      .linkWidth(2)
+      .linkWidth(0.5)
       .backgroundColor("rgba(0,0,0,0)")
       .nodeLabel("name")
       .onNodeHover((node) => {
@@ -245,6 +245,9 @@ const NeuroJsonGraph: React.FC<{
         return group;
       });
 
+    Graph.d3Force("link")?.distance(100);
+    Graph.cameraPosition({ z: 1000 }); // Adjust zoom level
+
     // Initialize CSS2DRenderer for 2D labels
     const labelRenderer = new CSS2DRenderer();
     labelRenderer.setSize(window.innerWidth, window.innerHeight);
@@ -289,6 +292,6 @@ const NeuroJsonGraph: React.FC<{
       }}
     />
   );
-};
+});
 
 export default NeuroJsonGraph;
