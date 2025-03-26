@@ -50,6 +50,37 @@
     /> -->
 
     <title>NeuroJSON.io - Free Data Worth Sharing</title>
+    <link rel="stylesheet" href="https://leeoniya.github.io/uPlot/dist/uPlot.min.css" />
+    <style>
+      #chartpanel {
+        background-color: #707070;
+        padding: 10px;
+        display: block;
+        margin-top: 20px;
+        border-radius: 10px;
+      }
+    
+      #chartpanel h4 {
+        padding-top: 0;
+        margin-bottom: 10px;
+        color: black;
+      }
+    
+      #chartpanel a.closebtn {
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        color: yellow;
+        text-decoration: none;
+        margin-top: -10px;
+      }
+    
+      .uplot {
+        margin: auto;
+        max-width: 100%;
+      }
+    </style>
+    
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
@@ -64,5 +95,19 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
+    <!-- ✅ Global Script Dependencies -->
+    <script src="https://unpkg.com/jquery"></script>
+    <script src="%PUBLIC_URL%/js/jsonview.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.145.0/three.min.js"></script>
+    <script src="https://unpkg.com/load_avg@0.16.0/build/stats.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/numjs/0.16.0/numjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.11/pako.min.js"></script>
+    <script src="%PUBLIC_URL%/js/js_lzma.js"></script>
+    <script src="%PUBLIC_URL%/js/js_lzma_shim.js"></script>
+    <script src="%PUBLIC_URL%/js/jdata.js"></script>
+    <script src="%PUBLIC_URL%/js/bjdata.js"></script>
+    <script src="https://bundle.run/buffer@6.0.3"></script>
+    <script>var buffer_module = buffer;</script>
+    <script src="https://leeoniya.github.io/uPlot/dist/uPlot.iife.min.js"></script>
   </body>
 </html>
