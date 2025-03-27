@@ -26,6 +26,7 @@
     "bjd": "^0.3.2",
     "buffer": "^6.0.3",
     "dayjs": "^1.11.10",
+    "jda": "^0.4.0",
     "jquery": "^3.7.1",
     "json-stringify-safe": "^5.0.1",
     "jwt-decode": "^3.1.2",
