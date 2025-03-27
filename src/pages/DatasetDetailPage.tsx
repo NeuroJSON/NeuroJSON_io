@@ -570,167 +570,166 @@ const DatasetDetailPage: React.FC = () => {
 
   {/* ✅ Data panels (right panel) */}
   <Box sx={{ flex: 2, display: "flex", flexDirection: "column", gap: 2 }}>
-<Box sx={{ backgroundColor: "#cdddf6", padding: 2, borderRadius: "8px", marginTop: 4 }}>
-  {/* ✅ Collapsible header */}
-  <Box
-    sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
-    onClick={() => setIsInternalExpanded(!isInternalExpanded)}
-  >
-    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-      Internal Data ({internalLinks.length} objects)
-    </Typography>
-    {isInternalExpanded ? <ExpandLess /> : <ExpandMore />}
-  </Box>
-
-  <Collapse in={isInternalExpanded}>
-    {/* ✅ Scrollable area */}
-    <Box
-      sx={{
-        maxHeight: "400px",
-        overflowY: "auto",
-        marginTop: 2,
-        paddingRight: 1,
-        "&::-webkit-scrollbar": {
-          width: "6px",
-        },
-        "&::-webkit-scrollbar-thumb": {
-          backgroundColor: "#aaa",
-          borderRadius: "4px",
-        },
-      }}
-    >
-      {internalLinks.length > 0 ? (
-        internalLinks.map((link, index) => (
-          <Box
-            key={index}
-            sx={{
-              mt: 1,
-              p: 1.5,
-              bgcolor: "white",
-              borderRadius: 1,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 2,
-              border: "1px solid #bbb",
-            }}
-          >
-            <Typography sx={{ flexGrow: 1 }}>
-              {link.name} {link.arraySize ? `[${link.arraySize.join("x")}]` : ""}
-            </Typography>
-            <Button
-              variant="contained"
-              size="small"
-              sx={{ backgroundColor: "#1976d2" }}
-              onClick={() => handlePreview(link.data, link.index, true)}
-            >
-              Preview
-            </Button>
-          </Box>
-        ))
-      ) : (
-        <Typography sx={{ fontStyle: "italic", mt: 1 }}>No internal data found.</Typography>
-      )}
-    </Box>
-  </Collapse>
-</Box>
-	<Box sx={{ backgroundColor: "#eaeaea", padding: 2, borderRadius: "8px", marginTop: 4 }}>
-  {/* ✅ Header with toggle */}
-  <Box
-    sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
-    onClick={() => setIsExternalExpanded(!isExternalExpanded)}
-  >
-    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-      External Data ({externalLinks.length} links)
-    </Typography>
-    {isExternalExpanded ? <ExpandLess /> : <ExpandMore />}
-  </Box>
-
-  <Collapse in={isExternalExpanded}>
-    {/* ✅ Scrollable card container */}
-    <Box
-      sx={{
-        maxHeight: "400px",
-        overflowY: "auto",
-        marginTop: 2,
-        paddingRight: 1,
-        "&::-webkit-scrollbar": {
-          width: "6px",
-        },
-        "&::-webkit-scrollbar-thumb": {
-          backgroundColor: "#ccc",
-          borderRadius: "4px",
-        },
-      }}
-    >
-      {externalLinks.length > 0 ? (
-        externalLinks.map((link, index) => (
-          <Box
-            key={index}
-            sx={{
-              mt: 1,
-              p: 1.5,
-              bgcolor: "white",
-              borderRadius: 1,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 2,
-              border: "1px solid #ddd",
-            }}
-          >
-            <Typography sx={{ flexGrow: 1 }}>{link.name}</Typography>
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Button
-                variant="contained"
-                size="small"
-                sx={{ backgroundColor: "#1976d2" }}
-                onClick={() => window.open(link.url, "_blank")}
-              >
-                Download
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => handlePreview(link.url, link.index, false)}
-              >
-                Preview
-              </Button>
-            </Box>
-          </Box>
-        ))
-      ) : (
-        <Typography sx={{ fontStyle: "italic", mt: 1 }}>No external links found.</Typography>
-      )}
-    </Box>
-  </Collapse>
-</Box>
-  </Box>
-</Box>
-			{/* ✅ ADD FLASHCARDS COMPONENT HERE ✅ */}
-
-			<div id="chartpanel"></div>
-
-			<DatasetFlashcards
-				pagename={docId ?? ""}
-				docname={datasetDocument?.Name || ""}
-				dbname={dbName || ""}
-				serverUrl={"https://neurojson.io:7777/"}
-				datasetDocument={datasetDocument} 
-				onekey={"dataset_description.json"} 
-			/>
-			{/* Preview Modal Component - Add Here */}
-			<PreviewModal
-      			isOpen={previewOpen}
-				dataKey={previewDataKey}
-				isInternal={previewIsInternal}
-				onClose={handleClosePreview}
-    		/>
-			{/* <div id="chartpanel" style={{ display: "none" }}></div> */}
+	<Box sx={{ backgroundColor: "#cdddf6", padding: 2, borderRadius: "8px", marginTop: 4 }}>
+		{/* ✅ Collapsible header */}
+		<Box
+			sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+			onClick={() => setIsInternalExpanded(!isInternalExpanded)}
+		>
+			<Typography variant="h6" sx={{ fontWeight: "bold" }}>
+			Internal Data ({internalLinks.length} objects)
+			</Typography>
+			{isInternalExpanded ? <ExpandLess /> : <ExpandMore />}
 		</Box>
-	);
-};
+
+		<Collapse in={isInternalExpanded}>
+				{/* ✅ Scrollable area */}
+				<Box
+				sx={{
+					maxHeight: "400px",
+					overflowY: "auto",
+					marginTop: 2,
+					paddingRight: 1,
+					"&::-webkit-scrollbar": {
+					width: "6px",
+					},
+					"&::-webkit-scrollbar-thumb": {
+					backgroundColor: "#aaa",
+					borderRadius: "4px",
+					},
+				}}
+				>
+				{internalLinks.length > 0 ? (
+					internalLinks.map((link, index) => (
+					<Box
+						key={index}
+						sx={{
+						mt: 1,
+						p: 1.5,
+						bgcolor: "white",
+						borderRadius: 1,
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "center",
+						flexWrap: "wrap",
+						gap: 2,
+						border: "1px solid #bbb",
+						}}
+					>
+						<Typography sx={{ flexGrow: 1 }}>
+						{link.name} {link.arraySize ? `[${link.arraySize.join("x")}]` : ""}
+						</Typography>
+						<Button
+						variant="contained"
+						size="small"
+						sx={{ backgroundColor: "#1976d2" }}
+						onClick={() => handlePreview(link.data, link.index, true)}
+						>
+						Preview
+						</Button>
+					</Box>
+					))
+				) : (
+					<Typography sx={{ fontStyle: "italic", mt: 1 }}>No internal data found.</Typography>
+				)}
+				</Box>
+		</Collapse>
+				</Box>
+					<Box sx={{ backgroundColor: "#eaeaea", padding: 2, borderRadius: "8px", marginTop: 4 }}>
+						{/* ✅ Header with toggle */}
+						<Box
+							sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+							onClick={() => setIsExternalExpanded(!isExternalExpanded)}
+						>
+							<Typography variant="h6" sx={{ fontWeight: "bold" }}>
+							External Data ({externalLinks.length} links)
+							</Typography>
+							{isExternalExpanded ? <ExpandLess /> : <ExpandMore />}
+						</Box>
+
+						<Collapse in={isExternalExpanded}>
+							{/* ✅ Scrollable card container */}
+							<Box
+							sx={{
+								maxHeight: "400px",
+								overflowY: "auto",
+								marginTop: 2,
+								paddingRight: 1,
+								"&::-webkit-scrollbar": {
+								width: "6px",
+								},
+								"&::-webkit-scrollbar-thumb": {
+								backgroundColor: "#ccc",
+								borderRadius: "4px",
+								},
+							}}
+							>
+							{externalLinks.length > 0 ? (
+								externalLinks.map((link, index) => (
+								<Box
+									key={index}
+									sx={{
+									mt: 1,
+									p: 1.5,
+									bgcolor: "white",
+									borderRadius: 1,
+									display: "flex",
+									justifyContent: "space-between",
+									alignItems: "center",
+									flexWrap: "wrap",
+									gap: 2,
+									border: "1px solid #ddd",
+									}}
+								>
+									<Typography sx={{ flexGrow: 1 }}>{link.name}</Typography>
+									<Box sx={{ display: "flex", gap: 1 }}>
+									<Button
+										variant="contained"
+										size="small"
+										sx={{ backgroundColor: "#1976d2" }}
+										onClick={() => window.open(link.url, "_blank")}
+									>
+										Download
+									</Button>
+										<Button
+											variant="outlined"
+											size="small"
+											onClick={() => handlePreview(link.url, link.index, false)}
+										>
+											Preview
+										</Button>
+									</Box>
+								</Box>
+								))
+							) : (
+								<Typography sx={{ fontStyle: "italic", mt: 1 }}>No external links found.</Typography>
+							)}
+							</Box>
+						</Collapse>
+					</Box>
+				</Box>
+				</Box>
+					{/* ✅ ADD FLASHCARDS COMPONENT HERE ✅ */}
+
+					<div id="chartpanel"></div>
+
+					<DatasetFlashcards
+						pagename={docId ?? ""}
+						docname={datasetDocument?.Name || ""}
+						dbname={dbName || ""}
+						serverUrl={"https://neurojson.io:7777/"}
+						datasetDocument={datasetDocument} 
+						onekey={"dataset_description.json"} 
+					/>
+					{/* Preview Modal Component - Add Here */}
+					<PreviewModal
+						isOpen={previewOpen}
+						dataKey={previewDataKey}
+						isInternal={previewIsInternal}
+						onClose={handleClosePreview}
+					/>
+					{/* <div id="chartpanel" style={{ display: "none" }}></div> */}
+				</Box>
+	)};
 
 export default DatasetDetailPage;
