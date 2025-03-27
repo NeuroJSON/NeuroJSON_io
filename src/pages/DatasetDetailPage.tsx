@@ -60,7 +60,10 @@ const DatasetDetailPage: React.FC = () => {
 	const [downloadScript, setDownloadScript] = useState<string>("");
 	const [previewIsInternal, setPreviewIsInternal] = useState(false);
 	const [isExternalExpanded, setIsExternalExpanded] = useState(true);
-	
+	const [expandedPaths, setExpandedPaths] = useState<string[]>([]);
+	const [originalTextMap, setOriginalTextMap] = useState<Map<HTMLElement, string>>(new Map());
+	const [jsonViewerKey, setJsonViewerKey] = useState(0);
+
 
 
 	// Recursive function to find `_DataLink_`
@@ -194,10 +197,18 @@ const DatasetDetailPage: React.FC = () => {
 	
 
 	useEffect(() => {
-		if (searchTerm) {
-			highlightMatches(searchTerm);
-		}
-	}, [searchTerm, datasetDocument]); // ✅ Run search when dataset loads
+		highlightMatches(searchTerm);
+	  
+		// Cleanup to reset highlights when component re-renders or unmounts
+		return () => {
+		  document.querySelectorAll(".highlighted").forEach((el) => {
+			const element = el as HTMLElement;
+			const text = element.textContent || "";
+			element.innerHTML = text;
+			element.classList.remove("highlighted");
+		  });
+		};
+	  }, [searchTerm, datasetDocument]);
 	
 	const handleDownloadDataset = () => {
 		if (!datasetDocument) return;
@@ -304,67 +315,82 @@ const DatasetDetailPage: React.FC = () => {
 	};	
 	
 	const highlightMatches = (keyword: string) => {
-		if (!keyword.trim()) {
-			// ✅ Clear highlights when search is empty
-			document.querySelectorAll(".highlighted").forEach((el) => {
-				const element = el as HTMLElement;
-				if (element.dataset.originalText) {
-					element.innerText = element.dataset.originalText;
-				}
-				element.classList.remove("highlighted");
-			});
-			setMatches([]);
-			setHighlightedIndex(-1);
-			return;
+		// ✅ Step 1: Clean up all existing highlights
+		document.querySelectorAll(".highlighted").forEach((el) => {
+		  const element = el as HTMLElement;
+		  const text = element.textContent || "";
+		  element.innerHTML = text; // ❗ This clears out <mark> completely
+		  element.classList.remove("highlighted");
+		});
+	  
+		setOriginalTextMap(new Map()); // ✅ Also clear stored originals
+	  
+		// ✅ Step 2: Early exit if search is too short
+		if (!keyword.trim() || keyword.length < 3) {
+		  setMatches([]);
+		  setHighlightedIndex(-1);
+		  setExpandedPaths([]);
+		  return;
 		}
-
-		const nodes: HTMLElement[] = [];
-		const elements = document.querySelectorAll(".react-json-view span"); // ✅ Select JSON values only
-
-		elements.forEach((el) => {
-			const element = el as HTMLElement;
-			if (!element.textContent) return; // Skip empty elements
-
-			const regex = new RegExp(`(${keyword})`, "gi");
-			const originalText = element.dataset.originalText || element.textContent;
-
-			if (originalText.toLowerCase().includes(keyword.toLowerCase())) {
-				if (!element.dataset.originalText) {
-					element.dataset.originalText = originalText;
-				}
-
-				// ✅ Safe highlight without breaking structure
-				element.innerHTML = originalText.replace(
-					regex,
-					`<mark class="highlighted" style="background-color: lightyellow; color: black;">$1</mark>`
-				);
-
-				nodes.push(element);
-			}
+	  
+		// ✅ Step 3: Highlight matching keys/values
+		const matchedElements: HTMLElement[] = [];
+		const matchedPaths: Set<string> = new Set();
+		const newOriginalMap = new Map<HTMLElement, string>();
+	  
+		const spans = document.querySelectorAll(
+		  ".react-json-view span.string-value, .react-json-view span.object-key"
+		);
+	  
+		const regex = new RegExp(`(${keyword})`, "gi");
+	  
+		spans.forEach((el) => {
+		  const element = el as HTMLElement;
+		  const text = element.textContent || "";
+	  
+		  if (text.toLowerCase().includes(keyword.toLowerCase())) {
+			newOriginalMap.set(element, text);
+	  
+			// Highlight match
+			const highlighted = text.replace(
+			  regex,
+			  `<mark class="highlighted" style="background-color: yellow; color: black;">$1</mark>`
+			);
+			element.innerHTML = highlighted;
+			matchedElements.push(element);
+	  
+			// ✅ Collect path for expansion
+			const parent = element.closest(".variable-row");
+			const path = parent?.getAttribute("data-path");
+			if (path) matchedPaths.add(path);
+		  }
 		});
-
-		setMatches(nodes); // ✅ Store matches for "Find Next"
+	  
+		// ✅ Step 4: Update React state
+		setOriginalTextMap(newOriginalMap);
+		setMatches(matchedElements);
 		setHighlightedIndex(-1);
-	};
+		setExpandedPaths(Array.from(matchedPaths));
+	  };		
 
-
-	const findNext = () => {
+	  const findNext = () => {
 		if (matches.length === 0) return;
-
+	  
 		setHighlightedIndex((prevIndex) => {
-			const nextIndex = (prevIndex + 1) % matches.length;
-
-			matches.forEach((match) => {
-				match.style.backgroundColor = "lightyellow"; // Reset all highlights
-			});
-
-			matches[nextIndex].scrollIntoView({ behavior: "smooth", block: "center" });
-			matches[nextIndex].style.backgroundColor = "orange"; // Highlight current match
-
-			return nextIndex;
+		  const nextIndex = (prevIndex + 1) % matches.length;
+	  
+		  matches.forEach((match) => {
+			match.querySelector("mark")?.setAttribute("style", "background: yellow; color: black;");
+		  });
+	  
+		  const current = matches[nextIndex];
+		  current.scrollIntoView({ behavior: "smooth", block: "center" });
+	  
+		  current.querySelector("mark")?.setAttribute("style", "background: orange; color: black;");
+	  
+		  return nextIndex;
 		});
-	};
-	
+	};	  
 
 	if (loading) {
 		return (
@@ -520,7 +546,8 @@ const DatasetDetailPage: React.FC = () => {
 								onChange={handleSearch}
 								sx={{ width: "250px" }}
 							/>
-							<Button variant="contained" disabled>
+							<Button variant="contained" onClick={findNext}
+  								disabled={matches.length === 0}>
 								Find Next
 							</Button>
 						</Box>
@@ -536,30 +563,13 @@ const DatasetDetailPage: React.FC = () => {
       enableClipboard={true}
       displayDataTypes={false}
       displayObjectSize={true}
-      collapsed={1}
-      style={{ fontSize: "14px", fontFamily: "monospace" }}
+	  collapsed={searchTerm.length >= 3 ? false : 1} // 🔍 Expand during search    
+	  style={{ fontSize: "14px", fontFamily: "monospace" }}
     />
   </Box>
 
   {/* ✅ Data panels (right panel) */}
   <Box sx={{ flex: 2, display: "flex", flexDirection: "column", gap: 2 }}>
-    {/* Internal Data Section */}
-    {/* <Box sx={{ backgroundColor: "#cdddf6", padding: 2, borderRadius: "8px" }}>
-      <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-        Internal Data ({internalLinks.length} objects)
-      </Typography>
-      {internalLinks.length > 0 ? (
-        internalLinks.map((link, index) => (
-          <Box key={index} sx={{ mt: 1, p: 1, bgcolor: "white", borderRadius: 1 }}>
-            <Typography>{link.name} [{link.arraySize?.join("x")}]</Typography>
-            <Button onClick={() => handlePreview(link.data, link.index, true)}>Preview</Button>
-          </Box>
-        ))
-      ) : (
-        <Typography sx={{ fontStyle: "italic", mt: 1 }}>No internal data found.</Typography>
-      )}
-    </Box> */}
-
 <Box sx={{ backgroundColor: "#cdddf6", padding: 2, borderRadius: "8px", marginTop: 4 }}>
   {/* ✅ Collapsible header */}
   <Box
@@ -625,23 +635,6 @@ const DatasetDetailPage: React.FC = () => {
     </Box>
   </Collapse>
 </Box>
-
-    {/* External Data Section */}
-    {/* <Box sx={{ backgroundColor: "#eaeaea", padding: 2, borderRadius: "8px" }}>
-      <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-        External Data ({externalLinks.length} links)
-      </Typography>
-      {externalLinks.length > 0 ? (
-        externalLinks.map((link, index) => (
-          <Box key={index} sx={{ mt: 1, p: 1, bgcolor: "white", borderRadius: 1 }}>
-            <Typography>{link.name}</Typography>
-            <Button onClick={() => handlePreview(link.url, link.index, false)}>Preview</Button>
-          </Box>
-        ))
-      ) : (
-        <Typography sx={{ fontStyle: "italic", mt: 1 }}>No external links found.</Typography>
-      )}
-    </Box> */}
 	<Box sx={{ backgroundColor: "#eaeaea", padding: 2, borderRadius: "8px", marginTop: 4 }}>
   {/* ✅ Header with toggle */}
   <Box
@@ -716,304 +709,6 @@ const DatasetDetailPage: React.FC = () => {
 </Box>
   </Box>
 </Box>
-
-
-			{/* <Box
-				sx={{
-					backgroundColor: "#f5f5f5",
-					padding: 2,
-					borderRadius: "8px",
-					overflowX: "auto",
-					maxHeight: "calc(100vh - 150px)", // ✅ Adjusts height dynamically
-					boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-				}}
-			>
-				{datasetDocument ? (
-					<ReactJson
-						src={datasetDocument}
-						name={false}
-						enableClipboard={true}
-						displayDataTypes={false}
-						displayObjectSize={true}
-						collapsed={2}
-						style={{ fontSize: "14px", fontFamily: "monospace" }}
-					/>
-				) : (
-					<Typography sx={{ textAlign: "center", marginTop: 4 }}>
-						No data available for this dataset.
-					</Typography>
-				)}
-			</Box>
-			
-			{externalLinks.length > 0 && (
-				<Box sx={{ marginTop: 4 }}>
-					<Box
-						onClick={() => setIsExpanded(!isExpanded)}
-						sx={{
-							display: "flex",
-							alignItems: "center",
-							cursor: "pointer",
-							marginBottom: 2,
-						}}
-					>
-						<Typography
-							variant="h5"
-							color={Colors.primary.dark}
-							sx={{ marginRight: 1 }}
-						>
-							External Data ({externalLinks.length} links)
-						</Typography>
-						{isExpanded ? <ExpandLess /> : <ExpandMore />}
-					</Box>
-
-					<Collapse in={isExpanded}>
-						<Box
-							sx={{
-								backgroundColor: Colors.white,
-								border: `1px solid ${Colors.lightGray}`,
-								borderRadius: "8px",
-								padding: 2,
-								boxShadow: "0px 2px 4px rgba(0,0,0,0.05)",
-							}}
-						>
-							<Box
-								sx={{
-									display: "flex",
-									justifyContent: "space-between",
-									alignItems: "center",
-									marginBottom: 2,
-									padding: "0 1rem",
-								}}
-							>
-								<Button
-									variant="contained"
-									sx={{
-										backgroundColor: Colors.primary.main,
-										"&:hover": {
-											backgroundColor: Colors.primary.dark,
-										},
-									}}
-									onClick={() =>
-										externalLinks.forEach((link) =>
-											window.open(link.url, "_blank")
-										)
-									}
-								>
-									Download All Files
-								</Button>
-								<Typography variant="body2" color={Colors.textSecondary}>
-									Total Size:{" "}
-									{externalLinks
-										.reduce((acc, link) => {
-											const sizeMatch = link.size.match(/(\d+(\.\d+)?)/);
-											const sizeInMB = sizeMatch ? parseFloat(sizeMatch[1]) : 0;
-											return acc + sizeInMB;
-										}, 0)
-										.toFixed(2)}{" "}
-									MB
-								</Typography>
-							</Box>
-
-							<Box
-								sx={{
-									maxHeight: "400px",
-									overflowY: "auto",
-									"&::-webkit-scrollbar": {
-										width: "8px",
-									},
-									"&::-webkit-scrollbar-track": {
-										background: Colors.lightGray,
-										borderRadius: "4px",
-									},
-									"&::-webkit-scrollbar-thumb": {
-										background: Colors.primary.light,
-										borderRadius: "4px",
-									},
-								}}
-							>
-								<Box
-									sx={{
-										display: "grid",
-										gridTemplateColumns: "repeat(3, 1fr)",
-										gap: 2,
-										padding: 1,
-									}}
-								>
-									{externalLinks.map((link, index) => (
-										<Box
-											key={index}
-											sx={{
-												padding: 2,
-												border: `1px solid ${Colors.lightGray}`,
-												borderRadius: "8px",
-												display: "flex",
-												flexDirection: "column",
-												justifyContent: "space-between",
-												backgroundColor: Colors.white,
-												"&:hover": {
-													backgroundColor: Colors.lightGray,
-												},
-											}}
-										>
-											<Box>
-												<Typography
-													color={Colors.textPrimary}
-													sx={{
-														fontWeight: 500,
-														fontFamily: theme.typography.fontFamily,
-													}}
-												>
-													{link.name}
-												</Typography>
-												<Typography
-													variant="body2"
-													color={Colors.textSecondary}
-													sx={{ fontFamily: theme.typography.fontFamily }}
-												>
-													Size: {link.size}
-												</Typography>
-											</Box>
-											<Box sx={{ display: "flex", gap: 1, marginTop: 2 }}>
-												<Button
-													variant="contained"
-													size="small"
-													sx={{
-														backgroundColor: Colors.primary.main,
-														"&:hover": {
-															backgroundColor: Colors.primary.dark,
-														},
-													}}
-													onClick={() => window.open(link.url, "_blank")}
-												>
-													Download
-												</Button>
-												<Button
-													variant="outlined"
-													size="small"
-													sx={{
-														color: Colors.secondary.main,
-														borderColor: Colors.secondary.main,
-														"&:hover": {
-															borderColor: Colors.secondary.dark,
-															color: Colors.secondary.dark,
-														},
-													}}
-													// onClick={() => console.log("preview")}
-													onClick={() => window.open(link.url)}
-												>
-											
-													View
-												</Button>
-												<Button
-													variant="outlined"
-													size="small"
-													sx={{
-														color: Colors.primary.main,
-														borderColor: Colors.primary.main,
-														"&:hover": {
-															borderColor: Colors.primary.dark,
-															color: Colors.primary.dark,
-														},
-													}}
-													onClick={() => handlePreview(link.url, link.index, false)}  // ✅ Ensure `idx` is dynamically set
-
-												>
-													Preview
-												</Button>
-											</Box>
-										</Box>
-									))}
-								</Box>
-							</Box>
-						</Box>
-					</Collapse>
-				</Box>
-			)}
-			
-			{internalLinks.length > 0 && (
-    <Box sx={{ marginTop: 4 }}>
-        <Box
-            onClick={() => setIsInternalExpanded(!isInternalExpanded)}
-            sx={{
-                display: "flex",
-                alignItems: "center",
-                cursor: "pointer",
-                marginBottom: 2,
-            }}
-        >
-            <Typography variant="h5" color={Colors.primary.dark} sx={{ marginRight: 1 }}>
-                Internal Data ({internalLinks.length} objects)
-            </Typography>
-            {isInternalExpanded ? <ExpandLess /> : <ExpandMore />}
-        </Box>
-
-        <Collapse in={isInternalExpanded} timeout="auto" unmountOnExit>
-            <Box
-                sx={{
-                    backgroundColor: Colors.white,
-                    border: `1px solid ${Colors.lightGray}`,
-                    borderRadius: "8px",
-                    padding: 2,
-                    boxShadow: "0px 2px 4px rgba(0,0,0,0.05)",
-                }}
-            >
-                <Box
-                    sx={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(3, 1fr)",
-                        gap: 2,
-                        padding: 1,
-                    }}
-                >
-                    {internalLinks.map((link, index) => (
-                        <Box
-                            key={index}
-                            sx={{
-                                padding: 2,
-                                border: `1px solid ${Colors.lightGray}`,
-                                borderRadius: "8px",
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "space-between",
-                                backgroundColor: Colors.white,
-                                "&:hover": {
-                                    backgroundColor: Colors.lightGray,
-                                },
-                            }}
-                        >
-                            <Box>
-                                <Typography color={Colors.textPrimary} sx={{ fontWeight: 500 }}>
-                                    {link.name}
-                                </Typography>
-                                <Typography variant="body2" color={Colors.textSecondary}>
-                                    Index: {link.index}
-                                </Typography>
-                            </Box>
-                            <Box sx={{ display: "flex", gap: 1, marginTop: 2 }}>
-                                <Button
-                                    variant="contained"
-                                    size="small"
-                                    sx={{
-                                        backgroundColor: Colors.primary.main,
-                                        "&:hover": {
-                                            backgroundColor: Colors.primary.dark,
-                                        },
-                                    }}
-                                    onClick={() => handlePreview(link.data, link.index, true)}
-                                >
-                                    Preview
-                                </Button>
-                            </Box>
-                        </Box>
-                    ))}
-                </Box>
-            </Box>
-        </Collapse>
-    </Box>
-)} */}
-
-
-
 			{/* ✅ ADD FLASHCARDS COMPONENT HERE ✅ */}
 
 			<div id="chartpanel"></div>

@@ -8,8 +8,6 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    env:
-      CI: false
 
     steps:
       - name: Check out the repository
