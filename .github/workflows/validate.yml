@@ -29,4 +29,4 @@ jobs:
           PUBLIC_URL="/dev/${{ github.head_ref }}/" yarn build
 
       - name: Run Security Audit
-        run: yarn audit --level moderate
+        run: yarn audit --level moderate || exit 1
