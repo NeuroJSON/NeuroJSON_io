@@ -1,7 +1,8 @@
 import { AppBar, Box, Button, Grid, Toolbar, Typography } from "@mui/material";
 import { Colors } from "design/theme";
 import useIsLargeScreen from "hooks/useIsLargeScreen";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, Link } from "react-router-dom";
+import RoutesEnum from "types/routes.enum";
 
 const FullScreen = () => {
   const isLargeScreen = useIsLargeScreen();
@@ -107,26 +108,31 @@ const FullScreen = () => {
                         </Typography>
                       </a>
                     ) : (
-                      <Typography
-                        align="center"
-                        fontWeight={600}
-                        lineHeight={"1.5rem"}
-                        letterSpacing={"0.05rem"}
-                        sx={{
-                          color: Colors.white,
-                          transition: "color 0.3s ease, transform 0.3s ease",
-                          "&:hover": {
-                            color: Colors.green,
-                            transform: "scale(1.05)",
-                            cursor: "pointer",
-                            boxShadow: `0px 0px 15px ${Colors.green}`,
-                            borderRadius: "5px",
-                            padding: "5px",
-                          },
-                        }}
+                      <Link
+                        to={RoutesEnum.SEARCH}
+                        style={{ textDecoration: "none" }}
                       >
-                        {text}
-                      </Typography>
+                        <Typography
+                          align="center"
+                          fontWeight={600}
+                          lineHeight={"1.5rem"}
+                          letterSpacing={"0.05rem"}
+                          sx={{
+                            color: Colors.white,
+                            transition: "color 0.3s ease, transform 0.3s ease",
+                            "&:hover": {
+                              color: Colors.green,
+                              transform: "scale(1.05)",
+                              cursor: "pointer",
+                              boxShadow: `0px 0px 15px ${Colors.green}`,
+                              borderRadius: "5px",
+                              padding: "5px",
+                            },
+                          }}
+                        >
+                          {text}
+                        </Typography>
+                      </Link>
                     )}
                   </Grid>
                 ))}
