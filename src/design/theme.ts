@@ -31,6 +31,7 @@ export const Colors = {
   darkPurple: "#282C56",
   orange: "#FF9F2F",
   darkOrange: "#E88C25",
+  blue: "#1976d2",
   primary,
   secondary,
 };
