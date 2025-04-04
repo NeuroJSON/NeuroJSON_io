@@ -3,6 +3,7 @@ import DatabasePage from "pages/DatabasePage";
 import DatasetDetailPage from "pages/DatasetDetailPage";
 import DatasetPage from "pages/DatasetPage";
 import Home from "pages/Home";
+import SearchForm from "pages/SearchForm";
 import SearchPage from "pages/SearchPage";
 import React from "react";
 import { Navigate, Route, Routes as RouterRoutes } from "react-router-dom";
@@ -31,6 +32,7 @@ const Routes = () => (
 
       {/* Search Page */}
       <Route path={RoutesEnum.SEARCH} element={<SearchPage />} />
+      {/* <Route path={RoutesEnum.SEARCH} element={<SearchForm />} /> */}
     </Route>
   </RouterRoutes>
 );
