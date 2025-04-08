@@ -1,6 +1,6 @@
 import { JSONSchema7 } from "json-schema";
 
-export const schema: JSONSchema7 = {
+export const baseSchema: JSONSchema7 = {
   title: "Metadata Search",
   type: "object",
   properties: {
@@ -8,19 +8,19 @@ export const schema: JSONSchema7 = {
       title: "Search keyword",
       type: "string",
     },
-    database: {
-      title: "Search database",
-      type: "string",
-      default: "any",
-      enum: [
-        "openneuro",
-        "abide",
-        "abide2",
-        "datalad-registry",
-        "adhd200",
-        "any",
-      ],
-    },
+    // database: {
+    //   title: "Search database",
+    //   type: "string",
+    //   default: "any",
+    //   enum: [
+    //     "openneuro",
+    //     "abide",
+    //     "abide2",
+    //     "datalad-registry",
+    //     "adhd200",
+    //     "any",
+    //   ],
+    // },
     dataset: {
       title: "Search dataset",
       type: "string",
@@ -137,4 +137,22 @@ export const schema: JSONSchema7 = {
     //   default: false,
     // },
   },
+};
+
+// Helper to inject dynamic "database" enum
+export const generateSchemaWithDatabaseEnum = (
+  databaseEnum: string[]
+): JSONSchema7 => {
+  return {
+    ...baseSchema,
+    properties: {
+      database: {
+        title: "Search database",
+        type: "string",
+        default: "any",
+        enum: databaseEnum,
+      },
+      ...baseSchema.properties,
+    },
+  };
 };
