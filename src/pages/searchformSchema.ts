@@ -137,6 +137,7 @@ export const baseSchema: JSONSchema7 = {
     //   default: false,
     // },
   },
+  required: ["keyword"],
 };
 
 // Helper to inject dynamic "database" enum

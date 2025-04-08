@@ -1,5 +1,4 @@
 import { generateSchemaWithDatabaseEnum } from "./searchformSchema";
-// schema
 import { Typography, Container, Box } from "@mui/material";
 import Form from "@rjsf/mui";
 import validator from "@rjsf/validator-ajv8";
@@ -8,7 +7,6 @@ import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React from "react";
 import { useState, useEffect, useMemo } from "react";
-// useEffect useMemo
 import { Link } from "react-router-dom";
 import {
   fetchMetadataSearchResults,
@@ -27,14 +25,26 @@ const SearchPage: React.FC = () => {
     (state: RootState) => state.neurojson.registry
   );
 
-  console.log("registry:", registry);
   console.log("result:", searchResults);
+  if (Array.isArray(searchResults)) {
+    searchResults.forEach((item, idx) => {
+      //   console.log(`Raw item #${idx}:`, item);
+      try {
+        const parsed = JSON.parse(item.json);
+        console.log(`Result #${idx}:`, { ...item, parsedJson: parsed });
+      } catch (e) {
+        console.error(`Failed to parse JSON for item #${idx}`, e);
+      }
+    });
+  } else {
+    console.warn("searchResults is not an array:", searchResults);
+  }
 
   useEffect(() => {
     dispatch(fetchRegistry());
   }, [dispatch]);
 
-  // dynamic add database enum to schema
+  // dynamically add database enum to schema
   const schema = useMemo(() => {
     const dbList = registry?.length
       ? [...registry.map((item: any) => item.id), "any"]
@@ -49,7 +59,6 @@ const SearchPage: React.FC = () => {
 
   return (
     <Container
-      //   maxWidth="md"
       style={{
         marginTop: "2rem",
         // backgroundColor: "rgba(97, 109, 243, 0.4)",
@@ -62,10 +71,6 @@ const SearchPage: React.FC = () => {
     >
       <Box
         sx={{
-          //   backgroundColor: "white",
-          //   p: 3,
-          //   borderRadius: 2,
-          //   boxShadow: 1,
           display: "flex",
           gap: 3,
           alignItems: "flex-start",
@@ -73,7 +78,6 @@ const SearchPage: React.FC = () => {
       >
         <Box
           sx={{
-            // flex: "0 0 300px", // fixed width
             flex: 1,
             backgroundColor: "white",
             p: 3,
@@ -85,7 +89,7 @@ const SearchPage: React.FC = () => {
             schema={schema}
             onSubmit={handleSubmit}
             validator={validator}
-            liveValidate
+            // liveValidate
           />
         </Box>
 
