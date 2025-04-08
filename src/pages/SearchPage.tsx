@@ -1,4 +1,5 @@
-import { schema } from "./searchformSchema";
+import { generateSchemaWithDatabaseEnum } from "./searchformSchema";
+// schema
 import { Typography, Container, Box } from "@mui/material";
 import Form from "@rjsf/mui";
 import validator from "@rjsf/validator-ajv8";
@@ -6,9 +7,13 @@ import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+// useEffect useMemo
 import { Link } from "react-router-dom";
-import { fetchMetadataSearchResults } from "redux/neurojson/neurojson.action";
+import {
+  fetchMetadataSearchResults,
+  fetchRegistry,
+} from "redux/neurojson/neurojson.action";
 import { RootState } from "redux/store";
 import RoutesEnum from "types/routes.enum";
 
@@ -18,6 +23,24 @@ const SearchPage: React.FC = () => {
   const searchResults = useAppSelector(
     (state: RootState) => state.neurojson.searchResults
   );
+  const registry = useAppSelector(
+    (state: RootState) => state.neurojson.registry
+  );
+
+  console.log("registry:", registry);
+  console.log("result:", searchResults);
+
+  useEffect(() => {
+    dispatch(fetchRegistry());
+  }, [dispatch]);
+
+  // dynamic add database enum to schema
+  const schema = useMemo(() => {
+    const dbList = registry?.length
+      ? [...registry.map((item: any) => item.id), "any"]
+      : ["any"];
+    return generateSchemaWithDatabaseEnum(dbList);
+  }, [registry]);
 
   const handleSubmit = ({ formData }: any) => {
     dispatch(fetchMetadataSearchResults(formData));
@@ -100,6 +123,7 @@ const SearchPage: React.FC = () => {
                                 textDecoration: "none",
                                 color: Colors.blue,
                               }}
+                              target="_blank"
                             >
                               {label}
                             </Link>

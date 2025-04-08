@@ -73,6 +73,7 @@ export const NeurojsonService = {
     };
 
     const params = new URLSearchParams();
+    params.append("_get", "dbname, dsname, json");
     Object.keys(formData).forEach((key) => {
       let val = formData[key];
       if (val === "" || val === "any" || val === undefined || val === null)
