@@ -1,15 +1,8 @@
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Stack,
-  Chip,
-  Grid,
-  Link,
-} from "@mui/material";
+import { Typography, Card, CardContent, Stack, Chip } from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
+import { Link } from "react-router-dom";
+import RoutesEnum from "types/routes.enum";
 
 interface SubjectCardProps {
   dbname: string;
@@ -35,19 +28,50 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
   parsedJson,
 }) => {
   const { modalities, tasks, sessions, types } = parsedJson.value;
+  const subjectLink = `${RoutesEnum.DATABASES}/${dbname}/${dsname}`;
+
+  // get the gender of subject
+  const genderCode = parsedJson?.key?.[1];
+  let genderDisplay = "Unknown";
+
+  if (genderCode) {
+    if (genderCode === "000F") genderDisplay = "Female";
+    else if (genderCode === "000M") genderDisplay = "Male";
+  }
+
+  // cover age string to readable format
+  let ageDisplay = "N/A";
+
+  if (age) {
+    const ageNum = parseInt(age, 10) / 100;
+    if (Number.isInteger(ageNum)) {
+      ageDisplay = `${ageNum} years`;
+    } else {
+      ageDisplay = `${ageNum.toFixed(1)} years`;
+    }
+  }
 
   return (
     <Card sx={{ mb: 3 }}>
       <CardContent>
         <Typography
           variant="h6"
-          sx={{ fontWeight: 600, color: Colors.darkPurple }}
+          sx={{
+            fontWeight: 600,
+            color: Colors.darkPurple,
+            textDecoration: "none",
+            ":hover": { textDecoration: "underline" },
+          }}
+          component={Link}
+          to={subjectLink}
+          target="_blank"
         >
           Database: {dbname} &nbsp;&nbsp;|&nbsp;&nbsp; Dataset Number: {dsname}
         </Typography>
 
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          Subject: {subj} &nbsp;&nbsp;|&nbsp;&nbsp; Age: {age}
+          Subject: {subj} &nbsp;&nbsp;|&nbsp;&nbsp; Age: {ageDisplay}
+          &nbsp;&nbsp;|&nbsp;&nbsp; Gender: {genderDisplay}
         </Typography>
 
         <Stack spacing={2} margin={1}>
