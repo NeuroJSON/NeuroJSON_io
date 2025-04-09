@@ -41,7 +41,6 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
 
   // cover age string to readable format
   let ageDisplay = "N/A";
-
   if (age) {
     const ageNum = parseInt(age, 10) / 100;
     if (Number.isInteger(ageNum)) {
@@ -114,13 +113,6 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
             <Typography variant="body2" mt={1}>
               <strong>Sessions:</strong> {sessions?.length}
             </Typography>
-            {/* {sessions?.map((session, idx) => (
-              <Chip
-                key={`sess-${idx}`}
-                label={`Session ${session}`}
-                variant="outlined"
-              />
-            ))} */}
           </Stack>
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
             {types?.length && (

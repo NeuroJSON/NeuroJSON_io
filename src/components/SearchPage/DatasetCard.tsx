@@ -79,11 +79,14 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
             <Typography variant="body2" mt={1}>
               <strong>Subjects:</strong> {subj && `${subj.length} subjects`}
             </Typography>
-            {/* {subj && <Chip label={`${subj.length} subjects`} color="primary" />} */}
           </Stack>
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
             {readme && (
-              <Typography variant="body2" paragraph>
+              <Typography
+                variant="body2"
+                paragraph
+                sx={{ textOverflow: "ellipsis" }}
+              >
                 <strong>Summary:</strong> {readme}
               </Typography>
             )}

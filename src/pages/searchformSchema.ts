@@ -120,11 +120,13 @@ export const baseSchema: JSONSchema7 = {
       type: "integer",
       title: "limit",
       minimum: 0,
+      description: "Set the maximum number of results to return.",
     },
     skip: {
       type: "integer",
       title: "skip",
       minimum: 0,
+      description: "Set a number N to skip the first N results.",
     },
     // count: {
     //   title: "Only return total counts",
