@@ -2,6 +2,8 @@ import { generateSchemaWithDatabaseEnum } from "./searchformSchema";
 import { Typography, Container, Box } from "@mui/material";
 import Form from "@rjsf/mui";
 import validator from "@rjsf/validator-ajv8";
+import DatasetCard from "components/SearchPage/DatasetCard";
+import SubjectCard from "components/SearchPage/SubjectCard";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -25,7 +27,7 @@ const SearchPage: React.FC = () => {
     (state: RootState) => state.neurojson.registry
   );
 
-  console.log("result:", searchResults);
+  //   console.log("result:", searchResults);
   if (Array.isArray(searchResults)) {
     searchResults.forEach((item, idx) => {
       //   console.log(`Raw item #${idx}:`, item);
@@ -107,6 +109,50 @@ const SearchPage: React.FC = () => {
             <Box mt={4}>
               {Array.isArray(searchResults) ? (
                 searchResults.length > 0 ? (
+                  searchResults.map((item, idx) => {
+                    try {
+                      const parsedJson = JSON.parse(item.json);
+                      const isDataset =
+                        parsedJson?.value?.subj &&
+                        Array.isArray(parsedJson.value.subj);
+
+                      return isDataset ? (
+                        <DatasetCard
+                          key={idx}
+                          dbname={item.dbname}
+                          dsname={item.dsname}
+                          parsedJson={parsedJson}
+                        />
+                      ) : (
+                        <SubjectCard
+                          key={idx}
+                          {...item}
+                          parsedJson={parsedJson}
+                        />
+                      );
+                    } catch (e) {
+                      return (
+                        <Typography key={idx} color="error">
+                          Failed to parse item #{idx}
+                        </Typography>
+                      );
+                    }
+                  })
+                ) : (
+                  <Typography variant="h6">
+                    No matching dataset was found
+                  </Typography>
+                )
+              ) : (
+                <Typography color="error">
+                  {searchResults?.msg === "empty output"
+                    ? "No results found based on your criteria. Please adjust the filters and try again."
+                    : "Something went wrong. Please try again later."}
+                </Typography>
+              )}
+
+              {/* {Array.isArray(searchResults) ? (
+                searchResults.length > 0 ? (
                   <>
                     <Typography
                       variant="h6"
@@ -147,7 +193,7 @@ const SearchPage: React.FC = () => {
                     ? "No results found based on your criteria. Please adjust the filters and try again."
                     : "Something went wrong. Please try again later."}
                 </Typography>
-              )}
+              )} */}
             </Box>
           )}
         </Box>
