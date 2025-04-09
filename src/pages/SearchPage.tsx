@@ -9,13 +9,11 @@ import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React from "react";
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
 import {
   fetchMetadataSearchResults,
   fetchRegistry,
 } from "redux/neurojson/neurojson.action";
 import { RootState } from "redux/store";
-import RoutesEnum from "types/routes.enum";
 
 const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -27,19 +25,79 @@ const SearchPage: React.FC = () => {
     (state: RootState) => state.neurojson.registry
   );
 
-  //   console.log("result:", searchResults);
-  if (Array.isArray(searchResults)) {
-    searchResults.forEach((item, idx) => {
-      //   console.log(`Raw item #${idx}:`, item);
-      try {
-        const parsed = JSON.parse(item.json);
-        console.log(`Result #${idx}:`, { ...item, parsedJson: parsed });
-      } catch (e) {
-        console.error(`Failed to parse JSON for item #${idx}`, e);
-      }
-    });
-  } else {
-    console.warn("searchResults is not an array:", searchResults);
+  const [formData, setFormData] = useState<Record<string, any>>({});
+
+  const uiSchema = useMemo(() => {
+    const activeStyle = {
+      "ui:options": {
+        style: {
+          backgroundColor: Colors.lightBlue,
+        },
+      },
+    };
+
+    return {
+      keyword: formData["keyword"] ? activeStyle : {},
+      database:
+        formData["database"] && formData["database"] !== "any"
+          ? activeStyle
+          : {},
+      dataset: formData["dataset"] ? activeStyle : {},
+
+      age_min: formData["age_min"] ? activeStyle : {},
+      age_max: formData["age_max"] ? activeStyle : {},
+
+      gender:
+        formData["gender"] && formData["gender"] !== "any" ? activeStyle : {},
+
+      sess_min: formData["sess_min"] ? activeStyle : {},
+      sess_max: formData["sess_max"] ? activeStyle : {},
+
+      task_min: formData["task_min"] ? activeStyle : {},
+      task_max: formData["task_max"] ? activeStyle : {},
+
+      run_min: formData["run_min"] ? activeStyle : {},
+      run_max: formData["run_max"] ? activeStyle : {},
+
+      task_name: formData["task_name"] ? activeStyle : {},
+      session_name: formData["session_name"] ? activeStyle : {},
+      run_name: formData["run_name"] ? activeStyle : {},
+      type_name: formData["type_name"] ? activeStyle : {},
+
+      modality:
+        formData["modality"] && formData["modality"] !== "any"
+          ? activeStyle
+          : {},
+
+      limit: formData["limit"] ? activeStyle : {},
+      skip: formData["skip"] ? activeStyle : {},
+    };
+  }, [formData]);
+
+  // print the result in dev tool
+  //   if (Array.isArray(searchResults)) {
+  //     searchResults.forEach((item, idx) => {
+  //       try {
+  //         const parsed = JSON.parse(item.json);
+  //         console.log(`Result #${idx}:`, { ...item, parsedJson: parsed });
+  //       } catch (e) {
+  //         console.error(`Failed to parse JSON for item #${idx}`, e);
+  //       }
+  //     });
+  //   } else {
+  //     console.warn("searchResults is not an array:", searchResults);
+  //   }
+
+  // determine the results are subject-level or dataset-level
+  let isDataset: boolean | null = null;
+
+  if (Array.isArray(searchResults) && searchResults.length > 0) {
+    try {
+      const parsed = JSON.parse(searchResults[0].json);
+      isDataset = parsed?.value?.subj && Array.isArray(parsed.value.subj);
+    } catch {
+      isDataset = null;
+    }
   }
 
   useEffect(() => {
@@ -63,8 +121,7 @@ const SearchPage: React.FC = () => {
     <Container
       style={{
         marginTop: "2rem",
-        // backgroundColor: "rgba(97, 109, 243, 0.4)",
-        // backdropFilter: "blur(10px)",
+        marginBottom: "2rem",
         backgroundColor: Colors.white,
         padding: "2rem",
         borderRadius: 4,
@@ -85,6 +142,7 @@ const SearchPage: React.FC = () => {
             p: 3,
             borderRadius: 2,
             boxShadow: 1,
+            minWidth: "35%",
           }}
         >
           <Form
@@ -92,7 +150,27 @@ const SearchPage: React.FC = () => {
             onSubmit={handleSubmit}
             validator={validator}
             // liveValidate
+            // formData={formData}
+            // onChange={({ formData }) => setFormData(formData)}
+            // uiSchema={uiSchema}
           />
+        </Box>
+        <Box>
+          {!hasSearched && (
+            <Typography
+              variant="subtitle1"
+              sx={{
+                // whiteSpace: "nowrap",
+                flexWrap: "wrap",
+                fontWeight: 500,
+                fontSize: "large",
+                color: Colors.darkPurple,
+              }}
+            >
+              Use the filters to search for datasets or subjects based on
+              metadata.
+            </Typography>
+          )}
         </Box>
 
         <Box
@@ -105,95 +183,61 @@ const SearchPage: React.FC = () => {
             boxShadow: 1,
           }}
         >
-          {hasSearched && searchResults && (
+          {hasSearched && (
             <Box mt={4}>
               {Array.isArray(searchResults) ? (
-                searchResults.length > 0 ? (
-                  searchResults.map((item, idx) => {
-                    try {
-                      const parsedJson = JSON.parse(item.json);
-                      const isDataset =
-                        parsedJson?.value?.subj &&
-                        Array.isArray(parsedJson.value.subj);
-
-                      return isDataset ? (
-                        <DatasetCard
-                          key={idx}
-                          dbname={item.dbname}
-                          dsname={item.dsname}
-                          parsedJson={parsedJson}
-                        />
-                      ) : (
-                        <SubjectCard
-                          key={idx}
-                          {...item}
-                          parsedJson={parsedJson}
-                        />
-                      );
-                    } catch (e) {
-                      return (
-                        <Typography key={idx} color="error">
-                          Failed to parse item #{idx}
-                        </Typography>
-                      );
-                    }
-                  })
-                ) : (
-                  <Typography variant="h6">
-                    No matching dataset was found
+                <>
+                  <Typography
+                    variant="h6"
+                    sx={{ borderBottom: "1px solid lightgray", mb: 2 }}
+                  >
+                    {searchResults.length > 0
+                      ? `Found ${searchResults.length} ${
+                          isDataset ? "Datasets" : "Subjects"
+                        }`
+                      : `No matching ${
+                          isDataset ? "datasets" : "subjects"
+                        } found`}
                   </Typography>
-                )
+
+                  {searchResults.length > 0 &&
+                    searchResults.map((item, idx) => {
+                      try {
+                        const parsedJson = JSON.parse(item.json);
+                        const isDataset =
+                          parsedJson?.value?.subj &&
+                          Array.isArray(parsedJson.value.subj);
+
+                        return isDataset ? (
+                          <DatasetCard
+                            key={idx}
+                            dbname={item.dbname}
+                            dsname={item.dsname}
+                            parsedJson={parsedJson}
+                          />
+                        ) : (
+                          <SubjectCard
+                            key={idx}
+                            {...item}
+                            parsedJson={parsedJson}
+                          />
+                        );
+                      } catch (e) {
+                        console.error(
+                          `Failed to parse JSON for item #${idx}`,
+                          e
+                        );
+                        return null;
+                      }
+                    })}
+                </>
               ) : (
-                <Typography color="error">
+                <Typography sx={{ color: Colors.error }}>
                   {searchResults?.msg === "empty output"
                     ? "No results found based on your criteria. Please adjust the filters and try again."
                     : "Something went wrong. Please try again later."}
                 </Typography>
               )}
-
-              {/* {Array.isArray(searchResults) ? (
-                searchResults.length > 0 ? (
-                  <>
-                    <Typography
-                      variant="h6"
-                      sx={{ borderBottom: "1px solid lightgray" }}
-                    >
-                      {`Found ${searchResults.length} Datasets`}
-                    </Typography>
-                    <ul>
-                      {searchResults.map((item, idx) => {
-                        const label = `${item.dbname}/${item.dsname}`;
-                        const link = `${RoutesEnum.DATABASES}/${item.dbname}/${item.dsname}`;
-
-                        return (
-                          <Box key={idx} mb={1}>
-                            <Link
-                              to={link}
-                              style={{
-                                textDecoration: "none",
-                                color: Colors.blue,
-                              }}
-                              target="_blank"
-                            >
-                              {label}
-                            </Link>
-                          </Box>
-                        );
-                      })}
-                    </ul>
-                  </>
-                ) : (
-                  <Typography variant="h6">
-                    No matching dataset was found
-                  </Typography>
-                )
-              ) : (
-                <Typography color="error">
-                  {searchResults?.msg === "empty output"
-                    ? "No results found based on your criteria. Please adjust the filters and try again."
-                    : "Something went wrong. Please try again later."}
-                </Typography>
-              )} */}
             </Box>
           )}
         </Box>
