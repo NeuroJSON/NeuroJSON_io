@@ -85,7 +85,7 @@ const DatasetDetailPage: React.FC = () => {
 						const subPath = subMatch ? subMatch[0] : "Unknown Sub";
 
 						links.push({
-							name: `NIFTIData (${size}) [/${subPath}]`,
+							name: `${path.split("/").pop() || "ExternalData"} (${size}) [/${subPath}]`,
 							size,
 							path: subPath,
 							url: correctedUrl,
@@ -241,22 +241,6 @@ const DatasetDetailPage: React.FC = () => {
 			urlMatch: /\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(dataOrUrl),
 		  });
 		  
-	
-		// if (isInternal) {
-		// 	try {
-		// 		// ✅ Create a writable deep copy to avoid modifying read-only properties
-		// 		const writableData = JSON.parse(JSON.stringify(dataOrUrl));
-	
-		// 		if (typeof (window as any).previewdata === "function") {
-		// 			console.log("✅ Calling previewdata() for internal data:", writableData);
-		// 			(window as any).previewdata(writableData, idx, false);  // ✅ Pass writable copy
-		// 		} else {
-		// 			console.error("❌ previewdata() is not defined!");
-		// 		}
-		// 	} catch (error) {
-		// 		console.error("❌ Error processing internal data:", error);
-		// 	}
-		// }
 		if (isInternal) {
 			try {
 			  // 🔐 Step 1: Ensure global intdata exists
@@ -569,7 +553,7 @@ const DatasetDetailPage: React.FC = () => {
   </Box>
 
   {/* ✅ Data panels (right panel) */}
-  <Box sx={{ flex: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+  <Box sx={{ width: "460px", minWidth: "360px", display: "flex", flexDirection: "column", gap: 2, }}>
 	<Box sx={{ backgroundColor: "#cdddf6", padding: 2, borderRadius: "8px", marginTop: 4 }}>
 		{/* ✅ Collapsible header */}
 		<Box
@@ -604,25 +588,40 @@ const DatasetDetailPage: React.FC = () => {
 					<Box
 						key={index}
 						sx={{
-						mt: 1,
-						p: 1.5,
-						bgcolor: "white",
-						borderRadius: 1,
-						display: "flex",
-						justifyContent: "space-between",
-						alignItems: "center",
-						flexWrap: "wrap",
-						gap: 2,
-						border: "1px solid #bbb",
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "space-between",
+							padding: "6px 10px",
+							backgroundColor: "white",
+							borderRadius: "4px",
+							border: "1px solid #ddd",
+							mt: 1,
+							height: "34px",
+							minWidth: 0,
+							fontSize: "0.85rem",
 						}}
 					>
-						<Typography sx={{ flexGrow: 1 }}>
+						<Typography sx={{ 
+							flexGrow: 1, 
+							minWidth:0, 
+							whiteSpace: "nowrap", 
+							overflow: "hidden", 
+							textOverflow: "ellipsis",
+							fontSize: "1rem",
+							marginRight: "12px",
+							maxWidth: "calc(100% - 160px)",}} 
+							title={link.name}>
 						{link.name} {link.arraySize ? `[${link.arraySize.join("x")}]` : ""}
 						</Typography>
 						<Button
 						variant="contained"
 						size="small"
-						sx={{ backgroundColor: "#1976d2" }}
+						sx={{ backgroundColor: "#1976d2", flexShrink: 0,
+								minWidth: "70px",
+								fontSize: "0.7rem",
+								padding: "2px 6px",
+								lineHeight: 1,
+						 }}
 						onClick={() => handlePreview(link.data, link.index, true)}
 						>
 						Preview
@@ -665,42 +664,76 @@ const DatasetDetailPage: React.FC = () => {
 							}}
 							>
 							{externalLinks.length > 0 ? (
-								externalLinks.map((link, index) => (
+								externalLinks.map((link, index) => {
+								
+								const match = link.url.match(/file=([^&]+)/);
+								const fileName = match ? match[1] : "";
+								const isPreviewable = /\.(nii(\.gz)?|bnii|jdt|jdb|jmsh|bmsh)$/i.test(fileName);
+
+								return (	
 								<Box
 									key={index}
 									sx={{
-									mt: 1,
-									p: 1.5,
-									bgcolor: "white",
-									borderRadius: 1,
-									display: "flex",
-									justifyContent: "space-between",
-									alignItems: "center",
-									flexWrap: "wrap",
-									gap: 2,
-									border: "1px solid #ddd",
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "space-between",
+										padding: "6px 10px",
+										backgroundColor: "white",
+										borderRadius: "4px",
+										border: "1px solid #ddd",
+										mt: 1,
+										height: "34px",
+										minWidth: 0,
+										fontSize: "0.85rem",
 									}}
 								>
-									<Typography sx={{ flexGrow: 1 }}>{link.name}</Typography>
-									<Box sx={{ display: "flex", gap: 1 }}>
+									<Typography
+										sx={{
+											flexGrow: 1,
+											whiteSpace: "nowrap",
+											overflow: "hidden",
+											textOverflow: "ellipsis",
+											minWidth: 0,
+        									fontSize: "1rem",
+											marginRight: "12px",
+    										maxWidth: "calc(100% - 160px)",
+										}}
+										title={link.name}
+										>
+										{link.name}
+									</Typography>
+									<Box sx={{ display: "flex", flexShrink: 0, gap: 1 }}>
 									<Button
 										variant="contained"
 										size="small"
-										sx={{ backgroundColor: "#1976d2" }}
+										sx={{ backgroundColor: "#1976d2", 
+											minWidth: "70px",
+											fontSize: "0.7rem",
+											padding: "2px 6px",
+											lineHeight: 1,}}
 										onClick={() => window.open(link.url, "_blank")}
 									>
 										Download
 									</Button>
+									{isPreviewable && (
 										<Button
 											variant="outlined"
 											size="small"
+											sx={{ 
+												minWidth: "65px",
+												fontSize: "0.7rem",
+												padding: "2px 6px",
+												lineHeight: 1,
+											  }}
 											onClick={() => handlePreview(link.url, link.index, false)}
 										>
 											Preview
 										</Button>
+									)}
 									</Box>
 								</Box>
-								))
+							);
+							})
 							) : (
 								<Typography sx={{ fontStyle: "italic", mt: 1 }}>No external links found.</Typography>
 							)}
@@ -728,7 +761,6 @@ const DatasetDetailPage: React.FC = () => {
 						isInternal={previewIsInternal}
 						onClose={handleClosePreview}
 					/>
-					{/* <div id="chartpanel" style={{ display: "none" }}></div> */}
 				</Box>
 	)};
 
