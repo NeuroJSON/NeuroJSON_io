@@ -40,6 +40,31 @@ interface InternalDataLink {
 	arraySize?: number[];
 }
 
+const transformJsonForDisplay = (obj: any): any => {
+	if (typeof obj !== "object" || obj === null) return obj;
+
+	const transformed: any = Array.isArray(obj) ? [] : {};
+
+	for (const key in obj) {
+		if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
+
+		const value = obj[key];
+
+		// Match README, CHANGES, or file extensions
+		const isLongTextKey = /^(README|CHANGES)$|\.md$|\.txt$|\.m$/i.test(key);
+
+		if (typeof value === "string" && isLongTextKey) {
+			transformed[key] = `<code class="puretext">${value}</code>`;
+		} else if (typeof value === "object") {
+			transformed[key] = transformJsonForDisplay(value);
+		} else {
+			transformed[key] = value;
+		}
+	}
+
+	return transformed;
+};
+
 const DatasetDetailPage: React.FC = () => {
 	const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
 	const navigate = useNavigate();
@@ -63,41 +88,43 @@ const DatasetDetailPage: React.FC = () => {
 	const [expandedPaths, setExpandedPaths] = useState<string[]>([]);
 	const [originalTextMap, setOriginalTextMap] = useState<Map<HTMLElement, string>>(new Map());
 	const [jsonViewerKey, setJsonViewerKey] = useState(0);
-
+	const [jsonSize, setJsonSize] = useState<number>(0);
+	const [transformedDataset, setTransformedDataset] = useState<any>(null);
 
 
 	// Recursive function to find `_DataLink_`
 	const extractDataLinks = (obj: any, path: string): ExternalDataLink[] => {
 		const links: ExternalDataLink[] = [];
-
-		if (typeof obj === "object" && obj !== null) {
-			for (const key in obj) {
-				if (obj.hasOwnProperty(key)) {
-					if (key === "_DataLink_" && typeof obj[key] === "string") {
-						let correctedUrl = obj[key].replace(/:\$.*$/, "");
-
-						const sizeMatch = obj[key].match(/size=(\d+)/);
+	
+		const traverse = (node: any, currentPath: string) => {
+			if (typeof node === "object" && node !== null) {
+				for (const key in node) {
+					if (key === "_DataLink_" && typeof node[key] === "string") {
+						let correctedUrl = node[key].replace(/:\$.*$/, "");
+	
+						const sizeMatch = node[key].match(/size=(\d+)/);
 						const size = sizeMatch
 							? `${(parseInt(sizeMatch[1], 10) / 1024 / 1024).toFixed(2)} MB`
 							: "Unknown Size";
-
-						const subMatch = path.match(/sub-\d+/);
+	
+						const subMatch = currentPath.match(/sub-\d+/);
 						const subPath = subMatch ? subMatch[0] : "Unknown Sub";
-
+	
 						links.push({
-							name: `${path.split("/").pop() || "ExternalData"} (${size}) [/${subPath}]`,
+							name: `${currentPath.split("/").pop() || "ExternalData"} (${size}) [/${subPath}]`,
 							size,
-							path: subPath,
+							path: currentPath,  // keep full JSON path for file placement
 							url: correctedUrl,
 							index: links.length,
 						});
-					} else if (typeof obj[key] === "object") {
-						links.push(...extractDataLinks(obj[key], `${path}/${key}`));
+					} else if (typeof node[key] === "object") {
+						traverse(node[key], `${currentPath}/${key}`);
 					}
 				}
 			}
-		}
-
+		};
+	
+		traverse(obj, path);
 		return links;
 	};
 
@@ -185,9 +212,24 @@ const DatasetDetailPage: React.FC = () => {
 	
 			setExternalLinks(links);
 			setInternalLinks(internalData);
+			const transformed = transformJsonForDisplay(datasetDocument);
+			setTransformedDataset(transformed);
 
-			// ✅ Construct download script dynamically
-			const script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"`;
+			const blob = new Blob([JSON.stringify(datasetDocument, null, 2)], { type: "application/json" });
+			setJsonSize(blob.size);
+
+			// // ✅ Construct download script dynamically
+			let script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"\n`;
+
+
+			externalLinks.forEach((link) => {
+				const url = link.url;
+				const match = url.match(/file=([^&]+)/);
+				const filename = match ? decodeURIComponent(match[1]) : `file-${link.index}`;
+				const outputPath = `$HOME/.neurojson/io/${dbName}/${docId}/${filename}`;
+
+				script += `curl -L --create-dirs "${url}" -o "${outputPath}"\n`;
+			});
 			setDownloadScript(script);
 		}
 	}, [datasetDocument]);	
@@ -208,7 +250,20 @@ const DatasetDetailPage: React.FC = () => {
 			element.classList.remove("highlighted");
 		  });
 		};
-	  }, [searchTerm, datasetDocument]);
+	}, [searchTerm, datasetDocument]);
+
+	useEffect(() => {
+		if (!transformedDataset) return;
+	
+		const spans = document.querySelectorAll(".string-value");
+	
+		spans.forEach((el) => {
+			if (el.textContent?.includes("<code class=\"puretext\">")) {
+				// Inject as HTML so it renders code block correctly
+				el.innerHTML = el.textContent ?? "";
+			}
+		});
+	}, [transformedDataset]);		
 	
 	const handleDownloadDataset = () => {
 		if (!datasetDocument) return;
@@ -402,6 +457,32 @@ const DatasetDetailPage: React.FC = () => {
 	}
 
 	return (
+		<>
+		{/* 🔧 Inline CSS for string formatting */}
+		<style>
+		{`
+		code.puretext {
+		white-space: pre-wrap;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 4;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		font-family: monospace;
+		color: #d14;
+		font-size: 14px;
+		background-color: transparent;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	code.puretext:hover, code.puretext:focus {
+		-webkit-line-clamp: unset;
+		overflow: visible;
+		background-color: #f0f0f0;
+	}`}
+
+    </style>
 		<Box sx={{ padding: 4 }}>
 			<Button
 				variant="contained"
@@ -413,12 +494,12 @@ const DatasetDetailPage: React.FC = () => {
 
 			<Box 
 				sx={{ 
-					position: "sticky", // ✅ Keeps title & search bar fixed
-					top: 0, // ✅ Sticks to the top
-					backgroundColor: "white", // ✅ Ensures smooth UI
-					zIndex: 10, // ✅ Keeps it above scrollable content
-					paddingBottom: 2, // ✅ Adds space for clarity
-					borderBottom: `1px solid ${Colors.lightGray}`, // ✅ Adds subtle separator
+					position: "sticky",
+					top: 0,
+					backgroundColor: "white",
+					zIndex: 10,
+					paddingBottom: 2,
+					borderBottom: `1px solid ${Colors.lightGray}`,
 				}}>
 
 				{/* ✅ Dataset Title (From dataset_description.json) */}
@@ -462,7 +543,7 @@ const DatasetDetailPage: React.FC = () => {
 
 					{/* Database Name (Clickable) */}
 					<Button
-						onClick={() => navigate(`/RoutesEnum.DATABASES/${dbName}`)}
+						onClick={() => navigate(`/databases/${dbName}`)}
 						sx={{
 							textTransform: "none",
 							fontSize: "1.2rem",
@@ -505,7 +586,8 @@ const DatasetDetailPage: React.FC = () => {
 							"&:hover": { backgroundColor: "#ff9100" },
 						}}
 					>
-						Download Dataset (1 Mb)
+						{/* Download Dataset (1 Mb) */}
+						Download Dataset ({(jsonSize / 1024).toFixed(0)} MB)
 						</Button>
 
 						<Button
@@ -518,7 +600,7 @@ const DatasetDetailPage: React.FC = () => {
 								"&:hover": { backgroundColor: "#ff9100" },
 							}}
 						>
-							Script to Download All Files (138 Bytes) (links: 0)
+							Script to Download All Files ({downloadScript.length} Bytes) (links: {externalLinks.length})
 						</Button>
 
 						<Box display="flex" alignItems="center" gap={1} sx={{ ml: "auto" }}>
@@ -542,7 +624,7 @@ const DatasetDetailPage: React.FC = () => {
   {/* ✅ JSON Viewer (left panel) */}
   <Box sx={{ flex: 3, backgroundColor: "#f5f5f5", padding: 2, borderRadius: "8px", overflowX: "auto" }}>
     <ReactJson
-      src={datasetDocument}
+      src={transformedDataset || datasetDocument}
       name={false}
       enableClipboard={true}
       displayDataTypes={false}
@@ -761,7 +843,8 @@ const DatasetDetailPage: React.FC = () => {
 						isInternal={previewIsInternal}
 						onClose={handleClosePreview}
 					/>
-				</Box>
+		</Box>
+		</>
 	)};
 
 export default DatasetDetailPage;
