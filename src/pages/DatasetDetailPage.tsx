@@ -354,43 +354,39 @@ const DatasetDetailPage: React.FC = () => {
 	};	
 	
 	const highlightMatches = (keyword: string) => {
-		// ✅ Step 1: Clean up all existing highlights
-		document.querySelectorAll(".highlighted").forEach((el) => {
-		  const element = el as HTMLElement;
-		  const text = element.textContent || "";
-		  element.innerHTML = text; // ❗ This clears out <mark> completely
-		  element.classList.remove("highlighted");
-		});
-	  
-		setOriginalTextMap(new Map()); // ✅ Also clear stored originals
-	  
-		// ✅ Step 2: Early exit if search is too short
-		if (!keyword.trim() || keyword.length < 3) {
-		  setMatches([]);
-		  setHighlightedIndex(-1);
-		  setExpandedPaths([]);
-		  return;
-		}
-	  
-		// ✅ Step 3: Highlight matching keys/values
-		const matchedElements: HTMLElement[] = [];
-		const matchedPaths: Set<string> = new Set();
-		const newOriginalMap = new Map<HTMLElement, string>();
-	  
 		const spans = document.querySelectorAll(
 		  ".react-json-view span.string-value, .react-json-view span.object-key"
 		);
 	  
+		// Clean up all existing highlights
+		spans.forEach((el) => {
+		  const element = el as HTMLElement;
+		  if (originalTextMap.has(element)) {
+			element.innerHTML = originalTextMap.get(element)!; // Restore original HTML
+			element.classList.remove("highlighted");
+		  }
+		});
+	  
+		// Clear old state
+		setMatches([]);
+		setHighlightedIndex(-1);
+		setExpandedPaths([]);
+		setOriginalTextMap(new Map());
+	  
+		if (!keyword.trim() || keyword.length < 3) return;
+	  
 		const regex = new RegExp(`(${keyword})`, "gi");
+		const matchedElements: HTMLElement[] = [];
+		const matchedPaths: Set<string> = new Set();
+		const newOriginalMap = new Map<HTMLElement, string>();
 	  
 		spans.forEach((el) => {
 		  const element = el as HTMLElement;
+		  const original = element.innerHTML;
 		  const text = element.textContent || "";
 	  
 		  if (text.toLowerCase().includes(keyword.toLowerCase())) {
-			newOriginalMap.set(element, text);
-	  
-			// Highlight match
+			newOriginalMap.set(element, original); // Store original HTML
 			const highlighted = text.replace(
 			  regex,
 			  `<mark class="highlighted" style="background-color: yellow; color: black;">$1</mark>`
@@ -398,21 +394,19 @@ const DatasetDetailPage: React.FC = () => {
 			element.innerHTML = highlighted;
 			matchedElements.push(element);
 	  
-			// ✅ Collect path for expansion
 			const parent = element.closest(".variable-row");
 			const path = parent?.getAttribute("data-path");
 			if (path) matchedPaths.add(path);
 		  }
 		});
 	  
-		// ✅ Step 4: Update React state
+		// Update state
 		setOriginalTextMap(newOriginalMap);
 		setMatches(matchedElements);
-		setHighlightedIndex(-1);
 		setExpandedPaths(Array.from(matchedPaths));
-	  };		
-
-	  const findNext = () => {
+	};
+	  
+	const findNext = () => {
 		if (matches.length === 0) return;
 	  
 		setHighlightedIndex((prevIndex) => {
