@@ -4,27 +4,6 @@ export const baseSchema: JSONSchema7 = {
   title: "Metadata Search",
   type: "object",
   properties: {
-    modality: {
-      title: "Modalities",
-      type: "string",
-      enum: [
-        "Structural MRI (anat)",
-        "fMRI (func)",
-        "DWI (dwi)",
-        "Field maps (fmap)",
-        "Perfusion (perf)",
-        "MEG (meg)",
-        "EEG (eeg)",
-        "Intracranial EEG (ieeg)",
-        "Behavioral (beh)",
-        "PET (pet)",
-        "microscopy (micr)",
-        "fNIRS (nirs)",
-        "motion (motion)",
-        "any",
-      ],
-      default: "any",
-    },
     keyword: {
       title: "Search keyword",
       type: "string",
@@ -47,6 +26,49 @@ export const baseSchema: JSONSchema7 = {
       title: "Search dataset",
       type: "string",
     },
+    limit: {
+      type: "integer",
+      title: "Maximum number of results to return",
+      minimum: 0,
+      // description: "Set the maximum number of results to return",
+    },
+    skip: {
+      type: "integer",
+      title: "Skip the first N(number) results",
+      minimum: 0,
+      // description: "Set a number N to skip the first N results",
+    },
+    subject_filters_toggle: {
+      type: "null",
+      title: "Subject Filters",
+    },
+    modality: {
+      title: "Modalities",
+      type: "string",
+      enum: [
+        "Structural MRI (anat)",
+        "fMRI (func)",
+        "DWI (dwi)",
+        "Field maps (fmap)",
+        "Perfusion (perf)",
+        "MEG (meg)",
+        "EEG (eeg)",
+        "Intracranial EEG (ieeg)",
+        "Behavioral (beh)",
+        "PET (pet)",
+        "microscopy (micr)",
+        "fNIRS (nirs)",
+        "motion (motion)",
+        "any",
+      ],
+      default: "any",
+    },
+    gender: {
+      title: "Subject gender",
+      type: "string",
+      enum: ["male", "female", "unknown", "any"],
+      default: "any",
+    },
     age_min: {
       title: "Minimum age",
       type: "number",
@@ -59,12 +81,7 @@ export const baseSchema: JSONSchema7 = {
       minimum: 0,
       maximum: 1000,
     },
-    gender: {
-      title: "Subject gender",
-      type: "string",
-      enum: ["male", "female", "unknown", "any"],
-      default: "any",
-    },
+
     sess_min: {
       title: "Minimum session count",
       type: "integer",
@@ -105,31 +122,19 @@ export const baseSchema: JSONSchema7 = {
       title: "Task keywords",
       type: "string",
     },
-    session_name: {
-      title: "Session keywords",
-      type: "string",
-    },
-    run_name: {
-      title: "Run keywords",
-      type: "string",
-    },
+    // session_name: {
+    //   title: "Session keywords",
+    //   type: "string",
+    // },
+    // run_name: {
+    //   title: "Run keywords",
+    //   type: "string",
+    // },
     type_name: {
       title: "Data type keywords",
       type: "string",
     },
 
-    limit: {
-      type: "integer",
-      title: "Set the maximum number of results to return",
-      minimum: 0,
-      // description: "Set the maximum number of results to return",
-    },
-    skip: {
-      type: "integer",
-      title: "Set a number N to skip the first N results",
-      minimum: 0,
-      // description: "Set a number N to skip the first N results",
-    },
     // count: {
     //   title: "Only return total counts",
     //   type: "boolean",
