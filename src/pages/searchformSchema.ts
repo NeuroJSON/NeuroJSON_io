@@ -4,6 +4,27 @@ export const baseSchema: JSONSchema7 = {
   title: "Metadata Search",
   type: "object",
   properties: {
+    modality: {
+      title: "Modalities",
+      type: "string",
+      enum: [
+        "Structural MRI (anat)",
+        "fMRI (func)",
+        "DWI (dwi)",
+        "Field maps (fmap)",
+        "Perfusion (perf)",
+        "MEG (meg)",
+        "EEG (eeg)",
+        "Intracranial EEG (ieeg)",
+        "Behavioral (beh)",
+        "PET (pet)",
+        "microscopy (micr)",
+        "fNIRS (nirs)",
+        "motion (motion)",
+        "any",
+      ],
+      default: "any",
+    },
     keyword: {
       title: "Search keyword",
       type: "string",
@@ -21,6 +42,7 @@ export const baseSchema: JSONSchema7 = {
     //     "any",
     //   ],
     // },
+
     dataset: {
       title: "Search dataset",
       type: "string",
@@ -95,38 +117,18 @@ export const baseSchema: JSONSchema7 = {
       title: "Data type keywords",
       type: "string",
     },
-    modality: {
-      title: "Modalities",
-      type: "string",
-      enum: [
-        "Structural MRI (anat)",
-        "fMRI (func)",
-        "DWI (dwi)",
-        "Field maps (fmap)",
-        "Perfusion (perf)",
-        "MEG (meg)",
-        "EEG (eeg)",
-        "Intracranial EEG (ieeg)",
-        "Behavioral (beh)",
-        "PET (pet)",
-        "microscopy (micr)",
-        "fNIRS (nirs)",
-        "motion (motion)",
-        "any",
-      ],
-      default: "any",
-    },
+
     limit: {
       type: "integer",
-      title: "limit",
+      title: "Set the maximum number of results to return",
       minimum: 0,
-      description: "Set the maximum number of results to return.",
+      // description: "Set the maximum number of results to return",
     },
     skip: {
       type: "integer",
-      title: "skip",
+      title: "Set a number N to skip the first N results",
       minimum: 0,
-      description: "Set a number N to skip the first N results.",
+      // description: "Set a number N to skip the first N results",
     },
     // count: {
     //   title: "Only return total counts",
@@ -139,7 +141,7 @@ export const baseSchema: JSONSchema7 = {
     //   default: false,
     // },
   },
-  required: ["keyword"],
+  // required: ["keyword"],
 };
 
 // Helper to inject dynamic "database" enum
