@@ -543,7 +543,7 @@ const DatasetDetailPage: React.FC = () => {
 
 					{/* Database Name (Clickable) */}
 					<Button
-						onClick={() => navigate(`/RoutesEnum.DATABASES/${dbName}`)}
+						onClick={() => navigate(`/databases/${dbName}`)}
 						sx={{
 							textTransform: "none",
 							fontSize: "1.2rem",
