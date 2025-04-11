@@ -1,5 +1,6 @@
 import { generateSchemaWithDatabaseEnum } from "./searchformSchema";
 import { Typography, Container, Box } from "@mui/material";
+import { Collapse, Button } from "@mui/material";
 import Form from "@rjsf/mui";
 import validator from "@rjsf/validator-ajv8";
 import DatasetCard from "components/SearchPage/DatasetCard";
@@ -15,6 +16,8 @@ import {
 } from "redux/neurojson/neurojson.action";
 import { RootState } from "redux/store";
 
+//
+
 const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const [hasSearched, setHasSearched] = useState(false);
@@ -26,12 +29,21 @@ const SearchPage: React.FC = () => {
   );
 
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [showSubjectFilters, setShowSubjectFilters] = useState(false); //
 
   const uiSchema = useMemo(() => {
     const activeStyle = {
       "ui:options": {
         style: {
           backgroundColor: Colors.lightBlue,
+        },
+      },
+    };
+    // hide subject-level filter
+    const hiddenStyle = {
+      "ui:options": {
+        style: {
+          display: showSubjectFilters ? "block" : "none",
         },
       },
     };
@@ -44,35 +56,123 @@ const SearchPage: React.FC = () => {
           : {},
       dataset: formData["dataset"] ? activeStyle : {},
 
-      age_min: formData["age_min"] ? activeStyle : {},
-      age_max: formData["age_max"] ? activeStyle : {},
+      //   age_min: formData["age_min"] ? activeStyle : {},
+      //   age_max: formData["age_max"] ? activeStyle : {},
 
-      gender:
-        formData["gender"] && formData["gender"] !== "any" ? activeStyle : {},
+      //   gender:
+      //     formData["gender"] && formData["gender"] !== "any" ? activeStyle : {},
 
-      sess_min: formData["sess_min"] ? activeStyle : {},
-      sess_max: formData["sess_max"] ? activeStyle : {},
+      //   sess_min: formData["sess_min"] ? activeStyle : {},
+      //   sess_max: formData["sess_max"] ? activeStyle : {},
 
-      task_min: formData["task_min"] ? activeStyle : {},
-      task_max: formData["task_max"] ? activeStyle : {},
+      //   task_min: formData["task_min"] ? activeStyle : {},
+      //   task_max: formData["task_max"] ? activeStyle : {},
 
-      run_min: formData["run_min"] ? activeStyle : {},
-      run_max: formData["run_max"] ? activeStyle : {},
+      //   run_min: formData["run_min"] ? activeStyle : {},
+      //   run_max: formData["run_max"] ? activeStyle : {},
 
-      task_name: formData["task_name"] ? activeStyle : {},
-      session_name: formData["session_name"] ? activeStyle : {},
-      run_name: formData["run_name"] ? activeStyle : {},
-      type_name: formData["type_name"] ? activeStyle : {},
+      //   task_name: formData["task_name"] ? activeStyle : {},
+      //   session_name: formData["session_name"] ? activeStyle : {},
+      //   run_name: formData["run_name"] ? activeStyle : {},
+      //   type_name: formData["type_name"] ? activeStyle : {},
 
-      modality:
-        formData["modality"] && formData["modality"] !== "any"
-          ? activeStyle
-          : {},
+      //   modality:
+      //     formData["modality"] && formData["modality"] !== "any"
+      //       ? activeStyle
+      //       : {},
 
       limit: formData["limit"] ? activeStyle : {},
       skip: formData["skip"] ? activeStyle : {},
+
+      // subject-level filters
+      subject_filters_toggle: {
+        "ui:field": "subjectFiltersToggle",
+      },
+      modality: showSubjectFilters
+        ? formData["modality"] && formData["modality"] !== "any"
+          ? activeStyle
+          : {}
+        : hiddenStyle,
+
+      age_min: showSubjectFilters
+        ? formData["age_min"]
+          ? activeStyle
+          : {}
+        : hiddenStyle,
+      age_max: showSubjectFilters
+        ? formData["age_max"]
+          ? activeStyle
+          : {}
+        : hiddenStyle,
+
+      gender: showSubjectFilters
+        ? formData["gender"] && formData["gender"] !== "any"
+          ? activeStyle
+          : {}
+        : hiddenStyle,
+
+      sess_min: showSubjectFilters
+        ? formData["sess_min"]
+          ? activeStyle
+          : {}
+        : hiddenStyle,
+      sess_max: showSubjectFilters
+        ? formData["sess_max"]
+          ? activeStyle
+          : {}
+        : hiddenStyle,
+
+      task_min: showSubjectFilters
+        ? formData["task_min"]
+          ? activeStyle
+          : {}
+        : hiddenStyle,
+      task_max: showSubjectFilters
+        ? formData["task_max"]
+          ? activeStyle
+          : {}
+        : hiddenStyle,
+
+      run_min: showSubjectFilters
+        ? formData["run_min"]
+          ? activeStyle
+          : {}
+        : hiddenStyle,
+      run_max: showSubjectFilters
+        ? formData["run_max"]
+          ? activeStyle
+          : {}
+        : hiddenStyle,
+
+      task_name: showSubjectFilters
+        ? formData["task_name"]
+          ? activeStyle
+          : {}
+        : hiddenStyle,
+      type_name: showSubjectFilters
+        ? formData["type_name"]
+          ? activeStyle
+          : {}
+        : hiddenStyle,
     };
-  }, [formData]);
+  }, [formData, showSubjectFilters]);
+
+  // Create the toggle button as a custom field
+  const customFields = {
+    subjectFiltersToggle: () => (
+      <Box sx={{ mt: 2, mb: 1 }}>
+        <Button
+          variant="outlined"
+          onClick={() => setShowSubjectFilters((prev) => !prev)}
+        >
+          {/* {showSubjectFilters
+            ? "Hide Subject-Level Filters"
+            : "Show Subject-Level Filters"} */}
+          Subject-Level Filters
+        </Button>
+      </Box>
+    ),
+  };
 
   // print the result in dev tool
   if (Array.isArray(searchResults)) {
@@ -153,6 +253,7 @@ const SearchPage: React.FC = () => {
             formData={formData}
             onChange={({ formData }) => setFormData(formData)}
             uiSchema={uiSchema}
+            fields={customFields} //
           />
         </Box>
         <Box>
