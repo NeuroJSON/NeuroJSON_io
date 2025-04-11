@@ -1,6 +1,5 @@
 import { generateSchemaWithDatabaseEnum } from "./searchformSchema";
-import { Typography, Container, Box } from "@mui/material";
-import { Collapse, Button } from "@mui/material";
+import { Typography, Container, Box, Button } from "@mui/material";
 import Form from "@rjsf/mui";
 import validator from "@rjsf/validator-ajv8";
 import DatasetCard from "components/SearchPage/DatasetCard";
@@ -15,8 +14,6 @@ import {
   fetchRegistry,
 } from "redux/neurojson/neurojson.action";
 import { RootState } from "redux/store";
-
-//
 
 const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -39,6 +36,7 @@ const SearchPage: React.FC = () => {
         },
       },
     };
+
     // hide subject-level filter
     const hiddenStyle = {
       "ui:options": {
@@ -55,32 +53,6 @@ const SearchPage: React.FC = () => {
           ? activeStyle
           : {},
       dataset: formData["dataset"] ? activeStyle : {},
-
-      //   age_min: formData["age_min"] ? activeStyle : {},
-      //   age_max: formData["age_max"] ? activeStyle : {},
-
-      //   gender:
-      //     formData["gender"] && formData["gender"] !== "any" ? activeStyle : {},
-
-      //   sess_min: formData["sess_min"] ? activeStyle : {},
-      //   sess_max: formData["sess_max"] ? activeStyle : {},
-
-      //   task_min: formData["task_min"] ? activeStyle : {},
-      //   task_max: formData["task_max"] ? activeStyle : {},
-
-      //   run_min: formData["run_min"] ? activeStyle : {},
-      //   run_max: formData["run_max"] ? activeStyle : {},
-
-      //   task_name: formData["task_name"] ? activeStyle : {},
-      //   session_name: formData["session_name"] ? activeStyle : {},
-      //   run_name: formData["run_name"] ? activeStyle : {},
-      //   type_name: formData["type_name"] ? activeStyle : {},
-
-      //   modality:
-      //     formData["modality"] && formData["modality"] !== "any"
-      //       ? activeStyle
-      //       : {},
-
       limit: formData["limit"] ? activeStyle : {},
       skip: formData["skip"] ? activeStyle : {},
 
@@ -154,6 +126,21 @@ const SearchPage: React.FC = () => {
           ? activeStyle
           : {}
         : hiddenStyle,
+
+      "ui:submitButtonOptions": {
+        props: {
+          sx: {
+            backgroundColor: Colors.purple,
+            color: Colors.white,
+            "&:hover": {
+              backgroundColor: Colors.secondaryPurple,
+              transform: "scale(1.05)",
+            },
+          },
+        },
+        submitText: "Submit",
+        norender: true,
+      },
     };
   }, [formData, showSubjectFilters]);
 
@@ -164,10 +151,15 @@ const SearchPage: React.FC = () => {
         <Button
           variant="outlined"
           onClick={() => setShowSubjectFilters((prev) => !prev)}
+          sx={{
+            color: Colors.purple,
+            borderColor: Colors.purple,
+            "&:hover": {
+              transform: "scale(1.05)",
+              borderColor: Colors.purple,
+            },
+          }}
         >
-          {/* {showSubjectFilters
-            ? "Hide Subject-Level Filters"
-            : "Show Subject-Level Filters"} */}
           Subject-Level Filters
         </Button>
       </Box>
@@ -217,6 +209,12 @@ const SearchPage: React.FC = () => {
     setHasSearched(true);
   };
 
+  const handleReset = () => {
+    setFormData({}); // Clear all fields
+    setHasSearched(false); // Reset search state
+    dispatch(fetchMetadataSearchResults({})); // Optional: clear results in Redux
+  };
+
   return (
     <Container
       style={{
@@ -255,6 +253,44 @@ const SearchPage: React.FC = () => {
             uiSchema={uiSchema}
             fields={customFields} //
           />
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-start",
+              mt: 2,
+              gap: 2,
+            }}
+          >
+            <Button
+              variant="contained"
+              onClick={() => document.querySelector("form")?.requestSubmit()}
+              sx={{
+                backgroundColor: Colors.purple,
+                color: Colors.white,
+                "&:hover": {
+                  backgroundColor: Colors.secondaryPurple,
+                  transform: "scale(1.05)",
+                },
+              }}
+            >
+              Submit
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={handleReset}
+              sx={{
+                color: Colors.purple,
+                borderColor: Colors.purple,
+                "&:hover": {
+                  transform: "scale(1.05)",
+                  borderColor: Colors.purple,
+                },
+              }}
+            >
+              Reset
+            </Button>
+          </Box>
         </Box>
         <Box>
           {!hasSearched && (

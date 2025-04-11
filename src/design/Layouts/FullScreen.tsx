@@ -67,12 +67,7 @@ const FullScreen = () => {
             </Grid>
             {/* Navigation links*/}
             <Grid item paddingLeft="2rem">
-              <Grid
-                container
-                spacing={3}
-                justifyContent="center"
-                // border="2px solid red"
-              >
+              <Grid container spacing={3} justifyContent="center">
                 {[
                   { text: "ABOUT", url: "https://neurojson.org/Doc/Start" },
                   { text: "WIKI", url: "https://neurojson.org/Wiki" },
