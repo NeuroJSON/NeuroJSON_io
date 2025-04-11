@@ -586,7 +586,8 @@ const DatasetDetailPage: React.FC = () => {
 							"&:hover": { backgroundColor: "#ff9100" },
 						}}
 					>
-						Download Dataset (1 Mb)
+						{/* Download Dataset (1 Mb) */}
+						Download Dataset ({(jsonSize / 1024).toFixed(0)} MB)
 						</Button>
 
 						<Button
