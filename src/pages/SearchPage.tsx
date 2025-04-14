@@ -1,5 +1,11 @@
 import { generateSchemaWithDatabaseEnum } from "./searchformSchema";
-import { Typography, Container, Box, Button } from "@mui/material";
+import {
+  Typography,
+  Container,
+  Box,
+  Button,
+  CircularProgress,
+} from "@mui/material";
 import Form from "@rjsf/mui";
 import validator from "@rjsf/validator-ajv8";
 import DatasetCard from "components/SearchPage/DatasetCard";
@@ -24,10 +30,11 @@ const SearchPage: React.FC = () => {
   const registry = useAppSelector(
     (state: RootState) => state.neurojson.registry
   );
+  const loading = useAppSelector((state: RootState) => state.neurojson.loading);
 
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [showSubjectFilters, setShowSubjectFilters] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(15);
+  const [visibleCount, setVisibleCount] = useState(10);
 
   // form UI
   const uiSchema = useMemo(() => {
@@ -218,7 +225,7 @@ const SearchPage: React.FC = () => {
     setFormData({});
     setHasSearched(false);
     dispatch(fetchMetadataSearchResults({}));
-    setVisibleCount(15);
+    setVisibleCount(10);
   };
 
   // show more function
@@ -237,6 +244,7 @@ const SearchPage: React.FC = () => {
         width: "100%",
       }}
     >
+      <Typography variant="h4">Metadata Search</Typography>
       <Box
         sx={{
           display: "flex",
@@ -254,17 +262,6 @@ const SearchPage: React.FC = () => {
             minWidth: "35%",
           }}
         >
-          <Form
-            schema={schema}
-            onSubmit={handleSubmit}
-            validator={validator}
-            // liveValidate
-            formData={formData}
-            onChange={({ formData }) => setFormData(formData)}
-            uiSchema={uiSchema}
-            fields={customFields}
-          />
-
           <Box
             sx={{
               display: "flex",
@@ -302,6 +299,16 @@ const SearchPage: React.FC = () => {
               Reset
             </Button>
           </Box>
+          <Form
+            schema={schema}
+            onSubmit={handleSubmit}
+            validator={validator}
+            // liveValidate
+            formData={formData}
+            onChange={({ formData }) => setFormData(formData)}
+            uiSchema={uiSchema}
+            fields={customFields}
+          />
         </Box>
         <Box>
           {!hasSearched && (
@@ -333,7 +340,14 @@ const SearchPage: React.FC = () => {
         >
           {hasSearched && (
             <Box mt={4}>
-              {Array.isArray(searchResults) ? (
+              {loading ? (
+                <Box textAlign="center" my={4}>
+                  <CircularProgress />
+                  <Typography mt={2} color="text.secondary">
+                    Loading search results...
+                  </Typography>
+                </Box>
+              ) : Array.isArray(searchResults) ? (
                 <>
                   <Typography
                     variant="h6"
