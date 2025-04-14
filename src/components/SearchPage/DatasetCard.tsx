@@ -20,12 +20,14 @@ interface DatasetCardProps {
       };
     };
   };
+  index: number;
 }
 
 const DatasetCard: React.FC<DatasetCardProps> = ({
   dbname,
   dsname,
   parsedJson,
+  index,
 }) => {
   const { name, readme, modality, subj, info } = parsedJson.value;
   const datasetLink = `${RoutesEnum.DATABASES}/${dbname}/${dsname}`;
@@ -35,8 +37,22 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
   const doiLink = rawDOI ? `https://doi.org/${rawDOI}` : null;
 
   return (
-    <Card sx={{ mb: 3 }}>
+    <Card sx={{ mb: 3, position: "relative" }}>
       <CardContent>
+        {/* Card Number in Top Right */}
+        <Typography
+          variant="subtitle2"
+          sx={{
+            position: "absolute",
+            bottom: 8,
+            right: 12,
+            fontWeight: 600,
+            color: Colors.darkPurple,
+          }}
+        >
+          #{index + 1}
+        </Typography>
+
         <Typography
           variant="h6"
           sx={{
