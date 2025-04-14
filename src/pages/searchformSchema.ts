@@ -1,7 +1,8 @@
 import { JSONSchema7 } from "json-schema";
 
 export const baseSchema: JSONSchema7 = {
-  title: "Metadata Search",
+  // title: "Metadata Search",
+  title: "",
   type: "object",
   properties: {
     keyword: {
