@@ -5,6 +5,7 @@ import {
   Box,
   Button,
   CircularProgress,
+  Pagination,
 } from "@mui/material";
 import Form from "@rjsf/mui";
 import validator from "@rjsf/validator-ajv8";
@@ -34,7 +35,22 @@ const SearchPage: React.FC = () => {
 
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [showSubjectFilters, setShowSubjectFilters] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(10);
+  //   const [visibleCount, setVisibleCount] = useState(10);
+  const [page, setPage] = useState(1);
+
+  // setting pagination
+  const itemsPerPage = 10;
+
+  const handlePageChange = (
+    event: React.ChangeEvent<unknown>,
+    value: number
+  ) => {
+    setPage(value);
+  };
+
+  const paginatedResults = Array.isArray(searchResults)
+    ? searchResults.slice((page - 1) * itemsPerPage, page * itemsPerPage)
+    : [];
 
   // form UI
   const uiSchema = useMemo(() => {
@@ -218,6 +234,7 @@ const SearchPage: React.FC = () => {
   const handleSubmit = ({ formData }: any) => {
     dispatch(fetchMetadataSearchResults(formData));
     setHasSearched(true);
+    setPage(1);
   };
 
   // reset function
@@ -225,13 +242,14 @@ const SearchPage: React.FC = () => {
     setFormData({});
     setHasSearched(false);
     dispatch(fetchMetadataSearchResults({}));
-    setVisibleCount(10);
+    setPage(1);
+    // setVisibleCount(10);
   };
 
   // show more function
-  const handleLoadMore = () => {
-    setVisibleCount((prev) => prev + 15);
-  };
+  //   const handleLoadMore = () => {
+  //     setVisibleCount((prev) => prev + 10);
+  //   };
 
   return (
     <Container
@@ -315,7 +333,6 @@ const SearchPage: React.FC = () => {
             <Typography
               variant="subtitle1"
               sx={{
-                // whiteSpace: "nowrap",
                 flexWrap: "wrap",
                 fontWeight: 500,
                 fontSize: "large",
@@ -362,10 +379,40 @@ const SearchPage: React.FC = () => {
                         } found`}
                   </Typography>
 
+                  <Box textAlign="center" mt={2} mb={2}>
+                    <Pagination
+                      count={Math.ceil(searchResults.length / itemsPerPage)}
+                      page={page}
+                      onChange={handlePageChange}
+                      showFirstButton
+                      showLastButton
+                      siblingCount={2}
+                      sx={{
+                        "& .MuiPagination-ul": {
+                          justifyContent: "center",
+                        },
+                        "& .MuiPaginationItem-root": {
+                          color: Colors.darkPurple,
+                        },
+                        "& .MuiPaginationItem-root.Mui-selected": {
+                          backgroundColor: Colors.purple,
+                          color: "white",
+                          fontWeight: "bold",
+                          "&:hover": {
+                            backgroundColor: Colors.secondaryPurple,
+                          },
+                        },
+                      }}
+                    />
+                  </Box>
+
                   {searchResults.length > 0 &&
-                    searchResults.slice(0, visibleCount).map((item, idx) => {
+                    // searchResults.slice(0, visibleCount)
+                    paginatedResults.map((item, idx) => {
                       try {
                         const parsedJson = JSON.parse(item.json);
+                        const globalIndex = (page - 1) * itemsPerPage + idx;
+
                         const isDataset =
                           parsedJson?.value?.subj &&
                           Array.isArray(parsedJson.value.subj);
@@ -373,7 +420,7 @@ const SearchPage: React.FC = () => {
                         return isDataset ? (
                           <DatasetCard
                             key={idx}
-                            index={idx}
+                            index={globalIndex}
                             dbname={item.dbname}
                             dsname={item.dsname}
                             parsedJson={parsedJson}
@@ -381,7 +428,7 @@ const SearchPage: React.FC = () => {
                         ) : (
                           <SubjectCard
                             key={idx}
-                            index={idx}
+                            index={globalIndex}
                             {...item}
                             parsedJson={parsedJson}
                           />
@@ -395,14 +442,14 @@ const SearchPage: React.FC = () => {
                       }
                     })}
 
-                  {searchResults.length > visibleCount && (
+                  {/* {searchResults.length > visibleCount && (
                     <Box textAlign="center" mt={2} mb={2}>
                       <Button variant="outlined" onClick={handleLoadMore}>
-                        Show {Math.min(15, searchResults.length - visibleCount)}{" "}
+                        Show {Math.min(10, searchResults.length - visibleCount)}{" "}
                         more {isDataset ? "datasets" : "subjects"}
                       </Button>
                     </Box>
-                  )}
+                  )} */}
                 </>
               ) : (
                 <Typography sx={{ color: Colors.error }}>
