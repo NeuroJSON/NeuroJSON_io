@@ -18,6 +18,7 @@ interface SubjectCardProps {
       types?: string[];
     };
   };
+  index: number;
 }
 
 const SubjectCard: React.FC<SubjectCardProps> = ({
@@ -26,6 +27,7 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
   age,
   subj,
   parsedJson,
+  index,
 }) => {
   const { modalities, tasks, sessions, types } = parsedJson.value;
   const subjectLink = `${RoutesEnum.DATABASES}/${dbname}/${dsname}`;
@@ -51,8 +53,22 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
   }
 
   return (
-    <Card sx={{ mb: 3 }}>
+    <Card sx={{ mb: 3, position: "relative" }}>
       <CardContent>
+        {/* Card Number in Top Right */}
+        <Typography
+          variant="subtitle2"
+          sx={{
+            position: "absolute",
+            bottom: 8,
+            right: 12,
+            fontWeight: 600,
+            color: Colors.darkPurple,
+          }}
+        >
+          #{index + 1}
+        </Typography>
+
         <Typography
           variant="h6"
           sx={{

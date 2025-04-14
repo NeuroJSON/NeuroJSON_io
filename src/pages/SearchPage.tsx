@@ -26,8 +26,10 @@ const SearchPage: React.FC = () => {
   );
 
   const [formData, setFormData] = useState<Record<string, any>>({});
-  const [showSubjectFilters, setShowSubjectFilters] = useState(false); //
+  const [showSubjectFilters, setShowSubjectFilters] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(15);
 
+  // form UI
   const uiSchema = useMemo(() => {
     const activeStyle = {
       "ui:options": {
@@ -144,7 +146,7 @@ const SearchPage: React.FC = () => {
     };
   }, [formData, showSubjectFilters]);
 
-  // Create the toggle button as a custom field
+  // Create the "Subject-level Filters" button as a custom field
   const customFields = {
     subjectFiltersToggle: () => (
       <Box sx={{ mt: 2, mb: 1 }}>
@@ -192,6 +194,7 @@ const SearchPage: React.FC = () => {
     }
   }
 
+  // get the database list from registry
   useEffect(() => {
     dispatch(fetchRegistry());
   }, [dispatch]);
@@ -204,15 +207,23 @@ const SearchPage: React.FC = () => {
     return generateSchemaWithDatabaseEnum(dbList);
   }, [registry]);
 
+  // submit function
   const handleSubmit = ({ formData }: any) => {
     dispatch(fetchMetadataSearchResults(formData));
     setHasSearched(true);
   };
 
+  // reset function
   const handleReset = () => {
-    setFormData({}); // Clear all fields
-    setHasSearched(false); // Reset search state
-    dispatch(fetchMetadataSearchResults({})); // Optional: clear results in Redux
+    setFormData({});
+    setHasSearched(false);
+    dispatch(fetchMetadataSearchResults({}));
+    setVisibleCount(15);
+  };
+
+  // show more function
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => prev + 15);
   };
 
   return (
@@ -251,7 +262,7 @@ const SearchPage: React.FC = () => {
             formData={formData}
             onChange={({ formData }) => setFormData(formData)}
             uiSchema={uiSchema}
-            fields={customFields} //
+            fields={customFields}
           />
 
           <Box
@@ -338,7 +349,7 @@ const SearchPage: React.FC = () => {
                   </Typography>
 
                   {searchResults.length > 0 &&
-                    searchResults.map((item, idx) => {
+                    searchResults.slice(0, visibleCount).map((item, idx) => {
                       try {
                         const parsedJson = JSON.parse(item.json);
                         const isDataset =
@@ -348,6 +359,7 @@ const SearchPage: React.FC = () => {
                         return isDataset ? (
                           <DatasetCard
                             key={idx}
+                            index={idx}
                             dbname={item.dbname}
                             dsname={item.dsname}
                             parsedJson={parsedJson}
@@ -355,6 +367,7 @@ const SearchPage: React.FC = () => {
                         ) : (
                           <SubjectCard
                             key={idx}
+                            index={idx}
                             {...item}
                             parsedJson={parsedJson}
                           />
@@ -367,6 +380,15 @@ const SearchPage: React.FC = () => {
                         return null;
                       }
                     })}
+
+                  {searchResults.length > visibleCount && (
+                    <Box textAlign="center" mt={2} mb={2}>
+                      <Button variant="outlined" onClick={handleLoadMore}>
+                        Show {Math.min(15, searchResults.length - visibleCount)}{" "}
+                        more {isDataset ? "datasets" : "subjects"}
+                      </Button>
+                    </Box>
+                  )}
                 </>
               ) : (
                 <Typography sx={{ color: Colors.error }}>
