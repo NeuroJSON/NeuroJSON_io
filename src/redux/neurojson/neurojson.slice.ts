@@ -50,7 +50,7 @@ const neurojsonSlice = createSlice({
           // Check if we received fewer items than the limit, indicating we've reached the end
           console.log(action.payload.total_rows);
           state.limit = action.payload.total_rows;
-          const reachedEnd = action.payload.rows.length < state.limit;
+          const reachedEnd = action.payload.offset + action.payload.rows.length >= action.payload.total_rows;
 
           // Filter out duplicates while preserving order
           const uniqueEntries = action.payload.rows.filter(
@@ -62,8 +62,8 @@ const neurojsonSlice = createSlice({
 
           if (uniqueEntries.length > 0) {
             // Append new unique entries to existing data
-            state.data = [...state.data, ...uniqueEntries];
-            state.offset += uniqueEntries.length;
+            state.data = uniqueEntries; // ✅ Replace instead of append
+            state.offset = action.payload.offset; // ✅ Track current offset
             // Only set hasMore to true if we haven't reached the end
             state.hasMore = !reachedEnd;
           } else {
