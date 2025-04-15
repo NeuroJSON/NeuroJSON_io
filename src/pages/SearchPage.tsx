@@ -35,7 +35,10 @@ const SearchPage: React.FC = () => {
 
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [showSubjectFilters, setShowSubjectFilters] = useState(false);
-  //   const [visibleCount, setVisibleCount] = useState(10);
+  const [results, setResults] = useState<
+    any[] | { status: string; msg: string }
+  >([]);
+  const [skip, setSkip] = useState(0);
   const [page, setPage] = useState(1);
 
   // setting pagination
@@ -48,8 +51,12 @@ const SearchPage: React.FC = () => {
     setPage(value);
   };
 
-  const paginatedResults = Array.isArray(searchResults)
-    ? searchResults.slice((page - 1) * itemsPerPage, page * itemsPerPage)
+  //   const paginatedResults = Array.isArray(searchResults)
+  //     ? searchResults.slice((page - 1) * itemsPerPage, page * itemsPerPage)
+  //     : [];
+
+  const paginatedResults = Array.isArray(results)
+    ? results.slice((page - 1) * itemsPerPage, page * itemsPerPage)
     : [];
 
   // form UI
@@ -63,6 +70,14 @@ const SearchPage: React.FC = () => {
     };
 
     // hide subject-level filter
+    const invisibleStyle = {
+      "ui:options": {
+        style: {
+          display: "none",
+        },
+      },
+    };
+
     const hiddenStyle = {
       "ui:options": {
         style: {
@@ -77,9 +92,11 @@ const SearchPage: React.FC = () => {
         formData["database"] && formData["database"] !== "any"
           ? activeStyle
           : {},
-      dataset: formData["dataset"] ? activeStyle : {},
-      limit: formData["limit"] ? activeStyle : {},
-      skip: formData["skip"] ? activeStyle : {},
+      //   dataset: formData["dataset"] ? activeStyle : {},
+      //   limit: formData["limit"] ? activeStyle : {},
+      //   skip: formData["skip"] ? activeStyle : {},
+      limit: invisibleStyle,
+      skip: invisibleStyle,
 
       // subject-level filters
       subject_filters_toggle: {
@@ -232,7 +249,13 @@ const SearchPage: React.FC = () => {
 
   // submit function
   const handleSubmit = ({ formData }: any) => {
-    dispatch(fetchMetadataSearchResults(formData));
+    // dispatch(fetchMetadataSearchResults(formData));
+    const requestData = { ...formData, skip: 0 };
+    setFormData(requestData);
+    setSkip(0);
+    dispatch(fetchMetadataSearchResults(requestData)).then((res: any) => {
+      setResults(res.payload);
+    });
     setHasSearched(true);
     setPage(1);
   };
@@ -240,16 +263,26 @@ const SearchPage: React.FC = () => {
   // reset function
   const handleReset = () => {
     setFormData({});
+    setResults([]);
     setHasSearched(false);
+    setSkip(0);
     dispatch(fetchMetadataSearchResults({}));
     setPage(1);
-    // setVisibleCount(10);
   };
 
-  // show more function
-  //   const handleLoadMore = () => {
-  //     setVisibleCount((prev) => prev + 10);
-  //   };
+  // load more function
+  const handleLoadMore = () => {
+    const newSkip = skip + 50;
+    const requestData = { ...formData, skip: newSkip };
+    setSkip(newSkip);
+    dispatch(fetchMetadataSearchResults(requestData)).then((res: any) => {
+      if (Array.isArray(res.payload)) {
+        setResults((prev) =>
+          Array.isArray(prev) ? [...prev, ...res.payload] : res.payload
+        );
+      }
+    });
+  };
 
   return (
     <Container
@@ -364,24 +397,35 @@ const SearchPage: React.FC = () => {
                     Loading search results...
                   </Typography>
                 </Box>
-              ) : Array.isArray(searchResults) ? (
+              ) : Array.isArray(results) ? ( // change searchResults into results
                 <>
                   <Typography
                     variant="h6"
                     sx={{ borderBottom: "1px solid lightgray", mb: 2 }}
                   >
-                    {searchResults.length > 0
-                      ? `Found ${searchResults.length} ${
+                    {results.length > 0 //change searchResults into results
+                      ? `Showing ${results.length} ${
+                          //change searchResults into results
                           isDataset ? "Datasets" : "Subjects"
                         }`
                       : `No matching ${
                           isDataset ? "datasets" : "subjects"
                         } found`}
                   </Typography>
+                  {Array.isArray(results)
+                    ? results.length >= 50 && (
+                        <Box textAlign="center" mt={2}>
+                          <Button variant="outlined" onClick={handleLoadMore}>
+                            Load Extra 50
+                          </Button>
+                        </Box>
+                      )
+                    : null}
 
                   <Box textAlign="center" mt={2} mb={2}>
                     <Pagination
-                      count={Math.ceil(searchResults.length / itemsPerPage)}
+                      //   count={Math.ceil(searchResults.length / itemsPerPage)}
+                      count={Math.ceil(results.length / itemsPerPage)}
                       page={page}
                       onChange={handlePageChange}
                       showFirstButton
@@ -406,7 +450,8 @@ const SearchPage: React.FC = () => {
                     />
                   </Box>
 
-                  {searchResults.length > 0 &&
+                  {results.length > 0 &&
+                    paginatedResults.length > 0 && //change searchResults into results
                     // searchResults.slice(0, visibleCount)
                     paginatedResults.map((item, idx) => {
                       try {
@@ -441,19 +486,10 @@ const SearchPage: React.FC = () => {
                         return null;
                       }
                     })}
-
-                  {/* {searchResults.length > visibleCount && (
-                    <Box textAlign="center" mt={2} mb={2}>
-                      <Button variant="outlined" onClick={handleLoadMore}>
-                        Show {Math.min(10, searchResults.length - visibleCount)}{" "}
-                        more {isDataset ? "datasets" : "subjects"}
-                      </Button>
-                    </Box>
-                  )} */}
                 </>
               ) : (
                 <Typography sx={{ color: Colors.error }}>
-                  {searchResults?.msg === "empty output"
+                  {results?.msg === "empty output" //change searchResults into results
                     ? "No results found based on your criteria. Please adjust the filters and try again."
                     : "Something went wrong. Please try again later."}
                 </Typography>
