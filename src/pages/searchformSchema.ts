@@ -1,7 +1,6 @@
 import { JSONSchema7 } from "json-schema";
 
 export const baseSchema: JSONSchema7 = {
-  // title: "Metadata Search",
   title: "",
   type: "object",
   properties: {
@@ -9,35 +8,20 @@ export const baseSchema: JSONSchema7 = {
       title: "Search keyword",
       type: "string",
     },
-    // database: {
-    //   title: "Search database",
+    // dataset: {
+    //   title: "Search dataset",
     //   type: "string",
-    //   default: "any",
-    //   enum: [
-    //     "openneuro",
-    //     "abide",
-    //     "abide2",
-    //     "datalad-registry",
-    //     "adhd200",
-    //     "any",
-    //   ],
     // },
-
-    dataset: {
-      title: "Search dataset",
-      type: "string",
-    },
     limit: {
       type: "integer",
-      title: "Maximum number of results to return",
+      title: "Limit",
       minimum: 0,
-      // description: "Set the maximum number of results to return",
+      default: 50,
     },
     skip: {
       type: "integer",
-      title: "Skip the first N(number) results",
+      title: "Skip",
       minimum: 0,
-      // description: "Set a number N to skip the first N results",
     },
     subject_filters_toggle: {
       type: "null",
@@ -123,19 +107,18 @@ export const baseSchema: JSONSchema7 = {
       title: "Task keywords",
       type: "string",
     },
-    // session_name: {
-    //   title: "Session keywords",
-    //   type: "string",
-    // },
-    // run_name: {
-    //   title: "Run keywords",
-    //   type: "string",
-    // },
+    session_name: {
+      title: "Session keywords",
+      type: "string",
+    },
+    run_name: {
+      title: "Run keywords",
+      type: "string",
+    },
     type_name: {
       title: "Data type keywords",
       type: "string",
     },
-
     // count: {
     //   title: "Only return total counts",
     //   type: "boolean",
