@@ -40,6 +40,31 @@ interface InternalDataLink {
 	arraySize?: number[];
 }
 
+const transformJsonForDisplay = (obj: any): any => {
+	if (typeof obj !== "object" || obj === null) return obj;
+
+	const transformed: any = Array.isArray(obj) ? [] : {};
+
+	for (const key in obj) {
+		if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
+
+		const value = obj[key];
+
+		// Match README, CHANGES, or file extensions
+		const isLongTextKey = /^(README|CHANGES)$|\.md$|\.txt$|\.m$/i.test(key);
+
+		if (typeof value === "string" && isLongTextKey) {
+			transformed[key] = `<code class="puretext">${value}</code>`;
+		} else if (typeof value === "object") {
+			transformed[key] = transformJsonForDisplay(value);
+		} else {
+			transformed[key] = value;
+		}
+	}
+
+	return transformed;
+};
+
 const DatasetDetailPage: React.FC = () => {
 	const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
 	const navigate = useNavigate();
@@ -60,41 +85,46 @@ const DatasetDetailPage: React.FC = () => {
 	const [downloadScript, setDownloadScript] = useState<string>("");
 	const [previewIsInternal, setPreviewIsInternal] = useState(false);
 	const [isExternalExpanded, setIsExternalExpanded] = useState(true);
-	
+	const [expandedPaths, setExpandedPaths] = useState<string[]>([]);
+	const [originalTextMap, setOriginalTextMap] = useState<Map<HTMLElement, string>>(new Map());
+	const [jsonViewerKey, setJsonViewerKey] = useState(0);
+	const [jsonSize, setJsonSize] = useState<number>(0);
+	const [transformedDataset, setTransformedDataset] = useState<any>(null);
 
 
 	// Recursive function to find `_DataLink_`
 	const extractDataLinks = (obj: any, path: string): ExternalDataLink[] => {
 		const links: ExternalDataLink[] = [];
-
-		if (typeof obj === "object" && obj !== null) {
-			for (const key in obj) {
-				if (obj.hasOwnProperty(key)) {
-					if (key === "_DataLink_" && typeof obj[key] === "string") {
-						let correctedUrl = obj[key].replace(/:\$.*$/, "");
-
-						const sizeMatch = obj[key].match(/size=(\d+)/);
+	
+		const traverse = (node: any, currentPath: string) => {
+			if (typeof node === "object" && node !== null) {
+				for (const key in node) {
+					if (key === "_DataLink_" && typeof node[key] === "string") {
+						let correctedUrl = node[key].replace(/:\$.*$/, "");
+	
+						const sizeMatch = node[key].match(/size=(\d+)/);
 						const size = sizeMatch
 							? `${(parseInt(sizeMatch[1], 10) / 1024 / 1024).toFixed(2)} MB`
 							: "Unknown Size";
-
-						const subMatch = path.match(/sub-\d+/);
+	
+						const subMatch = currentPath.match(/sub-\d+/);
 						const subPath = subMatch ? subMatch[0] : "Unknown Sub";
-
+	
 						links.push({
-							name: `NIFTIData (${size}) [/${subPath}]`,
+							name: `${currentPath.split("/").pop() || "ExternalData"} (${size}) [/${subPath}]`,
 							size,
-							path: subPath,
+							path: currentPath,  // keep full JSON path for file placement
 							url: correctedUrl,
 							index: links.length,
 						});
-					} else if (typeof obj[key] === "object") {
-						links.push(...extractDataLinks(obj[key], `${path}/${key}`));
+					} else if (typeof node[key] === "object") {
+						traverse(node[key], `${currentPath}/${key}`);
 					}
 				}
 			}
-		}
-
+		};
+	
+		traverse(obj, path);
 		return links;
 	};
 
@@ -182,9 +212,24 @@ const DatasetDetailPage: React.FC = () => {
 	
 			setExternalLinks(links);
 			setInternalLinks(internalData);
+			const transformed = transformJsonForDisplay(datasetDocument);
+			setTransformedDataset(transformed);
 
-			// ✅ Construct download script dynamically
-			const script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"`;
+			const blob = new Blob([JSON.stringify(datasetDocument, null, 2)], { type: "application/json" });
+			setJsonSize(blob.size);
+
+			// // ✅ Construct download script dynamically
+			let script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"\n`;
+
+
+			externalLinks.forEach((link) => {
+				const url = link.url;
+				const match = url.match(/file=([^&]+)/);
+				const filename = match ? decodeURIComponent(match[1]) : `file-${link.index}`;
+				const outputPath = `$HOME/.neurojson/io/${dbName}/${docId}/${filename}`;
+
+				script += `curl -L --create-dirs "${url}" -o "${outputPath}"\n`;
+			});
 			setDownloadScript(script);
 		}
 	}, [datasetDocument]);	
@@ -194,10 +239,31 @@ const DatasetDetailPage: React.FC = () => {
 	
 
 	useEffect(() => {
-		if (searchTerm) {
-			highlightMatches(searchTerm);
-		}
-	}, [searchTerm, datasetDocument]); // ✅ Run search when dataset loads
+		highlightMatches(searchTerm);
+	  
+		// Cleanup to reset highlights when component re-renders or unmounts
+		return () => {
+		  document.querySelectorAll(".highlighted").forEach((el) => {
+			const element = el as HTMLElement;
+			const text = element.textContent || "";
+			element.innerHTML = text;
+			element.classList.remove("highlighted");
+		  });
+		};
+	}, [searchTerm, datasetDocument]);
+
+	useEffect(() => {
+		if (!transformedDataset) return;
+	
+		const spans = document.querySelectorAll(".string-value");
+	
+		spans.forEach((el) => {
+			if (el.textContent?.includes("<code class=\"puretext\">")) {
+				// Inject as HTML so it renders code block correctly
+				el.innerHTML = el.textContent ?? "";
+			}
+		});
+	}, [transformedDataset]);		
 	
 	const handleDownloadDataset = () => {
 		if (!datasetDocument) return;
@@ -230,22 +296,6 @@ const DatasetDetailPage: React.FC = () => {
 			urlMatch: /\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(dataOrUrl),
 		  });
 		  
-	
-		// if (isInternal) {
-		// 	try {
-		// 		// ✅ Create a writable deep copy to avoid modifying read-only properties
-		// 		const writableData = JSON.parse(JSON.stringify(dataOrUrl));
-	
-		// 		if (typeof (window as any).previewdata === "function") {
-		// 			console.log("✅ Calling previewdata() for internal data:", writableData);
-		// 			(window as any).previewdata(writableData, idx, false);  // ✅ Pass writable copy
-		// 		} else {
-		// 			console.error("❌ previewdata() is not defined!");
-		// 		}
-		// 	} catch (error) {
-		// 		console.error("❌ Error processing internal data:", error);
-		// 	}
-		// }
 		if (isInternal) {
 			try {
 			  // 🔐 Step 1: Ensure global intdata exists
@@ -304,67 +354,76 @@ const DatasetDetailPage: React.FC = () => {
 	};	
 	
 	const highlightMatches = (keyword: string) => {
-		if (!keyword.trim()) {
-			// ✅ Clear highlights when search is empty
-			document.querySelectorAll(".highlighted").forEach((el) => {
-				const element = el as HTMLElement;
-				if (element.dataset.originalText) {
-					element.innerText = element.dataset.originalText;
-				}
-				element.classList.remove("highlighted");
-			});
-			setMatches([]);
-			setHighlightedIndex(-1);
-			return;
-		}
-
-		const nodes: HTMLElement[] = [];
-		const elements = document.querySelectorAll(".react-json-view span"); // ✅ Select JSON values only
-
-		elements.forEach((el) => {
-			const element = el as HTMLElement;
-			if (!element.textContent) return; // Skip empty elements
-
-			const regex = new RegExp(`(${keyword})`, "gi");
-			const originalText = element.dataset.originalText || element.textContent;
-
-			if (originalText.toLowerCase().includes(keyword.toLowerCase())) {
-				if (!element.dataset.originalText) {
-					element.dataset.originalText = originalText;
-				}
-
-				// ✅ Safe highlight without breaking structure
-				element.innerHTML = originalText.replace(
-					regex,
-					`<mark class="highlighted" style="background-color: lightyellow; color: black;">$1</mark>`
-				);
-
-				nodes.push(element);
-			}
+		const spans = document.querySelectorAll(
+		  ".react-json-view span.string-value, .react-json-view span.object-key"
+		);
+	  
+		// Clean up all existing highlights
+		spans.forEach((el) => {
+		  const element = el as HTMLElement;
+		  if (originalTextMap.has(element)) {
+			element.innerHTML = originalTextMap.get(element)!; // Restore original HTML
+			element.classList.remove("highlighted");
+		  }
 		});
-
-		setMatches(nodes); // ✅ Store matches for "Find Next"
+	  
+		// Clear old state
+		setMatches([]);
 		setHighlightedIndex(-1);
+		setExpandedPaths([]);
+		setOriginalTextMap(new Map());
+	  
+		if (!keyword.trim() || keyword.length < 3) return;
+	  
+		const regex = new RegExp(`(${keyword})`, "gi");
+		const matchedElements: HTMLElement[] = [];
+		const matchedPaths: Set<string> = new Set();
+		const newOriginalMap = new Map<HTMLElement, string>();
+	  
+		spans.forEach((el) => {
+		  const element = el as HTMLElement;
+		  const original = element.innerHTML;
+		  const text = element.textContent || "";
+	  
+		  if (text.toLowerCase().includes(keyword.toLowerCase())) {
+			newOriginalMap.set(element, original); // Store original HTML
+			const highlighted = text.replace(
+			  regex,
+			  `<mark class="highlighted" style="background-color: yellow; color: black;">$1</mark>`
+			);
+			element.innerHTML = highlighted;
+			matchedElements.push(element);
+	  
+			const parent = element.closest(".variable-row");
+			const path = parent?.getAttribute("data-path");
+			if (path) matchedPaths.add(path);
+		  }
+		});
+	  
+		// Update state
+		setOriginalTextMap(newOriginalMap);
+		setMatches(matchedElements);
+		setExpandedPaths(Array.from(matchedPaths));
 	};
-
-
+	  
 	const findNext = () => {
 		if (matches.length === 0) return;
-
+	  
 		setHighlightedIndex((prevIndex) => {
-			const nextIndex = (prevIndex + 1) % matches.length;
-
-			matches.forEach((match) => {
-				match.style.backgroundColor = "lightyellow"; // Reset all highlights
-			});
-
-			matches[nextIndex].scrollIntoView({ behavior: "smooth", block: "center" });
-			matches[nextIndex].style.backgroundColor = "orange"; // Highlight current match
-
-			return nextIndex;
+		  const nextIndex = (prevIndex + 1) % matches.length;
+	  
+		  matches.forEach((match) => {
+			match.querySelector("mark")?.setAttribute("style", "background: yellow; color: black;");
+		  });
+	  
+		  const current = matches[nextIndex];
+		  current.scrollIntoView({ behavior: "smooth", block: "center" });
+	  
+		  current.querySelector("mark")?.setAttribute("style", "background: orange; color: black;");
+	  
+		  return nextIndex;
 		});
-	};
-	
+	};	  
 
 	if (loading) {
 		return (
@@ -392,6 +451,32 @@ const DatasetDetailPage: React.FC = () => {
 	}
 
 	return (
+		<>
+		{/* 🔧 Inline CSS for string formatting */}
+		<style>
+		{`
+		code.puretext {
+		white-space: pre-wrap;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 4;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		font-family: monospace;
+		color: #d14;
+		font-size: 14px;
+		background-color: transparent;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	code.puretext:hover, code.puretext:focus {
+		-webkit-line-clamp: unset;
+		overflow: visible;
+		background-color: #f0f0f0;
+	}`}
+
+    </style>
 		<Box sx={{ padding: 4 }}>
 			<Button
 				variant="contained"
@@ -403,12 +488,12 @@ const DatasetDetailPage: React.FC = () => {
 
 			<Box 
 				sx={{ 
-					position: "sticky", // ✅ Keeps title & search bar fixed
-					top: 0, // ✅ Sticks to the top
-					backgroundColor: "white", // ✅ Ensures smooth UI
-					zIndex: 10, // ✅ Keeps it above scrollable content
-					paddingBottom: 2, // ✅ Adds space for clarity
-					borderBottom: `1px solid ${Colors.lightGray}`, // ✅ Adds subtle separator
+					position: "sticky",
+					top: 0,
+					backgroundColor: "white",
+					zIndex: 10,
+					paddingBottom: 2,
+					borderBottom: `1px solid ${Colors.lightGray}`,
 				}}>
 
 				{/* ✅ Dataset Title (From dataset_description.json) */}
@@ -452,7 +537,7 @@ const DatasetDetailPage: React.FC = () => {
 
 					{/* Database Name (Clickable) */}
 					<Button
-						onClick={() => navigate(`/RoutesEnum.DATABASES/${dbName}`)}
+						onClick={() => navigate(`/databases/${dbName}`)}
 						sx={{
 							textTransform: "none",
 							fontSize: "1.2rem",
@@ -495,7 +580,8 @@ const DatasetDetailPage: React.FC = () => {
 							"&:hover": { backgroundColor: "#ff9100" },
 						}}
 					>
-						Download Dataset (1 Mb)
+						{/* Download Dataset (1 Mb) */}
+						Download Dataset ({(jsonSize / 1024).toFixed(0)} MB)
 						</Button>
 
 						<Button
@@ -508,7 +594,7 @@ const DatasetDetailPage: React.FC = () => {
 								"&:hover": { backgroundColor: "#ff9100" },
 							}}
 						>
-							Script to Download All Files (138 Bytes) (links: 0)
+							Script to Download All Files ({downloadScript.length} Bytes) (links: {externalLinks.length})
 						</Button>
 
 						<Box display="flex" alignItems="center" gap={1} sx={{ ml: "auto" }}>
@@ -520,7 +606,8 @@ const DatasetDetailPage: React.FC = () => {
 								onChange={handleSearch}
 								sx={{ width: "250px" }}
 							/>
-							<Button variant="contained" disabled>
+							<Button variant="contained" onClick={findNext}
+  								disabled={matches.length === 0}>
 								Find Next
 							</Button>
 						</Box>
@@ -531,511 +618,227 @@ const DatasetDetailPage: React.FC = () => {
   {/* ✅ JSON Viewer (left panel) */}
   <Box sx={{ flex: 3, backgroundColor: "#f5f5f5", padding: 2, borderRadius: "8px", overflowX: "auto" }}>
     <ReactJson
-      src={datasetDocument}
+      src={transformedDataset || datasetDocument}
       name={false}
       enableClipboard={true}
       displayDataTypes={false}
       displayObjectSize={true}
-      collapsed={1}
-      style={{ fontSize: "14px", fontFamily: "monospace" }}
+	  collapsed={searchTerm.length >= 3 ? false : 1} // 🔍 Expand during search    
+	  style={{ fontSize: "14px", fontFamily: "monospace" }}
     />
   </Box>
 
   {/* ✅ Data panels (right panel) */}
-  <Box sx={{ flex: 2, display: "flex", flexDirection: "column", gap: 2 }}>
-    {/* Internal Data Section */}
-    {/* <Box sx={{ backgroundColor: "#cdddf6", padding: 2, borderRadius: "8px" }}>
-      <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-        Internal Data ({internalLinks.length} objects)
-      </Typography>
-      {internalLinks.length > 0 ? (
-        internalLinks.map((link, index) => (
-          <Box key={index} sx={{ mt: 1, p: 1, bgcolor: "white", borderRadius: 1 }}>
-            <Typography>{link.name} [{link.arraySize?.join("x")}]</Typography>
-            <Button onClick={() => handlePreview(link.data, link.index, true)}>Preview</Button>
-          </Box>
-        ))
-      ) : (
-        <Typography sx={{ fontStyle: "italic", mt: 1 }}>No internal data found.</Typography>
-      )}
-    </Box> */}
+  <Box sx={{ width: "460px", minWidth: "360px", display: "flex", flexDirection: "column", gap: 2, }}>
+	<Box sx={{ backgroundColor: "#cdddf6", padding: 2, borderRadius: "8px", marginTop: 4 }}>
+		{/* ✅ Collapsible header */}
+		<Box
+			sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+			onClick={() => setIsInternalExpanded(!isInternalExpanded)}
+		>
+			<Typography variant="h6" sx={{ fontWeight: "bold" }}>
+			Internal Data ({internalLinks.length} objects)
+			</Typography>
+			{isInternalExpanded ? <ExpandLess /> : <ExpandMore />}
+		</Box>
 
-<Box sx={{ backgroundColor: "#cdddf6", padding: 2, borderRadius: "8px", marginTop: 4 }}>
-  {/* ✅ Collapsible header */}
-  <Box
-    sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
-    onClick={() => setIsInternalExpanded(!isInternalExpanded)}
-  >
-    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-      Internal Data ({internalLinks.length} objects)
-    </Typography>
-    {isInternalExpanded ? <ExpandLess /> : <ExpandMore />}
-  </Box>
-
-  <Collapse in={isInternalExpanded}>
-    {/* ✅ Scrollable area */}
-    <Box
-      sx={{
-        maxHeight: "400px",
-        overflowY: "auto",
-        marginTop: 2,
-        paddingRight: 1,
-        "&::-webkit-scrollbar": {
-          width: "6px",
-        },
-        "&::-webkit-scrollbar-thumb": {
-          backgroundColor: "#aaa",
-          borderRadius: "4px",
-        },
-      }}
-    >
-      {internalLinks.length > 0 ? (
-        internalLinks.map((link, index) => (
-          <Box
-            key={index}
-            sx={{
-              mt: 1,
-              p: 1.5,
-              bgcolor: "white",
-              borderRadius: 1,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 2,
-              border: "1px solid #bbb",
-            }}
-          >
-            <Typography sx={{ flexGrow: 1 }}>
-              {link.name} {link.arraySize ? `[${link.arraySize.join("x")}]` : ""}
-            </Typography>
-            <Button
-              variant="contained"
-              size="small"
-              sx={{ backgroundColor: "#1976d2" }}
-              onClick={() => handlePreview(link.data, link.index, true)}
-            >
-              Preview
-            </Button>
-          </Box>
-        ))
-      ) : (
-        <Typography sx={{ fontStyle: "italic", mt: 1 }}>No internal data found.</Typography>
-      )}
-    </Box>
-  </Collapse>
-</Box>
-
-    {/* External Data Section */}
-    {/* <Box sx={{ backgroundColor: "#eaeaea", padding: 2, borderRadius: "8px" }}>
-      <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-        External Data ({externalLinks.length} links)
-      </Typography>
-      {externalLinks.length > 0 ? (
-        externalLinks.map((link, index) => (
-          <Box key={index} sx={{ mt: 1, p: 1, bgcolor: "white", borderRadius: 1 }}>
-            <Typography>{link.name}</Typography>
-            <Button onClick={() => handlePreview(link.url, link.index, false)}>Preview</Button>
-          </Box>
-        ))
-      ) : (
-        <Typography sx={{ fontStyle: "italic", mt: 1 }}>No external links found.</Typography>
-      )}
-    </Box> */}
-	<Box sx={{ backgroundColor: "#eaeaea", padding: 2, borderRadius: "8px", marginTop: 4 }}>
-  {/* ✅ Header with toggle */}
-  <Box
-    sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
-    onClick={() => setIsExternalExpanded(!isExternalExpanded)}
-  >
-    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-      External Data ({externalLinks.length} links)
-    </Typography>
-    {isExternalExpanded ? <ExpandLess /> : <ExpandMore />}
-  </Box>
-
-  <Collapse in={isExternalExpanded}>
-    {/* ✅ Scrollable card container */}
-    <Box
-      sx={{
-        maxHeight: "400px",
-        overflowY: "auto",
-        marginTop: 2,
-        paddingRight: 1,
-        "&::-webkit-scrollbar": {
-          width: "6px",
-        },
-        "&::-webkit-scrollbar-thumb": {
-          backgroundColor: "#ccc",
-          borderRadius: "4px",
-        },
-      }}
-    >
-      {externalLinks.length > 0 ? (
-        externalLinks.map((link, index) => (
-          <Box
-            key={index}
-            sx={{
-              mt: 1,
-              p: 1.5,
-              bgcolor: "white",
-              borderRadius: 1,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 2,
-              border: "1px solid #ddd",
-            }}
-          >
-            <Typography sx={{ flexGrow: 1 }}>{link.name}</Typography>
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Button
-                variant="contained"
-                size="small"
-                sx={{ backgroundColor: "#1976d2" }}
-                onClick={() => window.open(link.url, "_blank")}
-              >
-                Download
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => handlePreview(link.url, link.index, false)}
-              >
-                Preview
-              </Button>
-            </Box>
-          </Box>
-        ))
-      ) : (
-        <Typography sx={{ fontStyle: "italic", mt: 1 }}>No external links found.</Typography>
-      )}
-    </Box>
-  </Collapse>
-</Box>
-  </Box>
-</Box>
-
-
-			{/* <Box
+		<Collapse in={isInternalExpanded}>
+				{/* ✅ Scrollable area */}
+				<Box
 				sx={{
-					backgroundColor: "#f5f5f5",
-					padding: 2,
-					borderRadius: "8px",
-					overflowX: "auto",
-					maxHeight: "calc(100vh - 150px)", // ✅ Adjusts height dynamically
-					boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+					maxHeight: "400px",
+					overflowY: "auto",
+					marginTop: 2,
+					paddingRight: 1,
+					"&::-webkit-scrollbar": {
+					width: "6px",
+					},
+					"&::-webkit-scrollbar-thumb": {
+					backgroundColor: "#aaa",
+					borderRadius: "4px",
+					},
 				}}
-			>
-				{datasetDocument ? (
-					<ReactJson
-						src={datasetDocument}
-						name={false}
-						enableClipboard={true}
-						displayDataTypes={false}
-						displayObjectSize={true}
-						collapsed={2}
-						style={{ fontSize: "14px", fontFamily: "monospace" }}
-					/>
-				) : (
-					<Typography sx={{ textAlign: "center", marginTop: 4 }}>
-						No data available for this dataset.
-					</Typography>
-				)}
-			</Box>
-			
-			{externalLinks.length > 0 && (
-				<Box sx={{ marginTop: 4 }}>
+				>
+				{internalLinks.length > 0 ? (
+					internalLinks.map((link, index) => (
 					<Box
-						onClick={() => setIsExpanded(!isExpanded)}
+						key={index}
 						sx={{
 							display: "flex",
 							alignItems: "center",
-							cursor: "pointer",
-							marginBottom: 2,
+							justifyContent: "space-between",
+							padding: "6px 10px",
+							backgroundColor: "white",
+							borderRadius: "4px",
+							border: "1px solid #ddd",
+							mt: 1,
+							height: "34px",
+							minWidth: 0,
+							fontSize: "0.85rem",
 						}}
 					>
-						<Typography
-							variant="h5"
-							color={Colors.primary.dark}
-							sx={{ marginRight: 1 }}
-						>
-							External Data ({externalLinks.length} links)
+						<Typography sx={{ 
+							flexGrow: 1, 
+							minWidth:0, 
+							whiteSpace: "nowrap", 
+							overflow: "hidden", 
+							textOverflow: "ellipsis",
+							fontSize: "1rem",
+							marginRight: "12px",
+							maxWidth: "calc(100% - 160px)",}} 
+							title={link.name}>
+						{link.name} {link.arraySize ? `[${link.arraySize.join("x")}]` : ""}
 						</Typography>
-						{isExpanded ? <ExpandLess /> : <ExpandMore />}
-					</Box>
-
-					<Collapse in={isExpanded}>
-						<Box
-							sx={{
-								backgroundColor: Colors.white,
-								border: `1px solid ${Colors.lightGray}`,
-								borderRadius: "8px",
-								padding: 2,
-								boxShadow: "0px 2px 4px rgba(0,0,0,0.05)",
-							}}
+						<Button
+						variant="contained"
+						size="small"
+						sx={{ backgroundColor: "#1976d2", flexShrink: 0,
+								minWidth: "70px",
+								fontSize: "0.7rem",
+								padding: "2px 6px",
+								lineHeight: 1,
+						 }}
+						onClick={() => handlePreview(link.data, link.index, true)}
 						>
-							<Box
-								sx={{
-									display: "flex",
-									justifyContent: "space-between",
-									alignItems: "center",
-									marginBottom: 2,
-									padding: "0 1rem",
-								}}
-							>
-								<Button
-									variant="contained"
-									sx={{
-										backgroundColor: Colors.primary.main,
-										"&:hover": {
-											backgroundColor: Colors.primary.dark,
-										},
-									}}
-									onClick={() =>
-										externalLinks.forEach((link) =>
-											window.open(link.url, "_blank")
-										)
-									}
-								>
-									Download All Files
-								</Button>
-								<Typography variant="body2" color={Colors.textSecondary}>
-									Total Size:{" "}
-									{externalLinks
-										.reduce((acc, link) => {
-											const sizeMatch = link.size.match(/(\d+(\.\d+)?)/);
-											const sizeInMB = sizeMatch ? parseFloat(sizeMatch[1]) : 0;
-											return acc + sizeInMB;
-										}, 0)
-										.toFixed(2)}{" "}
-									MB
-								</Typography>
-							</Box>
-
-							<Box
-								sx={{
-									maxHeight: "400px",
-									overflowY: "auto",
-									"&::-webkit-scrollbar": {
-										width: "8px",
-									},
-									"&::-webkit-scrollbar-track": {
-										background: Colors.lightGray,
-										borderRadius: "4px",
-									},
-									"&::-webkit-scrollbar-thumb": {
-										background: Colors.primary.light,
-										borderRadius: "4px",
-									},
-								}}
-							>
-								<Box
-									sx={{
-										display: "grid",
-										gridTemplateColumns: "repeat(3, 1fr)",
-										gap: 2,
-										padding: 1,
-									}}
-								>
-									{externalLinks.map((link, index) => (
-										<Box
-											key={index}
-											sx={{
-												padding: 2,
-												border: `1px solid ${Colors.lightGray}`,
-												borderRadius: "8px",
-												display: "flex",
-												flexDirection: "column",
-												justifyContent: "space-between",
-												backgroundColor: Colors.white,
-												"&:hover": {
-													backgroundColor: Colors.lightGray,
-												},
-											}}
-										>
-											<Box>
-												<Typography
-													color={Colors.textPrimary}
-													sx={{
-														fontWeight: 500,
-														fontFamily: theme.typography.fontFamily,
-													}}
-												>
-													{link.name}
-												</Typography>
-												<Typography
-													variant="body2"
-													color={Colors.textSecondary}
-													sx={{ fontFamily: theme.typography.fontFamily }}
-												>
-													Size: {link.size}
-												</Typography>
-											</Box>
-											<Box sx={{ display: "flex", gap: 1, marginTop: 2 }}>
-												<Button
-													variant="contained"
-													size="small"
-													sx={{
-														backgroundColor: Colors.primary.main,
-														"&:hover": {
-															backgroundColor: Colors.primary.dark,
-														},
-													}}
-													onClick={() => window.open(link.url, "_blank")}
-												>
-													Download
-												</Button>
-												<Button
-													variant="outlined"
-													size="small"
-													sx={{
-														color: Colors.secondary.main,
-														borderColor: Colors.secondary.main,
-														"&:hover": {
-															borderColor: Colors.secondary.dark,
-															color: Colors.secondary.dark,
-														},
-													}}
-													// onClick={() => console.log("preview")}
-													onClick={() => window.open(link.url)}
-												>
-											
-													View
-												</Button>
-												<Button
-													variant="outlined"
-													size="small"
-													sx={{
-														color: Colors.primary.main,
-														borderColor: Colors.primary.main,
-														"&:hover": {
-															borderColor: Colors.primary.dark,
-															color: Colors.primary.dark,
-														},
-													}}
-													onClick={() => handlePreview(link.url, link.index, false)}  // ✅ Ensure `idx` is dynamically set
-
-												>
-													Preview
-												</Button>
-											</Box>
-										</Box>
-									))}
-								</Box>
-							</Box>
-						</Box>
-					</Collapse>
+						Preview
+						</Button>
+					</Box>
+					))
+				) : (
+					<Typography sx={{ fontStyle: "italic", mt: 1 }}>No internal data found.</Typography>
+				)}
 				</Box>
-			)}
-			
-			{internalLinks.length > 0 && (
-    <Box sx={{ marginTop: 4 }}>
-        <Box
-            onClick={() => setIsInternalExpanded(!isInternalExpanded)}
-            sx={{
-                display: "flex",
-                alignItems: "center",
-                cursor: "pointer",
-                marginBottom: 2,
-            }}
-        >
-            <Typography variant="h5" color={Colors.primary.dark} sx={{ marginRight: 1 }}>
-                Internal Data ({internalLinks.length} objects)
-            </Typography>
-            {isInternalExpanded ? <ExpandLess /> : <ExpandMore />}
-        </Box>
+		</Collapse>
+				</Box>
+					<Box sx={{ backgroundColor: "#eaeaea", padding: 2, borderRadius: "8px", marginTop: 4 }}>
+						{/* ✅ Header with toggle */}
+						<Box
+							sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+							onClick={() => setIsExternalExpanded(!isExternalExpanded)}
+						>
+							<Typography variant="h6" sx={{ fontWeight: "bold" }}>
+							External Data ({externalLinks.length} links)
+							</Typography>
+							{isExternalExpanded ? <ExpandLess /> : <ExpandMore />}
+						</Box>
 
-        <Collapse in={isInternalExpanded} timeout="auto" unmountOnExit>
-            <Box
-                sx={{
-                    backgroundColor: Colors.white,
-                    border: `1px solid ${Colors.lightGray}`,
-                    borderRadius: "8px",
-                    padding: 2,
-                    boxShadow: "0px 2px 4px rgba(0,0,0,0.05)",
-                }}
-            >
-                <Box
-                    sx={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(3, 1fr)",
-                        gap: 2,
-                        padding: 1,
-                    }}
-                >
-                    {internalLinks.map((link, index) => (
-                        <Box
-                            key={index}
-                            sx={{
-                                padding: 2,
-                                border: `1px solid ${Colors.lightGray}`,
-                                borderRadius: "8px",
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "space-between",
-                                backgroundColor: Colors.white,
-                                "&:hover": {
-                                    backgroundColor: Colors.lightGray,
-                                },
-                            }}
-                        >
-                            <Box>
-                                <Typography color={Colors.textPrimary} sx={{ fontWeight: 500 }}>
-                                    {link.name}
-                                </Typography>
-                                <Typography variant="body2" color={Colors.textSecondary}>
-                                    Index: {link.index}
-                                </Typography>
-                            </Box>
-                            <Box sx={{ display: "flex", gap: 1, marginTop: 2 }}>
-                                <Button
-                                    variant="contained"
-                                    size="small"
-                                    sx={{
-                                        backgroundColor: Colors.primary.main,
-                                        "&:hover": {
-                                            backgroundColor: Colors.primary.dark,
-                                        },
-                                    }}
-                                    onClick={() => handlePreview(link.data, link.index, true)}
-                                >
-                                    Preview
-                                </Button>
-                            </Box>
-                        </Box>
-                    ))}
-                </Box>
-            </Box>
-        </Collapse>
-    </Box>
-)} */}
+						<Collapse in={isExternalExpanded}>
+							{/* ✅ Scrollable card container */}
+							<Box
+							sx={{
+								maxHeight: "400px",
+								overflowY: "auto",
+								marginTop: 2,
+								paddingRight: 1,
+								"&::-webkit-scrollbar": {
+								width: "6px",
+								},
+								"&::-webkit-scrollbar-thumb": {
+								backgroundColor: "#ccc",
+								borderRadius: "4px",
+								},
+							}}
+							>
+							{externalLinks.length > 0 ? (
+								externalLinks.map((link, index) => {
+								
+								const match = link.url.match(/file=([^&]+)/);
+								const fileName = match ? match[1] : "";
+								const isPreviewable = /\.(nii(\.gz)?|bnii|jdt|jdb|jmsh|bmsh)$/i.test(fileName);
 
+								return (	
+								<Box
+									key={index}
+									sx={{
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "space-between",
+										padding: "6px 10px",
+										backgroundColor: "white",
+										borderRadius: "4px",
+										border: "1px solid #ddd",
+										mt: 1,
+										height: "34px",
+										minWidth: 0,
+										fontSize: "0.85rem",
+									}}
+								>
+									<Typography
+										sx={{
+											flexGrow: 1,
+											whiteSpace: "nowrap",
+											overflow: "hidden",
+											textOverflow: "ellipsis",
+											minWidth: 0,
+        									fontSize: "1rem",
+											marginRight: "12px",
+    										maxWidth: "calc(100% - 160px)",
+										}}
+										title={link.name}
+										>
+										{link.name}
+									</Typography>
+									<Box sx={{ display: "flex", flexShrink: 0, gap: 1 }}>
+									<Button
+										variant="contained"
+										size="small"
+										sx={{ backgroundColor: "#1976d2", 
+											minWidth: "70px",
+											fontSize: "0.7rem",
+											padding: "2px 6px",
+											lineHeight: 1,}}
+										onClick={() => window.open(link.url, "_blank")}
+									>
+										Download
+									</Button>
+									{isPreviewable && (
+										<Button
+											variant="outlined"
+											size="small"
+											sx={{ 
+												minWidth: "65px",
+												fontSize: "0.7rem",
+												padding: "2px 6px",
+												lineHeight: 1,
+											  }}
+											onClick={() => handlePreview(link.url, link.index, false)}
+										>
+											Preview
+										</Button>
+									)}
+									</Box>
+								</Box>
+							);
+							})
+							) : (
+								<Typography sx={{ fontStyle: "italic", mt: 1 }}>No external links found.</Typography>
+							)}
+							</Box>
+						</Collapse>
+					</Box>
+				</Box>
+				</Box>
+					{/* ✅ ADD FLASHCARDS COMPONENT HERE ✅ */}
 
+					<div id="chartpanel"></div>
 
-			{/* ✅ ADD FLASHCARDS COMPONENT HERE ✅ */}
-
-			<div id="chartpanel"></div>
-
-			<DatasetFlashcards
-				pagename={docId ?? ""}
-				docname={datasetDocument?.Name || ""}
-				dbname={dbName || ""}
-				serverUrl={"https://neurojson.io:7777/"}
-				datasetDocument={datasetDocument} 
-				onekey={"dataset_description.json"} 
-			/>
-			{/* Preview Modal Component - Add Here */}
-			<PreviewModal
-      			isOpen={previewOpen}
-				dataKey={previewDataKey}
-				isInternal={previewIsInternal}
-				onClose={handleClosePreview}
-    		/>
-			{/* <div id="chartpanel" style={{ display: "none" }}></div> */}
+					<DatasetFlashcards
+						pagename={docId ?? ""}
+						docname={datasetDocument?.Name || ""}
+						dbname={dbName || ""}
+						serverUrl={"https://neurojson.io:7777/"}
+						datasetDocument={datasetDocument} 
+						onekey={"dataset_description.json"} 
+					/>
+					{/* Preview Modal Component - Add Here */}
+					<PreviewModal
+						isOpen={previewOpen}
+						dataKey={previewDataKey}
+						isInternal={previewIsInternal}
+						onClose={handleClosePreview}
+					/>
 		</Box>
-	);
-};
+		</>
+	)};
 
 export default DatasetDetailPage;
