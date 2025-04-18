@@ -107,6 +107,10 @@ export const baseSchema: JSONSchema7 = {
       title: "Task keywords",
       type: "string",
     },
+    type_name: {
+      title: "Data type keywords",
+      type: "string",
+    },
     session_name: {
       title: "Session keywords",
       type: "string",
@@ -115,10 +119,7 @@ export const baseSchema: JSONSchema7 = {
       title: "Run keywords",
       type: "string",
     },
-    type_name: {
-      title: "Data type keywords",
-      type: "string",
-    },
+
     // count: {
     //   title: "Only return total counts",
     //   type: "boolean",
