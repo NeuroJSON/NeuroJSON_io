@@ -1,4 +1,5 @@
 import { generateSchemaWithDatabaseEnum } from "./searchformSchema";
+import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
 import {
   Typography,
   Container,
@@ -14,6 +15,7 @@ import SubjectCard from "components/SearchPage/SubjectCard";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
+import pako from "pako";
 import React from "react";
 import { useState, useEffect, useMemo } from "react";
 import {
@@ -40,6 +42,41 @@ const SearchPage: React.FC = () => {
   >([]);
   const [skip, setSkip] = useState(0);
   const [page, setPage] = useState(1);
+  const [queryLink, setQueryLink] = useState("");
+
+  // parse query from url on page load
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith("#query=")) {
+      const encoded = hash.replace("#query=", "");
+      try {
+        const decoded = pako.inflate(
+          Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0)),
+          { to: "string" }
+        );
+        const parsed = JSON.parse(decoded);
+        setFormData(parsed);
+        const requestData = { ...parsed, skip: 0 };
+        setSkip(0);
+        setHasSearched(true);
+        dispatch(fetchMetadataSearchResults(requestData)).then((res: any) => {
+          if (res.payload) {
+            setResults(res.payload);
+          }
+        });
+      } catch (e) {
+        console.error("Failed to parse query from URL", e);
+      }
+    }
+  }, [dispatch]);
+
+  // generate a direct link to the query
+  const updateQueryLink = (queryData: Record<string, any>) => {
+    const deflated = pako.deflate(JSON.stringify(queryData));
+    const encoded = btoa(String.fromCharCode(...deflated));
+    const link = `${window.location.origin}${window.location.pathname}#query=${encoded}`;
+    setQueryLink(link);
+  };
 
   // setting pagination
   const itemsPerPage = 10;
@@ -50,10 +87,6 @@ const SearchPage: React.FC = () => {
   ) => {
     setPage(value);
   };
-
-  //   const paginatedResults = Array.isArray(searchResults)
-  //     ? searchResults.slice((page - 1) * itemsPerPage, page * itemsPerPage)
-  //     : [];
 
   const paginatedResults = Array.isArray(results)
     ? results.slice((page - 1) * itemsPerPage, page * itemsPerPage)
@@ -168,6 +201,16 @@ const SearchPage: React.FC = () => {
           ? activeStyle
           : {}
         : hiddenStyle,
+      session_name: showSubjectFilters
+        ? formData["session_name"]
+          ? activeStyle
+          : {}
+        : hiddenStyle,
+      run_name: showSubjectFilters
+        ? formData["run_name"]
+          ? activeStyle
+          : {}
+        : hiddenStyle,
 
       "ui:submitButtonOptions": {
         props: {
@@ -209,18 +252,18 @@ const SearchPage: React.FC = () => {
   };
 
   // print the result in dev tool
-  if (Array.isArray(searchResults)) {
-    searchResults.forEach((item, idx) => {
-      try {
-        const parsed = JSON.parse(item.json);
-        console.log(`Result #${idx}:`, { ...item, parsedJson: parsed });
-      } catch (e) {
-        console.error(`Failed to parse JSON for item #${idx}`, e);
-      }
-    });
-  } else {
-    console.warn("searchResults is not an array:", searchResults);
-  }
+  //   if (Array.isArray(searchResults)) {
+  //     searchResults.forEach((item, idx) => {
+  //       try {
+  //         const parsed = JSON.parse(item.json);
+  //         console.log(`Result #${idx}:`, { ...item, parsedJson: parsed });
+  //       } catch (e) {
+  //         console.error(`Failed to parse JSON for item #${idx}`, e);
+  //       }
+  //     });
+  //   } else {
+  //     console.warn("searchResults is not an array:", searchResults);
+  //   }
 
   // determine the results are subject-level or dataset-level
   let isDataset: boolean | null = null;
@@ -249,7 +292,6 @@ const SearchPage: React.FC = () => {
 
   // submit function
   const handleSubmit = ({ formData }: any) => {
-    // dispatch(fetchMetadataSearchResults(formData));
     const requestData = { ...formData, skip: 0 };
     setFormData(requestData);
     setSkip(0);
@@ -258,6 +300,7 @@ const SearchPage: React.FC = () => {
     });
     setHasSearched(true);
     setPage(1);
+    updateQueryLink(formData);
   };
 
   // reset function
@@ -313,6 +356,21 @@ const SearchPage: React.FC = () => {
             minWidth: "35%",
           }}
         >
+          {queryLink && (
+            <Box mt={2}>
+              <a
+                href={queryLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ textDecoration: "none", color: Colors.purple }}
+              >
+                <Box component="span" display="inline-flex" alignItems="center">
+                  Direct Link to This Query
+                  <ArrowCircleRightIcon sx={{ marginLeft: 0.5 }} />
+                </Box>
+              </a>
+            </Box>
+          )}
           <Box
             sx={{
               display: "flex",
@@ -397,15 +455,14 @@ const SearchPage: React.FC = () => {
                     Loading search results...
                   </Typography>
                 </Box>
-              ) : Array.isArray(results) ? ( // change searchResults into results
+              ) : Array.isArray(results) ? (
                 <>
                   <Typography
                     variant="h6"
                     sx={{ borderBottom: "1px solid lightgray", mb: 2 }}
                   >
-                    {results.length > 0 //change searchResults into results
+                    {results.length > 0
                       ? `Showing ${results.length} ${
-                          //change searchResults into results
                           isDataset ? "Datasets" : "Subjects"
                         }`
                       : `No matching ${
@@ -424,7 +481,6 @@ const SearchPage: React.FC = () => {
 
                   <Box textAlign="center" mt={2} mb={2}>
                     <Pagination
-                      //   count={Math.ceil(searchResults.length / itemsPerPage)}
                       count={Math.ceil(results.length / itemsPerPage)}
                       page={page}
                       onChange={handlePageChange}
@@ -451,8 +507,7 @@ const SearchPage: React.FC = () => {
                   </Box>
 
                   {results.length > 0 &&
-                    paginatedResults.length > 0 && //change searchResults into results
-                    // searchResults.slice(0, visibleCount)
+                    paginatedResults.length > 0 &&
                     paginatedResults.map((item, idx) => {
                       try {
                         const parsedJson = JSON.parse(item.json);
@@ -489,7 +544,7 @@ const SearchPage: React.FC = () => {
                 </>
               ) : (
                 <Typography sx={{ color: Colors.error }}>
-                  {results?.msg === "empty output" //change searchResults into results
+                  {results?.msg === "empty output"
                     ? "No results found based on your criteria. Please adjust the filters and try again."
                     : "Something went wrong. Please try again later."}
                 </Typography>
