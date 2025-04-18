@@ -2,6 +2,7 @@ import {
   fetchDbInfo,
   loadPaginatedData,
 } from "../redux/neurojson/neurojson.action";
+import { Row } from "../redux/neurojson/types/neurojson.interface";
 import {
   Box,
   Typography,
@@ -33,8 +34,10 @@ const DatasetPage: React.FC = () => {
   const { loading, error, data, limit, hasMore } = useAppSelector(
     (state: { neurojson: any }) => state.neurojson
   );
-  const [currentOffset, setCurrentOffset] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const totalPages = Math.ceil(limit / pageSize);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (dbName) {
@@ -42,42 +45,78 @@ const DatasetPage: React.FC = () => {
       dispatch(
         loadPaginatedData({
           dbName: dbName.toLowerCase(),
-          offset: 0,
+          offset: (currentPage - 1) * pageSize,
           limit: pageSize,
         })
       );
     }
-  }, [dbName, dispatch, pageSize]);
+  }, [dbName, dispatch, currentPage, pageSize]);
 
-  const loadMoreData = () => {
-    if (dbName && !loading) {
-      const nextOffset = currentOffset + pageSize;
-      setCurrentOffset(nextOffset);
-      dispatch(
-        loadPaginatedData({
-          dbName: dbName.toLowerCase(),
-          offset: nextOffset,
-          limit: pageSize,
-        })
-      );
-    }
+  const handlePageChange = (page: number) => {
+    if (!dbName || loading) return;
+  
+    setCurrentPage(page);
+    dispatch(loadPaginatedData({
+      dbName: dbName.toLowerCase(),
+      offset: (page - 1) * pageSize,
+      limit: pageSize,
+    }));
   };
 
   const handlePageSizeChange = (event: any) => {
     setPageSize(event.target.value);
-    setCurrentOffset(0); // Reset offset when changing page size
+    setCurrentPage(1); // Reset offset when changing page size
   };
+
+  const getVisiblePageNumbers = () => {
+    const visiblePages: (number | string)[] = [];
+    const maxVisible = 6;
+  
+    if (totalPages <= maxVisible + 2) {
+      for (let i = 1; i <= totalPages; i++) visiblePages.push(i);
+    } else {
+      const start = Math.max(2, currentPage - 2);
+      const end = Math.min(totalPages - 1, currentPage + 2);
+  
+      visiblePages.push(1);
+      if (start > 2) visiblePages.push("...");
+  
+      for (let i = start; i <= end; i++) visiblePages.push(i);
+      if (end < totalPages - 1) visiblePages.push("...");
+  
+      visiblePages.push(totalPages);
+    }
+  
+    return visiblePages;
+  };
+
+  const handlePrevNextPage = (direction: "prev" | "next") => {
+    if (direction === "prev" && currentPage > 1) {
+      handlePageChange(currentPage - 1);
+    } else if (direction === "next" && currentPage < totalPages) {
+      handlePageChange(currentPage + 1);
+    }
+  };
+
+  const filteredData = data.filter((doc: Row) =>
+    (doc.value.name || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+  );  
 
   return (
     <Box sx={{ padding: { xs: 2, md: 4 } }}>
       <Box
         sx={{
           display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
           alignItems: "center",
           gap: 2,
-          justifyContent: "space-between",
+          mb: 3,
         }}
       >
+        {/* Left: Title */}
         <Typography
           variant="h1"
           gutterBottom
@@ -90,67 +129,146 @@ const DatasetPage: React.FC = () => {
           Database: {dbName || "N/A"}
         </Typography>
 
-        <Box sx={{ mb: 3, display: "flex", alignItems: "center" }}>
+        {/* Right: Total + Dropdown + Pagination */}
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 3 }}>
+          {/* Left: Total datasets */}
+        <Typography
+          sx={{
+            fontWeight: 600,
+            fontSize: "1.2rem",
+            color: Colors.white,
+          }}
+        >
+          Total datasets: {limit}
+        </Typography>
+
+        {/* Search in page input */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Typography sx={{ fontWeight: 500, fontSize: "1rem", color: Colors.white }}>
+            Search in page:
+          </Typography>
+          <input
+            type="text"
+            placeholder="Filter results in this page"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              padding: "6px 10px",
+              borderRadius: "4px",
+              border: `2px solid ${Colors.primary.main}`,
+              fontSize: "0.95rem",
+              minWidth: "200px",
+            }}
+          />
+        </Box>
+
+        {/* Right: Label + Select in one line */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+          }}
+        >
+        </Box>
+        <Typography sx={{ fontWeight: 500, fontSize: "1rem", color: Colors.white, minWidth: "150px", }}>
+          Dataset per page:
+        </Typography>
+          {/* Dataset per page dropdown */}
           <FormControl
             size="small"
             sx={{
-              minWidth: 150,
+              minWidth: 160,
               backgroundColor: Colors.white,
               borderRadius: 1,
               boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
               "& .MuiInputLabel-root": {
                 color: Colors.textSecondary,
                 fontWeight: 500,
+                zIndex: 1, // ✅ ensures label is above the select box
               },
               "& .MuiOutlinedInput-root": {
-                transition: "all 0.2s ease-in-out",
                 "& fieldset": {
                   borderColor: Colors.primary.main,
-                  borderWidth: 2,
                 },
-                "&:hover fieldset": {
-                  borderColor: Colors.primary.dark,
-                  borderWidth: 2,
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: Colors.primary.dark,
-                  borderWidth: 2,
-                },
-              },
+              }, 
             }}
-          >
-            <InputLabel>Items per page</InputLabel>
+            >
             <Select
               value={pageSize}
-              label="Items per page"
+              label="Dataset per page"
               onChange={handlePageSizeChange}
               sx={{
-                color: Colors.textPrimary,
                 fontWeight: 500,
                 "& .MuiSelect-icon": {
                   color: Colors.primary.main,
-                  transition: "transform 0.2s ease-in-out",
-                },
-                "&:hover .MuiSelect-icon": {
-                  transform: "rotate(180deg)",
-                  color: Colors.primary.dark,
                 },
               }}
             >
-              <MenuItem value={10} sx={{ fontWeight: 500 }}>
-                10 items
-              </MenuItem>
-              <MenuItem value={25} sx={{ fontWeight: 500 }}>
-                25 items
-              </MenuItem>
-              <MenuItem value={50} sx={{ fontWeight: 500 }}>
-                50 items
-              </MenuItem>
-              <MenuItem value={100} sx={{ fontWeight: 500 }}>
-                100 items
-              </MenuItem>
+              <MenuItem value={10}>10</MenuItem>
+              <MenuItem value={25}>25</MenuItem>
+              <MenuItem value={50}>50</MenuItem>
+              <MenuItem value={100}>100</MenuItem>
             </Select>
           </FormControl>
+
+          {/* Pagination buttons */}
+          {!loading && (
+            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+              <Button
+                onClick={() => handlePrevNextPage("prev")}
+                disabled={currentPage === 1}
+                sx={{
+                  minWidth: "36px",
+                  backgroundColor: Colors.primary.main,
+                  color: "white",
+                  "&:disabled": { backgroundColor: "#ccc" },
+                }}
+              >
+                &lt;
+              </Button>
+
+              {getVisiblePageNumbers().map((item, idx) =>
+                item === "..." ? (
+                  <Typography
+                    key={idx}
+                    sx={{ px: 1.5, fontSize: "1rem", color: Colors.textSecondary }}
+                  >
+                    ...
+                  </Typography>
+                ) : (
+                  <Button
+                    key={item}
+                    variant={item === currentPage ? "contained" : "outlined"}
+                    onClick={() => handlePageChange(Number(item))}
+                    sx={{
+                      minWidth: "36px",
+                      padding: "4px 8px",
+                      fontWeight: item === currentPage ? "bold" : "normal",
+                      backgroundColor: item === currentPage ? Colors.primary.main : "white",
+                      color: item === currentPage ? "white" : Colors.primary.main,
+                      borderColor: Colors.primary.main,
+                    }}
+                  >
+                    {item}
+                  </Button>
+                )
+              )}
+
+              <Button
+                onClick={() => handlePrevNextPage("next")}
+                disabled={currentPage === totalPages}
+                sx={{
+                  minWidth: "36px",
+                  backgroundColor: Colors.primary.main,
+                  color: "white",
+                  "&:disabled": { backgroundColor: "#ccc" },
+                }}
+              >
+                &gt;
+              </Button>
+            </Box>
+          )}
         </Box>
       </Box>
 
@@ -176,34 +294,50 @@ const DatasetPage: React.FC = () => {
         />
       )}
 
-      {!loading && !error && data.length > 0 && (
-        <Grid container spacing={3}>
-          {data.map((doc: any) => (
-            <Grid item xs={12} sm={6} key={doc.id}>
-              <Card
-                sx={{
-                  backgroundColor: Colors.white,
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <CardContent sx={{ flex: 1 }}>
-                  <Button
-                    onClick={() =>
-                      navigate(`${RoutesEnum.DATABASES}/${dbName}/${doc.id}`)
-                    }
-                    sx={{
-                      fontSize: "1.25rem",
-                      margin: 0,
-                      color: Colors.primary.main,
-                      textTransform: "none",
-                      justifyContent: "flex-start",
-                    }}
-                  >
-                    {doc.value.name || "Untitled"}
-                  </Button>
+			{!loading && !error && data.length > 0 && (
+				<Grid container spacing={3}>
+					{filteredData.map((doc: any, index: number ) => {
+            const datasetIndex = (currentPage - 1) * pageSize + index + 1;
+            return (
+						<Grid item xs={12} sm={6} key={doc.id}>
+							<Card
+								sx={{
+                  position: "relative", // ✅ allows absolute positioning of the number
+									backgroundColor: Colors.white,
+									boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+									height: "100%",
+									display: "flex",
+									flexDirection: "column",
+								}}
+							>
+                {/* Dataset index number on top-right corner */}
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: 8,
+                    right: 12,
+                    fontSize: "2rem",
+                    fontWeight: "bold",
+                    color: "rgba(0, 0, 0, 0.36)",
+                  }}
+                >
+                  {datasetIndex}
+                </Box>
+								<CardContent sx={{ flex: 1 }}>
+									<Button
+										onClick={() =>
+											navigate(`${RoutesEnum.DATABASES}/${encodeURIComponent(dbName ?? '')}/${encodeURIComponent(doc.id ?? '')}`)
+										}
+										sx={{
+											fontSize: "1.25rem",
+											margin: 0,
+											color: Colors.primary.main,
+											textTransform: "none",
+											justifyContent: "flex-start",
+										}}
+									>
+										{doc.value.name || "Untitled"}
+									</Button>
 
                   <Typography
                     color={Colors.textSecondary}
@@ -281,7 +415,8 @@ const DatasetPage: React.FC = () => {
                 </CardContent>
               </Card>
             </Grid>
-          ))}
+          )
+          })}
         </Grid>
       )}
 
@@ -295,28 +430,8 @@ const DatasetPage: React.FC = () => {
           No database information available.
         </Typography>
       )}
-
-      {!loading && (
-        <Box sx={{ textAlign: "center", mt: 3 }}>
-          <Button
-            variant="contained"
-            onClick={loadMoreData}
-            disabled={data.length >= limit}
-            sx={{
-              backgroundColor: Colors.primary.main,
-              color: Colors.white,
-              "&:hover": {
-                backgroundColor: Colors.primary.dark,
-              },
-            }}
-          >
-            Load More ({data.length} of {limit} items)
-            {data.length >= limit && " - Limit Reached"}
-          </Button>
-        </Box>
-      )}
-    </Box>
-  );
+		</Box>
+	);
 };
 
 export default DatasetPage;
