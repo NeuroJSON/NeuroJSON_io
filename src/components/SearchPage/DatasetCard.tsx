@@ -67,9 +67,8 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
         >
           {name || "Untitled Dataset"}
         </Typography>
-
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Dataset Number: {dsname}
+        <Typography>
+          Database: {dbname} &nbsp;&nbsp;|&nbsp;&nbsp; Dataset Number: {dsname}
         </Typography>
 
         <Stack spacing={2} margin={1}>
@@ -110,8 +109,6 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
             {info?.Authors?.length && (
               <Typography variant="body2" mt={1}>
-                {/* <strong>Authors:</strong> */}
-                {/* {info?.Authors?.join(", ")} */}
                 {info?.Authors && (
                   <Typography variant="body2" mt={1}>
                     <strong>Authors:</strong>{" "}
