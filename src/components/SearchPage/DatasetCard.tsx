@@ -110,7 +110,18 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
             {info?.Authors?.length && (
               <Typography variant="body2" mt={1}>
-                <strong>Authors:</strong> {info?.Authors?.join(", ")}
+                {/* <strong>Authors:</strong> */}
+                {/* {info?.Authors?.join(", ")} */}
+                {info?.Authors && (
+                  <Typography variant="body2" mt={1}>
+                    <strong>Authors:</strong>{" "}
+                    {Array.isArray(info.Authors)
+                      ? info.Authors.join(", ")
+                      : typeof info.Authors === "string"
+                      ? info.Authors
+                      : "N/A"}
+                  </Typography>
+                )}
               </Typography>
             )}
           </Stack>

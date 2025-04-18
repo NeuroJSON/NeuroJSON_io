@@ -252,18 +252,18 @@ const SearchPage: React.FC = () => {
   };
 
   // print the result in dev tool
-  //   if (Array.isArray(searchResults)) {
-  //     searchResults.forEach((item, idx) => {
-  //       try {
-  //         const parsed = JSON.parse(item.json);
-  //         console.log(`Result #${idx}:`, { ...item, parsedJson: parsed });
-  //       } catch (e) {
-  //         console.error(`Failed to parse JSON for item #${idx}`, e);
-  //       }
-  //     });
-  //   } else {
-  //     console.warn("searchResults is not an array:", searchResults);
-  //   }
+  if (Array.isArray(searchResults)) {
+    searchResults.forEach((item, idx) => {
+      try {
+        const parsed = JSON.parse(item.json);
+        console.log(`Result #${idx}:`, { ...item, parsedJson: parsed });
+      } catch (e) {
+        console.error(`Failed to parse JSON for item #${idx}`, e);
+      }
+    });
+  } else {
+    console.warn("searchResults is not an array:", searchResults);
+  }
 
   // determine the results are subject-level or dataset-level
   let isDataset: boolean | null = null;
