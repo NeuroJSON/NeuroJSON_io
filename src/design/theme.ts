@@ -28,9 +28,12 @@ export const Colors = {
   yellow: "#FFDD31",
   lightYellow: "#FAEBD7",
   purple: "#5865F2",
+  secondaryPurple: "#4a4cb7",
   darkPurple: "#282C56",
   orange: "#FF9F2F",
   darkOrange: "#E88C25",
+  blue: "#1976d2",
+  lightBlue: "#e8f0fe",
   primary,
   secondary,
 };
