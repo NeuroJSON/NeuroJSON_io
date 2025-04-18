@@ -2,7 +2,7 @@
 # yarn lockfile v1
 
 
-"3d-force-graph@^1.73.4":
+"3d-force-graph@1.74.6", "3d-force-graph@^1.73.4":
   version "1.74.6"
   resolved "https://registry.yarnpkg.com/3d-force-graph/-/3d-force-graph-1.74.6.tgz#5abdc9bdea97ea39e035e9177445cfdc654afc52"
   integrity sha512-zqrezA+dMdv8r70/adG2NneeNsnZnchLXAjFNWso1XLhGXiUsPvwy5/mtxtBQjdVI9sc8yAs1u8hMX+sWxz8rg==
@@ -3160,7 +3160,7 @@ ajv@^6.12.2, ajv@^6.12.4, ajv@^6.12.5:
     json-schema-traverse "^0.4.1"
     uri-js "^4.2.2"
 
-ajv@^8, ajv@^8.0.0, ajv@^8.6.0, ajv@^8.9.0:
+ajv@^8, ajv@^8.0.0, ajv@^8.12.0, ajv@^8.6.0, ajv@^8.9.0:
   version "8.17.1"
   resolved "https://registry.yarnpkg.com/ajv/-/ajv-8.17.1.tgz#37d9a5c776af6bc92d7f4f9510eba4c0a60d11a6"
   integrity sha512-B/gBuNg5SiMTrPkC+A2+cW0RszwxYmn6VYxB/inlBStS5nx6xHIt/ehKRhIMhqusl7a8LjQoZnjCs5vhwxOQ1g==
@@ -7867,12 +7867,7 @@ mz@^2.7.0:
     object-assign "^4.0.1"
     thenify-all "^1.0.0"
 
-nanoid@^3.3.7:
-  version "3.3.11"
-  resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-3.3.11.tgz#4f4f112cefbe303202f2199838128936266d185b"
-  integrity sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==
-
-nanoid@^3.3.8:
+nanoid@^3.3.7, nanoid@^3.3.8:
   version "3.3.11"
   resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-3.3.11.tgz#4f4f112cefbe303202f2199838128936266d185b"
   integrity sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==
@@ -10526,10 +10521,10 @@ three-forcegraph@1:
     ngraph.graph "20"
     tinycolor2 "1"
 
-three-render-objects@^1.35:
-  version "1.39.3"
-  resolved "https://registry.yarnpkg.com/three-render-objects/-/three-render-objects-1.39.3.tgz#8df8394166bdc07498b38e4dac09a8370616551d"
-  integrity sha512-x5oNbAGzStIH0vTKyUqJVr+ojmhjQV8m3f1LdphMpohfjjbYQamoOVt/+gaYq1BiYlRnrzP/fULVYgmrGiGtNw==
+three-render-objects@^1.33:
+  version "1.40.0"
+  resolved "https://registry.yarnpkg.com/three-render-objects/-/three-render-objects-1.40.0.tgz#d4f48800cbce9061a90814c2e60346f55e4171d3"
+  integrity sha512-Ub2IebRGrV+ctxkOe7lkLzIraJDTtz5s31Z2rvaQb7sHAXfofv02CwtEJmIPIkEy6jpGreuqJbCGEnQpvKKDFw==
   dependencies:
     "@tweenjs/tween.js" "18 - 25"
     accessor-fn "1"
