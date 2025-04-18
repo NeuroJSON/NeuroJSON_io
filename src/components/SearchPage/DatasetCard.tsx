@@ -76,18 +76,25 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
             <Typography variant="body2" mt={1}>
               <strong>Modalities:</strong>
             </Typography>
-            {modality?.map((mod, idx) => (
-              <Chip
-                key={idx}
-                label={mod}
-                variant="outlined"
-                sx={{
-                  color: Colors.darkPurple,
-                  border: `1px solid ${Colors.darkPurple}`,
-                  fontWeight: "bold",
-                }}
-              />
-            ))}
+
+            {Array.isArray(modality) && modality.length > 0 ? (
+              modality.map((mod, idx) => (
+                <Chip
+                  key={idx}
+                  label={mod}
+                  variant="outlined"
+                  sx={{
+                    color: Colors.darkPurple,
+                    border: `1px solid ${Colors.darkPurple}`,
+                    fontWeight: "bold",
+                  }}
+                />
+              ))
+            ) : (
+              <Typography variant="body2" mt={1}>
+                N/A
+              </Typography>
+            )}
           </Stack>
 
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
