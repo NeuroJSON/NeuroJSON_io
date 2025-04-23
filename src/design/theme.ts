@@ -34,6 +34,7 @@ export const Colors = {
   darkOrange: "#E88C25",
   blue: "#1976d2",
   lightBlue: "#e8f0fe",
+  pink: "#FF69B4",
   primary,
   secondary,
 };

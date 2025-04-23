@@ -87,14 +87,14 @@ const Home: React.FC = () => {
       >
         <SearchBar />
         {/* Filter Menu Button */}
-        <Box sx={{ position: "absolute", top: 20, right: 20, zIndex: 10 }}>
+        {/* <Box sx={{ position: "absolute", top: 20, right: 20, zIndex: 10 }}>
           <FilterMenu
             onKeywordFilter={setFilterKeyword}
             onModalitiesFilter={setSelectedModalities}
             filterKeyword={filterKeyword}
             homeSelectedModalities={selectedModalities}
           />
-        </Box>
+        </Box> */}
         <Box
           sx={{
             zIndex: "2",
@@ -121,9 +121,17 @@ const Home: React.FC = () => {
               backgroundSize: "cover",
               overflow: "auto",
               borderRadius: "20px",
-              // boxShadow: "2px 0px 50px rgba(88, 101, 242, 1)",
             }}
           >
+            {/* Filter Menu Button */}
+            <Box sx={{ position: "absolute", top: 20, left: 20, zIndex: 10 }}>
+              <FilterMenu
+                onKeywordFilter={setFilterKeyword}
+                onModalitiesFilter={setSelectedModalities}
+                filterKeyword={filterKeyword}
+                homeSelectedModalities={selectedModalities}
+              />
+            </Box>
             {!registry ? (
               <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
                 <CircularProgress sx={{ color: Colors.primary.main }} />
