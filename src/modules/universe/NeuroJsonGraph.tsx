@@ -179,7 +179,7 @@ const NeuroJsonGraph: React.FC<{
       .graphData(graphData)
       .nodeRelSize(1)
       .nodeColor((node) => (node as NodeObject).color)
-      .linkWidth(0.5)
+      .linkWidth(1)
       .backgroundColor("rgba(0,0,0,0)")
       .nodeLabel("name")
       .onNodeHover((node) => {
@@ -236,7 +236,7 @@ const NeuroJsonGraph: React.FC<{
         // Add label as CSS2DObject
         const label = new CSS2DObject(document.createElement("div"));
         label.element.textContent = castNode.dbname || "Unnamed";
-        label.element.style.color = Colors.lightYellow;
+        label.element.style.color = Colors.white;
         label.element.style.fontSize = "16px";
         label.element.style.pointerEvents = "none";
         label.position.set(0, 10, 0);

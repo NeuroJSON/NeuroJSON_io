@@ -1,4 +1,4 @@
-import { generateSchemaWithDatabaseEnum } from "./searchformSchema";
+import { generateSchemaWithDatabaseEnum } from "../utils/searchformSchema";
 import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
 import {
   Typography,
