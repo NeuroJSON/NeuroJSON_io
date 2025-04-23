@@ -54,12 +54,12 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
       <IconButton
         onClick={handleClick}
         sx={{
-          color: Colors.lightGray,
+          color: Colors.green,
+          backgroundColor: Colors.darkPurple,
+          transition: "all 0.3s ease",
           "&:hover": {
-            color: Colors.green,
             backgroundColor: Colors.darkPurple,
-            boxShadow: `0px 0px 15px ${Colors.darkGreen}`,
-            padding: "10px",
+            transform: "scale(1.05)",
           },
         }}
       >
