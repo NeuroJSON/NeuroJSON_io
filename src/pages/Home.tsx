@@ -125,6 +125,15 @@ const Home: React.FC = () => {
               homeSelectedModalities={selectedModalities}
             />
           </Box>
+          {/* <Box>
+            <img
+              src="/3dgraphClick.png"
+              alt="click button"
+              width="15%"
+              height="auto"
+            ></img>
+          </Box> */}
+
           {/* 3d-graph */}
           {!registry ? (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
@@ -142,6 +151,24 @@ const Home: React.FC = () => {
               </Typography>
             </Box>
           )}
+          {/* view databases */}
+          <Box sx={{ position: "absolute", bottom: 30, right: 50, zIndex: 10 }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: Colors.darkPurple,
+                color: Colors.lightGray,
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  backgroundColor: Colors.darkPurple,
+                  transform: "scale(1.05)",
+                },
+              }}
+              onClick={() => navigate("/databases")}
+            >
+              View All Databases
+            </Button>
+          </Box>
         </Box>
       </Box>
       {/* </Box> */}

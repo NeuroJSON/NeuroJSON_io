@@ -40,13 +40,27 @@ const SearchBar: React.FC = () => {
       >
         {/* landing page text */}
         <Grid item sx={{ width: "60%" }}>
-          <Typography
-            variant="h4"
-            sx={{ color: Colors.lightGray, fontWeight: "bold" }}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+            }}
           >
-            Efficiently manage and explore your CouchDB databases and datasets
-            with ease.
-          </Typography>
+            <img
+              src="/3DgraphGray.png"
+              alt="3d_graph"
+              width="30%"
+              height="auto"
+            ></img>
+            <Typography
+              variant="h4"
+              sx={{ color: Colors.lightGray, fontWeight: "bold" }}
+            >
+              Efficiently manage and explore your CouchDB databases and datasets
+              with ease.
+            </Typography>
+          </Box>
         </Grid>
 
         {/* search row */}
