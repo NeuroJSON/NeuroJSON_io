@@ -56,7 +56,7 @@ const SearchPage: React.FC = () => {
         );
         const parsed = JSON.parse(decoded);
         setFormData(parsed);
-        const requestData = { ...parsed, skip: 0 };
+        const requestData = { ...parsed, skip: 0, limit: 50 };
         setSkip(0);
         setHasSearched(true);
         dispatch(fetchMetadataSearchResults(requestData)).then((res: any) => {
@@ -311,6 +311,7 @@ const SearchPage: React.FC = () => {
     setSkip(0);
     dispatch(fetchMetadataSearchResults({}));
     setPage(1);
+    setQueryLink("");
   };
 
   // load more function
