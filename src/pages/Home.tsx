@@ -152,11 +152,14 @@ const Home: React.FC = () => {
           zIndex: "2",
           position: "relative",
           width: "100%",
-          backgroundColor: Colors.white,
+          backgroundColor: Colors.lightGray,
           padding: "5rem 7rem",
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
         }}
       >
-        <Box
+        {/* <Box
           sx={{
             zIndex: "3",
             position: "relative",
@@ -172,14 +175,9 @@ const Home: React.FC = () => {
             alignItems: "center",
             paddingRight: "3rem",
           }}
-        >
-          <img
-            src="/workflow.png"
-            alt="workflow"
-            width="90%"
-            height="auto"
-          ></img>
-        </Box>
+        > */}
+        <img src="/workflow.png" alt="workflow" width="90%" height="auto"></img>
+        {/* </Box> */}
       </Box>
 
       {/* Database Card Section */}
