@@ -64,14 +64,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
         }}
       >
         <FilterListIcon />
-        {/* <Typography
-          sx={{
-            color: Colors.lightGray,
-            fontWeight: "bold",
-          }}
-        >
-          Databases Filter
-        </Typography> */}
       </IconButton>
 
       {/* Dropdown Menu */}
@@ -84,9 +76,8 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
           transition: "transform 0.3s ease, opacity 0.3s ease",
           transformOrigin: "top right",
           "& .MuiPaper-root": {
-            // backgroundColor: "rgba(40, 44, 86, 0.1)", // Override Paper's default background
-            backgroundColor: Colors.lightGray,
-            // boxShadow: `0px 0px 5px ${Colors.lightGray}`,
+            // backgroundColor: "rgba(255, 255, 255, 0.8)", // Override Paper's default background
+            backgroundColor: Colors.white,
             backdropFilter: "blur(15px)",
           },
         }}

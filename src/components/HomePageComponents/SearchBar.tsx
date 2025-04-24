@@ -48,7 +48,7 @@ const SearchBar: React.FC = () => {
             }}
           >
             <img
-              src="/3DgraphGray.png"
+              src="/3Dgraph.png"
               alt="3d_graph"
               width="30%"
               height="auto"
@@ -57,8 +57,8 @@ const SearchBar: React.FC = () => {
               variant="h4"
               sx={{ color: Colors.lightGray, fontWeight: "bold" }}
             >
-              Efficiently manage and explore your CouchDB databases and datasets
-              with ease.
+              Efficiently manage and explore your databases and datasets with
+              ease.
             </Typography>
           </Box>
         </Grid>

@@ -117,7 +117,7 @@ const Home: React.FC = () => {
           }}
         >
           {/* Filter Menu Button */}
-          <Box sx={{ position: "absolute", top: 20, left: 20, zIndex: 10 }}>
+          <Box sx={{ position: "absolute", top: 20, left: 20, zIndex: 100 }}>
             <FilterMenu
               onKeywordFilter={setFilterKeyword}
               onModalitiesFilter={setSelectedModalities}
@@ -125,14 +125,6 @@ const Home: React.FC = () => {
               homeSelectedModalities={selectedModalities}
             />
           </Box>
-          {/* <Box>
-            <img
-              src="/3dgraphClick.png"
-              alt="click button"
-              width="15%"
-              height="auto"
-            ></img>
-          </Box> */}
 
           {/* 3d-graph */}
           {!registry ? (
