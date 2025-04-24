@@ -90,6 +90,7 @@ const DatasetDetailPage: React.FC = () => {
 	const [jsonViewerKey, setJsonViewerKey] = useState(0);
 	const [jsonSize, setJsonSize] = useState<number>(0);
 	const [transformedDataset, setTransformedDataset] = useState<any>(null);
+	const [totalFileSize, setTotalFileSize] = useState<number>(0);
 
 
 	// Recursive function to find `_DataLink_`
@@ -181,7 +182,18 @@ const DatasetDetailPage: React.FC = () => {
 		}
 	
 		return internalLinks;
-	};		
+	};
+	
+	const formatFileSize = (bytes: number): string => {
+		if (bytes >= 1024 * 1024 * 1024) {
+			return `${Math.floor(bytes / (1024 * 1024 * 1024))} GB`;
+		} else if (bytes >= 1024 * 1024) {
+			return `${Math.floor(bytes / (1024 * 1024))} MB`;
+		} else {
+			return `${Math.floor(bytes / 1024)} KB`;
+		}
+	};
+
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -215,8 +227,28 @@ const DatasetDetailPage: React.FC = () => {
 			const transformed = transformJsonForDisplay(datasetDocument);
 			setTransformedDataset(transformed);
 
-			const blob = new Blob([JSON.stringify(datasetDocument, null, 2)], { type: "application/json" });
-			setJsonSize(blob.size);
+			let totalSize = 0;
+
+			// 1️⃣ Sum external link sizes (from URL like ...?size=12345678)
+			links.forEach((link) => {
+				const sizeMatch = link.url.match(/size=(\d+)/);
+				if (sizeMatch) {
+					totalSize += parseInt(sizeMatch[1], 10);
+				}
+			});
+
+			// 2️⃣ Estimate internal size from _ArraySize_ (assume Float32 = 4 bytes)
+			internalData.forEach((link) => {
+				if (link.arraySize && Array.isArray(link.arraySize)) {
+					const count = link.arraySize.reduce((acc, val) => acc * val, 1);
+					totalSize += count * 4;
+				}
+			});
+
+			setTotalFileSize(totalSize);
+
+			const minifiedBlob = new Blob([JSON.stringify(datasetDocument)], { type: "application/json" });
+			setJsonSize(minifiedBlob.size);
 
 			// // ✅ Construct download script dynamically
 			let script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"\n`;
@@ -267,7 +299,7 @@ const DatasetDetailPage: React.FC = () => {
 	
 	const handleDownloadDataset = () => {
 		if (!datasetDocument) return;
-		const jsonData = JSON.stringify(datasetDocument, null, 2);
+		const jsonData = JSON.stringify(datasetDocument);
 		const blob = new Blob([jsonData], { type: "application/json" });
 		const link = document.createElement("a");
 		link.href = URL.createObjectURL(blob);
@@ -580,8 +612,7 @@ const DatasetDetailPage: React.FC = () => {
 							"&:hover": { backgroundColor: "#ff9100" },
 						}}
 					>
-						{/* Download Dataset (1 Mb) */}
-						Download Dataset ({(jsonSize / 1024).toFixed(0)} MB)
+						Download Dataset ({(jsonSize / 1024).toFixed(0)} KB)
 						</Button>
 
 						<Button
@@ -594,7 +625,10 @@ const DatasetDetailPage: React.FC = () => {
 								"&:hover": { backgroundColor: "#ff9100" },
 							}}
 						>
-							Script to Download All Files ({downloadScript.length} Bytes) (links: {externalLinks.length})
+							{/* Script to Download All Files ({downloadScript.length} Bytes) (links: {externalLinks.length}) */}
+							Script to Download All Files ({Math.floor(downloadScript.length / 1024)} KB) 
+							(links: {externalLinks.length}, total: {formatFileSize(totalFileSize)})
+
 						</Button>
 
 						<Box display="flex" alignItems="center" gap={1} sx={{ ml: "auto" }}>
