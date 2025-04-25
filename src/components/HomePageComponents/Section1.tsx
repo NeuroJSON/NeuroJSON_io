@@ -6,7 +6,7 @@ import pako from "pako";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const SearchBar: React.FC = () => {
+const Section1: React.FC = () => {
   const [keyword, setKeyword] = useState("");
   const navigate = useNavigate();
 
@@ -38,7 +38,7 @@ const SearchBar: React.FC = () => {
         spacing={4}
         sx={{ mt: "10rem", width: "100%" }}
       >
-        {/* landing page text */}
+        {/* first row: logo and text */}
         <Grid item sx={{ width: "60%" }}>
           <Box
             sx={{
@@ -53,8 +53,6 @@ const SearchBar: React.FC = () => {
               width="30%"
               height="auto"
             ></img>
-            {/* <Box sx={{ display: "flex", flexDirection: "column" }}> */}
-
             <Typography
               variant="h4"
               sx={{ color: Colors.lightGray, fontWeight: "bold" }}
@@ -62,7 +60,6 @@ const SearchBar: React.FC = () => {
               Efficiently manage and explore your databases and datasets with
               ease.
             </Typography>
-            {/* </Box> */}
           </Box>
         </Grid>
 
@@ -127,4 +124,4 @@ const SearchBar: React.FC = () => {
   );
 };
 
-export default SearchBar;
+export default Section1;
