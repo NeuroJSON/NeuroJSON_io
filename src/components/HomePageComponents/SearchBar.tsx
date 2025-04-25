@@ -53,6 +53,8 @@ const SearchBar: React.FC = () => {
               width="30%"
               height="auto"
             ></img>
+            {/* <Box sx={{ display: "flex", flexDirection: "column" }}> */}
+
             <Typography
               variant="h4"
               sx={{ color: Colors.lightGray, fontWeight: "bold" }}
@@ -60,6 +62,7 @@ const SearchBar: React.FC = () => {
               Efficiently manage and explore your databases and datasets with
               ease.
             </Typography>
+            {/* </Box> */}
           </Box>
         </Grid>
 

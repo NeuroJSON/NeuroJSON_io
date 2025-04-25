@@ -1,3 +1,5 @@
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import {
   Box,
   Typography,
@@ -125,8 +127,62 @@ const Home: React.FC = () => {
               homeSelectedModalities={selectedModalities}
             />
           </Box>
+          <Box
+            sx={{
+              position: "absolute",
+              top: 80,
+              left: 20,
+              zIndex: 10,
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 3,
+              }}
+            >
+              <Typography
+                variant="h3"
+                sx={{
+                  color: Colors.purple,
+                  fontWeight: "bold",
+                }}
+              >
+                Discover and Explore
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  color: Colors.purple,
+                  width: "30%",
+                }}
+              >
+                Dive into our interactive 3D graph to explore neuroimaging
+                databases. Visualize meaningful connections, filter by modality,
+                and access rich metadata instantly
+              </Typography>
+            </Box>
+            <Button
+              variant="outlined"
+              sx={{
+                color: Colors.purple,
+                borderColor: Colors.purple,
+                transition: "all 0.3s ease",
+                marginTop: 5,
+                "&:hover": {
+                  transform: "scale(1.05)",
+                  borderColor: Colors.purple,
+                },
+              }}
+            >
+              Start exploring
+              <ArrowForwardOutlinedIcon />
+            </Button>
+          </Box>
 
           {/* 3d-graph */}
+
           {!registry ? (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
               <CircularProgress sx={{ color: Colors.primary.main }} />
@@ -143,17 +199,19 @@ const Home: React.FC = () => {
               </Typography>
             </Box>
           )}
+
           {/* view databases */}
           <Box sx={{ position: "absolute", bottom: 30, right: 50, zIndex: 10 }}>
             <Button
-              variant="contained"
+              variant="outlined"
               sx={{
-                backgroundColor: Colors.darkPurple,
-                color: Colors.lightGray,
+                color: Colors.purple,
+                borderColor: Colors.purple,
                 transition: "all 0.3s ease",
+                marginTop: 4,
                 "&:hover": {
-                  backgroundColor: Colors.darkPurple,
                   transform: "scale(1.05)",
+                  borderColor: Colors.purple,
                 },
               }}
               onClick={() => navigate("/databases")}
