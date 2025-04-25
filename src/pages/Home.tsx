@@ -1,4 +1,3 @@
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
 import {
   Box,
@@ -11,7 +10,6 @@ import {
 import SearchBar from "components/HomePageComponents/SearchBar";
 import NodeInfoPanel from "components/NodeInfoPanel";
 import FilterMenu from "components/NodesFilter/FilterMenu";
-import StatisticsBanner from "components/StatisticsBanner";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -156,6 +154,7 @@ const Home: React.FC = () => {
                 sx={{
                   color: Colors.purple,
                   width: "30%",
+                  display: { xs: "none", sm: "none", md: "none", lg: "block" },
                 }}
               >
                 Dive into our interactive 3D graph to explore neuroimaging
@@ -163,13 +162,91 @@ const Home: React.FC = () => {
                 and access rich metadata instantly
               </Typography>
             </Box>
+
+            {/* Top Buttons - Show only on larger screens */}
+            <Box
+              sx={{
+                display: { xs: "none", md: "none", lg: "flex" },
+                flexDirection: "column",
+                width: { xs: "100%", sm: "50%", md: "30%", lg: "15%" },
+                maxWidth: "200px",
+                mb: 2,
+              }}
+            >
+              <Button
+                variant="outlined"
+                sx={{
+                  color: Colors.purple,
+                  borderColor: Colors.purple,
+                  transition: "all 0.3s ease",
+                  marginTop: 5,
+                  "&:hover": {
+                    transform: "scale(1.05)",
+                    borderColor: Colors.purple,
+                  },
+                }}
+              >
+                Start exploring
+                <ArrowForwardOutlinedIcon />
+              </Button>
+              <Button
+                variant="outlined"
+                sx={{
+                  color: Colors.purple,
+                  borderColor: Colors.purple,
+                  transition: "all 0.3s ease",
+                  marginTop: 4,
+                  "&:hover": {
+                    transform: "scale(1.05)",
+                    borderColor: Colors.purple,
+                  },
+                }}
+                onClick={() => navigate("/databases")}
+              >
+                View All Databases
+              </Button>
+            </Box>
+          </Box>
+
+          {/* 3d-graph */}
+          <Box sx={{ minHeight: "400px" }}>
+            {!registry ? (
+              <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+                <CircularProgress sx={{ color: Colors.primary.main }} />
+              </Box>
+            ) : filteredRegistry.length > 0 ? (
+              <NeuroJsonGraph
+                registry={filteredRegistry}
+                onNodeClick={handleNodeClick}
+              />
+            ) : (
+              <Box sx={{ textAlign: "center", mt: 25, ml: 30 }}>
+                <Typography variant="h6" color={Colors.darkPurple}>
+                  No matching nodes found
+                </Typography>
+              </Box>
+            )}
+          </Box>
+
+          {/* Bottom Buttons - Show only on smaller screens */}
+          <Box
+            sx={{
+              display: { xs: "flex", md: "flex", lg: "none" },
+              justifyContent: "center",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: "20px 0",
+              width: "100%",
+            }}
+          >
             <Button
               variant="outlined"
               sx={{
                 color: Colors.purple,
                 borderColor: Colors.purple,
                 transition: "all 0.3s ease",
-                marginTop: 5,
+                marginBottom: 2,
+                width: "200px",
                 "&:hover": {
                   transform: "scale(1.05)",
                   borderColor: Colors.purple,
@@ -179,29 +256,26 @@ const Home: React.FC = () => {
               Start exploring
               <ArrowForwardOutlinedIcon />
             </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                color: Colors.purple,
+                borderColor: Colors.purple,
+                transition: "all 0.3s ease",
+                width: "200px",
+                "&:hover": {
+                  transform: "scale(1.05)",
+                  borderColor: Colors.purple,
+                },
+              }}
+              onClick={() => navigate("/databases")}
+            >
+              View All Databases
+            </Button>
           </Box>
 
-          {/* 3d-graph */}
-
-          {!registry ? (
-            <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-              <CircularProgress sx={{ color: Colors.primary.main }} />
-            </Box>
-          ) : filteredRegistry.length > 0 ? (
-            <NeuroJsonGraph
-              registry={filteredRegistry}
-              onNodeClick={handleNodeClick}
-            />
-          ) : (
-            <Box sx={{ textAlign: "center", mt: 4 }}>
-              <Typography variant="h6" color={Colors.textSecondary}>
-                No matching nodes found
-              </Typography>
-            </Box>
-          )}
-
           {/* view databases */}
-          <Box sx={{ position: "absolute", bottom: 30, right: 50, zIndex: 10 }}>
+          {/* <Box sx={{ position: "absolute", bottom: 30, right: 50, zIndex: 10 }}>
             <Button
               variant="outlined"
               sx={{
@@ -218,7 +292,7 @@ const Home: React.FC = () => {
             >
               View All Databases
             </Button>
-          </Box>
+          </Box> */}
         </Box>
       </Box>
       {/* </Box> */}
