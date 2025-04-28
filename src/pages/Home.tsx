@@ -86,11 +86,13 @@ const Home: React.FC = () => {
           backgroundColor: Colors.lightGray,
           padding: "5rem 7rem",
           display: "flex",
+          flexDirection: "column",
           justifyContent: "flex-end",
           alignItems: "center",
         }}
       >
-        <img src="/workflow.png" alt="workflow" width="90%" height="auto"></img>
+        <img src="/3cards.png" alt="workflow" width="80%" height="auto"></img>
+        {/* <img src="/workflow.png" alt="workflow" width="90%" height="auto"></img> */}
       </Box>
 
       <NodeInfoPanel
