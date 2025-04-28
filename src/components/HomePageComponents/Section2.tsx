@@ -96,7 +96,7 @@ const Section2: React.FC<Section2Props> = ({
             >
               Dive into our interactive 3D graph to explore neuroimaging
               databases. Visualize meaningful connections, filter by modality,
-              and access rich metadata instantly
+              and access rich metadata instantly.
             </Typography>
           </Box>
 
