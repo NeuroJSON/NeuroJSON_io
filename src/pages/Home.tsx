@@ -1,6 +1,7 @@
 import { Box, Typography, Button, Container } from "@mui/material";
 import Section1 from "components/HomePageComponents/Section1";
 import Section2 from "components/HomePageComponents/Section2";
+import Section3 from "components/HomePageComponents/Section3";
 import NodeInfoPanel from "components/NodeInfoPanel";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
@@ -78,6 +79,9 @@ const Home: React.FC = () => {
       />
 
       {/* section 3 */}
+      <Section3 />
+
+      {/* footer*/}
       <Box
         sx={{
           zIndex: "2",
@@ -90,10 +94,7 @@ const Home: React.FC = () => {
           justifyContent: "flex-end",
           alignItems: "center",
         }}
-      >
-        <img src="/3cards.png" alt="workflow" width="80%" height="auto"></img>
-        {/* <img src="/workflow.png" alt="workflow" width="90%" height="auto"></img> */}
-      </Box>
+      ></Box>
 
       <NodeInfoPanel
         open={panelOpen}
