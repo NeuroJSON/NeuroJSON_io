@@ -48,7 +48,7 @@ const Section1: React.FC = () => {
             }}
           >
             <img
-              src="3Dgraph.png"
+              src="./3Dgraph.png"
               alt="3d_graph"
               width="30%"
               height="auto"

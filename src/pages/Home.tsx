@@ -96,7 +96,7 @@ const Home: React.FC = () => {
         }}
       >
         <img
-          src="workflow.png"
+          src="./workflow.png"
           alt="workflow of the website"
           style={{
             width: "90%",
