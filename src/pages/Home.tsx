@@ -94,7 +94,19 @@ const Home: React.FC = () => {
           justifyContent: "flex-end",
           alignItems: "center",
         }}
-      ></Box>
+      >
+        <img
+          src="/workflow.png"
+          alt="workflow of the website"
+          style={{
+            width: "90%",
+            height: "auto",
+            padding: "2rem",
+            position: "relative",
+            zIndex: "2",
+          }}
+        ></img>
+      </Box>
 
       <NodeInfoPanel
         open={panelOpen}
