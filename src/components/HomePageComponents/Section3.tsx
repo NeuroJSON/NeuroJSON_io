@@ -40,7 +40,7 @@ const Section3: React.FC = () => {
         > */}
         <img
           //   src="/verticalcards.png"
-          src="/diagonalcards.png"
+          src="diagonalcards.png"
           alt="rendering feature info cards"
           style={{
             width: "80%",
