@@ -1,4 +1,4 @@
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Typography, Box, Button, IconButton } from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
@@ -114,7 +114,7 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
         }}
       >
         <IconButton onClick={scrollToNext}>
-          <ArrowDownwardIcon sx={{ fontSize: 40, color: Colors.lightGray }} />
+          <ExpandMoreIcon sx={{ fontSize: 40, color: Colors.lightGray }} />
         </IconButton>
       </Box>
     </Box>
