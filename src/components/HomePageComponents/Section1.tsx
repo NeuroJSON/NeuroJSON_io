@@ -28,7 +28,7 @@ const Section1: React.FC = () => {
         backgroundSize: "cover",
         overflow: "auto",
         width: "100%",
-        minHeight: "calc(100vh - 6rem)",
+        minHeight: "calc(90vh - 6rem)",
       }}
     >
       <Grid
