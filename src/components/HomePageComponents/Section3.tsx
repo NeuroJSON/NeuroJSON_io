@@ -39,8 +39,7 @@ const Section3: React.FC = () => {
           }}
         > */}
         <img
-          //   src="/verticalcards.png"
-          src="./diagonalcards.png"
+          src={`${process.env.PUBLIC_URL}/img/3cards_diagonal.png`}
           alt="rendering feature info cards"
           style={{
             width: "80%",
