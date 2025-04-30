@@ -48,8 +48,7 @@ const Section1: React.FC = () => {
             }}
           >
             <img
-              // src="./3Dgraph.png"
-              src={`${process.env.PUBLIC_URL}/3Dgraph.png`}
+              src={`${process.env.PUBLIC_URL}/img/3d_graph_logo.png`}
               alt="3d_graph"
               width="30%"
               height="auto"

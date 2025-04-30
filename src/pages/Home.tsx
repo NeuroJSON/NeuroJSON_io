@@ -96,7 +96,7 @@ const Home: React.FC = () => {
         }}
       >
         <img
-          src="./workflow.png"
+          src={`${process.env.PUBLIC_URL}/img/workflow.png`}
           alt="workflow of the website"
           style={{
             width: "90%",
