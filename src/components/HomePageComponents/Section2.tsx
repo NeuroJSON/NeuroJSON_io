@@ -34,8 +34,13 @@ const Section2: React.FC<Section2Props> = ({
         zIndex: "2",
         position: "relative",
         width: "100%",
-        backgroundColor: Colors.white,
-        padding: "5rem 7rem",
+        // backgroundColor: Colors.white,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 1200 800'%3E%3Cdefs%3E%3CradialGradient id='a' cx='0' cy='800' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%2371feed'/%3E%3Cstop offset='1' stop-color='%2371feed' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='b' cx='1200' cy='800' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23abb2f9'/%3E%3Cstop offset='1' stop-color='%23abb2f9' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='c' cx='600' cy='0' r='600' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%231fa0f6'/%3E%3Cstop offset='1' stop-color='%231fa0f6' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='d' cx='600' cy='800' r='600' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='1' stop-color='%23FFFFFF' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='e' cx='0' cy='0' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%2302DEC4'/%3E%3Cstop offset='1' stop-color='%2302DEC4' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='f' cx='1200' cy='0' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%235865F2'/%3E%3Cstop offset='1' stop-color='%235865F2' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect fill='url(%23a)' width='1200' height='800'/%3E%3Crect fill='url(%23b)' width='1200' height='800'/%3E%3Crect fill='url(%23c)' width='1200' height='800'/%3E%3Crect fill='url(%23d)' width='1200' height='800'/%3E%3Crect fill='url(%23e)' width='1200' height='800'/%3E%3Crect fill='url(%23f)' width='1200' height='800'/%3E%3C/svg%3E")`,
+        backgroundAttachment: "fixed",
+        backgroundSize: "cover",
+        overflow: "auto",
+        padding: "1rem",
+        paddingLeft: "7rem",
       }}
     >
       <Box // tri-colors card
@@ -43,11 +48,12 @@ const Section2: React.FC<Section2Props> = ({
           zIndex: "3",
           position: "relative",
           width: "100%",
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 1200 800'%3E%3Cdefs%3E%3CradialGradient id='a' cx='0' cy='800' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%2371feed'/%3E%3Cstop offset='1' stop-color='%2371feed' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='b' cx='1200' cy='800' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23abb2f9'/%3E%3Cstop offset='1' stop-color='%23abb2f9' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='c' cx='600' cy='0' r='600' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%231fa0f6'/%3E%3Cstop offset='1' stop-color='%231fa0f6' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='d' cx='600' cy='800' r='600' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='1' stop-color='%23FFFFFF' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='e' cx='0' cy='0' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%2302DEC4'/%3E%3Cstop offset='1' stop-color='%2302DEC4' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='f' cx='1200' cy='0' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%235865F2'/%3E%3Cstop offset='1' stop-color='%235865F2' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect fill='url(%23a)' width='1200' height='800'/%3E%3Crect fill='url(%23b)' width='1200' height='800'/%3E%3Crect fill='url(%23c)' width='1200' height='800'/%3E%3Crect fill='url(%23d)' width='1200' height='800'/%3E%3Crect fill='url(%23e)' width='1200' height='800'/%3E%3Crect fill='url(%23f)' width='1200' height='800'/%3E%3C/svg%3E")`,
-          backgroundAttachment: "fixed",
-          backgroundSize: "cover",
-          overflow: "auto",
-          borderRadius: "20px",
+          background: "none",
+          // backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 1200 800'%3E%3Cdefs%3E%3CradialGradient id='a' cx='0' cy='800' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%2371feed'/%3E%3Cstop offset='1' stop-color='%2371feed' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='b' cx='1200' cy='800' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23abb2f9'/%3E%3Cstop offset='1' stop-color='%23abb2f9' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='c' cx='600' cy='0' r='600' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%231fa0f6'/%3E%3Cstop offset='1' stop-color='%231fa0f6' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='d' cx='600' cy='800' r='600' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='1' stop-color='%23FFFFFF' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='e' cx='0' cy='0' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%2302DEC4'/%3E%3Cstop offset='1' stop-color='%2302DEC4' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='f' cx='1200' cy='0' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%235865F2'/%3E%3Cstop offset='1' stop-color='%235865F2' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect fill='url(%23a)' width='1200' height='800'/%3E%3Crect fill='url(%23b)' width='1200' height='800'/%3E%3Crect fill='url(%23c)' width='1200' height='800'/%3E%3Crect fill='url(%23d)' width='1200' height='800'/%3E%3Crect fill='url(%23e)' width='1200' height='800'/%3E%3Crect fill='url(%23f)' width='1200' height='800'/%3E%3C/svg%3E")`,
+          // backgroundAttachment: "fixed",
+          // backgroundSize: "cover",
+          // overflow: "auto",
+          // borderRadius: "20px",
         }}
       >
         {/* Filter Menu Button */}
@@ -80,7 +86,7 @@ const Section2: React.FC<Section2Props> = ({
             <Typography
               variant="h3"
               sx={{
-                color: Colors.purple,
+                color: Colors.lightGray,
                 fontWeight: "bold",
               }}
             >
@@ -89,7 +95,7 @@ const Section2: React.FC<Section2Props> = ({
             <Typography
               variant="h6"
               sx={{
-                color: Colors.purple,
+                color: Colors.lightGray,
                 width: "30%",
                 display: { xs: "none", sm: "none", md: "none", lg: "block" },
               }}
@@ -115,13 +121,13 @@ const Section2: React.FC<Section2Props> = ({
             <Button
               variant="outlined"
               sx={{
-                color: Colors.purple,
-                borderColor: Colors.purple,
+                color: Colors.lightGray,
+                borderColor: Colors.lightGray,
                 transition: "all 0.3s ease",
                 marginTop: 5,
                 "&:hover": {
                   transform: "scale(1.05)",
-                  borderColor: Colors.purple,
+                  borderColor: Colors.lightGray,
                 },
               }}
             >
@@ -131,13 +137,13 @@ const Section2: React.FC<Section2Props> = ({
             <Button
               variant="outlined"
               sx={{
-                color: Colors.purple,
-                borderColor: Colors.purple,
+                color: Colors.lightGray,
+                borderColor: Colors.lightGray,
                 transition: "all 0.3s ease",
                 marginTop: 4,
                 "&:hover": {
                   transform: "scale(1.05)",
-                  borderColor: Colors.purple,
+                  borderColor: Colors.lightGray,
                 },
               }}
               onClick={() => navigate("/databases")}
@@ -148,7 +154,12 @@ const Section2: React.FC<Section2Props> = ({
         </Box>
 
         {/* 3d-graph */}
-        <Box sx={{ minHeight: "400px" }}>
+        <Box
+          sx={{
+            minHeight: "400px",
+            marginLeft: 15,
+          }}
+        >
           {!registry ? (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
               <CircularProgress sx={{ color: Colors.primary.main }} />
@@ -181,14 +192,14 @@ const Section2: React.FC<Section2Props> = ({
           <Button
             variant="outlined"
             sx={{
-              color: Colors.purple,
-              borderColor: Colors.purple,
+              color: Colors.lightGray,
+              borderColor: Colors.lightGray,
               transition: "all 0.3s ease",
               marginBottom: 2,
               width: "200px",
               "&:hover": {
                 transform: "scale(1.05)",
-                borderColor: Colors.purple,
+                borderColor: Colors.lightGray,
               },
             }}
           >
@@ -198,13 +209,13 @@ const Section2: React.FC<Section2Props> = ({
           <Button
             variant="outlined"
             sx={{
-              color: Colors.purple,
-              borderColor: Colors.purple,
+              color: Colors.lightGray,
+              borderColor: Colors.lightGray,
               transition: "all 0.3s ease",
               width: "200px",
               "&:hover": {
                 transform: "scale(1.05)",
-                borderColor: Colors.purple,
+                borderColor: Colors.lightGray,
               },
             }}
             onClick={() => navigate("/databases")}

@@ -236,7 +236,7 @@ const NeuroJsonGraph: React.FC<{
         // Add label as CSS2DObject
         const label = new CSS2DObject(document.createElement("div"));
         label.element.textContent = castNode.dbname || "Unnamed";
-        label.element.style.color = Colors.secondaryPurple;
+        label.element.style.color = Colors.lightGray;
         label.element.style.fontSize = "16px";
         label.element.style.pointerEvents = "none";
         label.position.set(0, 10, 0);
