@@ -1,4 +1,5 @@
-import { Box, Typography, Button, Container } from "@mui/material";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import { Box, Typography, Button, Container, IconButton } from "@mui/material";
 import Section1 from "components/HomePageComponents/Section1";
 import Section2 from "components/HomePageComponents/Section2";
 import Section3 from "components/HomePageComponents/Section3";
@@ -7,7 +8,13 @@ import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import { NodeObject } from "modules/universe/NeuroJsonGraph";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchRegistry } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
@@ -15,6 +22,9 @@ import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const section2Ref = useRef<HTMLDivElement>(null);
+  const section3Ref = useRef<HTMLDivElement>(null);
+  const section4Ref = useRef<HTMLDivElement>(null);
   const { registry, loading } = useAppSelector(NeurojsonSelector);
 
   // State for selected node and panel visibility
@@ -65,24 +75,54 @@ const Home: React.FC = () => {
       }}
     >
       {/* section 1 */}
-      <Section1 />
+      <Box sx={{ position: "relative" }}>
+        <Section1 />
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            mt: 2,
+            mb: 2,
+          }}
+        >
+          <IconButton
+            onClick={() =>
+              section2Ref.current?.scrollIntoView({ behavior: "smooth" })
+            }
+          >
+            <ArrowDownwardIcon sx={{ fontSize: 40, color: Colors.lightGray }} />
+          </IconButton>
+        </Box>
+      </Box>
 
       {/* section 2 */}
-      <Section2
-        registry={registry}
-        filteredRegistry={filteredRegistry}
-        filterKeyword={filterKeyword}
-        selectedModalities={selectedModalities}
-        setFilterKeyword={setFilterKeyword}
-        setSelectedModalities={setSelectedModalities}
-        onNodeClick={handleNodeClick}
-      />
+      <Box ref={section2Ref} sx={{ position: "relative" }}>
+        <Section2
+          registry={registry}
+          filteredRegistry={filteredRegistry}
+          filterKeyword={filterKeyword}
+          selectedModalities={selectedModalities}
+          setFilterKeyword={setFilterKeyword}
+          setSelectedModalities={setSelectedModalities}
+          onNodeClick={handleNodeClick}
+          scrollToNext={() =>
+            section3Ref.current?.scrollIntoView({ behavior: "smooth" })
+          }
+        />
+      </Box>
 
       {/* section 3 */}
-      <Section3 />
+      <Box ref={section3Ref} sx={{ position: "relative" }}>
+        <Section3
+          scrollToNext={() =>
+            section4Ref.current?.scrollIntoView({ behavior: "smooth" })
+          }
+        />
+      </Box>
 
       {/* footer*/}
       <Box
+        ref={section4Ref}
         sx={{
           zIndex: "2",
           position: "relative",
