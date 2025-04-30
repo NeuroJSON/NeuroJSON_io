@@ -1,4 +1,4 @@
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Box, Typography, Button, Container, IconButton } from "@mui/material";
 import Section1 from "components/HomePageComponents/Section1";
 import Section2 from "components/HomePageComponents/Section2";
@@ -90,7 +90,7 @@ const Home: React.FC = () => {
               section2Ref.current?.scrollIntoView({ behavior: "smooth" })
             }
           >
-            <ArrowDownwardIcon sx={{ fontSize: 40, color: Colors.lightGray }} />
+            <ExpandMoreIcon sx={{ fontSize: 40, color: Colors.lightGray }} />
           </IconButton>
         </Box>
       </Box>

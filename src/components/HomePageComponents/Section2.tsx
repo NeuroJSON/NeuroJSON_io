@@ -1,5 +1,4 @@
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import ArrowForwardOutlinedIcon from "@mui/icons-material/ArrowForwardOutlined";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   Typography,
   Box,
@@ -67,7 +66,7 @@ const Section2: React.FC<Section2Props> = ({
         }}
       >
         {/* Filter Menu Button */}
-        <Box sx={{ position: "absolute", top: 20, left: 20, zIndex: 100 }}>
+        <Box sx={{ position: "absolute", top: 100, right: 20, zIndex: 100 }}>
           <FilterMenu
             onKeywordFilter={setFilterKeyword}
             onModalitiesFilter={setSelectedModalities}
@@ -219,7 +218,7 @@ const Section2: React.FC<Section2Props> = ({
         }}
       >
         <IconButton onClick={scrollToNext}>
-          <ArrowDownwardIcon sx={{ fontSize: 40, color: Colors.darkPurple }} />
+          <ExpandMoreIcon sx={{ fontSize: 40, color: Colors.darkPurple }} />
         </IconButton>
       </Box>
     </Box>
