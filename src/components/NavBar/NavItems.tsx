@@ -22,6 +22,7 @@ const NavItems: React.FC = () => {
       >
         <Grid item sm={12} md={5} lg={5}>
           <Button
+            disableRipple
             sx={{
               display: "flex",
               alignItems: "center",
