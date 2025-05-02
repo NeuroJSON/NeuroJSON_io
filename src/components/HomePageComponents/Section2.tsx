@@ -201,7 +201,7 @@ const Section2: React.FC<Section2Props> = ({
         </Box> */}
       </Box>
 
-      {/* Scroll Arrow - fixed inside Section2 */}
+      {/* Scroll Arrow */}
       <Box
         sx={{
           position: "absolute",
