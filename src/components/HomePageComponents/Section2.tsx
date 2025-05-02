@@ -58,6 +58,14 @@ const Section2: React.FC<Section2Props> = ({
           position: "relative",
           width: "100%",
           background: "none",
+          display: "flex",
+          flexDirection: { xs: "column", md: "row-reverse" }, // <-- key change here
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          px: { xs: 2, md: 6 },
+          py: { xs: 8, md: 12 },
+          mt: { xs: 2, md: 8 },
           // backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 1200 800'%3E%3Cdefs%3E%3CradialGradient id='a' cx='0' cy='800' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%2371feed'/%3E%3Cstop offset='1' stop-color='%2371feed' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='b' cx='1200' cy='800' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23abb2f9'/%3E%3Cstop offset='1' stop-color='%23abb2f9' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='c' cx='600' cy='0' r='600' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%231fa0f6'/%3E%3Cstop offset='1' stop-color='%231fa0f6' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='d' cx='600' cy='800' r='600' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%23FFFFFF'/%3E%3Cstop offset='1' stop-color='%23FFFFFF' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='e' cx='0' cy='0' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%2302DEC4'/%3E%3Cstop offset='1' stop-color='%2302DEC4' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='f' cx='1200' cy='0' r='800' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%235865F2'/%3E%3Cstop offset='1' stop-color='%235865F2' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect fill='url(%23a)' width='1200' height='800'/%3E%3Crect fill='url(%23b)' width='1200' height='800'/%3E%3Crect fill='url(%23c)' width='1200' height='800'/%3E%3Crect fill='url(%23d)' width='1200' height='800'/%3E%3Crect fill='url(%23e)' width='1200' height='800'/%3E%3Crect fill='url(%23f)' width='1200' height='800'/%3E%3C/svg%3E")`,
           // backgroundAttachment: "fixed",
           // backgroundSize: "cover",
@@ -78,18 +86,41 @@ const Section2: React.FC<Section2Props> = ({
         {/* title, text and buttons */}
         <Box
           sx={{
-            position: { xs: "relative", md: "absolute" },
-            top: { md: 80 },
-            left: { md: 20 },
-            padding: { xs: "80px 20px 0", md: 0 },
+            // position: { xs: "relative", md: "absolute", lg: "absolute" },
+            // top: { lg: 250, md: 250, xs: "auto" },
+            // right: { lg: 50, md: 50, xs: "auto" },
+            // left: { xs: "auto" },
+            // padding: { xs: "80px 20px 0", md: 0 },
+            // border: "2px solid red",
+            // width: { xs: "100%", md: "40%" },
+
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: { xs: "center", md: "left" },
+            gap: 4,
+            mt: { xs: 4, md: 4 },
+            px: 2,
+            flex: 1,
           }}
         >
           {/* title and text */}
           <Box
             sx={{
+              flex: 1,
+              maxWidth: "600px",
+              textAlign: { xs: "center", md: "left" },
+              alignItems: { xs: "center", md: "flex-start" },
               display: "flex",
               flexDirection: "column",
               gap: 3,
+
+              // display: "flex",
+              // flexDirection: "column",
+              // gap: 3,
+              // alignItems: "flex-start",
+              // textAlign: "left",
             }}
           >
             <Typography
@@ -105,8 +136,8 @@ const Section2: React.FC<Section2Props> = ({
               variant="h6"
               sx={{
                 color: Colors.lightGray,
-                width: "30%",
-                display: { xs: "none", sm: "none", md: "none", lg: "block" },
+                width: "100%",
+                display: { xs: "none", sm: "block", md: "block", lg: "block" },
               }}
             >
               Dive into our interactive 3D graph to explore neuroimaging
@@ -118,13 +149,14 @@ const Section2: React.FC<Section2Props> = ({
           {/* top buttons: show only on large screens */}
           <Box
             sx={{
-              display: { xs: "flex", md: "flex", lg: "flex" },
+              display: "flex",
               flexDirection: "column",
-              width: { xs: "100%", sm: "50%", md: "30%", lg: "15%" },
+              width: { xs: "100%", sm: "50%", md: "30%", lg: "100%" },
               maxWidth: "200px",
               mb: 2,
-              position: { xs: "relative", md: "absolute" },
+              // position: { xs: "relative", md: "absolute" },
               zIndex: 10, // Higher than text and graph
+              alignItems: { xs: "center", md: "flex-start" },
             }}
           >
             <Button
@@ -146,8 +178,31 @@ const Section2: React.FC<Section2Props> = ({
           </Box>
         </Box>
 
-        {/* 3d-graph */}
         <Box
+          sx={{
+            // position: "absolute",
+            // left: 200,
+            // top: 150,
+            // width: "40%",
+            flex: 1,
+            maxWidth: "600px",
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            mt: { xs: 4, md: 0 },
+          }}
+        >
+          <img
+            src={`${process.env.PUBLIC_URL}/img/static_nodes.png`}
+            alt="3d_graph"
+            width="100%"
+            height="auto"
+          ></img>
+        </Box>
+
+        {/* 3d-graph */}
+        {/* <Box
           sx={{
             minHeight: "400px",
             marginLeft: 15,
@@ -169,7 +224,7 @@ const Section2: React.FC<Section2Props> = ({
               </Typography>
             </Box>
           )}
-        </Box>
+        </Box> */}
 
         {/* Bottom Buttons - Show only on smaller screens */}
         {/* <Box

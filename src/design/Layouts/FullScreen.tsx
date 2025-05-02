@@ -1,21 +1,22 @@
 import { AppBar, Box, Button, Grid, Toolbar, Typography } from "@mui/material";
 import DefaultNavBar from "components/NavBar/DefaultNavBar";
 import LandingNavBar from "components/NavBar/LandingNavBar";
-import { Colors } from "design/theme";
-import useIsLargeScreen from "hooks/useIsLargeScreen";
+// import { Colors } from "design/theme";
+// import useIsLargeScreen from "hooks/useIsLargeScreen";
 import { useState, useEffect, useRef } from "react";
 import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
-import RoutesEnum from "types/routes.enum";
+
+// import RoutesEnum from "types/routes.enum";
 
 const FullScreen = () => {
-  const isLargeScreen = useIsLargeScreen();
+  // const isLargeScreen = useIsLargeScreen();
   const location = useLocation();
   const isLandingPage = location.pathname === "/";
 
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
 
-  const justifyContentValue = isLargeScreen ? "flex-start" : "space-between";
+  // const justifyContentValue = isLargeScreen ? "flex-start" : "space-between";
 
   useEffect(() => {
     const handleScroll = () => {
