@@ -81,6 +81,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
       ModalProps={{ keepMounted: true }} // Keeps Drawer in DOM even when closed
       disableEnforceFocus //  prevents MUI from trapping focus inside the drawer
       sx={{
+        zIndex: (theme) => theme.zIndex.modal + 10,
         "& .MuiDrawer-paper": {
           width: "30%",
           padding: "1rem",

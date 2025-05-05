@@ -1,5 +1,5 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Box, Typography, Button, Container, IconButton } from "@mui/material";
+import { Box, Container, IconButton } from "@mui/material";
 import Section1 from "components/HomePageComponents/Section1";
 import Section2 from "components/HomePageComponents/Section2";
 import Section3 from "components/HomePageComponents/Section3";
@@ -7,7 +7,6 @@ import NodeInfoPanel from "components/NodeInfoPanel";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
-import ForceGraphModal from "modules/universe/ForceGraphModal";
 import { NodeObject } from "modules/universe/NeuroJsonGraph";
 import React, {
   useEffect,
@@ -16,12 +15,10 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-// import { useNavigate } from "react-router-dom";
 import { fetchRegistry } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
 
 const Home: React.FC = () => {
-  // const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const section2Ref = useRef<HTMLDivElement>(null);
   const section3Ref = useRef<HTMLDivElement>(null);
@@ -109,10 +106,6 @@ const Home: React.FC = () => {
             section3Ref.current?.scrollIntoView({ behavior: "smooth" })
           }
         />
-
-        <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-          <ForceGraphModal />
-        </Box>
       </Box>
 
       {/* section 3 */}
