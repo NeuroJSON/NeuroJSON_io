@@ -42,7 +42,7 @@ const Section2: React.FC<Section2Props> = ({
         backgroundSize: "cover",
         minHeight: "100vh",
         display: "flex",
-        flexDirection: { xs: "column", md: "row-reverse" }, // <-- key change here
+        flexDirection: { xs: "column", md: "row-reverse" },
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
