@@ -1,7 +1,7 @@
 import ArrowCircleDownIcon from "@mui/icons-material/ArrowCircleDown";
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Typography, Box, IconButton, Dialog } from "@mui/material";
+import { Typography, Box, Button, IconButton, Dialog } from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
 import { useState } from "react";
