@@ -1,13 +1,19 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Typography, Box, Button, IconButton } from "@mui/material";
+import { Typography, Box, Button, IconButton, Dialog } from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
+import { useState } from "react";
 
 interface Section3Props {
   scrollToNext: () => void;
 }
 
 const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
+  const [open, setOpen] = useState(false);
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
+
   return (
     <Box
       sx={{
@@ -89,7 +95,9 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
           alignItems: "center",
           mt: { xs: 4, md: 2 },
           mb: { xs: 8, md: 0 },
+          cursor: "pointer",
         }}
+        onClick={handleOpen}
       >
         <img
           src={`${process.env.PUBLIC_URL}/img/3cards_vertical.png`}
@@ -100,6 +108,34 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
           }}
         ></img>
       </Box>
+
+      {/* video dialog */}
+      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+        <Box sx={{ p: 2 }}>
+          {/* <Box sx={{ position: "relative", paddingTop: "56.25%", height: 0 }}>
+          <iframe
+            src="https://www.youtube.com/watch?v=ZI-HntdeVas" // Replace with actual video URL
+            title="Demo Video"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              border: "none",
+            }}
+          ></iframe> */}
+          <video controls style={{ width: "100%", borderRadius: "8px" }}>
+            <source
+              src={`${process.env.PUBLIC_URL}/video/tiger.mp4`}
+              type="video/mp4"
+            />
+            Your browser does not support the video tag.
+          </video>
+        </Box>
+      </Dialog>
       {/* </Box> */}
 
       {/* Scroll Arrow to Section4 */}
