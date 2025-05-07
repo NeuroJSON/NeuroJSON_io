@@ -1,3 +1,4 @@
+import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Typography, Box, Button, IconButton, Dialog } from "@mui/material";
 import { Colors } from "design/theme";
@@ -111,7 +112,19 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
 
       {/* video dialog */}
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 4, position: "relative" }}>
+          {/* close button in top-right */}
+          <IconButton
+            onClick={handleClose}
+            sx={{
+              position: "absolute",
+              top: 2,
+              right: 2,
+              zIndex: 10,
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
           {/* <Box sx={{ position: "relative", paddingTop: "56.25%", height: 0 }}>
           <iframe
             src="https://www.youtube.com/watch?v=ZI-HntdeVas" // Replace with actual video URL
@@ -127,7 +140,7 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
               border: "none",
             }}
           ></iframe> */}
-          <video controls style={{ width: "100%", borderRadius: "8px" }}>
+          <video controls style={{ width: "100%", borderRadius: "4px" }}>
             <source
               src={`${process.env.PUBLIC_URL}/video/tiger.mp4`}
               type="video/mp4"

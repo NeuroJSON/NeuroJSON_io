@@ -1,12 +1,24 @@
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SearchIcon from "@mui/icons-material/Search";
-import { Typography, Box, Button, TextField, Grid } from "@mui/material";
+import {
+  Typography,
+  Box,
+  Button,
+  TextField,
+  Grid,
+  IconButton,
+} from "@mui/material";
 import StatisticsBanner from "components/StatisticsBanner";
 import { Colors } from "design/theme";
 import pako from "pako";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const Section1: React.FC = () => {
+interface Section1Props {
+  scrollToNext: () => void;
+}
+
+const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
   const [keyword, setKeyword] = useState("");
   const navigate = useNavigate();
 
@@ -116,10 +128,43 @@ const Section1: React.FC = () => {
         </Grid>
 
         {/* statistics banner row*/}
-        <Grid item sx={{ width: "60%" }}>
+        <Grid
+          item
+          sx={{
+            width: "60%",
+            mb: { xs: 10, sm: 10, md: 14, lg: 14 },
+          }}
+        >
           <StatisticsBanner />
         </Grid>
       </Grid>
+
+      {/* Scroll Arrow */}
+      <Box
+        sx={{
+          // position: "absolute",
+          // bottom: "1rem",
+          // left: 0,
+          // right: 0,
+          // width: "100%",
+          // display: "flex",
+          // justifyContent: "center",
+          // alignItems: "center",
+          // paddingBottom: "2rem",
+          // mt: 10,
+          // zIndex: 1000,
+          // mt: { xs: 6, sm: 4, md: 20, lg: 20 },
+          mb: 2,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          // border: "2px red solid",
+        }}
+      >
+        <IconButton onClick={scrollToNext}>
+          <ExpandMoreIcon sx={{ fontSize: 40, color: Colors.lightGray }} />
+        </IconButton>
+      </Box>
     </Box>
   );
 };
