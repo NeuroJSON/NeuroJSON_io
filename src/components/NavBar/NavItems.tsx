@@ -80,12 +80,8 @@ const NavItems: React.FC = () => {
                         color: Colors.white,
                         transition: "color 0.3s ease, transform 0.3s ease",
                         "&:hover": {
-                          color: Colors.green,
-                          transform: "scale(1.05)",
+                          transform: "scale(1.2)",
                           cursor: "pointer",
-                          boxShadow: `0px 0px 15px ${Colors.green}`,
-                          borderRadius: "5px",
-                          padding: "5px",
                         },
                       }}
                     >
@@ -103,12 +99,8 @@ const NavItems: React.FC = () => {
                         color: Colors.white,
                         transition: "color 0.3s ease, transform 0.3s ease",
                         "&:hover": {
-                          color: Colors.green,
-                          transform: "scale(1.05)",
+                          transform: "scale(1.2)",
                           cursor: "pointer",
-                          boxShadow: `0px 0px 15px ${Colors.green}`,
-                          borderRadius: "5px",
-                          padding: "5px",
                         },
                       }}
                     >
