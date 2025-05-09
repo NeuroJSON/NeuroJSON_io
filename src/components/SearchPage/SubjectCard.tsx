@@ -19,6 +19,7 @@ interface SubjectCardProps {
     };
   };
   index: number;
+  onChipClick: (key: string, value: string) => void;
 }
 
 const SubjectCard: React.FC<SubjectCardProps> = ({
@@ -28,6 +29,7 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
   subj,
   parsedJson,
   index,
+  onChipClick,
 }) => {
   const { modalities, tasks, sessions, types } = parsedJson.value;
   const subjectLink = `${RoutesEnum.DATABASES}/${dbname}/${dsname}`;
@@ -99,6 +101,7 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
                 key={idx}
                 label={mod}
                 variant="outlined"
+                onClick={() => onChipClick("modality", mod)} //
                 sx={{
                   color: Colors.darkPurple,
                   border: `1px solid ${Colors.darkPurple}`,
@@ -117,6 +120,7 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
                 key={`task-${idx}`}
                 label={task}
                 variant="outlined"
+                onClick={() => onChipClick("task_name", task)}
                 sx={{
                   color: Colors.darkPurple,
                   border: `1px solid ${Colors.darkPurple}`,

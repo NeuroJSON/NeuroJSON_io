@@ -21,6 +21,7 @@ interface DatasetCardProps {
     };
   };
   index: number;
+  onChipClick: (key: string, value: string) => void;
 }
 
 const DatasetCard: React.FC<DatasetCardProps> = ({
@@ -28,6 +29,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
   dsname,
   parsedJson,
   index,
+  onChipClick,
 }) => {
   const { name, readme, modality, subj, info } = parsedJson.value;
   const datasetLink = `${RoutesEnum.DATABASES}/${dbname}/${dsname}`;
@@ -83,6 +85,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
                   key={idx}
                   label={mod}
                   variant="outlined"
+                  onClick={() => onChipClick("modality", mod)} //
                   sx={{
                     color: Colors.darkPurple,
                     border: `1px solid ${Colors.darkPurple}`,
