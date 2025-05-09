@@ -24,6 +24,22 @@ import {
 } from "redux/neurojson/neurojson.action";
 import { RootState } from "redux/store";
 
+const modalityValueToEnumLabel: Record<string, string> = {
+  anat: "Structural MRI (anat)",
+  func: "fMRI (func)",
+  dwi: "DWI (dwi)",
+  fmap: "Field maps (fmap)",
+  perf: "Perfusion (perf)",
+  meg: "MEG (meg)",
+  eeg: "EEG (eeg)",
+  ieeg: "Intracranial EEG (ieeg)",
+  beh: "Behavioral (beh)",
+  pet: "PET (pet)",
+  micr: "microscopy (micr)",
+  nirs: "fNIRS (nirs)",
+  motion: "motion (motion)",
+};
+
 const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const [hasSearched, setHasSearched] = useState(false);
@@ -328,6 +344,24 @@ const SearchPage: React.FC = () => {
     });
   };
 
+  // handle chips search function
+  const handleChipClick = (key: string, value: string) => {
+    const updatedFormData: Record<string, any> = {
+      ...formData,
+      [key]:
+        key === "modality" ? modalityValueToEnumLabel[value] || value : value,
+      skip: 0,
+    };
+    setFormData(updatedFormData);
+    setSkip(0);
+    setPage(1);
+    updateQueryLink(updatedFormData);
+    dispatch(fetchMetadataSearchResults(updatedFormData)).then((res: any) => {
+      setResults(res.payload);
+    });
+    setHasSearched(true);
+  };
+
   return (
     <Container
       style={{
@@ -525,6 +559,7 @@ const SearchPage: React.FC = () => {
                             dbname={item.dbname}
                             dsname={item.dsname}
                             parsedJson={parsedJson}
+                            onChipClick={handleChipClick}
                           />
                         ) : (
                           <SubjectCard
@@ -532,6 +567,7 @@ const SearchPage: React.FC = () => {
                             index={globalIndex}
                             {...item}
                             parsedJson={parsedJson}
+                            onChipClick={handleChipClick}
                           />
                         );
                       } catch (e) {

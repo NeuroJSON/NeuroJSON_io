@@ -44,6 +44,8 @@ export const baseSchema: JSONSchema7 = {
         "microscopy (micr)",
         "fNIRS (nirs)",
         "motion (motion)",
+        "behavdata",
+        "hpi",
         "any",
       ],
       default: "any",

@@ -41,7 +41,7 @@ const Section4: React.FC = () => {
           variant="h3"
           sx={{ color: Colors.lightGray, fontWeight: "bold" }}
         >
-          Plateform Workflow
+          Platform Workflow
         </Typography>
         <Box
           sx={{
