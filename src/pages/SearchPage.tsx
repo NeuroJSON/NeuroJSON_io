@@ -507,7 +507,18 @@ const SearchPage: React.FC = () => {
                   {Array.isArray(results)
                     ? results.length >= 50 && (
                         <Box textAlign="center" mt={2}>
-                          <Button variant="outlined" onClick={handleLoadMore}>
+                          <Button
+                            variant="outlined"
+                            onClick={handleLoadMore}
+                            sx={{
+                              color: Colors.purple,
+                              borderColor: Colors.purple,
+                              "&:hover": {
+                                transform: "scale(1.05)",
+                                borderColor: Colors.purple,
+                              },
+                            }}
+                          >
                             Load Extra 50
                           </Button>
                         </Box>
