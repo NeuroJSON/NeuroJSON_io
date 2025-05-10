@@ -7,6 +7,7 @@ import {
   Button,
   CircularProgress,
   Pagination,
+  Chip,
 } from "@mui/material";
 import Form from "@rjsf/mui";
 import validator from "@rjsf/validator-ajv8";
@@ -59,6 +60,18 @@ const SearchPage: React.FC = () => {
   const [skip, setSkip] = useState(0);
   const [page, setPage] = useState(1);
   const [queryLink, setQueryLink] = useState("");
+  const [appliedFilters, setAppliedFilters] = useState<Record<string, any>>({});
+
+  // to show the applied chips on the left
+  const activeFilters = Object.entries(appliedFilters).filter(
+    ([key, value]) =>
+      key !== "skip" &&
+      key !== "limit" &&
+      value !== undefined &&
+      value !== null &&
+      value !== "" &&
+      value !== "any"
+  );
 
   // parse query from url on page load
   useEffect(() => {
@@ -311,6 +324,8 @@ const SearchPage: React.FC = () => {
     const requestData = { ...formData, skip: 0 };
     setFormData(requestData);
     setSkip(0);
+    setAppliedFilters(requestData); // for chips on the left
+
     dispatch(fetchMetadataSearchResults(requestData)).then((res: any) => {
       setResults(res.payload);
     });
@@ -328,6 +343,7 @@ const SearchPage: React.FC = () => {
     dispatch(fetchMetadataSearchResults({}));
     setPage(1);
     setQueryLink("");
+    setAppliedFilters({});
   };
 
   // load more function
@@ -344,7 +360,7 @@ const SearchPage: React.FC = () => {
     });
   };
 
-  // handle chips search function
+  // handle chips click function
   const handleChipClick = (key: string, value: string) => {
     const updatedFormData: Record<string, any> = {
       ...formData,
@@ -360,6 +376,7 @@ const SearchPage: React.FC = () => {
       setResults(res.payload);
     });
     setHasSearched(true);
+    setAppliedFilters(updatedFormData); // for chips on the left
   };
 
   return (
@@ -391,7 +408,74 @@ const SearchPage: React.FC = () => {
             minWidth: "35%",
           }}
         >
-          {queryLink && (
+          {/* chips */}
+          {activeFilters.length > 0 && (
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 1,
+                mb: 2,
+              }}
+            >
+              {activeFilters.map(([key, value]) => (
+                <Chip
+                  key={key}
+                  // label={String(value)}
+                  label={`${String(key)}: ${String(value)}`}
+                  variant="outlined"
+                  sx={{
+                    color: Colors.darkPurple,
+                    border: `1px solid ${Colors.darkPurple}`,
+                    fontWeight: 500,
+                    backgroundColor: "#f9f9ff",
+                    "&:hover": {
+                      backgroundColor: Colors.purple,
+                      color: "white",
+                      borderColor: Colors.purple,
+                    },
+                  }}
+                  //
+                  onDelete={() => {
+                    const updated = { ...appliedFilters };
+                    delete updated[key];
+
+                    const remainingFilters = Object.entries(updated).filter(
+                      ([k, v]) =>
+                        k !== "skip" &&
+                        k !== "limit" &&
+                        v !== undefined &&
+                        v !== null &&
+                        v !== "" &&
+                        v !== "any"
+                    );
+
+                    const hasActiveFilters = remainingFilters.length > 0;
+
+                    setFormData(updated);
+                    setAppliedFilters(updated);
+                    setSkip(0);
+                    setPage(1);
+                    setHasSearched(hasActiveFilters); //only true if filters exist
+
+                    updateQueryLink(updated);
+
+                    if (hasActiveFilters) {
+                      dispatch(
+                        fetchMetadataSearchResults({ ...updated, skip: 0 })
+                      ).then((res: any) => {
+                        setResults(res.payload);
+                      });
+                    } else {
+                      setResults([]);
+                    }
+                  }}
+                />
+              ))}
+            </Box>
+          )}
+
+          {queryLink && activeFilters.length > 0 && (
             <Box mt={2}>
               <a
                 href={queryLink}

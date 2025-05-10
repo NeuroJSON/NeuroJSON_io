@@ -70,7 +70,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
           {name || "Untitled Dataset"}
         </Typography>
         <Typography>
-          Database: {dbname} &nbsp;&nbsp;|&nbsp;&nbsp; Dataset Number: {dsname}
+          Database: {dbname} &nbsp;&nbsp;|&nbsp;&nbsp; Dataset: {dsname}
         </Typography>
 
         <Stack spacing={2} margin={1}>
