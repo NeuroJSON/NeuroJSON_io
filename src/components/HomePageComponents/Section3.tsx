@@ -142,7 +142,8 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
           ></iframe> */}
           <video controls style={{ width: "100%", borderRadius: "4px" }}>
             <source
-              src={`${process.env.PUBLIC_URL}/video/tiger.mp4`}
+              // src={`${process.env.PUBLIC_URL}/video/tiger.mp4`}
+              src="https://neurojson.org/tutorials/overview/neurojsonio_volume_render_short.mp4"
               type="video/mp4"
             />
             Your browser does not support the video tag.
