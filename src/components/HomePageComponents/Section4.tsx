@@ -1,8 +1,20 @@
 import { Box, Typography } from "@mui/material";
+import WorkflowDetailCard from "components/WorkflowDetailCard";
 import { Colors } from "design/theme";
-import React from "react";
+import React, { useState } from "react";
+
+type CardType = "data-portals" | "json-conversion" | "database" | "rest-api";
+
+const cards: { type: CardType; src: string }[] = [
+  { type: "data-portals", src: "/img/section4_data_portals.png" },
+  { type: "json-conversion", src: "/img/section4_json_conversion.png" },
+  { type: "database", src: "/img/section4_database.png" },
+  { type: "rest-api", src: "/img/section4_platform.png" },
+];
 
 const Section4: React.FC = () => {
+  const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
+
   return (
     <Box
       sx={{
@@ -60,6 +72,7 @@ const Section4: React.FC = () => {
             style={{ width: "50px", height: "auto", display: "block" }}
           />
         </Box>
+        {selectedCard && <WorkflowDetailCard type={selectedCard} />}
       </Box>
 
       {/* img container */}
@@ -68,27 +81,10 @@ const Section4: React.FC = () => {
           marginTop: 3,
         }}
       >
-        {[
-          {
-            src: "/img/section4_data_portals.png",
-            onClick: () => console.log("Data Portals clicked"),
-          },
-          {
-            src: "/img/section4_json_conversion.png",
-            onClick: () => console.log("JSON Conversion clicked"),
-          },
-          {
-            src: "/img/section4_database.png",
-            onClick: () => console.log("Database clicked"),
-          },
-          {
-            src: "/img/section4_platform.png",
-            onClick: () => console.log("Platform clicked"),
-          },
-        ].map((card, index, arr) => (
+        {cards.map((card, index, arr) => (
           <Box
             key={index}
-            onClick={card.onClick}
+            onClick={() => setSelectedCard(card.type)}
             sx={{
               maxWidth: "700px",
               width: "100%",
