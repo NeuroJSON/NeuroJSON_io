@@ -25,8 +25,6 @@ interface NodeInfoPanelProps {
   nodeData: NodeObject | null;
 }
 
-// helper functions
-
 // covert the database size format
 const formatSize = (bytes?: number): string => {
   if (bytes === undefined) return "N/A";
@@ -64,8 +62,6 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const dbInfo = useAppSelector((state: RootState) => state.neurojson.dbInfo);
-  // const drawerRef = useRef<HTMLDivElement>(null); // Reference to the Drawer content
-  // const loading = useAppSelector((state: RootState) => state.neurojson.loading);
 
   useEffect(() => {
     if (nodeData?.id) {
@@ -83,7 +79,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
       sx={{
         zIndex: (theme) => theme.zIndex.modal + 10,
         "& .MuiDrawer-paper": {
-          width: "30%",
+          width: "25%",
           padding: "1rem",
           boxShadow: `0px 0px 15px ${Colors.lightGray}`,
           backgroundColor: "rgba(97, 109, 243, 0.1)",
@@ -104,7 +100,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
             >
               <Typography
                 variant="h6"
-                sx={{ color: Colors.orange, fontWeight: "Bold" }}
+                sx={{ color: Colors.yellow, fontWeight: "Bold" }}
               >
                 {nodeData.name}
               </Typography>
@@ -115,17 +111,30 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
             {/* Node Metadata */}
             <Grid container spacing={2} sx={{ pl: 2 }}>
               <Grid item xs={12}>
-                <Typography sx={{ color: Colors.green, fontWeight: "Bold" }}>
+                <Typography
+                  sx={{
+                    color: Colors.green,
+                    fontWeight: "Bold",
+                  }}
+                >
                   Website
                 </Typography>
-                <Typography>
-                  <a
-                    href={nodeData.url}
-                    target="_blank"
-                    style={{ textDecoration: "none", color: Colors.lightGray }}
-                  >
-                    {nodeData.url}
-                  </a>
+                <Typography
+                  component="a"
+                  href={nodeData.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    display: "block",
+                    color: Colors.lightGray,
+                    textDecoration: "none",
+                    wordBreak: "break-word",
+                    ":hover": {
+                      textDecoration: "underline",
+                    },
+                  }}
+                >
+                  {nodeData.url}
                 </Typography>
               </Grid>
 
@@ -160,14 +169,21 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                 <Typography sx={{ color: Colors.green, fontWeight: "Bold" }}>
                   Upstream Contact
                 </Typography>
-                <a
+                <Typography
+                  component="a"
                   href={`mailto:${nodeData.support}`}
-                  style={{ textDecoration: "none" }}
+                  sx={{
+                    color: Colors.lightGray,
+                    textDecoration: "none",
+                    wordBreak: "break-word",
+                    ":hover": {
+                      textDecoration: "underline",
+                    },
+                    display: "block",
+                  }}
                 >
-                  <Typography sx={{ color: Colors.lightGray }}>
-                    {nodeData.support}
-                  </Typography>
-                </a>
+                  {nodeData.support}
+                </Typography>
               </Grid>
 
               <Grid item xs={12}>
@@ -202,17 +218,24 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                       >
                         REST-API URL
                       </Typography>
-                      <a
+
+                      <Typography
+                        component="a"
                         href={`https://neurojson.io:7777/${dbInfo.db_name}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{
-                          textDecoration: "none",
+                        sx={{
                           color: Colors.textPrimary,
+                          textDecoration: "none",
+                          ":hover": {
+                            textDecoration: "underline",
+                          },
+                          wordBreak: "break-word",
+                          display: "block",
                         }}
                       >
                         {`https://neurojson.io:7777/${dbInfo.db_name}`}
-                      </a>
+                      </Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Typography
@@ -251,10 +274,10 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                         variant="contained"
                         fullWidth
                         sx={{
-                          backgroundColor: Colors.orange,
-                          color: Colors.white,
+                          color: Colors.lightGray,
+                          backgroundColor: Colors.purple,
                           "&:hover": {
-                            backgroundColor: Colors.darkOrange,
+                            backgroundColor: Colors.secondaryPurple,
                           },
                         }}
                         onClick={() => navigate(`/databases/${nodeData.id}`)}
@@ -267,12 +290,13 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                         variant="contained"
                         fullWidth
                         sx={{
-                          backgroundColor: Colors.orange,
-                          color: Colors.white,
+                          color: Colors.lightGray,
+                          backgroundColor: Colors.purple,
                           "&:hover": {
-                            backgroundColor: Colors.darkOrange,
+                            backgroundColor: Colors.secondaryPurple,
                           },
                         }}
+                        onClick={() => navigate(`/search`)}
                       >
                         Search Subjects
                       </Button>
@@ -282,25 +306,10 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                         variant="contained"
                         fullWidth
                         sx={{
-                          backgroundColor: Colors.orange,
-                          color: Colors.white,
+                          color: Colors.lightGray,
+                          backgroundColor: Colors.purple,
                           "&:hover": {
-                            backgroundColor: Colors.darkOrange,
-                          },
-                        }}
-                      >
-                        Advanced Search
-                      </Button>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        sx={{
-                          backgroundColor: Colors.orange,
-                          color: Colors.white,
-                          "&:hover": {
-                            backgroundColor: Colors.darkOrange,
+                            backgroundColor: Colors.secondaryPurple,
                           },
                         }}
                         onClick={() =>
