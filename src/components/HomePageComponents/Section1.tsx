@@ -142,23 +142,10 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
       {/* Scroll Arrow */}
       <Box
         sx={{
-          // position: "absolute",
-          // bottom: "1rem",
-          // left: 0,
-          // right: 0,
-          // width: "100%",
-          // display: "flex",
-          // justifyContent: "center",
-          // alignItems: "center",
-          // paddingBottom: "2rem",
-          // mt: 10,
-          // zIndex: 1000,
-          // mt: { xs: 6, sm: 4, md: 20, lg: 20 },
           mb: 2,
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          // border: "2px red solid",
         }}
       >
         <IconButton onClick={scrollToNext}>

@@ -1,4 +1,3 @@
-import EmojiPeopleIcon from "@mui/icons-material/EmojiPeople";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import { Typography, Card, CardContent, Stack, Chip } from "@mui/material";
 import { Colors } from "design/theme";
@@ -59,7 +58,7 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
   return (
     <Card sx={{ mb: 3, position: "relative" }}>
       <CardContent>
-        {/* Card Number in Top Right */}
+        {/* card number in bottom-right */}
         <Typography
           variant="subtitle2"
           sx={{
@@ -98,7 +97,13 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
         </Typography>
 
         <Stack spacing={2} margin={1}>
-          <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+          <Stack
+            direction="row"
+            spacing={1}
+            flexWrap="wrap"
+            gap={1}
+            alignItems="center"
+          >
             <Typography variant="body2" mt={1}>
               <strong>Modalities:</strong>
             </Typography>
@@ -109,6 +114,11 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
                 variant="outlined"
                 onClick={() => onChipClick("modality", mod)} //
                 sx={{
+                  "& .MuiChip-label": {
+                    paddingX: "6px",
+                    fontSize: "0.8rem",
+                  },
+                  height: "24px",
                   color: Colors.darkPurple,
                   border: `1px solid ${Colors.darkPurple}`,
                   fontWeight: "bold",
@@ -123,23 +133,16 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
             ))}
           </Stack>
 
-          <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+          <Stack
+            direction="row"
+            spacing={1}
+            flexWrap="wrap"
+            gap={1}
+            alignItems="center"
+          >
             <Typography variant="body2" mt={1}>
               <strong>Tasks:</strong>
             </Typography>
-            {/* {tasks?.map((task, idx) => (
-              <Chip
-                key={`task-${idx}`}
-                label={task}
-                variant="outlined"
-                onClick={() => onChipClick("task_name", task)}
-                sx={{
-                  color: Colors.darkPurple,
-                  border: `1px solid ${Colors.darkPurple}`,
-                  fontWeight: "bold",
-                }}
-              />
-            ))} */}
             {Array.isArray(tasks) && tasks.length > 0 ? (
               tasks.map((task, idx) => (
                 <Chip
@@ -148,6 +151,11 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
                   variant="outlined"
                   onClick={() => onChipClick("task_name", task)}
                   sx={{
+                    "& .MuiChip-label": {
+                      paddingX: "6px",
+                      fontSize: "0.8rem",
+                    },
+                    height: "24px",
                     color: Colors.darkPurple,
                     border: `1px solid ${Colors.darkPurple}`,
                     fontWeight: "bold",
@@ -167,12 +175,13 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
             )}
           </Stack>
 
-          <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-            {/* {types?.length && (
-              <Typography variant="body2" mt={1}>
-                <strong>Types:</strong> {types.join(", ")}
-              </Typography>
-            )} */}
+          <Stack
+            direction="row"
+            spacing={1}
+            flexWrap="wrap"
+            gap={1}
+            alignItems="center"
+          >
             <Typography variant="body2" mt={1}>
               <strong>Types:</strong>
             </Typography>
@@ -184,6 +193,11 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
                   variant="outlined"
                   onClick={() => onChipClick("type_name", type)}
                   sx={{
+                    "& .MuiChip-label": {
+                      paddingX: "6px",
+                      fontSize: "0.8rem",
+                    },
+                    height: "24px",
                     color: Colors.darkPurple,
                     border: `1px solid ${Colors.darkPurple}`,
                     fontWeight: "bold",

@@ -23,13 +23,10 @@ export interface NodeObject {
 
 // Define the datatype to color mapping
 export const DATA_TYPE_COLORS: Record<string, [number, number, number]> = {
-  // mri: [79, 51, 130], // deep purple
   mri: [160, 138, 233], // soft laender
   anat: [160, 138, 233],
-  // fmri: [10, 81, 20], // dark green
   fmri: [152, 202, 32], // bright lime green
   func: [152, 202, 32],
-
   pet: [0, 105, 192], // deep blue
   meg: [156, 57, 0], // dark reddish-brown
   eeg: [134, 31, 55], // dark red-pink
@@ -191,7 +188,6 @@ const NeuroJsonGraph: React.FC<{
         if (onNodeClick) {
           onNodeClick(castNode);
         }
-        // navigate(`/databases/${castNode.id}`);
       })
       .nodeThreeObject((node) => {
         const castNode = node as NodeObject;

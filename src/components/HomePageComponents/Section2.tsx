@@ -1,9 +1,7 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Typography, Box, Button, IconButton } from "@mui/material";
-// import FilterMenu from "components/NodesFilter/FilterMenu";
 import { Colors } from "design/theme";
 import ForceGraphModal from "modules/universe/ForceGraphModal";
-// import NeuroJsonGraph from "modules/universe/NeuroJsonGraph";
 import { NodeObject } from "modules/universe/NeuroJsonGraph";
 import React from "react";
 import { useNavigate } from "react-router-dom";
