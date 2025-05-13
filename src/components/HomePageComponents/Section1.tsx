@@ -59,15 +59,26 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
               gap: 2,
             }}
           >
-            <img
+            <Box
+              component="img"
               src={`${process.env.PUBLIC_URL}/img/3d_graph_logo.png`}
               alt="3d_graph"
-              width="30%"
               height="auto"
-            ></img>
+              sx={{
+                height: "auto",
+                width: {
+                  xs: 0,
+                  sm: 0,
+                  md: "30%",
+                },
+              }}
+            ></Box>
             <Typography
               variant="h4"
-              sx={{ color: Colors.lightGray, fontWeight: "bold" }}
+              sx={{
+                color: Colors.lightGray,
+                fontWeight: "bold",
+              }}
             >
               Efficiently manage and explore your databases and datasets with
               ease.
