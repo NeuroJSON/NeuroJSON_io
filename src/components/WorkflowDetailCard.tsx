@@ -37,7 +37,13 @@ const WorkflowDetailCard: React.FC<WorkflowDetailCardProps> = ({ type }) => {
   const { title, description, backgroundColor, color } = cardContentMap[type];
 
   return (
-    <Card sx={{ borderRadius: "10px", minWidth: "300px" }}>
+    <Card
+      sx={{
+        borderRadius: "10px",
+        minWidth: "300px",
+        transition: "all 0.3s ease",
+      }}
+    >
       {/* Image on top */}
       {/* <CardMedia
         component="img"

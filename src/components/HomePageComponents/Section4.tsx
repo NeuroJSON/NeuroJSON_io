@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, Slide } from "@mui/material";
 import WorkflowDetailCard from "components/WorkflowDetailCard";
 import { Colors } from "design/theme";
 import React, { useState } from "react";
@@ -6,10 +6,10 @@ import React, { useState } from "react";
 type CardType = "data-portals" | "json-conversion" | "database" | "rest-api";
 
 const cards: { type: CardType; src: string }[] = [
-  { type: "data-portals", src: "/img/section4_data_portals.png" },
-  { type: "json-conversion", src: "/img/section4_json_conversion.png" },
-  { type: "database", src: "/img/section4_database.png" },
-  { type: "rest-api", src: "/img/section4_platform.png" },
+  { type: "data-portals", src: "/img/section4/workflow1.png" },
+  { type: "json-conversion", src: "/img/section4/workflow2.png" },
+  { type: "database", src: "/img/section4/workflow3.png" },
+  { type: "rest-api", src: "/img/section4/workflow4.png" },
 ];
 
 const Section4: React.FC = () => {
@@ -68,11 +68,17 @@ const Section4: React.FC = () => {
             click each card to learn more
           </Typography>
           <img
-            src={`${process.env.PUBLIC_URL}/img/click_icon.png`}
+            src={`${process.env.PUBLIC_URL}/img/section4/click_icon.png`}
             style={{ width: "50px", height: "auto", display: "block" }}
           />
         </Box>
-        {selectedCard && <WorkflowDetailCard type={selectedCard} />}
+        {selectedCard && (
+          <Slide direction="left" in={!!selectedCard} timeout={400}>
+            <div>
+              <WorkflowDetailCard type={selectedCard} />
+            </div>
+          </Slide>
+        )}
       </Box>
 
       {/* img container */}
