@@ -1,6 +1,6 @@
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Typography, Box, Button, IconButton, Dialog } from "@mui/material";
+import { Typography, Box, IconButton, Dialog } from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
 import { useState } from "react";
@@ -34,19 +34,6 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
         py: { xs: 8, md: 12 },
       }}
     >
-      {/* <Box
-        sx={{
-          position: "relative",
-          width: "100%",
-          background: "none",
-          maxWidth: "1600px",
-          display: "flex",
-          flexDirection: { xs: "column", md: "row-reverse" },
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 4,
-        }}
-      > */}
       {/* title and text */}
       <Box
         sx={{
@@ -125,24 +112,9 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
           >
             <CloseIcon />
           </IconButton>
-          {/* <Box sx={{ position: "relative", paddingTop: "56.25%", height: 0 }}>
-          <iframe
-            src="https://www.youtube.com/watch?v=ZI-HntdeVas" // Replace with actual video URL
-            title="Demo Video"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              border: "none",
-            }}
-          ></iframe> */}
+
           <video controls style={{ width: "100%", borderRadius: "4px" }}>
             <source
-              // src={`${process.env.PUBLIC_URL}/video/tiger.mp4`}
               src="https://neurojson.org/tutorials/overview/neurojsonio_volume_render_short.mp4"
               type="video/mp4"
             />
@@ -150,7 +122,6 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
           </video>
         </Box>
       </Dialog>
-      {/* </Box> */}
 
       {/* Scroll Arrow to Section4 */}
       <Box

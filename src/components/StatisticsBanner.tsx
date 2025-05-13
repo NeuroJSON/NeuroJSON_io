@@ -49,9 +49,6 @@ const StatisticsBanner: React.FC = () => {
   return (
     <Box
       sx={{
-        // backgroundColor: "rgba(0, 0, 0, 0.5)",
-        // backdropFilter: "blur(15px)",
-        // borderRadius: "8px",
         zIndex: 100,
         padding: "1rem",
         display: "flex",

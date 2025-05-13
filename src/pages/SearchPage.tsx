@@ -421,7 +421,6 @@ const SearchPage: React.FC = () => {
               {activeFilters.map(([key, value]) => (
                 <Chip
                   key={key}
-                  // label={String(value)}
                   label={`${String(key)}: ${String(value)}`}
                   variant="outlined"
                   sx={{

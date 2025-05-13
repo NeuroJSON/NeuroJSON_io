@@ -57,24 +57,8 @@ const ModalitiesFilter: React.FC<ModalitiesFilterProps> = ({
             }}
           >
             <FormControlLabel
-              // key={modality}
               control={
                 <Checkbox
-                  sx={
-                    {
-                      // color: Colors.lightGray,
-                      // "&.Mui-checked": {
-                      //   color: "black", // Change checkmark color
-                      // },
-                      // "&.Mui-checked.MuiCheckbox-root": {
-                      //   backgroundColor: "white", // Ensures white background when checked
-                      //   borderRadius: "3px",
-                      // },
-                      // "&.MuiCheckbox-root:hover": {
-                      //   backgroundColor: "white",
-                      // },
-                    }
-                  }
                   checked={selectedModalities.includes(modality)}
                   onChange={() => handleModalityChange(modality)}
                 />

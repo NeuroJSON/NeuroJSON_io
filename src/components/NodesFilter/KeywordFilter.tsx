@@ -1,9 +1,9 @@
-import { Autocomplete, TextField } from "@mui/material";
+import { TextField } from "@mui/material";
 import React, { useEffect, useState } from "react";
 
 interface FilterSearchProps {
   onFilter: (query: string) => void;
-  filterKeyword: string; // add prop to receive parent state
+  filterKeyword: string;
 }
 
 const KeywordFilter: React.FC<FilterSearchProps> = ({

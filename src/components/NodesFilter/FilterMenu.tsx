@@ -15,18 +15,17 @@ import React, { useState, useEffect } from "react";
 interface FilterMenuProps {
   onKeywordFilter: (query: string) => void;
   onModalitiesFilter: (selectedModalities: string[]) => void;
-  filterKeyword: string; // receive from parent
-  homeSelectedModalities: string[]; // receive from parent
+  filterKeyword: string;
+  homeSelectedModalities: string[];
 }
 
 const FilterMenu: React.FC<FilterMenuProps> = ({
   onKeywordFilter,
   onModalitiesFilter,
-  filterKeyword, //receive from home parent
-  homeSelectedModalities, // receive from parent
+  filterKeyword,
+  homeSelectedModalities,
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  //   const [filterType, setFilterType] = useState<string | null>(null);
   const [menuKey, setMenuKey] = useState(0); // Forces re-render
 
   useEffect(() => {
@@ -45,7 +44,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
 
   const handleClose = () => {
     setAnchorEl(null);
-    // setFilterType(null); //reset menu state when closing
   };
 
   return (
@@ -76,7 +74,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
           transition: "transform 0.3s ease, opacity 0.3s ease",
           transformOrigin: "top right",
           "& .MuiPaper-root": {
-            // backgroundColor: "rgba(255, 255, 255, 0.8)", // Override Paper's default background
             backgroundColor: Colors.white,
             backdropFilter: "blur(15px)",
           },
@@ -85,8 +82,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
         {/* unified panel */}
         <Box
           sx={{
-            // backgroundColor: Colors.darkPurple,
-            // backdropFilter: "blur(15px)",
             minWidth: 300,
             padding: "10px",
           }}
@@ -104,7 +99,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
           <Divider
             sx={{
               marginY: 2,
-              //   borderColor: Colors.darkPurple,
             }}
           />
 
@@ -131,7 +125,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
           <Divider
             sx={{
               marginY: 2,
-              // borderColor: Colors.lightGray
             }}
           />
 
