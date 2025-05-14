@@ -79,7 +79,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
       sx={{
         zIndex: (theme) => theme.zIndex.modal + 10,
         "& .MuiDrawer-paper": {
-          width: "25%",
+          width: { xs: "100%", sm: "40%", md: "30%" },
           padding: "1rem",
           boxShadow: `0px 0px 15px ${Colors.lightGray}`,
           backgroundColor: "rgba(97, 109, 243, 0.1)",
