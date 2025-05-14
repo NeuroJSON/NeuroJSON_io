@@ -1,15 +1,10 @@
-import { Toolbar, Grid, Button, Typography } from "@mui/material";
+import { Toolbar, Grid, Button, Typography, Box } from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
 import { useNavigate, Link } from "react-router-dom";
 import RoutesEnum from "types/routes.enum";
 
-// import useIsLargeScreen from "hooks/useIsLargeScreen";
-
 const NavItems: React.FC = () => {
-  //   const isLargeScreen = useIsLargeScreen();
-  //   const justifyContentValue = isLargeScreen ? "flex-start" : "space-between";
-
   const navigate = useNavigate();
 
   return (
@@ -17,46 +12,80 @@ const NavItems: React.FC = () => {
       <Grid
         container
         alignItems="center"
-        // justifyContent={justifyContentValue}
-        sx={{ maxWidth: "100%" }}
+        sx={{
+          maxWidth: "100%",
+          border: "2px solid red",
+        }}
       >
-        <Grid item sm={12} md={5} lg={5}>
-          <Button
-            disableRipple
+        {/* <Box
+        sx={{
+          display: "flex",
+          flexDirection: { sx: "row", sm: "row", md: "column", lg: "column" },
+          border: "2px solid red",
+        }}
+      > */}
+        <Grid item sm={12} md={5} lg={5} sx={{ border: "2px solid yellow" }}>
+          <Box
             sx={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              flexDirection: "column",
-              backgroundColor: "transparent",
-              "&:hover": {
-                backgroundColor: "transparent",
-              },
+              gap: 2, // space between image and text
             }}
-            onClick={() => navigate("/")}
           >
-            <Typography
-              variant="h1"
+            <Box
+              component="img"
+              src={`${process.env.PUBLIC_URL}/img/section1_logo_colored.png`}
+              alt="logo"
+              onClick={() => navigate("/")}
+              height="auto"
               sx={{
-                color: Colors.yellow,
+                height: "80px",
+                width: "auto",
+                display: { xs: "block", sm: "block", md: "none" },
               }}
-            >
-              NeuroJSON.io
-            </Typography>
-            <Typography
-              variant="h2"
+            ></Box>
+            <Button
+              disableRipple
               sx={{
-                color: Colors.lightGray,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexDirection: "column",
+                backgroundColor: "transparent",
+                "&:hover": {
+                  backgroundColor: "transparent",
+                },
               }}
+              onClick={() => navigate("/")}
             >
-              Free Data Worth Sharing
-            </Typography>
-          </Button>
+              <Typography
+                variant="h1"
+                sx={{
+                  color: Colors.yellow,
+                }}
+              >
+                NeuroJSON.io
+              </Typography>
+              <Typography
+                variant="h2"
+                sx={{
+                  color: Colors.lightGray,
+                }}
+              >
+                Free Data Worth Sharing
+              </Typography>
+            </Button>
+          </Box>
         </Grid>
 
         {/* Navigation links*/}
-        <Grid item paddingLeft="2rem">
-          <Grid container spacing={3} justifyContent="center">
+        <Grid item sx={{ border: "2px solid green" }}>
+          <Grid
+            container
+            spacing={3}
+            justifyContent="center"
+            // sx={{ border: "2px solid green" }}
+          >
             {[
               { text: "ABOUT", url: "https://neurojson.org/Doc/Start" },
               { text: "WIKI", url: "https://neurojson.org/Wiki" },
@@ -112,6 +141,7 @@ const NavItems: React.FC = () => {
             ))}
           </Grid>
         </Grid>
+        {/* </Box> */}
       </Grid>
     </Toolbar>
   );

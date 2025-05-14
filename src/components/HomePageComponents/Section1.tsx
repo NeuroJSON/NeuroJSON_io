@@ -47,11 +47,17 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
         container
         direction="column"
         alignItems="center"
+        justifyContent="center"
         spacing={4}
-        sx={{ mt: "10rem", width: "100%" }}
+        sx={{ mt: "3rem", width: "100%" }}
       >
         {/* first row: logo and text */}
-        <Grid item sx={{ width: "60%" }}>
+        <Grid
+          item
+          sx={{
+            width: { xs: "80%", sm: "80%", md: "60%", lg: "60%" },
+          }}
+        >
           <Box
             sx={{
               display: "flex",
@@ -61,15 +67,18 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
           >
             <Box
               component="img"
-              src={`${process.env.PUBLIC_URL}/img/3d_graph_logo.png`}
-              alt="3d_graph"
+              // src={`${process.env.PUBLIC_URL}/img/3d_graph_logo.png`}
+              src={`${process.env.PUBLIC_URL}/img/section1_logo_colored.png`}
+              // src={`${process.env.PUBLIC_URL}/img/section1_logo_contained.png`}
+              alt="logo"
               height="auto"
               sx={{
-                height: "auto",
-                width: {
-                  xs: 0,
-                  sm: 0,
-                  md: "30%",
+                height: "150px",
+                width: "auto",
+                display: {
+                  xs: "none",
+                  sm: "none",
+                  md: "block",
                 },
               }}
             ></Box>
@@ -78,6 +87,12 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
               sx={{
                 color: Colors.lightGray,
                 fontWeight: "bold",
+                height: "auto",
+                display: {
+                  xs: "none",
+                  sm: "none",
+                  md: "block",
+                },
               }}
             >
               Efficiently manage and explore your databases and datasets with
@@ -87,7 +102,10 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
         </Grid>
 
         {/* search row */}
-        <Grid item sx={{ width: "60%" }}>
+        <Grid
+          item
+          sx={{ width: { xs: "80%", sm: "80%", md: "60%", lg: "60%" } }}
+        >
           <Box sx={{ display: "flex", gap: 2 }}>
             <TextField
               fullWidth
@@ -142,7 +160,7 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
         <Grid
           item
           sx={{
-            width: "60%",
+            width: "80%",
             mb: { xs: 10, sm: 10, md: 14, lg: 14 },
           }}
         >

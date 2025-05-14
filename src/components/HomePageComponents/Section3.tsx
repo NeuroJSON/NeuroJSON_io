@@ -29,9 +29,9 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
         flexDirection: { xs: "column", md: "row-reverse" },
         alignItems: "center",
         justifyContent: "center",
-        gap: 15,
+        gap: { xs: 5, md: 15 },
         px: { xs: 2, md: 6 },
-        py: { xs: 8, md: 12 },
+        py: { xs: 12, md: 12 },
       }}
     >
       {/* title and text */}

@@ -45,7 +45,7 @@ const Section2: React.FC<Section2Props> = ({
         justifyContent: "center",
         gap: 6,
         px: { xs: 2, md: 6 },
-        py: { xs: 8, md: 12 },
+        py: { xs: 12, md: 12 },
         mt: { xs: 2, md: 8 },
       }}
     >
