@@ -14,17 +14,9 @@ const NavItems: React.FC = () => {
         alignItems="center"
         sx={{
           maxWidth: "100%",
-          border: "2px solid red",
         }}
       >
-        {/* <Box
-        sx={{
-          display: "flex",
-          flexDirection: { sx: "row", sm: "row", md: "column", lg: "column" },
-          border: "2px solid red",
-        }}
-      > */}
-        <Grid item sm={12} md={5} lg={5} sx={{ border: "2px solid yellow" }}>
+        <Grid item sm={12} md={5} lg={5}>
           <Box
             sx={{
               display: "flex",
@@ -79,12 +71,12 @@ const NavItems: React.FC = () => {
         </Grid>
 
         {/* Navigation links*/}
-        <Grid item sx={{ border: "2px solid green" }}>
+        <Grid item xs={12} md="auto">
           <Grid
             container
             spacing={3}
             justifyContent="center"
-            // sx={{ border: "2px solid green" }}
+            sx={{ mb: { xs: 1 } }}
           >
             {[
               { text: "ABOUT", url: "https://neurojson.org/Doc/Start" },
@@ -141,7 +133,6 @@ const NavItems: React.FC = () => {
             ))}
           </Grid>
         </Grid>
-        {/* </Box> */}
       </Grid>
     </Toolbar>
   );
