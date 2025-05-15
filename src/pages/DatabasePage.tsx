@@ -67,13 +67,14 @@ const DatabasePage: React.FC = () => {
             return (
               <Button
                 key={db.id}
-                variant="contained"
+                variant="outlined"
                 sx={{
                   padding: 3,
                   textTransform: "none",
                   fontWeight: 600,
-                  backgroundColor: Colors.primary.main,
-                  color: Colors.white,
+                  backgroundColor: "transparent",
+                  border: `1px solid ${Colors.lightGray}`,
+                  color: Colors.lightGray,
                   borderRadius: 2,
                   transition: "all 0.3s ease",
                   height: "100px",
@@ -81,9 +82,11 @@ const DatabasePage: React.FC = () => {
                   flexDirection: "column",
                   justifyContent: "center",
                   "&:hover": {
-                    backgroundColor: Colors.primary.dark,
+                    backgroundColor: Colors.green,
+                    color: Colors.darkPurple,
                     transform: "translateY(-2px)",
                     boxShadow: 3,
+                    border: `1px solid ${Colors.green}`,
                   },
                 }}
                 onClick={() => navigate(`/databases/${db.id}`)}
