@@ -1,4 +1,11 @@
-import { Typography, Card, CardContent, Box, CardMedia } from "@mui/material";
+import {
+  Typography,
+  Card,
+  CardContent,
+  Box,
+  Button,
+  CardMedia,
+} from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
 
@@ -48,9 +55,9 @@ const WorkflowDetailCard: React.FC<WorkflowDetailCardProps> = ({ type }) => {
       {/* <CardMedia
         component="img"
         height="160"
-        image={`${process.env.PUBLIC_URL}/img/section4_data_portals.png`}
+        image={`${process.env.PUBLIC_URL}/img/section1_logo_contained.png`}
         alt="Data Portals"
-        sx={{ objectFit: "contain", backgroundColor: Colors.purpleGrey }}
+        sx={{ objectFit: "contain", backgroundColor: Colors.black }}
       /> */}
 
       <Box sx={{ width: "100%", backgroundColor, px: 2, py: 1 }}>
@@ -63,12 +70,32 @@ const WorkflowDetailCard: React.FC<WorkflowDetailCardProps> = ({ type }) => {
           {title}
         </Typography>
       </Box>
-      {/* Title and content */}
+
+      {/* content */}
       <CardContent>
         <Typography variant="body2" color="text.secondary">
           {description}
         </Typography>
       </CardContent>
+      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <Button
+          variant="text"
+          href="https://neurojson.org/wiki/index.cgi?wiki#code"
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{
+            color: Colors.purple,
+            fontSize: "small",
+            mr: 2,
+            "&:hover": {
+              backgroundColor: "transparent",
+              textDecoration: "underline",
+            },
+          }}
+        >
+          Learn More
+        </Button>
+      </Box>
     </Card>
   );
 };
