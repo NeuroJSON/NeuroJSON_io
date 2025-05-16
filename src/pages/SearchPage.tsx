@@ -8,7 +8,10 @@ import {
   CircularProgress,
   Pagination,
   Chip,
+  Drawer,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import Form from "@rjsf/mui";
 import validator from "@rjsf/validator-ajv8";
 import DatasetCard from "components/SearchPage/DatasetCard";
@@ -61,6 +64,9 @@ const SearchPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [queryLink, setQueryLink] = useState("");
   const [appliedFilters, setAppliedFilters] = useState<Record<string, any>>({});
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // to show the applied chips on the left
   const activeFilters = Object.entries(appliedFilters).filter(
@@ -379,6 +385,140 @@ const SearchPage: React.FC = () => {
     setAppliedFilters(updatedFormData); // for chips on the left
   };
 
+  // form
+  const renderFilterForm = () => (
+    <>
+      {/* chips */}
+      {/* {activeFilters.length > 0 && (
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 1,
+            mb: 2,
+          }}
+        >
+          {activeFilters.map(([key, value]) => (
+            <Chip
+              key={key}
+              label={`${String(key)}: ${String(value)}`}
+              variant="outlined"
+              sx={{
+                color: Colors.darkPurple,
+                border: `1px solid ${Colors.darkPurple}`,
+                fontWeight: 500,
+                backgroundColor: "#f9f9ff",
+                "&:hover": {
+                  backgroundColor: Colors.purple,
+                  color: "white",
+                  borderColor: Colors.purple,
+                },
+              }}
+              //
+              onDelete={() => {
+                const updated = { ...appliedFilters };
+                delete updated[key];
+
+                const remainingFilters = Object.entries(updated).filter(
+                  ([k, v]) =>
+                    k !== "skip" &&
+                    k !== "limit" &&
+                    v !== undefined &&
+                    v !== null &&
+                    v !== "" &&
+                    v !== "any"
+                );
+
+                const hasActiveFilters = remainingFilters.length > 0;
+
+                setFormData(updated);
+                setAppliedFilters(updated);
+                setSkip(0);
+                setPage(1);
+                setHasSearched(hasActiveFilters); //only true if filters exist
+
+                updateQueryLink(updated);
+
+                if (hasActiveFilters) {
+                  dispatch(
+                    fetchMetadataSearchResults({ ...updated, skip: 0 })
+                  ).then((res: any) => {
+                    setResults(res.payload);
+                  });
+                } else {
+                  setResults([]);
+                }
+              }}
+            />
+          ))}
+        </Box>
+      )} */}
+
+      {queryLink && activeFilters.length > 0 && (
+        <Box mt={2}>
+          <a
+            href={queryLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ textDecoration: "none", color: Colors.purple }}
+          >
+            <Box component="span" display="inline-flex" alignItems="center">
+              Direct Link to This Query
+              <ArrowCircleRightIcon sx={{ marginLeft: 0.5 }} />
+            </Box>
+          </a>
+        </Box>
+      )}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "flex-start",
+          mt: 2,
+          gap: 2,
+        }}
+      >
+        <Button
+          variant="contained"
+          onClick={() => document.querySelector("form")?.requestSubmit()}
+          sx={{
+            backgroundColor: Colors.purple,
+            color: Colors.white,
+            "&:hover": {
+              backgroundColor: Colors.secondaryPurple,
+              transform: "scale(1.05)",
+            },
+          }}
+        >
+          Submit
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={handleReset}
+          sx={{
+            color: Colors.purple,
+            borderColor: Colors.purple,
+            "&:hover": {
+              transform: "scale(1.05)",
+              borderColor: Colors.purple,
+            },
+          }}
+        >
+          Reset
+        </Button>
+      </Box>
+      <Form
+        schema={schema}
+        onSubmit={handleSubmit}
+        validator={validator}
+        // liveValidate
+        formData={formData}
+        onChange={({ formData }) => setFormData(formData)}
+        uiSchema={uiSchema}
+        fields={customFields}
+      />
+    </>
+  );
+
   return (
     <Container
       style={{
@@ -390,15 +530,67 @@ const SearchPage: React.FC = () => {
         width: "100%",
       }}
     >
-      <Typography variant="h4">Metadata Search</Typography>
+      {/* <Typography variant="h4">Metadata Search</Typography> */}
       <Box
         sx={{
           display: "flex",
-          gap: 3,
-          alignItems: "flex-start",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+          // flexWrap: "wrap",
+          border: "green solid 2px",
         }}
       >
-        <Box
+        <Typography variant="h4" sx={{ flexGrow: 1 }}>
+          Metadata Search
+        </Typography>
+        {isMobile && !showMobileFilters && (
+          <Button
+            variant="outlined"
+            onClick={() => setShowMobileFilters(true)}
+            sx={{
+              color: Colors.purple,
+              borderColor: Colors.purple,
+              "&:hover": {
+                transform: "scale(1.05)",
+                borderColor: Colors.purple,
+              },
+              mt: { xs: 1, sm: 0 },
+            }}
+          >
+            Show Filters
+          </Button>
+        )}
+      </Box>
+      <Box
+        sx={{
+          display: "flex",
+          gap: { xs: 0, sm: 1, md: 3 },
+          alignItems: "flex-start",
+          border: "red solid 2px",
+        }}
+      >
+        {/* {isMobile && !showMobileFilters && (
+          <Box textAlign="right" mb={2}>
+            <Button
+              variant="outlined"
+              onClick={() => setShowMobileFilters(true)}
+              sx={{
+                color: Colors.purple,
+                borderColor: Colors.purple,
+                "&:hover": {
+                  transform: "scale(1.05)",
+                  borderColor: Colors.purple,
+                },
+              }}
+            >
+              Show Filters
+            </Button>
+          </Box>
+        )} */}
+
+        {/* <Box //form box
           sx={{
             flex: 1,
             backgroundColor: "white",
@@ -407,9 +599,24 @@ const SearchPage: React.FC = () => {
             boxShadow: 1,
             minWidth: "35%",
           }}
-        >
-          {/* chips */}
-          {activeFilters.length > 0 && (
+        > */}
+        {!isMobile && (
+          <Box
+            sx={{
+              flex: 1,
+              backgroundColor: "white",
+              p: 3,
+              borderRadius: 2,
+              boxShadow: 1,
+              minWidth: "35%",
+            }}
+          >
+            {renderFilterForm()}
+          </Box>
+        )}
+
+        {/* chips */}
+        {/* {activeFilters.length > 0 && (
             <Box
               sx={{
                 display: "flex",
@@ -535,8 +742,8 @@ const SearchPage: React.FC = () => {
             onChange={({ formData }) => setFormData(formData)}
             uiSchema={uiSchema}
             fields={customFields}
-          />
-        </Box>
+          /> */}
+        {/* </Box> */}
         <Box>
           {!hasSearched && (
             <Typography
@@ -557,13 +764,83 @@ const SearchPage: React.FC = () => {
         <Box
           sx={{
             flex: 2,
+            width: { xs: "100%", sm: "auto" },
             backgroundColor: "white",
-            paddingLeft: 3,
-            paddingRight: 3,
+            px: { xs: 2, sm: 2, md: 3 },
             borderRadius: 2,
             boxShadow: 1,
           }}
         >
+          <Box>
+            {/* chips */}
+            {activeFilters.length > 0 && (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 1,
+                  mb: 2,
+                  mt: 1,
+                }}
+              >
+                {activeFilters.map(([key, value]) => (
+                  <Chip
+                    key={key}
+                    label={`${String(key)}: ${String(value)}`}
+                    variant="outlined"
+                    sx={{
+                      color: Colors.darkPurple,
+                      border: `1px solid ${Colors.darkPurple}`,
+                      fontWeight: 500,
+                      backgroundColor: "#f9f9ff",
+                      "&:hover": {
+                        backgroundColor: Colors.purple,
+                        color: "white",
+                        borderColor: Colors.purple,
+                      },
+                    }}
+                    //
+                    onDelete={() => {
+                      const updated = { ...appliedFilters };
+                      delete updated[key];
+
+                      const remainingFilters = Object.entries(updated).filter(
+                        ([k, v]) =>
+                          k !== "skip" &&
+                          k !== "limit" &&
+                          v !== undefined &&
+                          v !== null &&
+                          v !== "" &&
+                          v !== "any"
+                      );
+
+                      const hasActiveFilters = remainingFilters.length > 0;
+
+                      setFormData(updated);
+                      setAppliedFilters(updated);
+                      setSkip(0);
+                      setPage(1);
+                      setHasSearched(hasActiveFilters); //only true if filters exist
+
+                      updateQueryLink(updated);
+
+                      if (hasActiveFilters) {
+                        dispatch(
+                          fetchMetadataSearchResults({ ...updated, skip: 0 })
+                        ).then((res: any) => {
+                          setResults(res.payload);
+                        });
+                      } else {
+                        setResults([]);
+                      }
+                    }}
+                  />
+                ))}
+              </Box>
+            )}
+          </Box>
+
+          {/* results */}
           {hasSearched && (
             <Box mt={4}>
               {loading ? (
@@ -602,7 +879,7 @@ const SearchPage: React.FC = () => {
                               },
                             }}
                           >
-                            Load Extra 50
+                            Load Extra 50 Results
                           </Button>
                         </Box>
                       )
@@ -683,6 +960,32 @@ const SearchPage: React.FC = () => {
             </Box>
           )}
         </Box>
+        <Drawer
+          anchor="left"
+          open={showMobileFilters}
+          onClose={() => setShowMobileFilters(false)}
+          PaperProps={{
+            sx: { width: "100%", p: 3 },
+          }}
+        >
+          <Box textAlign="right" mb={2}>
+            <Button
+              variant="outlined"
+              onClick={() => setShowMobileFilters(false)}
+              sx={{
+                color: Colors.purple,
+                borderColor: Colors.purple,
+                "&:hover": {
+                  transform: "scale(1.05)",
+                  borderColor: Colors.purple,
+                },
+              }}
+            >
+              Close Filters
+            </Button>
+          </Box>
+          {renderFilterForm()}
+        </Drawer>
       </Box>
     </Container>
   );

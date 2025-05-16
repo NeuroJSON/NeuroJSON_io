@@ -72,8 +72,7 @@ const DatabasePage: React.FC = () => {
                   padding: 3,
                   textTransform: "none",
                   fontWeight: 600,
-                  backgroundColor: "transparent",
-                  border: `1px solid ${Colors.lightGray}`,
+                  borderColor: Colors.lightGray,
                   color: Colors.lightGray,
                   borderRadius: 2,
                   transition: "all 0.3s ease",
@@ -82,11 +81,10 @@ const DatabasePage: React.FC = () => {
                   flexDirection: "column",
                   justifyContent: "center",
                   "&:hover": {
-                    backgroundColor: Colors.green,
-                    color: Colors.darkPurple,
+                    borderColor: Colors.lightGray,
+                    backgroundColor: Colors.secondaryPurple,
                     transform: "translateY(-2px)",
                     boxShadow: 3,
-                    border: `1px solid ${Colors.green}`,
                   },
                 }}
                 onClick={() => navigate(`/databases/${db.id}`)}
