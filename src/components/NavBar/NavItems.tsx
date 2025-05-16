@@ -16,7 +16,7 @@ const NavItems: React.FC = () => {
           maxWidth: "100%",
         }}
       >
-        <Grid item sm={12} md={5} lg={5}>
+        <Grid item xs={12} sm={12} md={5} lg={5}>
           <Box
             sx={{
               display: "flex",
