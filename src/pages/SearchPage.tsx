@@ -1,4 +1,4 @@
-import { generateSchemaWithDatabaseEnum } from "../utils/searchformSchema";
+import { generateSchemaWithDatabaseEnum } from "../utils/SearchPageFunctions/searchformSchema";
 import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
 import {
   Typography,
@@ -27,22 +27,8 @@ import {
   fetchRegistry,
 } from "redux/neurojson/neurojson.action";
 import { RootState } from "redux/store";
-
-const modalityValueToEnumLabel: Record<string, string> = {
-  anat: "Structural MRI (anat)",
-  func: "fMRI (func)",
-  dwi: "DWI (dwi)",
-  fmap: "Field maps (fmap)",
-  perf: "Perfusion (perf)",
-  meg: "MEG (meg)",
-  eeg: "EEG (eeg)",
-  ieeg: "Intracranial EEG (ieeg)",
-  beh: "Behavioral (beh)",
-  pet: "PET (pet)",
-  micr: "microscopy (micr)",
-  nirs: "fNIRS (nirs)",
-  motion: "motion (motion)",
-};
+import { generateUiSchema } from "utils/SearchPageFunctions/generateUiSchema";
+import { modalityValueToEnumLabel } from "utils/SearchPageFunctions/modalityLabels";
 
 const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -128,141 +114,10 @@ const SearchPage: React.FC = () => {
     : [];
 
   // form UI
-  const uiSchema = useMemo(() => {
-    const activeStyle = {
-      "ui:options": {
-        style: {
-          backgroundColor: Colors.lightBlue,
-        },
-      },
-    };
-
-    // hide subject-level filter
-    const invisibleStyle = {
-      "ui:options": {
-        style: {
-          display: "none",
-        },
-      },
-    };
-
-    const hiddenStyle = {
-      "ui:options": {
-        style: {
-          display: showSubjectFilters ? "block" : "none",
-        },
-      },
-    };
-
-    return {
-      keyword: formData["keyword"] ? activeStyle : {},
-      database:
-        formData["database"] && formData["database"] !== "any"
-          ? activeStyle
-          : {},
-      //   dataset: formData["dataset"] ? activeStyle : {},
-      //   limit: formData["limit"] ? activeStyle : {},
-      //   skip: formData["skip"] ? activeStyle : {},
-      limit: invisibleStyle,
-      skip: invisibleStyle,
-
-      // subject-level filters
-      subject_filters_toggle: {
-        "ui:field": "subjectFiltersToggle",
-      },
-      modality: showSubjectFilters
-        ? formData["modality"] && formData["modality"] !== "any"
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-
-      age_min: showSubjectFilters
-        ? formData["age_min"]
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-      age_max: showSubjectFilters
-        ? formData["age_max"]
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-
-      gender: showSubjectFilters
-        ? formData["gender"] && formData["gender"] !== "any"
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-
-      sess_min: showSubjectFilters
-        ? formData["sess_min"]
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-      sess_max: showSubjectFilters
-        ? formData["sess_max"]
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-
-      task_min: showSubjectFilters
-        ? formData["task_min"]
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-      task_max: showSubjectFilters
-        ? formData["task_max"]
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-
-      run_min: showSubjectFilters
-        ? formData["run_min"]
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-      run_max: showSubjectFilters
-        ? formData["run_max"]
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-
-      task_name: showSubjectFilters
-        ? formData["task_name"]
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-      type_name: showSubjectFilters
-        ? formData["type_name"]
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-      session_name: showSubjectFilters
-        ? formData["session_name"]
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-      run_name: showSubjectFilters
-        ? formData["run_name"]
-          ? activeStyle
-          : {}
-        : hiddenStyle,
-
-      "ui:submitButtonOptions": {
-        props: {
-          sx: {
-            backgroundColor: Colors.purple,
-            color: Colors.white,
-            "&:hover": {
-              backgroundColor: Colors.secondaryPurple,
-              transform: "scale(1.05)",
-            },
-          },
-        },
-        submitText: "Submit",
-        norender: true,
-      },
-    };
-  }, [formData, showSubjectFilters]);
+  const uiSchema = useMemo(
+    () => generateUiSchema(formData, showSubjectFilters),
+    [formData, showSubjectFilters]
+  );
 
   // Create the "Subject-level Filters" button as a custom field
   const customFields = {
