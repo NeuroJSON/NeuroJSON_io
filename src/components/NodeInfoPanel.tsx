@@ -18,6 +18,7 @@ import React, { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchDbInfo } from "redux/neurojson/neurojson.action";
 import { RootState } from "redux/store";
+import RoutesEnum from "types/routes.enum";
 
 interface NodeInfoPanelProps {
   open: boolean;
@@ -280,7 +281,9 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                             backgroundColor: Colors.secondaryPurple,
                           },
                         }}
-                        onClick={() => navigate(`/databases/${nodeData.id}`)}
+                        onClick={() =>
+                          navigate(`${RoutesEnum.DATABASES}/${nodeData.id}`)
+                        }
                       >
                         Browse Database
                       </Button>

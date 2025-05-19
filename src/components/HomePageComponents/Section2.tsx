@@ -5,6 +5,7 @@ import ForceGraphModal from "modules/universe/ForceGraphModal";
 import { NodeObject } from "modules/universe/NeuroJsonGraph";
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import RoutesEnum from "types/routes.enum";
 
 interface Section2Props {
   registry: any[] | null;
@@ -122,7 +123,7 @@ const Section2: React.FC<Section2Props> = ({
                 borderColor: Colors.lightGray,
               },
             }}
-            onClick={() => navigate("/databases")}
+            onClick={() => navigate(`${RoutesEnum.DATABASES}`)}
           >
             View All Databases
           </Button>
