@@ -50,29 +50,37 @@ const neurojsonSlice = createSlice({
       .addCase(
         loadPaginatedData.fulfilled,
         (state, action: PayloadAction<DBDatafields>) => {
-          // Check if we received fewer items than the limit, indicating we've reached the end
-          console.log(action.payload.total_rows);
+          state.loading = false;
+          state.error = null;
           state.limit = action.payload.total_rows;
-          const reachedEnd = action.payload.offset + action.payload.rows.length >= action.payload.total_rows;
+          state.offset = action.payload.offset;
+          state.data = action.payload.rows; // Always replace data, not merge
+          state.hasMore =
+            action.payload.offset + action.payload.rows.length <
+            action.payload.total_rows;
+          // Check if we received fewer items than the limit, indicating we've reached the end
+          // console.log(action.payload.total_rows);
+          // state.limit = action.payload.total_rows;
+          // const reachedEnd = action.payload.offset + action.payload.rows.length >= action.payload.total_rows;
 
           // Filter out duplicates while preserving order
-          const uniqueEntries = action.payload.rows.filter(
-            (newItem) =>
-              !state.data.some((existingItem) => existingItem.id === newItem.id)
-          );
+          // const uniqueEntries = action.payload.rows.filter(
+          //   (newItem) =>
+          //     !state.data.some((existingItem) => existingItem.id === newItem.id)
+          // );
 
-          state.loading = false;
+          // state.loading = false;
 
-          if (uniqueEntries.length > 0) {
-            // Append new unique entries to existing data
-            state.data = uniqueEntries; // ✅ Replace instead of append
-            state.offset = action.payload.offset; // ✅ Track current offset
-            // Only set hasMore to true if we haven't reached the end
-            state.hasMore = !reachedEnd;
-          } else {
-            // If no new unique entries were found, we've reached the end
-            state.hasMore = false;
-          }
+          // if (uniqueEntries.length > 0) {
+          // Append new unique entries to existing data
+          // state.data = uniqueEntries; // ✅ Replace instead of append
+          // state.offset = action.payload.offset; // ✅ Track current offset
+          // Only set hasMore to true if we haven't reached the end
+          //   state.hasMore = !reachedEnd;
+          // } else {
+          // If no new unique entries were found, we've reached the end
+          // state.hasMore = false;
+          // }
         }
       )
       .addCase(loadPaginatedData.rejected, (state, action) => {
