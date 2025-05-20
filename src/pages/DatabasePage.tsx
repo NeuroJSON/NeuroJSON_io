@@ -6,6 +6,7 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchRegistry } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
+import RoutesEnum from "types/routes.enum";
 
 const DatabasePage: React.FC = () => {
   const navigate = useNavigate();
@@ -67,13 +68,13 @@ const DatabasePage: React.FC = () => {
             return (
               <Button
                 key={db.id}
-                variant="contained"
+                variant="outlined"
                 sx={{
                   padding: 3,
                   textTransform: "none",
                   fontWeight: 600,
-                  backgroundColor: Colors.primary.main,
-                  color: Colors.white,
+                  borderColor: Colors.lightGray,
+                  color: Colors.lightGray,
                   borderRadius: 2,
                   transition: "all 0.3s ease",
                   height: "100px",
@@ -81,12 +82,14 @@ const DatabasePage: React.FC = () => {
                   flexDirection: "column",
                   justifyContent: "center",
                   "&:hover": {
-                    backgroundColor: Colors.primary.dark,
+                    borderColor: Colors.lightGray,
+                    backgroundColor: Colors.secondaryPurple,
                     transform: "translateY(-2px)",
                     boxShadow: 3,
                   },
                 }}
-                onClick={() => navigate(`/databases/${db.id}`)}
+                // onClick={() => navigate(`/databases/${db.id}`)}
+                onClick={() => navigate(`${RoutesEnum.DATABASES}/${db.id}`)}
               >
                 <Typography variant="h6" component="span">
                   {db.name || "Unnamed Database"}
