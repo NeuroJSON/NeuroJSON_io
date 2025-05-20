@@ -29,4 +29,4 @@ jobs:
           PUBLIC_URL="/dev/${{ github.head_ref }}/" yarn build
 
       - name: Run Security Audit (non-blocking)
-        run: yarn audit --level moderate
+        run: yarn audit --level moderate || echo "Audit failed with moderate issues, continuing anyway."
