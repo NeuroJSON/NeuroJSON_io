@@ -268,7 +268,9 @@ const SearchPage: React.FC = () => {
       >
         <Button
           variant="contained"
-          onClick={() => document.querySelector("form")?.requestSubmit()}
+          // onClick={() => document.querySelector("form")?.requestSubmit()}
+          type="submit"
+          form="search-form"
           sx={{
             backgroundColor: Colors.purple,
             color: Colors.white,
@@ -296,6 +298,7 @@ const SearchPage: React.FC = () => {
         </Button>
       </Box>
       <Form
+        id="search-form"
         schema={schema}
         onSubmit={handleSubmit}
         validator={validator}
