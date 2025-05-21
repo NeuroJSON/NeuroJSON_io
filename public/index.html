@@ -50,7 +50,10 @@
     /> -->
 
     <title>NeuroJSON.io - Free Data Worth Sharing</title>
-    <link rel="stylesheet" href="https://leeoniya.github.io/uPlot/dist/uPlot.min.css" />
+    <link
+      rel="stylesheet"
+      href="https://leeoniya.github.io/uPlot/dist/uPlot.min.css"
+    />
     <style>
       #chartpanel {
         background-color: #707070;
@@ -59,13 +62,13 @@
         margin-top: 20px;
         border-radius: 10px;
       }
-    
+
       #chartpanel h4 {
         padding-top: 0;
         margin-bottom: 10px;
         color: black;
       }
-    
+
       #chartpanel a.closebtn {
         float: right;
         font-size: 28px;
@@ -74,13 +77,12 @@
         text-decoration: none;
         margin-top: -10px;
       }
-    
+
       .uplot {
         margin: auto;
         max-width: 100%;
       }
     </style>
-    
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
@@ -107,7 +109,23 @@
     <script src="%PUBLIC_URL%/js/jdata.js"></script>
     <script src="%PUBLIC_URL%/js/bjdata.js"></script>
     <script src="https://bundle.run/buffer@6.0.3"></script>
-    <script>var buffer_module = buffer;</script>
+    <script>
+      var buffer_module = buffer;
+    </script>
     <script src="https://leeoniya.github.io/uPlot/dist/uPlot.iife.min.js"></script>
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-J4WYV02Q5B"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-J4WYV02Q5B");
+    </script>
   </body>
 </html>
