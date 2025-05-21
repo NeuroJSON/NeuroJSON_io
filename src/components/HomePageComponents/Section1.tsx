@@ -112,6 +112,11 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
               label="Search by keyword"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
               sx={{
                 backgroundColor: Colors.white,
                 borderRadius: "8px",
