@@ -26,8 +26,9 @@ const NavItems: React.FC = () => {
           >
             <Box
               component="img"
-              src={`${process.env.PUBLIC_URL}/img/section1_logo_colored.png`}
-              // src={`${process.env.PUBLIC_URL}/img/section1_logo_contained.png`}
+              // src={`${process.env.PUBLIC_URL}/img/logo_yellow.png`}
+              // src={`${process.env.PUBLIC_URL}/img/neurojson_logo_color.png`}
+              src={`${process.env.PUBLIC_URL}/img/logo_updated.png`}
               alt="logo"
               onClick={() => navigate("/")}
               height="auto"

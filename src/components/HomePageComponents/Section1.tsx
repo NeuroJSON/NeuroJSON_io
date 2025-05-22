@@ -67,9 +67,9 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
           >
             <Box
               component="img"
-              // src={`${process.env.PUBLIC_URL}/img/3d_graph_logo.png`}
-              src={`${process.env.PUBLIC_URL}/img/section1_logo_colored.png`}
-              // src={`${process.env.PUBLIC_URL}/img/section1_logo_contained.png`}
+              // src={`${process.env.PUBLIC_URL}/img/neurojson_logo_color.png`}
+              src={`${process.env.PUBLIC_URL}/img/logo_updated.png`}
+              // src={`${process.env.PUBLIC_URL}/img/logo_yellow.png`}
               alt="logo"
               height="auto"
               sx={{
