@@ -77,6 +77,7 @@ const SearchPage: React.FC = () => {
         );
         const parsed = JSON.parse(decoded);
         setFormData(parsed);
+        setAppliedFilters(parsed);
         const requestData = { ...parsed, skip: 0, limit: 50 };
         setSkip(0);
         setHasSearched(true);
