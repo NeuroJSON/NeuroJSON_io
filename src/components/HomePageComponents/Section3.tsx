@@ -1,3 +1,4 @@
+import ArrowCircleDownIcon from "@mui/icons-material/ArrowCircleDown";
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Typography, Box, IconButton, Dialog } from "@mui/material";
@@ -141,7 +142,7 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
         }}
       >
         <IconButton onClick={scrollToNext}>
-          <ExpandMoreIcon sx={{ fontSize: 40, color: Colors.lightGray }} />
+          <ArrowCircleDownIcon sx={{ fontSize: 40, color: Colors.lightGray }} />
         </IconButton>
       </Box>
     </Box>
