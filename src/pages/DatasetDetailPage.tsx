@@ -1,4 +1,3 @@
-import DatasetFlashcards from "../components/DatasetFlashcards";
 import PreviewModal from "../components/PreviewModal";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import DescriptionIcon from "@mui/icons-material/Description";
