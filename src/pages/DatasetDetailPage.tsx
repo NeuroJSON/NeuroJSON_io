@@ -16,6 +16,7 @@ import {
   Collapse,
 } from "@mui/material";
 import { TextField } from "@mui/material";
+import LoadDatasetTabs from "components/DatasetDetailPage/LoadDatasetTabs";
 import theme, { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -949,9 +950,17 @@ const DatasetDetailPage: React.FC = () => {
         </Box>
         {/* ✅ ADD FLASHCARDS COMPONENT HERE ✅ */}
 
-        <div id="chartpanel"></div>
+        {/* <div id="chartpanel"></div> */}
+        <Box
+          sx={{
+            borderBottom: `1px solid ${Colors.lightGray}`,
+            marginTop: 4,
+            marginBottom: 3,
+          }}
+        ></Box>
 
-        <DatasetFlashcards
+        {/* <DatasetFlashcards */}
+        <LoadDatasetTabs
           pagename={docId ?? ""}
           docname={datasetDocument?.Name || ""}
           dbname={dbName || ""}
