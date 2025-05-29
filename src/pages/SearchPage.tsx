@@ -77,6 +77,7 @@ const SearchPage: React.FC = () => {
         );
         const parsed = JSON.parse(decoded);
         setFormData(parsed);
+        setAppliedFilters(parsed);
         const requestData = { ...parsed, skip: 0, limit: 50 };
         setSkip(0);
         setHasSearched(true);
@@ -140,20 +141,6 @@ const SearchPage: React.FC = () => {
       </Box>
     ),
   };
-
-  // print the result in dev tool
-  if (Array.isArray(searchResults)) {
-    searchResults.forEach((item, idx) => {
-      try {
-        const parsed = JSON.parse(item.json);
-        console.log(`Result #${idx}:`, { ...item, parsedJson: parsed });
-      } catch (e) {
-        console.error(`Failed to parse JSON for item #${idx}`, e);
-      }
-    });
-  } else {
-    console.warn("searchResults is not an array:", searchResults);
-  }
 
   // determine the results are subject-level or dataset-level
   let isDataset: boolean | null = null;
@@ -268,7 +255,8 @@ const SearchPage: React.FC = () => {
       >
         <Button
           variant="contained"
-          onClick={() => document.querySelector("form")?.requestSubmit()}
+          type="submit"
+          form="search-form"
           sx={{
             backgroundColor: Colors.purple,
             color: Colors.white,
@@ -296,10 +284,10 @@ const SearchPage: React.FC = () => {
         </Button>
       </Box>
       <Form
+        id="search-form"
         schema={schema}
         onSubmit={handleSubmit}
         validator={validator}
-        // liveValidate
         formData={formData}
         onChange={({ formData }) => setFormData(formData)}
         uiSchema={uiSchema}
