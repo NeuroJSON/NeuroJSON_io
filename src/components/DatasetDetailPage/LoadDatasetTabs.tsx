@@ -26,7 +26,6 @@ const flashcardStyles = {
     marginBottom: "0px",
     borderRadius: "8px",
     borderLeft: `5px solid ${Colors.green}`,
-    // width: "calc(100% - 8px)", // Two per row, tight spacing
     width: "100%",
     boxSizing: "border-box" as const,
   },
@@ -39,11 +38,9 @@ const flashcardStyles = {
   codeBlock: {
     display: "block",
     background: "#e0e0e0",
-    // background: Colors.black,
     color: Colors.black,
     padding: "10px",
     borderRadius: "5px",
-    // fontFamily: "monospace",
     whiteSpace: "pre-wrap",
   },
 };
@@ -80,20 +77,6 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
     return (
       <div role="tabpanel" hidden={value !== index}>
         {value === index && <Box sx={{ p: 2 }}>{children}</Box>}
-        {/* {value === index && (
-          <Box
-            sx={{
-              border: "1px solid #ccc",
-              borderTop: "none",
-              borderRadius: "5px 5px 5px 5px",
-              p: 2,
-              backgroundColor: "#fff",
-              borderLeft: `5px solid ${Colors.purple}`,
-            }}
-          >
-            {children}
-          </Box>
-        )} */}
       </div>
     );
   };
@@ -109,17 +92,14 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
           "& .MuiTab-root": {
             color: Colors.lightGray, // default color
             fontSize: "large",
+            textTransform: "none",
           },
-          "& .Mui-selected": {
+          "& .MuiTab-root.Mui-selected": {
             color: Colors.green, // active tab color
             fontWeight: "bold",
-            // backgroundColor: Colors.white,
-            // borderRadius: "5px 5px 0px 0px",
-            // borderLeft: `5px solid ${Colors.purple}`,
           },
           "& .MuiTabs-indicator": {
-            backgroundColor: Colors.green, // underline color
-            // display: "none",
+            backgroundColor: Colors.green,
           },
         }}
       >
