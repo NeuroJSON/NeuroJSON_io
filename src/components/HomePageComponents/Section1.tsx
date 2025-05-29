@@ -1,3 +1,4 @@
+import ArrowCircleDownIcon from "@mui/icons-material/ArrowCircleDown";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SearchIcon from "@mui/icons-material/Search";
 import {
@@ -67,9 +68,7 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
           >
             <Box
               component="img"
-              // src={`${process.env.PUBLIC_URL}/img/3d_graph_logo.png`}
-              src={`${process.env.PUBLIC_URL}/img/section1_logo_colored.png`}
-              // src={`${process.env.PUBLIC_URL}/img/section1_logo_contained.png`}
+              src={`${process.env.PUBLIC_URL}/img/logo_updated.png`}
               alt="logo"
               height="auto"
               sx={{
@@ -112,6 +111,11 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
               label="Search by keyword"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
               sx={{
                 backgroundColor: Colors.white,
                 borderRadius: "8px",
@@ -178,7 +182,38 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
         }}
       >
         <IconButton onClick={scrollToNext}>
-          <ExpandMoreIcon sx={{ fontSize: 40, color: Colors.lightGray }} />
+          {/* <ExpandMoreIcon sx={{ fontSize: 40, color: Colors.lightGray }} /> */}
+          {/* <ArrowCircleDownIcon
+            sx={{
+              fontSize: 40,
+              color: Colors.lightGray,
+              animation: "bounce 1.5s infinite",
+              "@keyframes bounce": {
+                "0%, 100%": {
+                  transform: "translateY(0)",
+                },
+                "50%": {
+                  transform: "translateY(8px)",
+                },
+              },
+            }}
+          /> */}
+          <ArrowCircleDownIcon
+            sx={{
+              fontSize: 40,
+              color: Colors.lightGray,
+              animation: "flipY 5s infinite",
+              "@keyframes flipY": {
+                "0%, 100%": {
+                  transform: "rotateY(0deg)",
+                },
+                "50%": {
+                  transform: "rotateY(180deg)",
+                },
+              },
+              transformOrigin: "center",
+            }}
+          />
         </IconButton>
       </Box>
     </Box>

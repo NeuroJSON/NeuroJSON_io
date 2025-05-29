@@ -42,7 +42,7 @@ const DatabasePage: React.FC = () => {
 
   return (
     <Container maxWidth="lg">
-      <Box sx={{ padding: { xs: 2, md: 4 } }}>
+      <Box sx={{ padding: { xs: 2, md: 4 }, marginTop: { xs: 4 } }}>
         <Typography variant="h1" gutterBottom sx={{ color: Colors.green }}>
           Databases
         </Typography>
@@ -88,7 +88,6 @@ const DatabasePage: React.FC = () => {
                     boxShadow: 3,
                   },
                 }}
-                // onClick={() => navigate(`/databases/${db.id}`)}
                 onClick={() => navigate(`${RoutesEnum.DATABASES}/${db.id}`)}
               >
                 <Typography variant="h6" component="span">
