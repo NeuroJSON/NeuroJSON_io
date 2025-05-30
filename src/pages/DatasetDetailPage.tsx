@@ -529,9 +529,17 @@ const DatasetDetailPage: React.FC = () => {
       </style>
       <Box sx={{ padding: 4 }}>
         <Button
-          variant="contained"
+          variant="text"
           onClick={() => navigate(-1)}
-          sx={{ marginBottom: 2, backgroundColor: Colors.primary.main }}
+          sx={{
+            marginBottom: 2,
+            color: Colors.white,
+            "&:hover": {
+              transform: "scale(1.05)",
+              backgroundColor: "transparent",
+              textDecoration: "underline",
+            },
+          }}
         >
           Back
         </Button>
@@ -550,7 +558,7 @@ const DatasetDetailPage: React.FC = () => {
           {/* ✅ Dataset Title (From dataset_description.json) */}
           <Typography
             variant="h4"
-            color={Colors.primary.main}
+            color={Colors.darkPurple}
             sx={{ fontWeight: "bold", mb: 1 }}
           >
             {datasetDocument?.["dataset_description.json"]?.Name ??
@@ -589,7 +597,15 @@ const DatasetDetailPage: React.FC = () => {
                 "&:hover": { backgroundColor: "transparent" },
               }}
             >
-              <HomeIcon sx={{ color: Colors.primary.main }} />
+              <HomeIcon
+                sx={{
+                  color: Colors.darkPurple,
+                  "&:hover": {
+                    transform: "scale(1.1)",
+                    backgroundColor: "transparent",
+                  },
+                }}
+              />
             </Button>
 
             <Typography variant="h5" sx={{ marginX: 1, fontWeight: "bold" }}>
@@ -603,7 +619,11 @@ const DatasetDetailPage: React.FC = () => {
                 textTransform: "none",
                 fontSize: "1.2rem",
                 fontWeight: "bold",
-                color: Colors.primary.dark,
+                color: Colors.darkPurple,
+                "&:hover": {
+                  transform: "scale(1.05)",
+                  backgroundColor: "transparent",
+                },
               }}
             >
               {dbName?.toLowerCase()}
@@ -618,7 +638,7 @@ const DatasetDetailPage: React.FC = () => {
               variant="h5"
               sx={{
                 fontWeight: "bold",
-                color: Colors.textPrimary,
+                color: Colors.darkPurple,
                 fontSize: "1.2rem",
               }}
             >
@@ -643,9 +663,9 @@ const DatasetDetailPage: React.FC = () => {
               startIcon={<CloudDownloadIcon />}
               onClick={handleDownloadDataset}
               sx={{
-                backgroundColor: "#ffb300",
-                color: "black",
-                "&:hover": { backgroundColor: "#ff9100" },
+                backgroundColor: Colors.purple,
+                color: Colors.lightGray,
+                "&:hover": { backgroundColor: Colors.secondaryPurple },
               }}
             >
               {/* Download Dataset (1 Mb) */}
@@ -657,9 +677,9 @@ const DatasetDetailPage: React.FC = () => {
               startIcon={<DescriptionIcon />}
               onClick={handleDownloadScript}
               sx={{
-                backgroundColor: "#ffb300",
-                color: "black",
-                "&:hover": { backgroundColor: "#ff9100" },
+                backgroundColor: Colors.purple,
+                color: Colors.lightGray,
+                "&:hover": { backgroundColor: Colors.secondaryPurple },
               }}
             >
               Script to Download All Files ({downloadScript.length} Bytes)
@@ -692,6 +712,8 @@ const DatasetDetailPage: React.FC = () => {
             gap: 2,
             alignItems: "flex-start",
             marginTop: 2,
+            height: "700px", // fixed height container
+            border: "2px solid red",
           }}
         >
           {/* ✅ JSON Viewer (left panel) */}
@@ -702,6 +724,8 @@ const DatasetDetailPage: React.FC = () => {
               padding: 2,
               borderRadius: "8px",
               overflowX: "auto",
+              height: "100%",
+              border: "2px solid yellow",
             }}
           >
             <ReactJson
@@ -723,6 +747,8 @@ const DatasetDetailPage: React.FC = () => {
               display: "flex",
               flexDirection: "column",
               gap: 2,
+              height: "100%",
+              border: "2px solid green",
             }}
           >
             <Box
@@ -730,7 +756,8 @@ const DatasetDetailPage: React.FC = () => {
                 backgroundColor: "#cdddf6",
                 padding: 2,
                 borderRadius: "8px",
-                marginTop: 4,
+                border: "2px solid orange",
+                flex: 1,
               }}
             >
               {/* ✅ Collapsible header */}
@@ -755,7 +782,7 @@ const DatasetDetailPage: React.FC = () => {
                   sx={{
                     maxHeight: "400px",
                     overflowY: "auto",
-                    marginTop: 2,
+                    // marginTop: 2,
                     paddingRight: 1,
                     "&::-webkit-scrollbar": {
                       width: "6px",
@@ -834,7 +861,9 @@ const DatasetDetailPage: React.FC = () => {
                 backgroundColor: "#eaeaea",
                 padding: 2,
                 borderRadius: "8px",
-                marginTop: 4,
+                marginTop: 2,
+                flex: 1,
+                border: "2px solid blue",
               }}
             >
               {/* ✅ Header with toggle */}
@@ -859,7 +888,7 @@ const DatasetDetailPage: React.FC = () => {
                   sx={{
                     maxHeight: "400px",
                     overflowY: "auto",
-                    marginTop: 2,
+                    // marginTop: 2,
                     paddingRight: 1,
                     "&::-webkit-scrollbar": {
                       width: "6px",
