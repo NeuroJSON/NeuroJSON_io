@@ -242,9 +242,19 @@ const DatasetDetailPage: React.FC = () => {
       externalLinks.forEach((link) => {
         const url = link.url;
         const match = url.match(/file=([^&]+)/);
+        // const filename = match
+        //   ? decodeURIComponent(match[1])
+        //   : `file-${link.index}`;
         const filename = match
-          ? decodeURIComponent(match[1])
+          ? (() => {
+              try {
+                return decodeURIComponent(match[1]);
+              } catch {
+                return match[1]; // fallback if decode fails
+              }
+            })()
           : `file-${link.index}`;
+
         const outputPath = `$HOME/.neurojson/io/${dbName}/${docId}/${filename}`;
 
         script += `curl -L --create-dirs "${url}" -o "${outputPath}"\n`;
