@@ -98,7 +98,10 @@ const DatasetPageCard: React.FC<DatasetPageCardProps> = ({
                 <Chip
                   label={`${doc.value.subj.length} subjects`}
                   size="small"
-                  sx={{ backgroundColor: Colors.purple, color: Colors.white }}
+                  sx={{
+                    backgroundColor: Colors.darkOrange,
+                    color: Colors.white,
+                  }}
                 />
               )}
               {doc.value.modality &&
@@ -108,7 +111,7 @@ const DatasetPageCard: React.FC<DatasetPageCardProps> = ({
                     label={mod}
                     size="small"
                     sx={{
-                      backgroundColor: Colors.purpleGrey,
+                      backgroundColor: Colors.purple,
                       color: Colors.white,
                     }}
                   />
