@@ -712,8 +712,8 @@ const DatasetDetailPage: React.FC = () => {
             gap: 2,
             alignItems: "flex-start",
             marginTop: 2,
-            height: "700px", // fixed height container
-            border: "2px solid red",
+            height: "960px", // fixed height container
+            // border: "2px solid red",
           }}
         >
           {/* ✅ JSON Viewer (left panel) */}
@@ -725,7 +725,7 @@ const DatasetDetailPage: React.FC = () => {
               borderRadius: "8px",
               overflowX: "auto",
               height: "100%",
-              border: "2px solid yellow",
+              // border: "2px solid yellow",
             }}
           >
             <ReactJson
@@ -748,16 +748,18 @@ const DatasetDetailPage: React.FC = () => {
               flexDirection: "column",
               gap: 2,
               height: "100%",
-              border: "2px solid green",
+              // border: "2px solid green",
             }}
           >
             <Box
               sx={{
-                backgroundColor: "#cdddf6",
+                backgroundColor: Colors.lightBlue,
                 padding: 2,
                 borderRadius: "8px",
-                border: "2px solid orange",
+                // marginTop: 4,
+                // border: "2px solid orange",
                 flex: 1,
+                // overflowY: "auto",
               }}
             >
               {/* ✅ Collapsible header */}
@@ -861,9 +863,10 @@ const DatasetDetailPage: React.FC = () => {
                 backgroundColor: "#eaeaea",
                 padding: 2,
                 borderRadius: "8px",
-                marginTop: 2,
+                // marginTop: 4,
                 flex: 1,
-                border: "2px solid blue",
+                // overflowY: "auto",
+                // border: "2px solid blue",
               }}
             >
               {/* ✅ Header with toggle */}
