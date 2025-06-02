@@ -54,13 +54,15 @@ const DatasetPage: React.FC = () => {
 
   const handlePageChange = (page: number) => {
     if (!dbName || loading) return;
-  
+
     setCurrentPage(page);
-    dispatch(loadPaginatedData({
-      dbName: dbName.toLowerCase(),
-      offset: (page - 1) * pageSize,
-      limit: pageSize,
-    }));
+    dispatch(
+      loadPaginatedData({
+        dbName: dbName.toLowerCase(),
+        offset: (page - 1) * pageSize,
+        limit: pageSize,
+      })
+    );
   };
 
   const handlePageSizeChange = (event: any) => {
@@ -71,22 +73,22 @@ const DatasetPage: React.FC = () => {
   const getVisiblePageNumbers = () => {
     const visiblePages: (number | string)[] = [];
     const maxVisible = 6;
-  
+
     if (totalPages <= maxVisible + 2) {
       for (let i = 1; i <= totalPages; i++) visiblePages.push(i);
     } else {
       const start = Math.max(2, currentPage - 2);
       const end = Math.min(totalPages - 1, currentPage + 2);
-  
+
       visiblePages.push(1);
       if (start > 2) visiblePages.push("...");
-  
+
       for (let i = start; i <= end; i++) visiblePages.push(i);
       if (end < totalPages - 1) visiblePages.push("...");
-  
+
       visiblePages.push(totalPages);
     }
-  
+
     return visiblePages;
   };
 
@@ -99,10 +101,8 @@ const DatasetPage: React.FC = () => {
   };
 
   const filteredData = data.filter((doc: Row) =>
-    (doc.value.name || "")
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-  );  
+    (doc.value.name || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <Box sx={{ padding: { xs: 2, md: 4 } }}>
@@ -130,50 +130,65 @@ const DatasetPage: React.FC = () => {
         </Typography>
 
         {/* Right: Total + Dropdown + Pagination */}
-        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 3 }}>
-          {/* Left: Total datasets */}
-        <Typography
-          sx={{
-            fontWeight: 600,
-            fontSize: "1.2rem",
-            color: Colors.white,
-          }}
-        >
-          Total datasets: {limit}
-        </Typography>
-
-        {/* Search in page input */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Typography sx={{ fontWeight: 500, fontSize: "1rem", color: Colors.white }}>
-            Search in page:
-          </Typography>
-          <input
-            type="text"
-            placeholder="Filter results in this page"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              padding: "6px 10px",
-              borderRadius: "4px",
-              border: `2px solid ${Colors.primary.main}`,
-              fontSize: "0.95rem",
-              minWidth: "200px",
-            }}
-          />
-        </Box>
-
-        {/* Right: Label + Select in one line */}
         <Box
           sx={{
             display: "flex",
+            flexWrap: "wrap",
             alignItems: "center",
-            gap: 1.5,
+            gap: 3,
           }}
         >
-        </Box>
-        <Typography sx={{ fontWeight: 500, fontSize: "1rem", color: Colors.white, minWidth: "150px", }}>
-          Dataset per page:
-        </Typography>
+          {/* Left: Total datasets */}
+          <Typography
+            sx={{
+              fontWeight: 600,
+              fontSize: "1.2rem",
+              color: Colors.white,
+            }}
+          >
+            Total datasets: {limit}
+          </Typography>
+
+          {/* Search in page input */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Typography
+              sx={{ fontWeight: 500, fontSize: "1rem", color: Colors.white }}
+            >
+              Search in page:
+            </Typography>
+            <input
+              type="text"
+              placeholder="Filter results in this page"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                padding: "6px 10px",
+                borderRadius: "4px",
+                border: `2px solid ${Colors.primary.main}`,
+                fontSize: "0.95rem",
+                minWidth: "200px",
+              }}
+            />
+          </Box>
+
+          {/* Right: Label + Select in one line */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+            }}
+          ></Box>
+          <Typography
+            sx={{
+              fontWeight: 500,
+              fontSize: "1rem",
+              color: Colors.white,
+              minWidth: "150px",
+            }}
+          >
+            Dataset per page:
+          </Typography>
           {/* Dataset per page dropdown */}
           <FormControl
             size="small"
@@ -191,9 +206,9 @@ const DatasetPage: React.FC = () => {
                 "& fieldset": {
                   borderColor: Colors.primary.main,
                 },
-              }, 
+              },
             }}
-            >
+          >
             <Select
               value={pageSize}
               label="Dataset per page"
@@ -214,7 +229,14 @@ const DatasetPage: React.FC = () => {
 
           {/* Pagination buttons */}
           {!loading && (
-            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
               <Button
                 onClick={() => handlePrevNextPage("prev")}
                 disabled={currentPage === 1}
@@ -232,7 +254,11 @@ const DatasetPage: React.FC = () => {
                 item === "..." ? (
                   <Typography
                     key={idx}
-                    sx={{ px: 1.5, fontSize: "1rem", color: Colors.textSecondary }}
+                    sx={{
+                      px: 1.5,
+                      fontSize: "1rem",
+                      color: Colors.textSecondary,
+                    }}
                   >
                     ...
                   </Typography>
@@ -245,8 +271,10 @@ const DatasetPage: React.FC = () => {
                       minWidth: "36px",
                       padding: "4px 8px",
                       fontWeight: item === currentPage ? "bold" : "normal",
-                      backgroundColor: item === currentPage ? Colors.primary.main : "white",
-                      color: item === currentPage ? "white" : Colors.primary.main,
+                      backgroundColor:
+                        item === currentPage ? Colors.primary.main : "white",
+                      color:
+                        item === currentPage ? "white" : Colors.primary.main,
                       borderColor: Colors.primary.main,
                     }}
                   >
@@ -294,128 +322,139 @@ const DatasetPage: React.FC = () => {
         />
       )}
 
-			{!loading && !error && data.length > 0 && (
-				<Grid container spacing={3}>
-					{filteredData.map((doc: any, index: number ) => {
+      {!loading && !error && data.length > 0 && (
+        <Grid container spacing={3}>
+          {filteredData.map((doc: any, index: number) => {
             const datasetIndex = (currentPage - 1) * pageSize + index + 1;
             return (
-						<Grid item xs={12} sm={6} key={doc.id}>
-							<Card
-								sx={{
-                  position: "relative", // ✅ allows absolute positioning of the number
-									backgroundColor: Colors.white,
-									boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-									height: "100%",
-									display: "flex",
-									flexDirection: "column",
-								}}
-							>
-                {/* Dataset index number on top-right corner */}
-                <Box
+              <Grid item xs={12} sm={6} key={doc.id}>
+                <Card
                   sx={{
-                    position: "absolute",
-                    top: 8,
-                    right: 12,
-                    fontSize: "2rem",
-                    fontWeight: "bold",
-                    color: "rgba(0, 0, 0, 0.36)",
+                    position: "relative", // ✅ allows absolute positioning of the number
+                    backgroundColor: Colors.white,
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
                   }}
                 >
-                  {datasetIndex}
-                </Box>
-								<CardContent sx={{ flex: 1 }}>
-									<Button
-										onClick={() =>
-											navigate(`${RoutesEnum.DATABASES}/${encodeURIComponent(dbName ?? '')}/${encodeURIComponent(doc.id ?? '')}`)
-										}
-										sx={{
-											fontSize: "1.25rem",
-											margin: 0,
-											color: Colors.primary.main,
-											textTransform: "none",
-											justifyContent: "flex-start",
-										}}
-									>
-										{doc.value.name || "Untitled"}
-									</Button>
-
-                  <Typography
-                    color={Colors.textSecondary}
-                    variant="body2"
-                    sx={{ mb: 2, marginLeft: 1 }}
+                  {/* Dataset index number on top-right corner */}
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      bottom: 8,
+                      right: 12,
+                      fontSize: "1rem",
+                      fontWeight: "bold",
+                      color: Colors.darkPurple,
+                    }}
                   >
-                    ID: {doc.id}
-                  </Typography>
+                    {datasetIndex}
+                  </Box>
+                  <CardContent sx={{ flex: 1 }}>
+                    <Button
+                      onClick={() =>
+                        navigate(
+                          `${RoutesEnum.DATABASES}/${encodeURIComponent(
+                            dbName ?? ""
+                          )}/${encodeURIComponent(doc.id ?? "")}`
+                        )
+                      }
+                      sx={{
+                        fontSize: "1.25rem",
+                        margin: 0,
+                        color: Colors.darkPurple,
+                        textTransform: "none",
+                        justifyContent: "flex-start",
+                      }}
+                    >
+                      {doc.value.name || "Untitled"}
+                    </Button>
 
-                  <Stack spacing={2} margin={1}>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-                      {doc.value.subj && (
-                        <Chip
-                          label={`${doc.value.subj.length} subjects`}
-                          size="small"
-                          sx={{
-                            backgroundColor: Colors.primary.light,
-                            color: Colors.white,
-                          }}
-                        />
-                      )}
-                      {doc.value.modality &&
-                        doc.value.modality.map((mod: string) => (
+                    <Typography
+                      color={Colors.textSecondary}
+                      variant="body2"
+                      sx={{ mb: 2, marginLeft: 1 }}
+                    >
+                      ID: {doc.id}
+                    </Typography>
+
+                    <Stack spacing={2} margin={1}>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        flexWrap="wrap"
+                        gap={1}
+                      >
+                        {doc.value.subj && (
                           <Chip
-                            key={mod}
-                            label={mod}
+                            label={`${doc.value.subj.length} subjects`}
                             size="small"
                             sx={{
-                              backgroundColor: Colors.secondary.light,
+                              backgroundColor: Colors.purple,
                               color: Colors.white,
                             }}
                           />
-                        ))}
-                    </Stack>
+                        )}
+                        {doc.value.modality &&
+                          doc.value.modality.map((mod: string) => (
+                            <Chip
+                              key={mod}
+                              label={mod}
+                              size="small"
+                              sx={{
+                                backgroundColor: Colors.purpleGrey,
+                                color: Colors.white,
+                              }}
+                            />
+                          ))}
+                      </Stack>
 
-                    <Typography variant="body2" color={Colors.textSecondary}>
-                      <strong>Summary:</strong>{" "}
-                      {doc.value.readme || "No description available"}
-                    </Typography>
-
-                    <Typography variant="body2" color={Colors.textPrimary}>
-                      <strong>Authors:</strong>{" "}
-                      {Array.isArray(doc.value.info?.Authors)
-                        ? doc.value.info.Authors.join(", ")
-                        : doc.value.info?.Authors || "Unknown"}
-                    </Typography>
-
-                    <Stack direction="row" spacing={2} alignItems="center">
-                      <Typography variant="body2" color={Colors.textPrimary}>
-                        <strong>Size:</strong>{" "}
-                        {doc.value.length
-                          ? `${(doc.value.length / 1024 / 1024).toFixed(2)} MB`
-                          : "Unknown"}
+                      <Typography variant="body2" color={Colors.textSecondary}>
+                        <strong>Summary:</strong>{" "}
+                        {doc.value.readme || "No description available"}
                       </Typography>
 
-                      {doc.value.info?.DatasetDOI && (
-                        <Link
-                          href={doc.value.info.DatasetDOI}
-                          target="_blank"
-                          rel="noopener"
-                        >
-                          <Chip
-                            label="DOI"
-                            size="small"
-                            clickable
-                            sx={{
-                              backgroundColor: Colors.accent,
-                              color: Colors.white,
-                            }}
-                          />
-                        </Link>
-                      )}
+                      <Typography variant="body2" color={Colors.textPrimary}>
+                        <strong>Authors:</strong>{" "}
+                        {Array.isArray(doc.value.info?.Authors)
+                          ? doc.value.info.Authors.join(", ")
+                          : doc.value.info?.Authors || "Unknown"}
+                      </Typography>
+
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Typography variant="body2" color={Colors.textPrimary}>
+                          <strong>Size:</strong>{" "}
+                          {doc.value.length
+                            ? `${(doc.value.length / 1024 / 1024).toFixed(
+                                2
+                              )} MB`
+                            : "Unknown"}
+                        </Typography>
+
+                        {doc.value.info?.DatasetDOI && (
+                          <Link
+                            href={doc.value.info.DatasetDOI}
+                            target="_blank"
+                            rel="noopener"
+                          >
+                            <Chip
+                              label="DOI"
+                              size="small"
+                              clickable
+                              sx={{
+                                backgroundColor: Colors.accent,
+                                color: Colors.white,
+                              }}
+                            />
+                          </Link>
+                        )}
+                      </Stack>
                     </Stack>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          )
+                  </CardContent>
+                </Card>
+              </Grid>
+            );
           })}
         </Grid>
       )}
@@ -430,8 +469,8 @@ const DatasetPage: React.FC = () => {
           No database information available.
         </Typography>
       )}
-		</Box>
-	);
+    </Box>
+  );
 };
 
 export default DatasetPage;

@@ -49,21 +49,11 @@ const StatisticsBanner: React.FC = () => {
   return (
     <Box
       sx={{
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        backdropFilter: "blur(15px)",
-        borderRadius: "8px",
         zIndex: 100,
         padding: "1rem",
-        position: "absolute",
-        // top: "2%",
-        // top: "20%",
-        // left: "8%",
-        bottom: "13%",
-        left: "50%",
-        transform: "translateX(-50%)",
         display: "flex",
-        // flexDirection: "column",
-        // flexWrap: "wrap",
+        flexWrap: "wrap",
+        justifyContent: "center",
         gap: "2rem",
       }}
     >
@@ -80,14 +70,12 @@ const StatisticsBanner: React.FC = () => {
             marginRight: 1,
             verticalAlign: "middle",
             color: Colors.lightGray,
-            // color: Colors.darkPurple,
             fontSize: "2.5rem",
           }}
         />
         <Box>
           <Typography
             sx={{
-              //   color: Colors.darkPurple,
               color: Colors.green,
               fontWeight: "bold",
               textAlign: "center",
@@ -98,8 +86,7 @@ const StatisticsBanner: React.FC = () => {
           </Typography>
           <Typography
             sx={{
-              //   color: Colors.darkPurple,
-              color: Colors.lightGray,
+              color: Colors.green,
               fontWeight: "medium",
               fontSize: "0.9rem",
               textAlign: "center",
@@ -116,7 +103,6 @@ const StatisticsBanner: React.FC = () => {
           sx={{
             marginRight: 1,
             verticalAlign: "middle",
-            // color: Colors.darkPurple,
             color: Colors.lightGray,
             fontSize: "2.5rem",
           }}
@@ -124,7 +110,6 @@ const StatisticsBanner: React.FC = () => {
         <Box>
           <Typography
             sx={{
-              //   color: Colors.darkPurple,
               color: Colors.green,
               fontWeight: "bold",
               textAlign: "center",
@@ -135,8 +120,7 @@ const StatisticsBanner: React.FC = () => {
           </Typography>
           <Typography
             sx={{
-              //   color: Colors.darkPurple,
-              color: Colors.lightGray,
+              color: Colors.green,
               fontWeight: "medium",
               fontSize: "0.9rem",
               textAlign: "center",
@@ -152,7 +136,6 @@ const StatisticsBanner: React.FC = () => {
           sx={{
             marginRight: 1,
             verticalAlign: "middle",
-            // color: Colors.darkPurple,
             color: Colors.lightGray,
             fontSize: "2.5rem",
           }}
@@ -160,7 +143,6 @@ const StatisticsBanner: React.FC = () => {
         <Box>
           <Typography
             sx={{
-              //   color: Colors.darkPurple,
               color: Colors.green,
               fontWeight: "bold",
               textAlign: "center",
@@ -171,8 +153,7 @@ const StatisticsBanner: React.FC = () => {
           </Typography>
           <Typography
             sx={{
-              //   color: Colors.darkPurple,
-              color: Colors.lightGray,
+              color: Colors.green,
               fontWeight: "medium",
               fontSize: "0.9rem",
               textAlign: "center",
@@ -188,7 +169,6 @@ const StatisticsBanner: React.FC = () => {
           sx={{
             marginRight: 1,
             verticalAlign: "middle",
-            // color: Colors.darkPurple,
             color: Colors.lightGray,
             fontSize: "2.5rem",
           }}
@@ -196,7 +176,6 @@ const StatisticsBanner: React.FC = () => {
         <Box>
           <Typography
             sx={{
-              //   color: Colors.darkPurple,
               color: Colors.green,
               fontWeight: "bold",
               textAlign: "center",
@@ -207,8 +186,7 @@ const StatisticsBanner: React.FC = () => {
           </Typography>
           <Typography
             sx={{
-              //   color: Colors.darkPurple,
-              color: Colors.lightGray,
+              color: Colors.green,
               fontWeight: "medium",
               fontSize: "0.9rem",
               textAlign: "center",
@@ -224,7 +202,6 @@ const StatisticsBanner: React.FC = () => {
           sx={{
             marginRight: 1,
             verticalAlign: "middle",
-            // color: Colors.darkPurple,
             color: Colors.lightGray,
             fontSize: "2.5rem",
           }}
@@ -232,7 +209,6 @@ const StatisticsBanner: React.FC = () => {
         <Box>
           <Typography
             sx={{
-              //   color: Colors.darkPurple,
               color: Colors.green,
               fontWeight: "bold",
               textAlign: "center",
@@ -243,8 +219,7 @@ const StatisticsBanner: React.FC = () => {
           </Typography>
           <Typography
             sx={{
-              //   color: Colors.darkPurple,
-              color: Colors.lightGray,
+              color: Colors.green,
               fontWeight: "medium",
               fontSize: "0.9rem",
               textAlign: "center",
