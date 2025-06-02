@@ -1,4 +1,5 @@
-import { Tabs, Tab, Box, Typography } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { Tabs, Tab, Box, Typography, IconButton, Tooltip } from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
 import { useState } from "react";
@@ -57,7 +58,9 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabIndex(newValue);
   };
+  console.log("datasetDocument", datasetDocument);
   const datasetDesc = datasetDocument?.["dataset_description.json"];
+  console.log("datasetDesc", datasetDesc);
   const datasetName = datasetDesc?.Name?.includes(" - ")
     ? datasetDesc.Name.split(" - ")[1]
     : datasetDesc?.Name || datasetDocument?._id || docname;
@@ -78,6 +81,26 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
       <div role="tabpanel" hidden={value !== index}>
         {value === index && <Box sx={{ p: 2 }}>{children}</Box>}
       </div>
+    );
+  };
+
+  const CopyableCodeBlock = ({ code }: { code: string }) => {
+    const handleCopy = () => {
+      navigator.clipboard.writeText(code);
+    };
+    return (
+      <Box sx={{ position: "relative" }}>
+        <IconButton
+          onClick={handleCopy}
+          size="small"
+          sx={{ position: "absolute", top: 5, right: 5 }}
+        >
+          <Tooltip title="Copy to clipboard">
+            <ContentCopyIcon fontSize="small" />
+          </Tooltip>
+        </IconButton>
+        <code style={flashcardStyles.codeBlock}>{code}</code>
+      </Box>
     );
   };
 
@@ -118,12 +141,10 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
             Load by URL with REST-API in Python
           </Typography>
           <Typography>Install:</Typography>
-          <code style={flashcardStyles.codeBlock}>
-            pip install jdata bjdata numpy
-          </code>
+          <CopyableCodeBlock code={`pip install jdata bjdata numpy`} />
           <Typography>Load from URL:</Typography>
-          <code style={flashcardStyles.codeBlock}>
-            {`import jdata as jd
+          <CopyableCodeBlock
+            code={`import jdata as jd
 data = jd.loadurl('${datasetUrl}')  
 
 # List all externally linked files
@@ -131,7 +152,7 @@ links = jd.jsonpath(data, '$.._DataLink_')
 
 # Download & cache anatomical nii.gz data for sub-01/sub-02
 jd.jdlink(links, {'regex': 'anat/sub-0[12]_.*\\.nii'})`}
-          </code>
+          />
         </Box>
       </TabPanel>
 
@@ -142,12 +163,10 @@ jd.jdlink(links, {'regex': 'anat/sub-0[12]_.*\\.nii'})`}
             Load by URL with REST-API in MATLAB
           </Typography>
           <Typography>Install:</Typography>
-          <code style={flashcardStyles.codeBlock}>
-            Download and addpath to JSONLab
-          </code>
+          <CopyableCodeBlock code={`Download and addpath to JSONLab`} />
           <Typography>Load from URL:</Typography>
-          <code style={flashcardStyles.codeBlock}>
-            {`data = loadjson('${datasetUrl}');
+          <CopyableCodeBlock
+            code={`data = loadjson('${datasetUrl}');
 
 % or without JSONLab (webread cannot decode JData annotations)
 data = webread('${datasetUrl}');
@@ -157,7 +176,7 @@ links = jsonpath(data, '$.._DataLink_');
 
 % Download & cache anatomical nii.gz data for sub-01/sub-02
 niidata = jdlink(links, 'regex', 'anat/sub-0[12]_.*\\.nii');`}
-          </code>
+          />
         </Box>
       </TabPanel>
 
@@ -168,13 +187,9 @@ niidata = jdlink(links, 'regex', 'anat/sub-0[12]_.*\\.nii');`}
             Use in MATLAB/Octave
           </Typography>
           <Typography>Load:</Typography>
-          <code
-            style={flashcardStyles.codeBlock}
-          >{`data = loadjd('${docname}.json');`}</code>
+          <CopyableCodeBlock code={`data = loadjd('${docname}.json');`} />
           <Typography>Read value:</Typography>
-          <code
-            style={flashcardStyles.codeBlock}
-          >{`data.(encodevarname('${onekey}'))`}</code>
+          <CopyableCodeBlock code={`data.(encodevarname('${onekey}'))`} />
         </Box>
       </TabPanel>
 
@@ -185,12 +200,12 @@ niidata = jdlink(links, 'regex', 'anat/sub-0[12]_.*\\.nii');`}
             Use in Python
           </Typography>
           <Typography>Load:</Typography>
-          <code style={flashcardStyles.codeBlock}>
-            {`import jdata as jd
+          <CopyableCodeBlock
+            code={`import jdata as jd
 data = jd.load('${docname}.json')`}
-          </code>
+          />
           <Typography>Read value:</Typography>
-          <code style={flashcardStyles.codeBlock}>{`data["${onekey}"]`}</code>
+          <CopyableCodeBlock code={`data["${onekey}"]`} />
         </Box>
       </TabPanel>
 
@@ -201,21 +216,17 @@ data = jd.load('${docname}.json')`}
             Use in C++
           </Typography>
           <Typography>Install:</Typography>
-          <code style={flashcardStyles.codeBlock}>
-            Download JSON for Modern C++ json.hpp
-          </code>
+          <CopyableCodeBlock code={`Download JSON for Modern C++ json.hpp`} />
           <Typography>Load:</Typography>
-          <code style={flashcardStyles.codeBlock}>
-            {`#include "json.hpp"
-        using json=nlohmann::ordered_json;
-        
-        std::ifstream datafile("${docname}.json");
-        json data(datafile);`}
-          </code>
+          <CopyableCodeBlock
+            code={`#include "json.hpp"
+using json=nlohmann::ordered_json;
+
+std::ifstream datafile("${docname}.json");
+json data(datafile);`}
+          />
           <Typography>Read value:</Typography>
-          <code
-            style={flashcardStyles.codeBlock}
-          >{`std::cout << data["${onekey}"];`}</code>
+          <CopyableCodeBlock code={`std::cout << data["${onekey}"];`} />
         </Box>
       </TabPanel>
 
@@ -226,24 +237,20 @@ data = jd.load('${docname}.json')`}
             Use in JS/Node.js
           </Typography>
           <Typography>Install:</Typography>
-          <code style={flashcardStyles.codeBlock}>
-            npm install jda numjs pako atob
-          </code>
+          <CopyableCodeBlock code={`npm install jda numjs pako atob`} />
           <Typography>Load:</Typography>
-          <code style={flashcardStyles.codeBlock}>
-            {`const fs = require("fs");
-        const jd = require("jda");
-        global.atob = require("atob");
+          <CopyableCodeBlock
+            code={`const fs = require("fs");
+const jd = require("jda");
+global.atob = require("atob");
         
-        const fn = "${docname}.json";
-        var jstr = fs.readFileSync(fn).toString().replace(/\\n/g, "");
-        var data = new jd(JSON.parse(jstr));
-        data = data.decode();`}
-          </code>
+const fn = "${docname}.json";
+var jstr = fs.readFileSync(fn).toString().replace(/\\n/g, "");
+var data = new jd(JSON.parse(jstr));
+data = data.decode();`}
+          />
           <Typography>Read value:</Typography>
-          <code
-            style={flashcardStyles.codeBlock}
-          >{`console.log(data.data["${onekey}"]);`}</code>
+          <CopyableCodeBlock code={`console.log(data.data["${onekey}"]);`} />
         </Box>
       </TabPanel>
     </>
