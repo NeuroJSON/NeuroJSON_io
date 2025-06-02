@@ -12,6 +12,10 @@
     "@mui/icons-material": "^5.14.3",
     "@mui/material": "^5.14.4",
     "@reduxjs/toolkit": "^1.9.5",
+    "@rjsf/core": "^5.24.8",
+    "@rjsf/mui": "^5.24.8",
+    "@rjsf/utils": "^5.24.8",
+    "@rjsf/validator-ajv8": "^5.24.8",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^13.0.0",
     "@testing-library/user-event": "^13.2.1",
@@ -30,6 +34,7 @@
     "json-stringify-safe": "^5.0.1",
     "jwt-decode": "^3.1.2",
     "path-browserify": "^1.0.1",
+    "pako": "^2.1.0",
     "query-string": "^8.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -47,6 +52,7 @@
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@trivago/prettier-plugin-sort-imports": "^4.2.0",
     "@types/node": "^20.5.7",
+    "@types/pako": "^2.0.3",
     "@typescript-eslint/eslint-plugin": "^5.31.0",
     "@typescript-eslint/parser": "^5.31.0",
     "eslint": "^8.21.0",
@@ -82,6 +88,7 @@
     "postcss": "^8.4.31",
     "nth-check": "^2.0.1",
     "@babel/runtime": "7.26.10",
-    "@babel/helpers": "7.26.10"
+    "@babel/helpers": "7.26.10",
+    "3d-force-graph": "1.74.6"
   }
 }

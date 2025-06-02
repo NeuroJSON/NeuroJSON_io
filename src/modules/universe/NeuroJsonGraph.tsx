@@ -23,13 +23,10 @@ export interface NodeObject {
 
 // Define the datatype to color mapping
 export const DATA_TYPE_COLORS: Record<string, [number, number, number]> = {
-  // mri: [79, 51, 130], // deep purple
   mri: [160, 138, 233], // soft laender
   anat: [160, 138, 233],
-  // fmri: [10, 81, 20], // dark green
   fmri: [152, 202, 32], // bright lime green
   func: [152, 202, 32],
-
   pet: [0, 105, 192], // deep blue
   meg: [156, 57, 0], // dark reddish-brown
   eeg: [134, 31, 55], // dark red-pink
@@ -179,7 +176,7 @@ const NeuroJsonGraph: React.FC<{
       .graphData(graphData)
       .nodeRelSize(1)
       .nodeColor((node) => (node as NodeObject).color)
-      .linkWidth(0.5)
+      .linkWidth(1)
       .backgroundColor("rgba(0,0,0,0)")
       .nodeLabel("name")
       .onNodeHover((node) => {
@@ -191,7 +188,6 @@ const NeuroJsonGraph: React.FC<{
         if (onNodeClick) {
           onNodeClick(castNode);
         }
-        // navigate(`/databases/${castNode.id}`);
       })
       .nodeThreeObject((node) => {
         const castNode = node as NodeObject;
@@ -236,7 +232,7 @@ const NeuroJsonGraph: React.FC<{
         // Add label as CSS2DObject
         const label = new CSS2DObject(document.createElement("div"));
         label.element.textContent = castNode.dbname || "Unnamed";
-        label.element.style.color = Colors.lightYellow;
+        label.element.style.color = Colors.lightGray;
         label.element.style.fontSize = "16px";
         label.element.style.pointerEvents = "none";
         label.position.set(0, 10, 0);
