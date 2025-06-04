@@ -733,8 +733,14 @@ const DatasetDetailPage: React.FC = () => {
             gap: 2,
             alignItems: "flex-start",
             marginTop: 2,
-            height: "960px", // fixed height container
-            // border: "2px solid red",
+            flexDirection: {
+              xs: "column",
+              md: "row",
+            },
+            height: {
+              xs: "auto",
+              md: "960px", // fixed height container
+            },
           }}
         >
           {/* ✅ JSON Viewer (left panel) */}
@@ -745,8 +751,18 @@ const DatasetDetailPage: React.FC = () => {
               padding: 2,
               borderRadius: "8px",
               overflowX: "auto",
-              height: "100%",
-              // border: "2px solid yellow",
+              height: {
+                xs: "auto",
+                md: "100%",
+              },
+              width: {
+                xs: "100%",
+                md: "auto",
+              },
+              minWidth: {
+                xs: "100%",
+                md: "350px",
+              },
             }}
           >
             <ReactJson
@@ -763,13 +779,21 @@ const DatasetDetailPage: React.FC = () => {
           {/* ✅ Data panels (right panel) */}
           <Box
             sx={{
-              width: "460px",
-              minWidth: "360px",
+              width: {
+                xs: "100%",
+                md: "460px",
+              },
+              minWidth: {
+                xs: "100%",
+                md: "360px",
+              },
+              height: {
+                xs: "auto",
+                md: "100%",
+              },
               display: "flex",
               flexDirection: "column",
               gap: 2,
-              height: "100%",
-              // border: "2px solid green",
             }}
           >
             <Box
@@ -777,8 +801,6 @@ const DatasetDetailPage: React.FC = () => {
                 backgroundColor: Colors.lightBlue,
                 padding: 2,
                 borderRadius: "8px",
-                // marginTop: 4,
-                // border: "2px solid orange",
                 flex: 1,
                 // overflowY: "auto",
               }}
@@ -884,10 +906,8 @@ const DatasetDetailPage: React.FC = () => {
                 backgroundColor: "#eaeaea",
                 padding: 2,
                 borderRadius: "8px",
-                // marginTop: 4,
                 flex: 1,
                 // overflowY: "auto",
-                // border: "2px solid blue",
               }}
             >
               {/* ✅ Header with toggle */}
