@@ -173,6 +173,7 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
         onChange={handleTabChange}
         variant="scrollable"
         scrollButtons="auto"
+        allowScrollButtonsMobile
         sx={{
           "& .MuiTab-root": {
             color: Colors.lightGray, // default color
@@ -185,6 +186,12 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
           },
           "& .MuiTabs-indicator": {
             backgroundColor: Colors.green,
+          },
+          "& .MuiTabs-scrollButtons": {
+            color: Colors.lightGray, // scroll buttons color
+          },
+          "& .MuiTabs-scrollButtons.Mui-disabled": {
+            opacity: 0.3, // darker when button disabled
           },
         }}
       >
