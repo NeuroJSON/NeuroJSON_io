@@ -9,13 +9,11 @@ import cpp from "react-syntax-highlighter/dist/esm/languages/hljs/cpp";
 import javascript from "react-syntax-highlighter/dist/esm/languages/hljs/javascript";
 import matlab from "react-syntax-highlighter/dist/esm/languages/hljs/matlab";
 import python from "react-syntax-highlighter/dist/esm/languages/hljs/python";
-import {
-  docco,
-  atomOneDark,
-} from "react-syntax-highlighter/dist/esm/styles/hljs";
-import { Color } from "three";
+import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
-// Register them
+// import { Color } from "three";
+
+// Register language theme
 SyntaxHighlighter.registerLanguage("python", python);
 SyntaxHighlighter.registerLanguage("bash", bash);
 SyntaxHighlighter.registerLanguage("cpp", cpp);
@@ -101,31 +99,12 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
     );
   };
 
-  // const CopyableCodeBlock = ({ code }: { code: string }) => {
-  //   const handleCopy = () => {
-  //     navigator.clipboard.writeText(code);
-  //   };
-  //   return (
-  //     <Box sx={{ position: "relative" }}>
-  //       <IconButton
-  //         onClick={handleCopy}
-  //         size="small"
-  //         sx={{ position: "absolute", top: 5, right: 5 }}
-  //       >
-  //         <Tooltip title="Copy to clipboard">
-  //           <ContentCopyIcon fontSize="small" />
-  //         </Tooltip>
-  //       </IconButton>
-  //       <code style={flashcardStyles.codeBlock}>{code}</code>
-  //     </Box>
-  //   );
-  // };
   const CopyableCodeBlock = ({
     code,
-    language = "python", // optionally allow language selection
+    language = "python",
   }: {
     code: string;
-    language?: string;
+    language?: string; // optional prop
   }) => {
     const handleCopy = () => {
       navigator.clipboard.writeText(code);
