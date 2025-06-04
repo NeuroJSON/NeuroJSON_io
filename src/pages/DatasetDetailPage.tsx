@@ -94,6 +94,14 @@ const DatasetDetailPage: React.FC = () => {
   const [jsonSize, setJsonSize] = useState<number>(0);
   const [transformedDataset, setTransformedDataset] = useState<any>(null);
 
+  // Dataset download button size calculation function
+  const formatSize = (sizeInBytes: number): string => {
+    if (sizeInBytes < 1024 * 1024) {
+      return `${(sizeInBytes / 1024).toFixed(1)} KB`;
+    }
+    return `${(sizeInBytes / 1024 / 1024).toFixed(2)} MB`;
+  };
+
   // Recursive function to find `_DataLink_`
   const extractDataLinks = (obj: any, path: string): ExternalDataLink[] => {
     const links: ExternalDataLink[] = [];
@@ -223,8 +231,8 @@ const DatasetDetailPage: React.FC = () => {
         })
       );
 
-      console.log("🟢 Extracted external links:", links);
-      console.log("🟢 Extracted internal data:", internalData);
+      // console.log("🟢 Extracted external links:", links);
+      // console.log("🟢 Extracted internal data:", internalData);
 
       setExternalLinks(links);
       setInternalLinks(internalData);
@@ -241,10 +249,21 @@ const DatasetDetailPage: React.FC = () => {
 
       externalLinks.forEach((link) => {
         const url = link.url;
+        // console.log("url", url);
         const match = url.match(/file=([^&]+)/);
+        // console.log("match", match);
+        // console.log("match[1]", match?.[1]);
+        // try {
+        //   const decoded = match?.[1] ? decodeURIComponent(match[1]) : "N/A";
+        //   console.log("decode", decoded);
+        // } catch (err) {
+        //   console.warn("⚠️ Failed to decode match[1]:", match?.[1], err);
+        // }
+
         // const filename = match
         //   ? decodeURIComponent(match[1])
         //   : `file-${link.index}`;
+
         const filename = match
           ? (() => {
               try {
@@ -254,6 +273,7 @@ const DatasetDetailPage: React.FC = () => {
               }
             })()
           : `file-${link.index}`;
+        // console.log("filename", filename);
 
         const outputPath = `$HOME/.neurojson/io/${dbName}/${docId}/${filename}`;
 
@@ -669,7 +689,8 @@ const DatasetDetailPage: React.FC = () => {
               }}
             >
               {/* Download Dataset (1 Mb) */}
-              Download Dataset ({(jsonSize / 1024).toFixed(0)} MB)
+              {/* Download Dataset ({(jsonSize / 1024).toFixed(0)} MB) */}
+              Download Dataset ({formatSize(jsonSize)})
             </Button>
 
             <Button

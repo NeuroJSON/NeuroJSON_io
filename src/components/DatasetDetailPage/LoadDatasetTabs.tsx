@@ -58,9 +58,9 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabIndex(newValue);
   };
-  console.log("datasetDocument", datasetDocument);
+  // console.log("datasetDocument", datasetDocument);
   const datasetDesc = datasetDocument?.["dataset_description.json"];
-  console.log("datasetDesc", datasetDesc);
+  // console.log("datasetDesc", datasetDesc);
   const datasetName = datasetDesc?.Name?.includes(" - ")
     ? datasetDesc.Name.split(" - ")[1]
     : datasetDesc?.Name || datasetDocument?._id || docname;
