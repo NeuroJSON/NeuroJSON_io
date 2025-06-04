@@ -142,19 +142,26 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
             <ContentCopyIcon fontSize="small" sx={{ color: Colors.green }} />
           </Tooltip>
         </IconButton>
-        <SyntaxHighlighter
-          language={language}
-          style={atomOneDark}
-          customStyle={{
-            padding: "12px",
+        <Box
+          sx={{
+            padding: { xs: "25px 20px 16px 16px", sm: "25px 20px 16px 16px" },
             borderRadius: "5px",
-            fontSize: "14px",
-            background: Colors.black,
+            fontSize: "16px",
+            backgroundColor: Colors.black,
             overflowX: "auto",
           }}
         >
-          {code}
-        </SyntaxHighlighter>
+          <SyntaxHighlighter
+            language={language}
+            style={atomOneDark}
+            customStyle={{
+              background: "transparent",
+              margin: 0,
+            }}
+          >
+            {code}
+          </SyntaxHighlighter>
+        </Box>
       </Box>
     );
   };
