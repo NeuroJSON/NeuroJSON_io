@@ -1,19 +1,28 @@
-declare module '*.png';
-declare module '*.svg';
+declare module "*.png";
+declare module "*.svg";
 
 declare global {
-    interface Window {
-      dopreview: (key: any, idx: number, isinternal: boolean, hastime: any[]) => void;
-      previewdata: any;
-      previewdataurl: any;
-      initcanvas: () => void;
-      drawpreview: (data: any) => void;
-      update: () => void;
-      createStats: () => any;
-      setControlAngles: (angles: any) => void;
-      setcrosssectionsizes: (sizes: any) => void;
-    }
+  interface Window {
+    dopreview: (
+      key: any,
+      idx: number,
+      isinternal: boolean,
+      hastime: any[]
+    ) => void;
+    previewdata: any;
+    previewdataurl: any;
+    initcanvas: () => void;
+    drawpreview: (data: any) => void;
+    update: () => void;
+    createStats: () => any;
+    setControlAngles: (angles: any) => void;
+    setcrosssectionsizes: (sizes: any) => void;
+  }
 }
+
+declare module "react-syntax-highlighter";
+declare module "react-syntax-highlighter/dist/esm/styles/hljs";
+declare module "react-syntax-highlighter/dist/esm/languages/hljs/*";
 
 // declare module "./utils/preview.js" {
 //     export function dopreview(
