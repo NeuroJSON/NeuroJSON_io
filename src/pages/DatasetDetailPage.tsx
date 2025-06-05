@@ -714,12 +714,15 @@ const DatasetDetailPage: React.FC = () => {
                 placeholder="Find keyword in dataset"
                 value={searchTerm}
                 onChange={handleSearch}
-                sx={{ width: "250px" }}
+                sx={{ width: { xs: "auto", sm: "250px" } }}
               />
               <Button
                 variant="contained"
                 onClick={findNext}
                 disabled={matches.length === 0}
+                sx={{
+                  padding: "8px",
+                }}
               >
                 Find Next
               </Button>
