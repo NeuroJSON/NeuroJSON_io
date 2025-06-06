@@ -150,7 +150,7 @@ const DatasetDetailPage: React.FC = () => {
 	const extractDataLinks = (obj: any, path: string): ExternalDataLink[] => {
 		const links: ExternalDataLink[] = [];
 		
-		const traverse = (node: any, currentPath: string) => {
+		const traverse = (node: any, currentPath: string, parentKey: string = "") => {
 			if (typeof node === "object" && node !== null) {
 				for (const key in node) {
 					if (key === "_DataLink_" && typeof node[key] === "string") {
@@ -158,24 +158,23 @@ const DatasetDetailPage: React.FC = () => {
 						const sizeMatch = node[key].match(/size=(\d+)/);
 						const size = sizeMatch
 							? `${(parseInt(sizeMatch[1], 10) / 1024 / 1024).toFixed(2)} MB`
-							: "Unknown Size";
-		
-						const subMatch = currentPath.match(/sub-\d+/);
-						const subPath = subMatch ? subMatch[0] : "Unknown Sub";
+							: "Unknown Size";		
 
 						const parts = currentPath.split("/");
-						const label = parts[parts.length - 2] || "ExternalData";
-						const folderRaw = parts.slice(0, -1).join("/") || "root";
-						const folder = folderRaw.replace(/^\/+/, "");
+						const subpath = parts.slice(-3).join("/"); 
+						const label = parentKey || "ExternalData";
+						
 						links.push({
-							name: `${label} (${size}) [/${folder}]`,
+							name: `${label} (${size}) [/${subpath}]`,
 							size,
 							path: currentPath,  // keep full JSON path for file placement
 							url: correctedUrl,
 							index: links.length,
 						});
 					} else if (typeof node[key] === "object") {
-						traverse(node[key], `${currentPath}/${key}`);
+						const isMetaKey = key.startsWith("_");
+						const newLabel = !isMetaKey ? key : parentKey;
+						traverse(node[key], `${currentPath}/${key}`, newLabel);
 					}
 				}
 			}
@@ -402,6 +401,15 @@ const DatasetDetailPage: React.FC = () => {
 			);
 		};
 
+		const extractFileName = (url: string): string => {
+		const match = url.match(/file=([^&]+)/);
+		return match ? decodeURIComponent(match[1]) : url;
+		};
+
+		const isPreviewableFile = (fileName: string): boolean => {
+			return /\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(fileName);
+		};
+
 		if (isInternal) {
 			try {
 				if (!(window as any).intdata) {
@@ -432,7 +440,9 @@ const DatasetDetailPage: React.FC = () => {
 			}
 		} else {
 			// external
-			if (/\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(dataOrUrl)) {
+			// if (/\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(dataOrUrl)) {
+			const fileName = typeof dataOrUrl === "string" ? extractFileName(dataOrUrl) : "";
+			if (isPreviewableFile(fileName)) {
 				(window as any).previewdataurl(dataOrUrl, idx);
 				const panel = document.getElementById("chartpanel");
 				if (panel) panel.style.display = "none"; // 🔒 Hide chart panel on 3D external
