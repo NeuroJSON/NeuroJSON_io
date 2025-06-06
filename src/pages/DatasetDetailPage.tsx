@@ -402,8 +402,21 @@ const DatasetDetailPage: React.FC = () => {
 		};
 
 		const extractFileName = (url: string): string => {
-		const match = url.match(/file=([^&]+)/);
-		return match ? decodeURIComponent(match[1]) : url;
+			const match = url.match(/file=([^&]+)/);
+			// return match ? decodeURIComponent(match[1]) : url;
+			if (match) {
+			// Strip any trailing query parameters
+			const raw = decodeURIComponent(match[1]);
+			return raw.split("?")[0].split("&")[0];
+			}
+			// fallback: try to get last path part if no 'file=' param
+			try {
+				const u = new URL(url);
+				const parts = u.pathname.split("/");
+				return parts[parts.length - 1];
+			} catch {
+				return url;
+			}
 		};
 
 		const isPreviewableFile = (fileName: string): boolean => {
