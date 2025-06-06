@@ -95,3 +95,15 @@ export const fetchDbStats = createAsyncThunk(
     }
   }
 );
+
+export const fetchMetadataSearchResults = createAsyncThunk(
+  "neurojson/fetchMetadataSearchResults",
+  async (formData: any, { rejectWithValue }) => {
+    try {
+      const data = await NeurojsonService.getMetadataSearchResults(formData);
+      return data;
+    } catch (error: any) {
+      return rejectWithValue("Failed to fetch metadata search results");
+    }
+  }
+);
