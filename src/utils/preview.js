@@ -1,15 +1,3 @@
-// import * as THREE from "three"; // For rendering 3D objects
-// import * as pako from "pako"; // For decompressing gzipped files
-// import $ from "jquery";
-// import Stats from "stats-js";
-// import nj from "numjs";
-// import jdata from "jda";
-// import bjdata from "bjd";
-// import uPlot from "uplot";
-// import { Buffer } from "buffer";
-// import { Data3DTexture } from "three";
-// window.THREE = THREE;
-
 const THREE = window.THREE;
 const pako = window.pako;
 const $ = window.$;
@@ -20,7 +8,7 @@ const bjdata = window.bjdata;
 const uPlot = window.uPlot;
 const Buffer = window.buffer_module.Buffer;
 
-var urldata = {}; // Cache for fetched data
+var urldata = {};
 const niitype = {
   2: "uint8",
   4: "int16",
@@ -70,9 +58,32 @@ var typedfun={
   "BigInt64Array":null, "BigUint64Array":null
 };
 
+function destroyPreview() {
+  if (window.scene) {
+    while (window.scene.children.length > 0) {
+      const obj = window.scene.children[0];
+      window.scene.remove(obj);
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) obj.material.dispose();
+    }
+  }
+
+  if (window.renderer && window.renderer.domElement) {
+    window.renderer.domElement.remove();
+    window.renderer.dispose();
+  }
+
+  window.scene = undefined;
+  window.camera = undefined;
+  window.renderer = undefined;
+  window.controls = undefined;
+  window.reqid = undefined;
+}
+
 function drawpreview(cfg){
   console.log("🛠️ Rendering in drawpreview()");
   console.log("🟢 Data received:", cfg);
+  initcanvas();
 
   scene.remove.apply(scene, scene.children);
   if(cfg.hasOwnProperty('Shapes')){
@@ -211,17 +222,6 @@ function dopreview(key, idx, isinternal, hastime) {
      hastime=[];
   if(isinternal === undefined)
      isinternal=true;
-  // let dataroot = (isinternal) ? window.intdata[idx][2] : key;
-  // let dataroot = key;
-  // if (isinternal) {
-  //   if (window.intdata && window.intdata[idx] && window.intdata[idx][2]) {
-  //     dataroot = window.intdata[idx][2];
-  //   } else {
-  //     console.error("❌ Internal data not ready for index", idx);
-  //     return;
-  //   }
-  // }
-
   let dataroot;
   if (isinternal) {
     if (window.intdata && window.intdata[idx] && window.intdata[idx][2]) {
@@ -302,12 +302,6 @@ function dopreview(key, idx, isinternal, hastime) {
        cancelAnimationFrame(reqid);
     }
     reqid=requestAnimationFrame(update);
-
-    // if(isinternal)
-    //   intdata[idx][2] = drawpreview(dataroot);
-    // else
-    //   extdata[idx][2] = drawpreview(dataroot);
-    // window.scrollTo(0, 0);
     if (isinternal) {
       if (window.intdata && window.intdata[idx]) {
         window.intdata[idx][2] = drawpreview(dataroot);
@@ -428,11 +422,6 @@ function drawsurf(node, tri){
     geometry.setAttribute( 'position', new THREE.BufferAttribute(node.selection.data, 3 ) );
     geometry.computeVertexNormals();
 
-    // geometry.computeBoundingBox();
-    // geometry.computeBoundingSphere();
-    // console.log("📌 Computed Bounding Box:", geometry.boundingBox);
-    // console.log("📌 Computed Bounding Sphere:", geometry.boundingSphere);
-
     var material = new THREE.MeshBasicMaterial( {
       color: 0xff0000,
       polygonOffset: true,
@@ -443,24 +432,14 @@ function drawsurf(node, tri){
     } );
     console.log("📌 Mesh Material:", material);
     lastvolume = new THREE.Mesh( geometry, material );
-    // lastvolume.scale.set(1, 1, 1);
     scene.add( lastvolume )
 
     console.log("🟢 Mesh Added to Scene:", lastvolume);
     console.log("📌 Mesh Position:", lastvolume.position);
     console.log("📌 Mesh Bounding Box:", lastvolume.geometry.boundingBox);
     console.log("📌 Mesh Bounding Sphere:", lastvolume.geometry.boundingSphere);
-
-    // const center = geometry.boundingSphere.center;
-    // const radius = geometry.boundingSphere.radius;
-
-    // camera.position.set(center.x, center.y, center.z + radius * 5);
-    // camera.lookAt(center);
-    // controls.target.set(center);
-    // controls.update();
-
   
-    var geo = new THREE.WireframeGeometry( lastvolume.geometry ); // or WireframeGeometry
+    var geo = new THREE.WireframeGeometry( lastvolume.geometry );
     var mat = new THREE.LineBasicMaterial( { color: 0x666666 } );
     var wireframe = new THREE.LineSegments( geo, mat );
     lastvolume.add( wireframe );
@@ -482,11 +461,6 @@ function drawsurf(node, tri){
     console.log("👁 Mesh Pos:", lastvolume.position);
     console.log("👁 Bounding Sphere:", geometry.boundingSphere);
     console.log("👁 Canvas size:", canvas.width(), canvas.height());
-
-
-    // ✅ Ensure Scene Renders
-    // renderer.render(scene, camera);
-    // console.log("🔄 Scene Render Triggered");
   }
 
 function resetscene(s){
@@ -519,7 +493,6 @@ function resetscene(s){
     light3.position.set( -s[0]*1.5,-s[1]*1.5,-s[2]*1.5 );
     scene.add( light3 );
 
-    //light.position.set(s[0]*1.5,s[1]*1.5,s[2]*1.5);
     camera.far=far;
     camera.near=near;
     camera.position.set(s[0]*2,s[1]*1.5,s[2]*1.5);
@@ -577,11 +550,8 @@ function drawvolume(volume){
   
     texture = new THREE.DataTexture3D(lastvolumedata.selection.data, dim[0], dim[1], dim[2]);
     texture.format = THREE.RedFormat;
-    texture.type = THREE.FloatType; //texture_dtype[lastvolumedata.dtype];
+    texture.type = THREE.FloatType;
     texture.minFilter = texture.magFilter = THREE.LinearFilter;
-    // texture.format = RedFormat;  // THREE.RedFormat
-    // texture.type = FloatType;    // THREE.FloatType
-    // texture.minFilter = texture.magFilter = LinearFilter;  // THREE.LinearFilter
     texture.unpackAlignment = 1;
     texture.needsUpdate = true;
   
@@ -589,17 +559,31 @@ function drawvolume(volume){
     const cmtextures = {
         viridis: new THREE.TextureLoader().load( 'https://threejs.org/examples/textures/cm_viridis.png', render ),
         gray: new THREE.TextureLoader().load( 'https://threejs.org/examples/textures/cm_gray.png', render )
-    };
-  
-    // Material
-    const shader = document.getElementById('mip-radio-button').checked ? MipRenderShader : (document.getElementById('iso-radio-button').checked ? IsoRenderShader : InterpRenderShader());
-  
+    };    
+    let shader;
+
+try {
+  const mipRadio = document.getElementById('mip-radio-button');
+  const isoRadio = document.getElementById('iso-radio-button');
+
+  shader = mipRadio?.checked
+    ? MipRenderShader
+    : isoRadio?.checked
+      ? IsoRenderShader
+      : InterpRenderShader();
+} catch (e) {
+  console.warn("⚠️ Shader selection failed, using MipRenderShader by default", e);
+  shader = MipRenderShader; // Safe fallback
+}
+
     const uniforms = THREE.UniformsUtils.clone( shader.uniforms );
   
     uniforms[ "u_data" ].value = texture;
     uniforms[ "u_size" ].value.set( dim[0], dim[1], dim[2] );
     uniforms[ "u_clim" ].value.set( volume.min(), volume.max() );
-    uniforms[ "u_renderstyle" ].value = document.getElementById('mip-radio-button').checked ? 0 : 1;
+    const mipRadio = document.getElementById('mip-radio-button');
+    uniforms["u_renderstyle"].value = mipRadio && mipRadio.checked ? 0 : 1;
+
     uniforms[ "u_renderthreshold" ].value =  0.5;
     uniforms[ "u_scale" ].value =  texture_scale[lastvolumedata.dtype];
     uniforms[ "u_cmdata" ].value = cmtextures[ "viridis" ];
@@ -641,7 +625,6 @@ function drawvolume(volume){
     }
     material.uniforms.cameraPos.value.copy( camera.position );
   
-    // THREE.Mesh
     const geometry = new THREE.BoxGeometry(dim[0], dim[1], dim[2]);
     geometry.translate(dim[0]*0.5, dim[1]*0.5, dim[2]*0.5 );
   
@@ -655,10 +638,25 @@ function drawvolume(volume){
 }
 
 function initcanvas() {
+
+  const canvasDiv = document.getElementById("canvas");
+  if (canvasDiv) {
+    const oldCanvas = canvasDiv.querySelector("canvas");
+    if (oldCanvas) {
+      canvasDiv.removeChild(oldCanvas);
+    }
+  }
+
+  if (renderer) {
+  console.log("♻️ Resetting renderer and canvas...");
+  renderer.dispose();
+  $("#canvas").empty();
+}
+  destroyPreview(); // 🧹 Clean up old canvas + scene first
+
   scene = new THREE.Scene();
   boundingbox=scene;
 
-  //const camera = new THREE.PerspectiveCamera( 50, canvas.width()/canvas.height(), 1, 2000 );
   canvas = $("#canvas");
   camera = new THREE.OrthographicCamera(canvas.width() / -2, canvas.width() / 2, canvas.height() / 2, canvas.height() / -2, 1, 1000);
 
@@ -669,8 +667,8 @@ function initcanvas() {
   renderer = new THREE.WebGLRenderer({preserveDrawingBuffer: true});
   renderer.setPixelRatio( window.devicePixelRatio );
   renderer.setSize( canvas.width(), canvas.height());
-  //renderer.state.enable("logarithmicDepthBuffer");
   canvas.append( renderer.domElement );
+  console.log("✅ <canvas> appended:", renderer.domElement);
 
   controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.minZoom = 0.5;
@@ -685,7 +683,11 @@ function initcanvas() {
   controls.addEventListener('change', onPositionChange);
 
   stats = createStats();
-  document.getElementById('renderpanel').appendChild( stats.domElement );
+  const panel = document.getElementById('renderpanel');
+if (panel && stats && stats.domElement) {
+  panel.appendChild(stats.domElement);
+}
+
 
   $("#camera-near").on('input', function() {
     camera.near=parseFloat($(this).val());
@@ -834,7 +836,7 @@ function initcanvas() {
       let dim = lastvolumedim;
       let offset=(Math.min($(this).val(), dim[3]-2)*dim[0]*dim[1]*dim[2]);
 
-      let texture = new THREE.DataTexture3D(lastvolumedata.selection.data.slice(offset-1, offset+dim[0]*dim[1]*dim[2]-1), dim[0], dim[1], dim[2]);
+      let texture = new THREE.Data3DTexture(lastvolumedata.selection.data.slice(offset-1, offset+dim[0]*dim[1]*dim[2]-1), dim[0], dim[1], dim[2]);
       texture.format = THREE.RedFormat;
       texture.type = texture_dtype[lastvolumedata.dtype];
       texture.minFilter = texture.magFilter = THREE.LinearFilter;
@@ -845,7 +847,7 @@ function initcanvas() {
       renderer.updateComplete = false;
    }
   });
-
+  update();
 }
 
 function createFragmentShader(mode) {
@@ -1149,11 +1151,6 @@ function InterpRenderShader() {
     // Material
   
     const interpVertexShader = /* glsl */`
-      in vec3 position;
-  
-      uniform mat4 modelMatrix;
-      uniform mat4 modelViewMatrix;
-      uniform mat4 projectionMatrix;
       uniform vec3 cameraPos;
   
       out vec3 vOrigin;
@@ -1347,18 +1344,26 @@ function render(){
 }
 
 function update() {
-    reqid=requestAnimationFrame(update);
-    if(renderer.updateComplete === undefined || !renderer.updateComplete) {
-//      if(document.getElementById('mip-radio-button').checked && lastvolume !== undefined)
-//          lastvolume.material.uniforms.cameraPos.value.copy( camera.position );
-      renderer.render(scene, camera);
-      renderer.updateComplete = true;
-    }
-    controls.update();
-    stats.update();
-}
+  reqid = requestAnimationFrame(update);
 
-import { baseURL } from "../services/instance"; // Import CORS proxy
+  // 💡 Ensure renderer, scene, camera are initialized
+  if (!renderer || !scene || !camera) return;
+
+  // ✅ Only render if something changed
+  if (renderer.updateComplete === undefined || !renderer.updateComplete) {
+    // 🧠 Update shader uniform if in MIP mode and lastvolume exists
+    const mipChecked = document.getElementById('mip-radio-button')?.checked;
+    if (mipChecked && lastvolume?.material?.uniforms?.cameraPos) {
+      lastvolume.material.uniforms.cameraPos.value.copy(camera.position);
+    }
+
+    renderer.render(scene, camera);
+    renderer.updateComplete = true;
+  }
+
+  controls?.update?.();
+  stats?.update?.();
+}
 
 function previewdataurl(url, idx) {
 
@@ -1483,13 +1488,7 @@ function previewdataurl(url, idx) {
       }
       previewdata(nj.concatenate(plotdata.data.time.reshape(plotdata.data.time.size, 1), plotdata.data.dataTimeSeries).T, idx, false, serieslabel)
     }
-    // urldata[url]=plotdata;
 
-    // if(plotdata instanceof nj.NdArray || plotdata.hasOwnProperty('MeshNode')) {
-    //    previewdata(plotdata, idx, false)
-    // }
-
-    // ✅ Store for reuse
 urldata[url] = plotdata;
 
 // ✅ Safely store into extdata[]
@@ -1517,13 +1516,12 @@ if (plotdata?.data?.dataTimeSeries) {
     false,
     serieslabel
   );
-}
+  }
 
-// ✅ Mesh or volumetric data
-if (plotdata instanceof nj.NdArray || plotdata.hasOwnProperty('MeshNode')) {
-  previewdata(plotdata, idx, false);
-}
-
+  // ✅ Mesh or volumetric data
+  if (plotdata instanceof nj.NdArray || plotdata.hasOwnProperty('MeshNode')) {
+    previewdata(plotdata, idx, false);
+  }
   };
   oReq.send();
 }
