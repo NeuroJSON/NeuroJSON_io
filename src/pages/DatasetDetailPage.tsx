@@ -419,9 +419,13 @@ const DatasetDetailPage: React.FC = () => {
 			}
 		};
 
+		const fileName = typeof dataOrUrl === "string" ? extractFileName(dataOrUrl) : "";
+		console.log("🔍 Extracted fileName:", fileName);
+
 		const isPreviewableFile = (fileName: string): boolean => {
 			return /\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(fileName);
 		};
+		console.log("🧪 isPreviewableFile:", isPreviewableFile(fileName));
 
 		if (isInternal) {
 			try {
