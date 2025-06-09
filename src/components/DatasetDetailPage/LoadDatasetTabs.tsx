@@ -104,23 +104,33 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
     language = "python",
   }: {
     code: string;
-    language?: string; // optional prop
+    language?: string;
   }) => {
-    const handleCopy = () => {
-      navigator.clipboard.writeText(code);
+    // const handleCopy = () => {
+    //   navigator.clipboard.writeText(code);
+    // };
+    const [copied, setCopied] = useState(false);
+    const handleCopy = async () => {
+      try {
+        await navigator.clipboard.writeText(code);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000); // reset after 3s
+      } catch (err) {
+        console.error("Failed to copy:", err);
+      }
     };
 
     return (
       <Box sx={{ position: "relative" }}>
-        <IconButton
-          onClick={handleCopy}
-          size="small"
-          sx={{ position: "absolute", top: 5, right: 5 }}
-        >
-          <Tooltip title="Copy to clipboard">
+        <Tooltip title={copied ? "Copied!" : "Copy to clipboard"}>
+          <IconButton
+            onClick={handleCopy}
+            size="small"
+            sx={{ position: "absolute", top: 5, right: 5 }}
+          >
             <ContentCopyIcon fontSize="small" sx={{ color: Colors.green }} />
-          </Tooltip>
-        </IconButton>
+          </IconButton>
+        </Tooltip>
         <Box
           sx={{
             padding: { xs: "25px 20px 16px 16px", sm: "25px 20px 16px 16px" },
