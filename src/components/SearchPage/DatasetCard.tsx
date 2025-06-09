@@ -31,7 +31,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
   parsedJson,
   index,
   onChipClick,
-  keyword, //
+  keyword,
 }) => {
   const { name, readme, modality, subj, info } = parsedJson.value;
   const datasetLink = `${RoutesEnum.DATABASES}/${dbname}/${dsname}`;
@@ -46,7 +46,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
       return text;
     }
 
-    const regex = new RegExp(`(${keyword})`, "gi");
+    const regex = new RegExp(`(${keyword})`, "gi"); // for case-insensitive and global
     const parts = text.split(regex);
 
     return (
@@ -96,8 +96,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
           to={datasetLink}
           target="_blank"
         >
-          {name || "Untitled Dataset"}
-          {/* {highlightKeyword(name || "Untitled Dataset", keyword)} */}
+          {highlightKeyword(name || "Untitled Dataset", keyword)}
         </Typography>
         <Typography>
           Database: {dbname} &nbsp;&nbsp;|&nbsp;&nbsp; Dataset: {dsname}
@@ -121,7 +120,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
                   key={idx}
                   label={mod}
                   variant="outlined"
-                  onClick={() => onChipClick("modality", mod)} //
+                  onClick={() => onChipClick("modality", mod)}
                   sx={{
                     "& .MuiChip-label": {
                       paddingX: "6px",
@@ -159,8 +158,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
                 paragraph
                 sx={{ textOverflow: "ellipsis" }}
               >
-                <strong>Summary:</strong> {readme}
-                {/* <strong>Summary:</strong> {highlightKeyword(readme, keyword)} */}
+                <strong>Summary:</strong> {highlightKeyword(readme, keyword)}
               </Typography>
             )}
           </Stack>
