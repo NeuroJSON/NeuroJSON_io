@@ -19,7 +19,7 @@ import LoadDatasetTabs from "components/DatasetDetailPage/LoadDatasetTabs";
 import theme, { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import ReactJson from "react-json-view";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchDocumentDetails } from "redux/neurojson/neurojson.action";
@@ -66,6 +66,64 @@ const transformJsonForDisplay = (obj: any): any => {
   return transformed;
 };
 
+const formatAuthorsWithDOI = (
+  authors: string[] | string,
+  doi: string
+): JSX.Element => {
+  let authorText = "";
+
+  if (Array.isArray(authors)) {
+    if (authors.length === 1) {
+      authorText = authors[0];
+    } else if (authors.length === 2) {
+      authorText = authors.join(", ");
+    } else {
+      authorText = `${authors.slice(0, 2).join("; ")} et al.`;
+    }
+  } else {
+    authorText = authors;
+  }
+
+  let doiUrl = "";
+  if (doi) {
+    if (/^[0-9]/.test(doi)) {
+      doiUrl = `https://doi.org/${doi}`;
+    } else if (/^doi\./.test(doi)) {
+      doiUrl = `https://${doi}`;
+    } else if (/^doi:/.test(doi)) {
+      doiUrl = doi.replace(/^doi:/, "https://doi.org/");
+    } else {
+      doiUrl = doi;
+    }
+  }
+
+  return (
+    <>
+      <i>{authorText}</i>
+      {doiUrl && (
+        <a
+          href={doiUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            marginLeft: "10px",
+            color: "black",
+            fontWeight: 500,
+            fontStyle: "normal",
+            textDecoration: "none",
+          }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.textDecoration = "underline")
+          }
+          onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+        >
+          {doiUrl}
+        </a>
+      )}
+    </>
+  );
+};
+
 const DatasetDetailPage: React.FC = () => {
   const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
   const navigate = useNavigate();
@@ -106,38 +164,50 @@ const DatasetDetailPage: React.FC = () => {
   const extractDataLinks = (obj: any, path: string): ExternalDataLink[] => {
     const links: ExternalDataLink[] = [];
 
-    const traverse = (node: any, currentPath: string) => {
+    const traverse = (
+      node: any,
+      currentPath: string,
+      parentKey: string = ""
+    ) => {
       if (typeof node === "object" && node !== null) {
         for (const key in node) {
           if (key === "_DataLink_" && typeof node[key] === "string") {
             let correctedUrl = node[key].replace(/:\$.*$/, "");
-
             const sizeMatch = node[key].match(/size=(\d+)/);
             const size = sizeMatch
               ? `${(parseInt(sizeMatch[1], 10) / 1024 / 1024).toFixed(2)} MB`
               : "Unknown Size";
 
-            const subMatch = currentPath.match(/sub-\d+/);
-            const subPath = subMatch ? subMatch[0] : "Unknown Sub";
+            const parts = currentPath.split("/");
+            const subpath = parts.slice(-3).join("/");
+            const label = parentKey || "ExternalData";
 
             links.push({
-              name: `${
-                currentPath.split("/").pop() || "ExternalData"
-              } (${size}) [/${subPath}]`,
+              name: `${label} (${size}) [/${subpath}]`,
               size,
               path: currentPath, // keep full JSON path for file placement
               url: correctedUrl,
               index: links.length,
             });
           } else if (typeof node[key] === "object") {
-            traverse(node[key], `${currentPath}/${key}`);
+            const isMetaKey = key.startsWith("_");
+            const newLabel = !isMetaKey ? key : parentKey;
+            traverse(node[key], `${currentPath}/${key}`, newLabel);
           }
         }
       }
     };
 
     traverse(obj, path);
-    return links;
+    // return links;
+    const seenUrls = new Set<string>();
+    const uniqueLinks = links.filter((link) => {
+      if (seenUrls.has(link.url)) return false;
+      seenUrls.add(link.url);
+      return true;
+    });
+
+    return uniqueLinks;
   };
 
   const extractInternalData = (obj: any, path = ""): InternalDataLink[] => {
@@ -203,6 +273,16 @@ const DatasetDetailPage: React.FC = () => {
     return internalLinks;
   };
 
+  const formatFileSize = (bytes: number): string => {
+    if (bytes >= 1024 * 1024 * 1024) {
+      return `${Math.floor(bytes / (1024 * 1024 * 1024))} GB`;
+    } else if (bytes >= 1024 * 1024) {
+      return `${Math.floor(bytes / (1024 * 1024))} MB`;
+    } else {
+      return `${Math.floor(bytes / 1024)} KB`;
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       if (dbName && docId) {
@@ -239,10 +319,30 @@ const DatasetDetailPage: React.FC = () => {
       const transformed = transformJsonForDisplay(datasetDocument);
       setTransformedDataset(transformed);
 
-      const blob = new Blob([JSON.stringify(datasetDocument, null, 2)], {
+      let totalSize = 0;
+
+      // 1️⃣ Sum external link sizes (from URL like ...?size=12345678)
+      links.forEach((link) => {
+        const sizeMatch = link.url.match(/size=(\d+)/);
+        if (sizeMatch) {
+          totalSize += parseInt(sizeMatch[1], 10);
+        }
+      });
+
+      // 2️⃣ Estimate internal size from _ArraySize_ (assume Float32 = 4 bytes)
+      internalData.forEach((link) => {
+        if (link.arraySize && Array.isArray(link.arraySize)) {
+          const count = link.arraySize.reduce((acc, val) => acc * val, 1);
+          totalSize += count * 4;
+        }
+      });
+
+      setTotalFileSize(totalSize);
+
+      const minifiedBlob = new Blob([JSON.stringify(datasetDocument)], {
         type: "application/json",
       });
-      setJsonSize(blob.size);
+      setJsonSize(minifiedBlob.size);
 
       // // ✅ Construct download script dynamically
       let script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"\n`;
@@ -315,7 +415,7 @@ const DatasetDetailPage: React.FC = () => {
 
   const handleDownloadDataset = () => {
     if (!datasetDocument) return;
-    const jsonData = JSON.stringify(datasetDocument, null, 2);
+    const jsonData = JSON.stringify(datasetDocument);
     const blob = new Blob([jsonData], { type: "application/json" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -348,59 +448,90 @@ const DatasetDetailPage: React.FC = () => {
       "Is Internal:",
       isInternal
     );
-    console.log("🟢 Preview button clicked:", {
-      dataOrUrl,
-      idx,
-      isInternal,
-      urlMatch: /\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(dataOrUrl),
-    });
+
+    const is2DPreviewCandidate = (obj: any): boolean => {
+      if (!obj || typeof obj !== "object") return false;
+      if (!obj._ArrayType_ || !obj._ArraySize_ || !obj._ArrayZipData_)
+        return false;
+      const dim = obj._ArraySize_;
+      return (
+        Array.isArray(dim) &&
+        (dim.length === 1 || dim.length === 2) &&
+        dim.every((v) => typeof v === "number" && v > 0)
+      );
+    };
+
+    const extractFileName = (url: string): string => {
+      const match = url.match(/file=([^&]+)/);
+      // return match ? decodeURIComponent(match[1]) : url;
+      if (match) {
+        // Strip any trailing query parameters
+        const raw = decodeURIComponent(match[1]);
+        return raw.split("?")[0].split("&")[0];
+      }
+      // fallback: try to get last path part if no 'file=' param
+      try {
+        const u = new URL(url);
+        const parts = u.pathname.split("/");
+        return parts[parts.length - 1];
+      } catch {
+        return url;
+      }
+    };
+
+    const fileName =
+      typeof dataOrUrl === "string" ? extractFileName(dataOrUrl) : "";
+    console.log("🔍 Extracted fileName:", fileName);
+
+    const isPreviewableFile = (fileName: string): boolean => {
+      return /\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(fileName);
+    };
+    console.log("🧪 isPreviewableFile:", isPreviewableFile(fileName));
 
     if (isInternal) {
       try {
-        // 🔐 Step 1: Ensure global intdata exists
         if (!(window as any).intdata) {
           (window as any).intdata = [];
         }
-
-        // 🔐 Step 2: Ensure intdata[idx] is at least a 4-element array
         if (!(window as any).intdata[idx]) {
           (window as any).intdata[idx] = ["", "", null, `Internal ${idx}`];
         }
-
-        // 🔐 Step 3: Replace the [2] slot with your actual data
         (window as any).intdata[idx][2] = JSON.parse(JSON.stringify(dataOrUrl));
 
-        // ✅ Call previewdata
-        console.log(
-          "🧪 Calling previewdata with intdata[idx]:",
-          (window as any).intdata[idx]
-        );
-        (window as any).previewdata(
-          (window as any).intdata[idx][2],
-          idx,
-          true,
-          []
-        );
+        const is2D = is2DPreviewCandidate(dataOrUrl);
+
+        if (is2D) {
+          console.log("📊 2D data → rendering inline with dopreview()");
+          (window as any).dopreview(dataOrUrl, idx, true);
+          const panel = document.getElementById("chartpanel");
+          if (panel) panel.style.display = "block"; // 🔓 Show it!
+          setPreviewOpen(false); // ⛔ Don't open modal
+        } else {
+          console.log("🎬 3D data → rendering in modal");
+          (window as any).previewdata(dataOrUrl, idx, true, []);
+          setPreviewDataKey(dataOrUrl);
+          setPreviewOpen(true);
+          setPreviewIsInternal(true);
+        }
       } catch (err) {
         console.error("❌ Error in internal preview:", err);
       }
     } else {
-      // ✅ External Data Preview
-      if (/\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(dataOrUrl)) {
-        if (typeof (window as any).previewdataurl === "function") {
-          console.log("✅ Calling previewdataurl() for:", dataOrUrl);
-          (window as any).previewdataurl(dataOrUrl, idx);
-        } else {
-          console.error("❌ previewdataurl() is not defined!");
-        }
+      // external
+      // if (/\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(dataOrUrl)) {
+      const fileName =
+        typeof dataOrUrl === "string" ? extractFileName(dataOrUrl) : "";
+      if (isPreviewableFile(fileName)) {
+        (window as any).previewdataurl(dataOrUrl, idx);
+        const panel = document.getElementById("chartpanel");
+        if (panel) panel.style.display = "none"; // 🔒 Hide chart panel on 3D external
+        setPreviewDataKey(dataOrUrl);
+        setPreviewOpen(true);
+        setPreviewIsInternal(false);
       } else {
         console.warn("⚠️ Unsupported file format for preview:", dataOrUrl);
       }
     }
-
-    setPreviewDataKey(dataOrUrl); // ✅ Store the preview key
-    setPreviewOpen(true); // ✅ Open the preview modal
-    setPreviewIsInternal(isInternal); // ✅ Save it
   };
 
   const handleClosePreview = () => {
@@ -412,6 +543,9 @@ const DatasetDetailPage: React.FC = () => {
     if (typeof (window as any).update === "function") {
       cancelAnimationFrame((window as any).reqid);
     }
+
+    const panel = document.getElementById("chartpanel");
+    if (panel) panel.style.display = "none"; // 🔒 Hide 2D chart if modal closes
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -730,6 +864,18 @@ const DatasetDetailPage: React.FC = () => {
           </Box>
         </Box>
 
+        <div
+          id="chartpanel"
+          style={{
+            display: "none",
+            marginTop: "16px",
+            background: "#555",
+            color: "#f5f5f5",
+            padding: "12px",
+            borderRadius: "8px",
+            position: "relative",
+          }}
+        ></div>
         <Box
           sx={{
             display: "flex",
