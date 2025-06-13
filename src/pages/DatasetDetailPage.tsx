@@ -225,7 +225,7 @@ const DatasetDetailPage: React.FC = () => {
           internalLinks.push({
             name: `JMesh`,
             data: obj,
-            index: internalLinks.length,
+            index: internalLinks.length, // maybe can be remove
             arraySize: obj.MeshNode._ArraySize_,
           });
         }
@@ -237,7 +237,7 @@ const DatasetDetailPage: React.FC = () => {
           internalLinks.push({
             name: `JNIfTI`,
             data: obj,
-            index: internalLinks.length,
+            index: internalLinks.length, //maybe can be remove
             arraySize: obj.NIFTIData._ArraySize_,
           });
         }
@@ -252,7 +252,7 @@ const DatasetDetailPage: React.FC = () => {
           internalLinks.push({
             name: `JData`,
             data: obj,
-            index: internalLinks.length,
+            index: internalLinks.length, // maybe can be remove
             arraySize: obj._ArraySize_,
           });
         }
@@ -287,6 +287,8 @@ const DatasetDetailPage: React.FC = () => {
     const fetchData = async () => {
       if (dbName && docId) {
         await dispatch(fetchDocumentDetails({ dbName, docId }));
+        // console.log("dbName", dbName);
+        // console.log("docId", docId);
       }
     };
 
@@ -296,6 +298,7 @@ const DatasetDetailPage: React.FC = () => {
   useEffect(() => {
     if (datasetDocument) {
       // ✅ Extract External Data & Assign `index`
+      console.log("datasetDocument", datasetDocument);
       const links = extractDataLinks(datasetDocument, "").map(
         (link, index) => ({
           ...link,
@@ -337,12 +340,17 @@ const DatasetDetailPage: React.FC = () => {
         }
       });
 
-      setTotalFileSize(totalSize);
+      // setTotalFileSize(totalSize);
 
-      const minifiedBlob = new Blob([JSON.stringify(datasetDocument)], {
+      // const minifiedBlob = new Blob([JSON.stringify(datasetDocument)], {
+      //   type: "application/json",
+      // });
+      // setJsonSize(minifiedBlob.size);
+
+      const blob = new Blob([JSON.stringify(datasetDocument, null, 2)], {
         type: "application/json",
       });
-      setJsonSize(minifiedBlob.size);
+      setJsonSize(blob.size);
 
       // // ✅ Construct download script dynamically
       let script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"\n`;
