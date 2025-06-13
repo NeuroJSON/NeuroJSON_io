@@ -176,6 +176,7 @@ const NeuroJsonGraph: React.FC<{
       .graphData(graphData)
       .nodeRelSize(1)
       .nodeColor((node) => (node as NodeObject).color)
+      .linkVisibility(() => false)
       .linkWidth(1)
       .backgroundColor("rgba(0,0,0,0)")
       .nodeLabel("name")
