@@ -556,6 +556,7 @@ const SearchPage: React.FC = () => {
                             dsname={item.dsname}
                             parsedJson={parsedJson}
                             onChipClick={handleChipClick}
+                            keyword={formData.keyword} // for keyword highlight
                           />
                         ) : (
                           <SubjectCard

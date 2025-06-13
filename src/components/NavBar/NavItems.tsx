@@ -54,6 +54,10 @@ const NavItems: React.FC = () => {
                 variant="h1"
                 sx={{
                   color: Colors.yellow,
+                  fontSize: {
+                    xs: "2.2rem", // font size on mobile
+                    sm: "2.5rem",
+                  },
                 }}
               >
                 NeuroJSON.io
@@ -62,6 +66,10 @@ const NavItems: React.FC = () => {
                 variant="h2"
                 sx={{
                   color: Colors.lightGray,
+                  fontSize: {
+                    xs: "1rem", // font size on mobile
+                    sm: "1.2rem",
+                  },
                 }}
               >
                 Free Data Worth Sharing

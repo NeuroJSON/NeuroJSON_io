@@ -3,7 +3,22 @@ import { Tabs, Tab, Box, Typography, IconButton, Tooltip } from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
 import { useState } from "react";
+import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
+import bash from "react-syntax-highlighter/dist/esm/languages/hljs/bash";
+import cpp from "react-syntax-highlighter/dist/esm/languages/hljs/cpp";
+import javascript from "react-syntax-highlighter/dist/esm/languages/hljs/javascript";
+import matlab from "react-syntax-highlighter/dist/esm/languages/hljs/matlab";
+import python from "react-syntax-highlighter/dist/esm/languages/hljs/python";
+import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
+// import { Color } from "three";
+
+// Register language theme
+SyntaxHighlighter.registerLanguage("python", python);
+SyntaxHighlighter.registerLanguage("bash", bash);
+SyntaxHighlighter.registerLanguage("cpp", cpp);
+SyntaxHighlighter.registerLanguage("matlab", matlab);
+SyntaxHighlighter.registerLanguage("javascript", javascript);
 interface LoadDatasetTabsProps {
   pagename: string;
   docname: string;
@@ -58,9 +73,9 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabIndex(newValue);
   };
-  console.log("datasetDocument", datasetDocument);
+  // console.log("datasetDocument", datasetDocument);
   const datasetDesc = datasetDocument?.["dataset_description.json"];
-  console.log("datasetDesc", datasetDesc);
+  // console.log("datasetDesc", datasetDesc);
   const datasetName = datasetDesc?.Name?.includes(" - ")
     ? datasetDesc.Name.split(" - ")[1]
     : datasetDesc?.Name || datasetDocument?._id || docname;
@@ -84,22 +99,58 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
     );
   };
 
-  const CopyableCodeBlock = ({ code }: { code: string }) => {
-    const handleCopy = () => {
-      navigator.clipboard.writeText(code);
+  const CopyableCodeBlock = ({
+    code,
+    language = "python",
+  }: {
+    code: string;
+    language?: string;
+  }) => {
+    // const handleCopy = () => {
+    //   navigator.clipboard.writeText(code);
+    // };
+    const [copied, setCopied] = useState(false);
+    const handleCopy = async () => {
+      try {
+        await navigator.clipboard.writeText(code);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000); // reset after 3s
+      } catch (err) {
+        console.error("Failed to copy:", err);
+      }
     };
+
     return (
       <Box sx={{ position: "relative" }}>
-        <IconButton
-          onClick={handleCopy}
-          size="small"
-          sx={{ position: "absolute", top: 5, right: 5 }}
+        <Tooltip title={copied ? "Copied!" : "Copy to clipboard"}>
+          <IconButton
+            onClick={handleCopy}
+            size="small"
+            sx={{ position: "absolute", top: 5, right: 5 }}
+          >
+            <ContentCopyIcon fontSize="small" sx={{ color: Colors.green }} />
+          </IconButton>
+        </Tooltip>
+        <Box
+          sx={{
+            padding: { xs: "25px 20px 16px 16px", sm: "25px 20px 16px 16px" },
+            borderRadius: "5px",
+            fontSize: "16px",
+            backgroundColor: Colors.black,
+            overflowX: "auto",
+          }}
         >
-          <Tooltip title="Copy to clipboard">
-            <ContentCopyIcon fontSize="small" />
-          </Tooltip>
-        </IconButton>
-        <code style={flashcardStyles.codeBlock}>{code}</code>
+          <SyntaxHighlighter
+            language={language}
+            style={atomOneDark}
+            customStyle={{
+              background: "transparent",
+              margin: 0,
+            }}
+          >
+            {code}
+          </SyntaxHighlighter>
+        </Box>
       </Box>
     );
   };
@@ -111,6 +162,7 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
         onChange={handleTabChange}
         variant="scrollable"
         scrollButtons="auto"
+        allowScrollButtonsMobile
         sx={{
           "& .MuiTab-root": {
             color: Colors.lightGray, // default color
@@ -123,6 +175,12 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
           },
           "& .MuiTabs-indicator": {
             backgroundColor: Colors.green,
+          },
+          "& .MuiTabs-scrollButtons": {
+            color: Colors.lightGray, // scroll buttons color
+          },
+          "& .MuiTabs-scrollButtons.Mui-disabled": {
+            opacity: 0.3, // darker when button disabled
           },
         }}
       >
@@ -141,7 +199,10 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
             Load by URL with REST-API in Python
           </Typography>
           <Typography>Install:</Typography>
-          <CopyableCodeBlock code={`pip install jdata bjdata numpy`} />
+          <CopyableCodeBlock
+            code={`pip install jdata bjdata numpy`}
+            language="bash"
+          />
           <Typography>Load from URL:</Typography>
           <CopyableCodeBlock
             code={`import jdata as jd
@@ -152,6 +213,7 @@ links = jd.jsonpath(data, '$.._DataLink_')
 
 # Download & cache anatomical nii.gz data for sub-01/sub-02
 jd.jdlink(links, {'regex': 'anat/sub-0[12]_.*\\.nii'})`}
+            language="python"
           />
         </Box>
       </TabPanel>
@@ -163,7 +225,10 @@ jd.jdlink(links, {'regex': 'anat/sub-0[12]_.*\\.nii'})`}
             Load by URL with REST-API in MATLAB
           </Typography>
           <Typography>Install:</Typography>
-          <CopyableCodeBlock code={`Download and addpath to JSONLab`} />
+          <CopyableCodeBlock
+            code={`Download and addpath to JSONLab`}
+            language="text"
+          />
           <Typography>Load from URL:</Typography>
           <CopyableCodeBlock
             code={`data = loadjson('${datasetUrl}');
@@ -176,6 +241,7 @@ links = jsonpath(data, '$.._DataLink_');
 
 % Download & cache anatomical nii.gz data for sub-01/sub-02
 niidata = jdlink(links, 'regex', 'anat/sub-0[12]_.*\\.nii');`}
+            language="matlab"
           />
         </Box>
       </TabPanel>
@@ -187,9 +253,15 @@ niidata = jdlink(links, 'regex', 'anat/sub-0[12]_.*\\.nii');`}
             Use in MATLAB/Octave
           </Typography>
           <Typography>Load:</Typography>
-          <CopyableCodeBlock code={`data = loadjd('${docname}.json');`} />
+          <CopyableCodeBlock
+            code={`data = loadjd('${docname}.json');`}
+            language="matlab"
+          />
           <Typography>Read value:</Typography>
-          <CopyableCodeBlock code={`data.(encodevarname('${onekey}'))`} />
+          <CopyableCodeBlock
+            code={`data.(encodevarname('${onekey}'))`}
+            language="matlab"
+          />
         </Box>
       </TabPanel>
 
@@ -203,9 +275,10 @@ niidata = jdlink(links, 'regex', 'anat/sub-0[12]_.*\\.nii');`}
           <CopyableCodeBlock
             code={`import jdata as jd
 data = jd.load('${docname}.json')`}
+            language="python"
           />
           <Typography>Read value:</Typography>
-          <CopyableCodeBlock code={`data["${onekey}"]`} />
+          <CopyableCodeBlock code={`data["${onekey}"]`} language="python" />
         </Box>
       </TabPanel>
 
@@ -216,7 +289,10 @@ data = jd.load('${docname}.json')`}
             Use in C++
           </Typography>
           <Typography>Install:</Typography>
-          <CopyableCodeBlock code={`Download JSON for Modern C++ json.hpp`} />
+          <CopyableCodeBlock
+            code={`Download JSON for Modern C++ json.hpp`}
+            language="text"
+          />
           <Typography>Load:</Typography>
           <CopyableCodeBlock
             code={`#include "json.hpp"
@@ -224,9 +300,13 @@ using json=nlohmann::ordered_json;
 
 std::ifstream datafile("${docname}.json");
 json data(datafile);`}
+            language="cpp"
           />
           <Typography>Read value:</Typography>
-          <CopyableCodeBlock code={`std::cout << data["${onekey}"];`} />
+          <CopyableCodeBlock
+            code={`std::cout << data["${onekey}"];`}
+            language="cpp"
+          />
         </Box>
       </TabPanel>
 
@@ -237,7 +317,10 @@ json data(datafile);`}
             Use in JS/Node.js
           </Typography>
           <Typography>Install:</Typography>
-          <CopyableCodeBlock code={`npm install jda numjs pako atob`} />
+          <CopyableCodeBlock
+            code={`npm install jda numjs pako atob`}
+            language="bash"
+          />
           <Typography>Load:</Typography>
           <CopyableCodeBlock
             code={`const fs = require("fs");
@@ -248,9 +331,13 @@ const fn = "${docname}.json";
 var jstr = fs.readFileSync(fn).toString().replace(/\\n/g, "");
 var data = new jd(JSON.parse(jstr));
 data = data.decode();`}
+            language="javascript"
           />
           <Typography>Read value:</Typography>
-          <CopyableCodeBlock code={`console.log(data.data["${onekey}"]);`} />
+          <CopyableCodeBlock
+            code={`console.log(data.data["${onekey}"]);`}
+            language="javascript"
+          />
         </Box>
       </TabPanel>
     </>
