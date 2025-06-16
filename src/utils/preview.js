@@ -278,8 +278,8 @@ function dopreview(key, idx, isinternal, hastime) {
       intdata[idx][2] = jd.decode().data;
       dataroot = intdata[idx][2];
     } else {
-      //  extdata[idx][2] = jd.decode().data;
-      //  dataroot = extdata[idx][2];
+      // extdata[idx][2] = jd.decode().data;
+      // dataroot = extdata[idx][2];
       window.extdata[idx][2] = jd.decode().data;
       dataroot = window.extdata[idx][2];
     }
@@ -289,7 +289,7 @@ function dopreview(key, idx, isinternal, hastime) {
 
   if (ndim < 3 && ndim > 0) {
     const opts = {
-      // title: "Preview for "+(isinternal ? intdata[idx][3] : extdata[idx][3]),
+      // title: "Preview for " + (isinternal ? intdata[idx][3] : extdata[idx][3]),
       title:
         "Preview for " +
         (isinternal ? intdata[idx][3] : window.extdata[idx][3]),
@@ -1643,7 +1643,8 @@ function previewdataurl(url, idx) {
   console.log("🌍 Fetching external data from:", url);
   console.log("🔍 Index:", idx);
 
-  if (!/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh|bnii|gz)$/i.test(url)) {
+  // if (!/\.(nii|nii\.gz|jdt|jdb|bmsh|jmsh|bnii|gz)$/i.test(url)) {
+  if (!/file=.*\.(nii(\.gz)?|jdt|jdb|bmsh|jmsh|bnii)(?=(&|$))/i.test(url)) {
     console.warn("⚠️ Unsupported file format for preview:", url);
     return;
   }
@@ -1663,8 +1664,17 @@ function previewdataurl(url, idx) {
   $("#loadingdiv").css("display", "block");
   $("#loadingstatus").text("Loading from external URL");
 
+  // var oReq = new XMLHttpRequest();
+  // oReq.open("GET", linkpath[0], true);
+
+  // add cors proxy
+  const corsProxy = "https://cors.redoc.ly/";
+  const finalUrl = linkpath[0].startsWith(corsProxy)
+    ? linkpath[0]
+    : corsProxy + linkpath[0];
+
   var oReq = new XMLHttpRequest();
-  oReq.open("GET", linkpath[0], true);
+  oReq.open("GET", finalUrl, true); // end of cors proxy
   oReq.responseType = "arraybuffer";
 
   oReq.onload = function (oEvent) {
@@ -1821,6 +1831,7 @@ function previewdataurl(url, idx) {
     window.extdata = window.extdata || [];
     if (!window.extdata[idx]) {
       window.extdata[idx] = ["", "", null, `External ${idx}`];
+      console.log("window.extdata in preview", window.extdata); //
     }
     window.extdata[idx][2] = plotdata;
 
