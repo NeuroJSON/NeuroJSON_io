@@ -86,6 +86,7 @@ function destroyPreview() {
 }
 
 function drawpreview(cfg) {
+  // xyzscale = undefined; // add for test
   console.log("🛠️ Rendering in drawpreview()");
   console.log("🟢 Data received:", cfg);
   initcanvas();
@@ -217,6 +218,11 @@ function drawpreview(cfg) {
   }
   if (reqid === undefined) {
     requestAnimationFrame(update);
+    // add spinner
+    // if (typeof window.__onPreviewReady === "function") {
+    //   window.__onPreviewReady();
+    //   window.__onPreviewReady = null;
+    // }
   }
   return cfg;
 }
@@ -375,6 +381,12 @@ function dopreview(key, idx, isinternal, hastime) {
       }
     }
 
+    // add spinner
+    // if (typeof window.__onPreviewReady === "function") {
+    //   window.__onPreviewReady();
+    //   window.__onPreviewReady = null;
+    // }
+
     window.scrollTo(0, 0);
   }
   $("#loadingdiv").css("display", "none");
@@ -526,6 +538,7 @@ function drawsurf(node, tri) {
 
   const geometry = new THREE.BufferGeometry();
   tri = tri.subtract(1);
+  tri = nj.array(tri.tolist(), "uint32"); // add for test UCL 4D neonatal head model
   node = nj.array(node.slice(null, [0, 3]).tolist(), "float32");
 
   geometry.setIndex(new THREE.BufferAttribute(tri.selection.data, 1));
@@ -1338,13 +1351,16 @@ function createFragmentShader(mode) {
   ].join("\n");
 }
 
+// function isWebGL2Available() {
+//   try {
+//     let canvas = document.createElement("canvas");
+//     return !!(window.WebGL2RenderingContext && canvas.getContext("webgl2"));
+//   } catch (e) {
+//     return false;
+//   }
+// }
 function isWebGL2Available() {
-  try {
-    let canvas = document.createElement("canvas");
-    return !!(window.WebGL2RenderingContext && canvas.getContext("webgl2"));
-  } catch (e) {
-    return false;
-  }
+  return typeof window.WebGL2RenderingContext !== "undefined";
 }
 
 var MipRenderShader = {
@@ -1648,7 +1664,7 @@ function previewdataurl(url, idx) {
     console.warn("⚠️ Unsupported file format for preview:", url);
     return;
   }
-
+  // disable cache
   if (urldata.hasOwnProperty(url)) {
     if (
       urldata[url] instanceof nj.NdArray ||
