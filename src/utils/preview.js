@@ -352,6 +352,15 @@ function dopreview(key, idx, isinternal, hastime) {
         document.getElementById("plotchart")
       );
     }
+    // add spinner
+    // --- NEW LOGIC for 2D plot ---
+    // Signal that the 2D plot has just been created and is now visible.
+    // if (typeof window.__onPreviewReady === "function") {
+    //   window.__onPreviewReady();
+    //   window.__onPreviewReady = null; // Clean up to prevent accidental re-firing
+    // }
+    // --- END NEW LOGIC ---
+
     $("body").animate(
       { scrollTop: $("#chartpanel").offset().top - 20 },
       "fast"
@@ -360,6 +369,15 @@ function dopreview(key, idx, isinternal, hastime) {
     if (typeof scene === "undefined") {
       initcanvas();
     }
+
+    // add spinner
+    // --- NEW LOGIC for 3D render ---
+    // Signal that the 3D setup is complete and drawing is about to start.
+    // if (typeof window.__onPreviewReady === "function") {
+    //   window.__onPreviewReady();
+    //   window.__onPreviewReady = null; // Clean up to prevent accidental re-firing
+    // }
+    // --- END NEW LOGIC ---
     $("#credits").show();
     if (reqid !== undefined) {
       cancelAnimationFrame(reqid);

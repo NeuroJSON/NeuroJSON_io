@@ -1,6 +1,6 @@
 /// <reference types="three" />
 import { CircularProgress } from "@mui/material";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
 // Tell TS that THREE is available globally
 declare const THREE: typeof import("three");
@@ -23,9 +23,34 @@ const PreviewModal: React.FC<{
   // isLoading: boolean; //add spinner
   previewIndex: number;
 }> = ({ isOpen, dataKey, isInternal, onClose, previewIndex }) => {
+  // Create a ref. This will give us a direct, stable reference to the container div. fix start------------
+  // const canvasContainerRef = useRef<HTMLDivElement>(null);
+  // fix end---------------------
+
   useEffect(() => {
     if (!isOpen) return;
+    //add spinner
+    // if (!isOpen || isLoading) return;
 
+    // fix start-----------: Get the container element from the ref.
+    // const container = canvasContainerRef.current;
+    // if (!container) {
+    //   // This can happen briefly on the first render, so we just wait for the next render.
+    //   return;
+    // }
+    // // 3. Check for the required legacy functions on the window object.
+    // if (
+    //   typeof window.previewdata !== "function" ||
+    //   typeof window.initcanvas_with_container !== "function"
+    // ) {
+    //   console.error(
+    //     "❌ Legacy preview script functions are not available on the window object."
+    //   );
+    //   return;
+    // }
+
+    // window.previewdata(dataKey, previewIndex, isInternal, false);
+    // fix end---------------------------------
     // clear old canvas
     const canvasDiv = document.getElementById("canvas");
     if (canvasDiv)
@@ -76,8 +101,15 @@ const PreviewModal: React.FC<{
           height: "750px",
           border: "1px solid black",
           marginRight: "24px",
+          // New styles to center the spinner
+          // display: "flex",
+          // justifyContent: "center",
+          // alignItems: "center",
         }}
-      ></div>
+      >
+        {/* --- NEW: Conditional rendering of the spinner --- */}
+        {/* {isLoading && <CircularProgress sx={{ color: "#fff" }} />} */}
+      </div>
       {/* <div
         id="canvas"
         style={{
