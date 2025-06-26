@@ -8,6 +8,7 @@ import {
   Box,
   Typography,
   CircularProgress,
+  Backdrop, // fix
   Alert,
   Button,
   Card,
@@ -151,10 +152,22 @@ const DatasetDetailPage: React.FC = () => {
   const [jsonViewerKey, setJsonViewerKey] = useState(0);
   const [jsonSize, setJsonSize] = useState<number>(0);
   const [transformedDataset, setTransformedDataset] = useState<any>(null);
+  const [previewIndex, setPreviewIndex] = useState<number>(0);
 
   // add spinner
-  // const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewIndex, setPreviewIndex] = useState<number>(0);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [readyPreviewData, setReadyPreviewData] = useState<any>(null);
+  // const onPreviewReady = () => {
+  //   console.log("preview.js reports: Preview is ready to be shown.");
+  //   setIsPreviewLoading(false); // Turn off the spinner
+  // };
+
+  // const onPreviewReady = (decodedData: any) => {
+  //   console.log("✅ Data is ready! Opening modal.");
+  //   setReadyPreviewData(decodedData); // Store the final data
+  //   setIsPreviewLoading(false);      // Hide the spinner
+  //   setPreviewOpen(true);            // NOW open the modal
+  // };
 
   // Dataset download button size calculation function
   const formatSize = (sizeInBytes: number): string => {
@@ -460,7 +473,16 @@ const DatasetDetailPage: React.FC = () => {
       "Is Internal:",
       isInternal
     );
-    // setPreviewLoading(true); // Start spinner
+    // fix
+    // setIsPreviewLoading(true); // Show the spinner overlay
+    // setPreviewOpen(false);     // IMPORTANT: Keep modal closed for now
+    // This callback will be triggered by the legacy script when data is ready
+    // (window as any).__onPreviewReady = (decodedData: any) => {
+    //   console.log("✅ Data is ready! Opening modal.");
+    //   setReadyPreviewData(decodedData); // Store the final data for the modal
+    //   setIsPreviewLoading(false);      // Hide the spinner
+    //   setPreviewOpen(true);            // NOW it's time to open the modal
+    // };
 
     const is2DPreviewCandidate = (obj: any): boolean => {
       if (!obj || typeof obj !== "object") return false;
@@ -513,6 +535,13 @@ const DatasetDetailPage: React.FC = () => {
     // Assign callback to global window so preview.js can trigger it
     // (window as any).__onPreviewReady = openModalWhenReady;
 
+    // --- START of spinner logic ---
+    // setIsPreviewLoading(true); // Turn on the spinner immediately
+
+    // Set the callback on the window object so preview.js can find it
+    // (window as any).__onPreviewReady = onPreviewReady;
+    // --- END of spinner logic ---
+
     setPreviewIndex(idx);
     setPreviewDataKey(dataOrUrl);
     setPreviewIsInternal(isInternal);
@@ -541,9 +570,9 @@ const DatasetDetailPage: React.FC = () => {
           console.log("🎬 3D data → rendering in modal");
           (window as any).previewdata(dataOrUrl, idx, true, []);
           // add spinner
-          setPreviewDataKey(dataOrUrl);
-          setPreviewOpen(true);
-          setPreviewIsInternal(true);
+          // setPreviewDataKey(dataOrUrl);
+          // setPreviewOpen(true);
+          // setPreviewIsInternal(true);
         }
       } catch (err) {
         console.error("❌ Error in internal preview:", err);
@@ -559,9 +588,9 @@ const DatasetDetailPage: React.FC = () => {
         const panel = document.getElementById("chartpanel");
         if (panel) panel.style.display = "none"; // 🔒 Hide chart panel on 3D external
         //add spinner
-        setPreviewDataKey(dataOrUrl);
-        setPreviewOpen(true);
-        setPreviewIsInternal(false);
+        // setPreviewDataKey(dataOrUrl);
+        // setPreviewOpen(true);
+        // setPreviewIsInternal(false);
       } else {
         console.warn("⚠️ Unsupported file format for preview:", dataOrUrl);
         // setPreviewLoading(false); // add spinner
@@ -1268,9 +1297,9 @@ const DatasetDetailPage: React.FC = () => {
           dataKey={previewDataKey}
           isInternal={previewIsInternal}
           onClose={handleClosePreview}
-          // isLoading={previewLoading} // add spinner
-          previewIndex={previewIndex}
-          key={`${previewIndex}-${previewOpen}`}
+          // isLoading={isPreviewLoading} // add spinner
+          previewIndex={previewIndex} // provide the correct index for preview.js to look up data
+          key={`${previewIndex}-${previewOpen}`} // react will destroy the existing component and create a new one for mount
         />
       </Box>
     </>
