@@ -49,6 +49,7 @@ for (let i = 0; i < 256; i++) {
 
 window.intdata = window.intdata || [];
 window.extdata = window.extdata || [];
+window.__onPreviewReady = window.__onPreviewReady || null; // for spinner
 
 var typedfun = {
   Float32Array: null,
@@ -218,12 +219,13 @@ function drawpreview(cfg) {
   }
   if (reqid === undefined) {
     requestAnimationFrame(update);
-    // add spinner
-    // if (typeof window.__onPreviewReady === "function") {
-    //   window.__onPreviewReady();
-    //   window.__onPreviewReady = null;
-    // }
   }
+  // for spinner
+  // --- Signal React that 3D preview is ready ---
+  if (typeof window.__onPreviewReady === "function") {
+    window.__onPreviewReady();
+  }
+
   return cfg;
 }
 
@@ -360,6 +362,12 @@ function dopreview(key, idx, isinternal, hastime) {
     //   window.__onPreviewReady = null; // Clean up to prevent accidental re-firing
     // }
     // --- END NEW LOGIC ---
+
+    // for spinner
+    // --- Signal React that 2D preview is ready ---
+    if (typeof window.__onPreviewReady === "function") {
+      window.__onPreviewReady();
+    }
 
     $("body").animate(
       { scrollTop: $("#chartpanel").offset().top - 20 },
