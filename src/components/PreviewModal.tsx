@@ -20,9 +20,9 @@ const PreviewModal: React.FC<{
   dataKey: any;
   isInternal: boolean;
   onClose: () => void;
-  // isLoading: boolean; //add spinner
+  isLoading: boolean; //add spinner
   previewIndex: number;
-}> = ({ isOpen, dataKey, isInternal, onClose, previewIndex }) => {
+}> = ({ isOpen, dataKey, isInternal, onClose, previewIndex, isLoading }) => {
   // Create a ref. This will give us a direct, stable reference to the container div. fix start------------
   // const canvasContainerRef = useRef<HTMLDivElement>(null);
   // fix end---------------------
@@ -92,6 +92,20 @@ const PreviewModal: React.FC<{
         overflow: "hidden",
       }}
     >
+      {/* Spinner overlay */}
+      {/* {isLoading && (
+        <CircularProgress
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            color: "#fff",
+            zIndex: 10000,
+          }}
+        />
+      )} */}
+
       {/* Canvas Panel */}
       <div
         id="canvas"

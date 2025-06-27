@@ -157,10 +157,6 @@ const DatasetDetailPage: React.FC = () => {
   // add spinner
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [readyPreviewData, setReadyPreviewData] = useState<any>(null);
-  // const onPreviewReady = () => {
-  //   console.log("preview.js reports: Preview is ready to be shown.");
-  //   setIsPreviewLoading(false); // Turn off the spinner
-  // };
 
   // const onPreviewReady = (decodedData: any) => {
   //   console.log("✅ Data is ready! Opening modal.");
@@ -473,9 +469,14 @@ const DatasetDetailPage: React.FC = () => {
       "Is Internal:",
       isInternal
     );
-    // fix
-    // setIsPreviewLoading(true); // Show the spinner overlay
+    // fix spinner
+    setIsPreviewLoading(true); // Show the spinner overlay
+    setPreviewIndex(idx);
+    setPreviewDataKey(dataOrUrl);
+    setPreviewIsInternal(isInternal);
+
     // setPreviewOpen(false);     // IMPORTANT: Keep modal closed for now
+
     // This callback will be triggered by the legacy script when data is ready
     // (window as any).__onPreviewReady = (decodedData: any) => {
     //   console.log("✅ Data is ready! Opening modal.");
@@ -495,6 +496,17 @@ const DatasetDetailPage: React.FC = () => {
         dim.every((v) => typeof v === "number" && v > 0)
       );
     };
+    // for add spinner ---- start
+    // When legacy preview is actually ready, turn off spinner & open modal
+    window.__onPreviewReady = () => {
+      setIsPreviewLoading(false);
+      // Only open modal for 3D data
+      if (!is2DPreviewCandidate(dataOrUrl)) {
+        setPreviewOpen(true);
+      }
+      delete window.__onPreviewReady;
+    };
+    // -----end
 
     const extractFileName = (url: string): string => {
       const match = url.match(/file=([^&]+)/);
@@ -523,29 +535,25 @@ const DatasetDetailPage: React.FC = () => {
     };
     console.log("🧪 isPreviewableFile:", isPreviewableFile(fileName));
 
-    // add spinner
-    // const openModalWhenReady = () => {
-    //   console.log("✅ Preview rendering completed!");
-    //   setPreviewLoading(false);
-    //   setPreviewOpen(true);
-    //   setPreviewDataKey(dataOrUrl);
-    //   setPreviewIsInternal(isInternal);
-    // };
+    // test for add spinner
+    // if (isInternal) {
+    //   if (is2DPreviewCandidate(dataOrUrl)) {
+    //     // inline 2D
+    //     window.dopreview(dataOrUrl, idx, true);
+    //   } else {
+    //     // 3D
+    //     window.previewdata(dataOrUrl, idx, true, []);
+    //   }
+    // } else {
+    //   // external
+    //   window.previewdataurl(dataOrUrl, idx);
+    // }
 
-    // Assign callback to global window so preview.js can trigger it
-    // (window as any).__onPreviewReady = openModalWhenReady;
-
-    // --- START of spinner logic ---
-    // setIsPreviewLoading(true); // Turn on the spinner immediately
-
-    // Set the callback on the window object so preview.js can find it
-    // (window as any).__onPreviewReady = onPreviewReady;
-    // --- END of spinner logic ---
-
-    setPreviewIndex(idx);
-    setPreviewDataKey(dataOrUrl);
-    setPreviewIsInternal(isInternal);
-    setPreviewOpen(true);
+    // for test so command out the below
+    // setPreviewIndex(idx);
+    // setPreviewDataKey(dataOrUrl);
+    // setPreviewIsInternal(isInternal);
+    // setPreviewOpen(true);
 
     if (isInternal) {
       try {
@@ -1291,13 +1299,22 @@ const DatasetDetailPage: React.FC = () => {
           datasetDocument={datasetDocument}
           onekey={"dataset_description.json"}
         />
+
+        {/* Global spinner while loading (before modal mounts) */}
+        <Backdrop
+          open={isPreviewLoading && !previewOpen}
+          sx={{ zIndex: 2000, color: "#fff" }}
+        >
+          <CircularProgress color="inherit" />
+        </Backdrop>
+
         {/* Preview Modal Component - Add Here */}
         <PreviewModal
           isOpen={previewOpen}
           dataKey={previewDataKey}
           isInternal={previewIsInternal}
           onClose={handleClosePreview}
-          // isLoading={isPreviewLoading} // add spinner
+          isLoading={isPreviewLoading} // add spinner
           previewIndex={previewIndex} // provide the correct index for preview.js to look up data
           key={`${previewIndex}-${previewOpen}`} // react will destroy the existing component and create a new one for mount
         />
