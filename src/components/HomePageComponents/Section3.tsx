@@ -89,10 +89,10 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
         onClick={handleOpen}
       >
         <img
-          src={`${process.env.PUBLIC_URL}/img/3cards_vertical.png`}
+          src={`${process.env.PUBLIC_URL}/img/section3_cards.png`}
           alt="rendering feature info cards"
           style={{
-            width: "100%",
+            width: "70%",
             height: "auto",
           }}
         ></img>

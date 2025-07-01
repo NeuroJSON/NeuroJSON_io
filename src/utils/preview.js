@@ -575,7 +575,6 @@ function drawsurf(node, tri) {
   geometry.computeVertexNormals();
 
   var material = new THREE.MeshNormalMaterial({
-    // color: 0xff0000,
     color: 0xffff00,
     polygonOffset: true,
     polygonOffsetFactor: 1, // positive value pushes polygon further away
