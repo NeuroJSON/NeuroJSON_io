@@ -94,7 +94,7 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
                 },
               }}
             >
-              Search Findable, Accessible, Interoperable, and Reusable datasets.
+              Search Findable, Accessible, Interoperable, and Reusable datasets
             </Typography>
           </Box>
         </Grid>

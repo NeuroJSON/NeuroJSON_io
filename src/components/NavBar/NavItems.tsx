@@ -87,7 +87,8 @@ const NavItems: React.FC = () => {
             sx={{ mb: { xs: 1 } }}
           >
             {[
-              { text: "ABOUT", url: "https://neurojson.org/Doc/Start" },
+              // { text: "ABOUT", url: "https://neurojson.org/Doc/Start" },
+              { text: "ABOUT", url: RoutesEnum.ABOUT },
               { text: "WIKI", url: "https://neurojson.org/Wiki" },
               { text: "SEARCH", url: RoutesEnum.SEARCH },
               { text: "DATABASES", url: RoutesEnum.DATABASES },
