@@ -8,6 +8,16 @@ const bjdata = window.bjdata;
 const uPlot = window.uPlot;
 const Buffer = window.buffer_module.Buffer;
 
+const texture_dtype = {
+  uint8: THREE.UnsignedByteType,
+  uint16: THREE.UnsignedShortType,
+  uint32: THREE.UnsignedIntType,
+  int8: THREE.ByteType,
+  int16: THREE.ShortType,
+  int32: THREE.IntType,
+  float32: THREE.FloatType,
+};
+
 var urldata = {};
 const niitype = {
   2: "uint8",
