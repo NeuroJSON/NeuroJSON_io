@@ -115,10 +115,11 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
           </IconButton>
 
           <video controls style={{ width: "100%", borderRadius: "4px" }}>
-            <source
+            {/* <source
               src="https://neurojson.org/tutorials/overview/neurojsonio_volume_render_short.mp4"
               type="video/mp4"
-            />
+            /> */}
+            <source src="/video/preview_video.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
         </Box>

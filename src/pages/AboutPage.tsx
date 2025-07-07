@@ -55,7 +55,7 @@ const AboutPage: React.FC = () => {
               width="100%"
               style={{ maxHeight: "500px", objectFit: "cover" }}
             >
-              <source src="/video/introduction.mp4" type="video/mp4" />
+              <source src="/video/introduction_video.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
           </Box>
@@ -75,6 +75,7 @@ const AboutPage: React.FC = () => {
                 color: Colors.purple,
                 borderColor: Colors.purple,
                 fontSize: "small",
+                transition: "all 0.3s ease",
                 mt: 2,
                 "&:hover": {
                   transform: "scale(1.05)",
@@ -123,7 +124,7 @@ const AboutPage: React.FC = () => {
               width="100%"
               style={{ maxHeight: "500px", objectFit: "cover" }}
             >
-              <source src="/video/introduction.mp4" type="video/mp4" />
+              <source src="/video/preview_video.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
           </Box>
