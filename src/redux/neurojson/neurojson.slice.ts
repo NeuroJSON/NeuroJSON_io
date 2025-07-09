@@ -5,9 +5,12 @@ import {
   fetchDbInfo,
   fetchDocumentDetails,
   fetchDbStats,
+  fetchMetadataSearchResults,
 } from "./neurojson.action";
 import { DBDatafields, INeuroJsonState } from "./types/neurojson.interface";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+
+// import { stat } from "fs";
 
 const initialState: INeuroJsonState = {
   loading: false,
@@ -20,6 +23,7 @@ const initialState: INeuroJsonState = {
   registry: null,
   dbInfo: null, // add dbInfo in neurojson.interface.ts
   dbStats: null,
+  searchResults: null,
 };
 
 const neurojsonSlice = createSlice({
@@ -47,29 +51,14 @@ const neurojsonSlice = createSlice({
       .addCase(
         loadPaginatedData.fulfilled,
         (state, action: PayloadAction<DBDatafields>) => {
-          // Check if we received fewer items than the limit, indicating we've reached the end
-          console.log(action.payload.total_rows);
-          state.limit = action.payload.total_rows;
-          const reachedEnd = action.payload.rows.length < state.limit;
-
-          // Filter out duplicates while preserving order
-          const uniqueEntries = action.payload.rows.filter(
-            (newItem) =>
-              !state.data.some((existingItem) => existingItem.id === newItem.id)
-          );
-
           state.loading = false;
-
-          if (uniqueEntries.length > 0) {
-            // Append new unique entries to existing data
-            state.data = [...state.data, ...uniqueEntries];
-            state.offset += uniqueEntries.length;
-            // Only set hasMore to true if we haven't reached the end
-            state.hasMore = !reachedEnd;
-          } else {
-            // If no new unique entries were found, we've reached the end
-            state.hasMore = false;
-          }
+          state.error = null;
+          state.limit = action.payload.total_rows;
+          state.offset = action.payload.offset;
+          state.data = action.payload.rows; // Always replace data, not merge
+          state.hasMore =
+            action.payload.offset + action.payload.rows.length <
+            action.payload.total_rows;
         }
       )
       .addCase(loadPaginatedData.rejected, (state, action) => {
@@ -142,6 +131,21 @@ const neurojsonSlice = createSlice({
         state.dbStats = action.payload;
       })
       .addCase(fetchDbStats.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(fetchMetadataSearchResults.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(
+        fetchMetadataSearchResults.fulfilled,
+        (state, action: PayloadAction<any>) => {
+          state.loading = false;
+          state.searchResults = action.payload;
+        }
+      )
+      .addCase(fetchMetadataSearchResults.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

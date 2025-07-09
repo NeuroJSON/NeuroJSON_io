@@ -1,4 +1,4 @@
-import { orange, purple } from "@mui/material/colors";
+// import { orange, purple } from "@mui/material/colors";
 import { createTheme } from "@mui/material/styles";
 
 const primary = {
@@ -28,9 +28,14 @@ export const Colors = {
   yellow: "#FFDD31",
   lightYellow: "#FAEBD7",
   purple: "#5865F2",
+  secondaryPurple: "#4a4cb7",
   darkPurple: "#282C56",
   orange: "#FF9F2F",
   darkOrange: "#E88C25",
+  blue: "#1976d2",
+  lightBlue: "#e8f0fe",
+  pink: "#FF69B4",
+  purpleGrey: "#99aff0",
   primary,
   secondary,
 };
@@ -41,13 +46,11 @@ const theme = createTheme({
     h1: {
       fontFamily: "Raleway",
       fontWeight: 700,
-      // fontSize: "2rem",
       fontSize: "2.5rem",
       textTransform: "none",
     },
     h2: {
       fontWeight: 600,
-      // fontSize: "1.75rem",
       fontSize: "1.2rem",
       textTransform: "none",
       color: Colors.secondary.main,

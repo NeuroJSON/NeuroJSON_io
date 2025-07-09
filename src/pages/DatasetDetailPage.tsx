@@ -1,1041 +1,1326 @@
+import PreviewModal from "../components/PreviewModal";
+import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import DescriptionIcon from "@mui/icons-material/Description";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
+import HomeIcon from "@mui/icons-material/Home";
 import {
-	Box,
-	Typography,
-	CircularProgress,
-	Alert,
-	Button,
-	Card,
-	CardContent,
-	Collapse,
+  Box,
+  Typography,
+  CircularProgress,
+  Backdrop,
+  Alert,
+  Button,
+  Card,
+  CardContent,
+  Collapse,
 } from "@mui/material";
+import { TextField } from "@mui/material";
+import LoadDatasetTabs from "components/DatasetDetailPage/LoadDatasetTabs";
 import theme, { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import ReactJson from "react-json-view";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchDocumentDetails } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
-import PreviewModal from "../components/PreviewModal";
-import DatasetFlashcards from "../components/DatasetFlashcards";
-import { TextField } from "@mui/material";
-import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
-import DescriptionIcon from "@mui/icons-material/Description";
-
+import RoutesEnum from "types/routes.enum";
 
 interface ExternalDataLink {
-	name: string;
-	size: string;
-	path: string;
-	url: string;
-	index: number;
+  name: string;
+  size: string;
+  path: string;
+  url: string;
+  index: number;
 }
 
 interface InternalDataLink {
-	name: string;
-	data: any;
-	index: number;
-	arraySize?: number[];
+  name: string;
+  data: any;
+  index: number;
+  arraySize?: number[];
 }
 
-const DatasetDetailPage: React.FC = () => {
-	const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
-	const navigate = useNavigate();
-	const dispatch = useAppDispatch();
-	const {
-		selectedDocument: datasetDocument,
-		loading,
-		error,
-	} = useAppSelector(NeurojsonSelector);
+const transformJsonForDisplay = (obj: any): any => {
+  if (typeof obj !== "object" || obj === null) return obj;
 
-	const [externalLinks, setExternalLinks] = useState<ExternalDataLink[]>([]);
-	const [internalLinks, setInternalLinks] = useState<InternalDataLink[]>([]);
-	const [isExpanded, setIsExpanded] = useState(false);
-	const [isInternalExpanded, setIsInternalExpanded] = useState(true);
-	const [searchTerm, setSearchTerm] = useState("");
-	const [matches, setMatches] = useState<HTMLElement[]>([]);
-	const [highlightedIndex, setHighlightedIndex] = useState(-1);
-	const [downloadScript, setDownloadScript] = useState<string>("");
-	const [previewIsInternal, setPreviewIsInternal] = useState(false);
-	const [isExternalExpanded, setIsExternalExpanded] = useState(true);
-	
+  const transformed: any = Array.isArray(obj) ? [] : {};
 
+  for (const key in obj) {
+    if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
 
-	// Recursive function to find `_DataLink_`
-	const extractDataLinks = (obj: any, path: string): ExternalDataLink[] => {
-		const links: ExternalDataLink[] = [];
+    const value = obj[key];
 
-		if (typeof obj === "object" && obj !== null) {
-			for (const key in obj) {
-				if (obj.hasOwnProperty(key)) {
-					if (key === "_DataLink_" && typeof obj[key] === "string") {
-						let correctedUrl = obj[key].replace(/:\$.*$/, "");
+    // Match README, CHANGES, or file extensions
+    const isLongTextKey = /^(README|CHANGES)$|\.md$|\.txt$|\.m$/i.test(key);
 
-						const sizeMatch = obj[key].match(/size=(\d+)/);
-						const size = sizeMatch
-							? `${(parseInt(sizeMatch[1], 10) / 1024 / 1024).toFixed(2)} MB`
-							: "Unknown Size";
+    if (typeof value === "string" && isLongTextKey) {
+      transformed[key] = `<code class="puretext">${value}</code>`;
+    } else if (typeof value === "object") {
+      transformed[key] = transformJsonForDisplay(value);
+    } else {
+      transformed[key] = value;
+    }
+  }
 
-						const subMatch = path.match(/sub-\d+/);
-						const subPath = subMatch ? subMatch[0] : "Unknown Sub";
+  return transformed;
+};
 
-						links.push({
-							name: `NIFTIData (${size}) [/${subPath}]`,
-							size,
-							path: subPath,
-							url: correctedUrl,
-							index: links.length,
-						});
-					} else if (typeof obj[key] === "object") {
-						links.push(...extractDataLinks(obj[key], `${path}/${key}`));
-					}
-				}
-			}
-		}
+const formatAuthorsWithDOI = (
+  authors: string[] | string,
+  doi: string
+): JSX.Element => {
+  let authorText = "";
 
-		return links;
-	};
+  if (Array.isArray(authors)) {
+    if (authors.length === 1) {
+      authorText = authors[0];
+    } else if (authors.length === 2) {
+      authorText = authors.join(", ");
+    } else {
+      authorText = `${authors.slice(0, 2).join("; ")} et al.`;
+    }
+  } else {
+    authorText = authors;
+  }
 
-	const extractInternalData = (obj: any, path = ""): InternalDataLink[] => {
-		const internalLinks: InternalDataLink[] = [];
-	
-		if (obj && typeof obj === "object") {
-			if (
-				obj.hasOwnProperty("MeshNode") &&
-				(obj.hasOwnProperty("MeshSurf") || obj.hasOwnProperty("MeshElem"))
-			) {
-				if (
-					obj.MeshNode.hasOwnProperty("_ArrayZipData_") &&
-					typeof obj.MeshNode["_ArrayZipData_"] === "string"
-				) {
-					internalLinks.push({
-						name: `JMesh`,
-						data: obj,
-						index: internalLinks.length,
-						arraySize: obj.MeshNode._ArraySize_,
-					});
-				}
-			} else if (obj.hasOwnProperty("NIFTIData")) {
-				if (
-					obj.NIFTIData.hasOwnProperty("_ArrayZipData_") &&
-					typeof obj.NIFTIData["_ArrayZipData_"] === "string"
-				) {
-					internalLinks.push({
-						name: `JNIfTI`,
-						data: obj,
-						index: internalLinks.length,
-						arraySize: obj.NIFTIData._ArraySize_,
-					});
-				}
-			} else if (obj.hasOwnProperty("_ArraySize_") && !path.match("_EnumValue_$")) {
-				if (
-					obj.hasOwnProperty("_ArrayZipData_") &&
-					typeof obj["_ArrayZipData_"] === "string"
-				) {
-					internalLinks.push({
-						name: `JData`,
-						data: obj,
-						index: internalLinks.length,
-						arraySize: obj._ArraySize_,
-					});
-				}
-			} else {
-				Object.keys(obj).forEach((key) => {
-					if (typeof obj[key] === "object") {
-						internalLinks.push(...extractInternalData(obj[key], `${path}.${key.replace(/\./g, "\\.")}`));
-					}
-				});
-			}
-		}
-	
-		return internalLinks;
-	};		
+  let doiUrl = "";
+  if (doi) {
+    if (/^[0-9]/.test(doi)) {
+      doiUrl = `https://doi.org/${doi}`;
+    } else if (/^doi\./.test(doi)) {
+      doiUrl = `https://${doi}`;
+    } else if (/^doi:/.test(doi)) {
+      doiUrl = doi.replace(/^doi:/, "https://doi.org/");
+    } else {
+      doiUrl = doi;
+    }
+  }
 
-	useEffect(() => {
-		const fetchData = async () => {
-			if (dbName && docId) {
-				await dispatch(fetchDocumentDetails({ dbName, docId }));
-			}
-		};
-
-		fetchData();
-	}, [dbName, docId, dispatch]);
-
-	useEffect(() => {
-		if (datasetDocument) {
-			// ✅ Extract External Data & Assign `index`
-			const links = extractDataLinks(datasetDocument, "").map((link, index) => ({
-				...link,
-				index, // ✅ Assign index correctly
-			}));
-	
-			// ✅ Extract Internal Data & Assign `index`
-			const internalData = extractInternalData(datasetDocument).map((data, index) => ({
-				...data,
-				index, // ✅ Assign index correctly
-			}));
-	
-			console.log("🟢 Extracted external links:", links);
-			console.log("🟢 Extracted internal data:", internalData);
-	
-			setExternalLinks(links);
-			setInternalLinks(internalData);
-
-			// ✅ Construct download script dynamically
-			const script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"`;
-			setDownloadScript(script);
-		}
-	}, [datasetDocument]);	
-
-	const [previewOpen, setPreviewOpen] = useState(false);
-	const [previewDataKey, setPreviewDataKey] = useState<any>(null);
-	
-
-	useEffect(() => {
-		if (searchTerm) {
-			highlightMatches(searchTerm);
-		}
-	}, [searchTerm, datasetDocument]); // ✅ Run search when dataset loads
-	
-	const handleDownloadDataset = () => {
-		if (!datasetDocument) return;
-		const jsonData = JSON.stringify(datasetDocument, null, 2);
-		const blob = new Blob([jsonData], { type: "application/json" });
-		const link = document.createElement("a");
-		link.href = URL.createObjectURL(blob);
-		link.download = `${docId}.json`;
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
-	};
-
-	const handleDownloadScript = () => {
-		const blob = new Blob([downloadScript], { type: "text/plain" });
-		const link = document.createElement("a");
-		link.href = URL.createObjectURL(blob);
-		link.download = `${docId}.sh`;
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
-	};
-
-	const handlePreview = (dataOrUrl: string | any, idx: number, isInternal: boolean = false) => {
-		console.log("🟢 Preview button clicked for:", dataOrUrl, "Index:", idx, "Is Internal:", isInternal);
-		console.log("🟢 Preview button clicked:", {
-			dataOrUrl,
-			idx,
-			isInternal,
-			urlMatch: /\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(dataOrUrl),
-		  });
-		  
-	
-		// if (isInternal) {
-		// 	try {
-		// 		// ✅ Create a writable deep copy to avoid modifying read-only properties
-		// 		const writableData = JSON.parse(JSON.stringify(dataOrUrl));
-	
-		// 		if (typeof (window as any).previewdata === "function") {
-		// 			console.log("✅ Calling previewdata() for internal data:", writableData);
-		// 			(window as any).previewdata(writableData, idx, false);  // ✅ Pass writable copy
-		// 		} else {
-		// 			console.error("❌ previewdata() is not defined!");
-		// 		}
-		// 	} catch (error) {
-		// 		console.error("❌ Error processing internal data:", error);
-		// 	}
-		// }
-		if (isInternal) {
-			try {
-			  // 🔐 Step 1: Ensure global intdata exists
-			  if (!(window as any).intdata) {
-				(window as any).intdata = [];
-			  }
-		  
-			  // 🔐 Step 2: Ensure intdata[idx] is at least a 4-element array
-			  if (!(window as any).intdata[idx]) {
-				(window as any).intdata[idx] = ["", "", null, `Internal ${idx}`];
-			  }
-		  
-			  // 🔐 Step 3: Replace the [2] slot with your actual data
-			  (window as any).intdata[idx][2] = JSON.parse(JSON.stringify(dataOrUrl));
-		  
-			  // ✅ Call previewdata
-			  console.log("🧪 Calling previewdata with intdata[idx]:", (window as any).intdata[idx]);
-			  (window as any).previewdata((window as any).intdata[idx][2], idx, true, []);
-			} catch (err) {
-			  console.error("❌ Error in internal preview:", err);
-			}
-		} else {
-			// ✅ External Data Preview
-			if (/\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(dataOrUrl)) {
-				if (typeof (window as any).previewdataurl === "function") {
-					console.log("✅ Calling previewdataurl() for:", dataOrUrl);
-					(window as any).previewdataurl(dataOrUrl, idx);
-				} else {
-					console.error("❌ previewdataurl() is not defined!");
-				}
-			} else {
-				console.warn("⚠️ Unsupported file format for preview:", dataOrUrl);
-			}
-		}
-	
-		setPreviewDataKey(dataOrUrl); // ✅ Store the preview key
-		setPreviewOpen(true);   // ✅ Open the preview modal
-		setPreviewIsInternal(isInternal); // ✅ Save it
-	};
-
-	const handleClosePreview = () => {
-		console.log("🛑 Closing preview modal.");
-		setPreviewOpen(false);
-		setPreviewDataKey(null);
-	
-		// Stop any Three.js rendering when modal closes
-		if (typeof (window as any).update === "function") {
-			cancelAnimationFrame((window as any).reqid);
-		}
-	};
-
-	const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-		setSearchTerm(e.target.value);
-		setHighlightedIndex(-1);
-		highlightMatches(e.target.value);
-	};	
-	
-	const highlightMatches = (keyword: string) => {
-		if (!keyword.trim()) {
-			// ✅ Clear highlights when search is empty
-			document.querySelectorAll(".highlighted").forEach((el) => {
-				const element = el as HTMLElement;
-				if (element.dataset.originalText) {
-					element.innerText = element.dataset.originalText;
-				}
-				element.classList.remove("highlighted");
-			});
-			setMatches([]);
-			setHighlightedIndex(-1);
-			return;
-		}
-
-		const nodes: HTMLElement[] = [];
-		const elements = document.querySelectorAll(".react-json-view span"); // ✅ Select JSON values only
-
-		elements.forEach((el) => {
-			const element = el as HTMLElement;
-			if (!element.textContent) return; // Skip empty elements
-
-			const regex = new RegExp(`(${keyword})`, "gi");
-			const originalText = element.dataset.originalText || element.textContent;
-
-			if (originalText.toLowerCase().includes(keyword.toLowerCase())) {
-				if (!element.dataset.originalText) {
-					element.dataset.originalText = originalText;
-				}
-
-				// ✅ Safe highlight without breaking structure
-				element.innerHTML = originalText.replace(
-					regex,
-					`<mark class="highlighted" style="background-color: lightyellow; color: black;">$1</mark>`
-				);
-
-				nodes.push(element);
-			}
-		});
-
-		setMatches(nodes); // ✅ Store matches for "Find Next"
-		setHighlightedIndex(-1);
-	};
-
-
-	const findNext = () => {
-		if (matches.length === 0) return;
-
-		setHighlightedIndex((prevIndex) => {
-			const nextIndex = (prevIndex + 1) % matches.length;
-
-			matches.forEach((match) => {
-				match.style.backgroundColor = "lightyellow"; // Reset all highlights
-			});
-
-			matches[nextIndex].scrollIntoView({ behavior: "smooth", block: "center" });
-			matches[nextIndex].style.backgroundColor = "orange"; // Highlight current match
-
-			return nextIndex;
-		});
-	};
-	
-
-	if (loading) {
-		return (
-			<Box
-				sx={{
-					display: "flex",
-					justifyContent: "center",
-					alignItems: "center",
-					height: "100vh",
-				}}
-			>
-				<CircularProgress sx={{ color: Colors.primary.main }} />
-			</Box>
-		);
-	}
-
-	if (error) {
-		return (
-			<Box sx={{ textAlign: "center", padding: 4 }}>
-				<Alert severity="error" sx={{ color: Colors.error }}>
-					{error}
-				</Alert>
-			</Box>
-		);
-	}
-
-	return (
-		<Box sx={{ padding: 4 }}>
-			<Button
-				variant="contained"
-				onClick={() => navigate(-1)}
-				sx={{ marginBottom: 2, backgroundColor: Colors.primary.main }}
-			>
-				Back
-			</Button>
-
-			<Box 
-				sx={{ 
-					position: "sticky", // ✅ Keeps title & search bar fixed
-					top: 0, // ✅ Sticks to the top
-					backgroundColor: "white", // ✅ Ensures smooth UI
-					zIndex: 10, // ✅ Keeps it above scrollable content
-					paddingBottom: 2, // ✅ Adds space for clarity
-					borderBottom: `1px solid ${Colors.lightGray}`, // ✅ Adds subtle separator
-				}}>
-
-				{/* ✅ Dataset Title (From dataset_description.json) */}
-				<Typography
-					variant="h4"
-					color={Colors.primary.main}
-					sx={{ fontWeight: "bold", mb: 1 }}
-				>
-					{datasetDocument?.["dataset_description.json"]?.Name ?? `Dataset: ${docId}`}
-				</Typography>
-
-				{/* ✅ Dataset Author (If Exists) */}
-				{datasetDocument?.["dataset_description.json"]?.Authors && (
-				<Typography variant="h6" sx={{ fontStyle: "italic", color: Colors.textSecondary }}>
-					{Array.isArray(datasetDocument["dataset_description.json"].Authors)
-						? datasetDocument["dataset_description.json"].Authors.join(", ")
-						: datasetDocument["dataset_description.json"].Authors}
-				</Typography>
-    )}
-
-				{/* ✅ Breadcrumb Navigation (🏠 Home → Database → Dataset) */}
-				<Box sx={{ display: "flex", alignItems: "center", marginBottom: 2 }}>
-					{/* 🏠 Home Icon Button */}
-					<Button
-						onClick={() => navigate("/")}
-						sx={{
-							backgroundColor: "transparent",
-							padding: 0,
-							minWidth: "auto",
-							"&:hover": { backgroundColor: "transparent" },
-						}}
-					>
-						<Typography variant="h5" color={Colors.primary.main} sx={{ fontWeight: "bold" }}>
-							🏠
-						</Typography>
-					</Button>
-
-					<Typography variant="h5" sx={{ marginX: 1, fontWeight: "bold" }}>
-						»
-					</Typography>
-
-					{/* Database Name (Clickable) */}
-					<Button
-						onClick={() => navigate(`/RoutesEnum.DATABASES/${dbName}`)}
-						sx={{
-							textTransform: "none",
-							fontSize: "1.2rem",
-							fontWeight: "bold",
-							color: Colors.primary.dark,
-						}}
-					>
-						{dbName?.toLowerCase()}
-					</Button>
-
-					<Typography variant="h5" sx={{ marginX: 1, fontWeight: "bold" }}>
-						»
-					</Typography>
-
-					{/* Dataset Name (_id field) */}
-					<Typography variant="h5" sx={{ fontWeight: "bold", color: Colors.textPrimary }}>
-						{docId}
-					</Typography>
-				</Box>
-
-				<Box
-					sx={{
-						display: "flex",
-						alignItems: "center",
-						flexWrap: "wrap",
-						gap: 2,
-						mb: 2,
-						backgroundColor: "#f5f5f5",
-						padding: "12px",
-						borderRadius: "8px",
-					}}
-				>
-					<Button
-						variant="contained"
-						startIcon={<CloudDownloadIcon />}
-						onClick={handleDownloadDataset}
-						sx={{
-							backgroundColor: "#ffb300",
-							color: "black",
-							"&:hover": { backgroundColor: "#ff9100" },
-						}}
-					>
-						Download Dataset (1 Mb)
-						</Button>
-
-						<Button
-							variant="contained"
-							startIcon={<DescriptionIcon />}
-							onClick={handleDownloadScript}
-							sx={{
-								backgroundColor: "#ffb300",
-								color: "black",
-								"&:hover": { backgroundColor: "#ff9100" },
-							}}
-						>
-							Script to Download All Files (138 Bytes) (links: 0)
-						</Button>
-
-						<Box display="flex" alignItems="center" gap={1} sx={{ ml: "auto" }}>
-							<TextField
-								size="small"
-								variant="outlined"
-								placeholder="Find keyword in dataset"
-								value={searchTerm}
-								onChange={handleSearch}
-								sx={{ width: "250px" }}
-							/>
-							<Button variant="contained" disabled>
-								Find Next
-							</Button>
-						</Box>
-				</Box>
-			</Box>
-
-			<Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", marginTop: 2 }}>
-  {/* ✅ JSON Viewer (left panel) */}
-  <Box sx={{ flex: 3, backgroundColor: "#f5f5f5", padding: 2, borderRadius: "8px", overflowX: "auto" }}>
-    <ReactJson
-      src={datasetDocument}
-      name={false}
-      enableClipboard={true}
-      displayDataTypes={false}
-      displayObjectSize={true}
-      collapsed={1}
-      style={{ fontSize: "14px", fontFamily: "monospace" }}
-    />
-  </Box>
-
-  {/* ✅ Data panels (right panel) */}
-  <Box sx={{ flex: 2, display: "flex", flexDirection: "column", gap: 2 }}>
-    {/* Internal Data Section */}
-    {/* <Box sx={{ backgroundColor: "#cdddf6", padding: 2, borderRadius: "8px" }}>
-      <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-        Internal Data ({internalLinks.length} objects)
-      </Typography>
-      {internalLinks.length > 0 ? (
-        internalLinks.map((link, index) => (
-          <Box key={index} sx={{ mt: 1, p: 1, bgcolor: "white", borderRadius: 1 }}>
-            <Typography>{link.name} [{link.arraySize?.join("x")}]</Typography>
-            <Button onClick={() => handlePreview(link.data, link.index, true)}>Preview</Button>
-          </Box>
-        ))
-      ) : (
-        <Typography sx={{ fontStyle: "italic", mt: 1 }}>No internal data found.</Typography>
+  return (
+    <>
+      <i>{authorText}</i>
+      {doiUrl && (
+        <a
+          href={doiUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            marginLeft: "10px",
+            color: "black",
+            fontWeight: 500,
+            fontStyle: "normal",
+            textDecoration: "none",
+          }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.textDecoration = "underline")
+          }
+          onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+        >
+          {doiUrl}
+        </a>
       )}
-    </Box> */}
+    </>
+  );
+};
 
-<Box sx={{ backgroundColor: "#cdddf6", padding: 2, borderRadius: "8px", marginTop: 4 }}>
-  {/* ✅ Collapsible header */}
-  <Box
-    sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
-    onClick={() => setIsInternalExpanded(!isInternalExpanded)}
-  >
-    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-      Internal Data ({internalLinks.length} objects)
-    </Typography>
-    {isInternalExpanded ? <ExpandLess /> : <ExpandMore />}
-  </Box>
+const DatasetDetailPage: React.FC = () => {
+  const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const {
+    selectedDocument: datasetDocument,
+    loading,
+    error,
+  } = useAppSelector(NeurojsonSelector);
 
-  <Collapse in={isInternalExpanded}>
-    {/* ✅ Scrollable area */}
-    <Box
-      sx={{
-        maxHeight: "400px",
-        overflowY: "auto",
-        marginTop: 2,
-        paddingRight: 1,
-        "&::-webkit-scrollbar": {
-          width: "6px",
-        },
-        "&::-webkit-scrollbar-thumb": {
-          backgroundColor: "#aaa",
-          borderRadius: "4px",
-        },
-      }}
-    >
-      {internalLinks.length > 0 ? (
-        internalLinks.map((link, index) => (
+  const [externalLinks, setExternalLinks] = useState<ExternalDataLink[]>([]);
+  const [internalLinks, setInternalLinks] = useState<InternalDataLink[]>([]);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isInternalExpanded, setIsInternalExpanded] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [matches, setMatches] = useState<HTMLElement[]>([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [downloadScript, setDownloadScript] = useState<string>("");
+  const [previewIsInternal, setPreviewIsInternal] = useState(false);
+  const [isExternalExpanded, setIsExternalExpanded] = useState(true);
+  const [expandedPaths, setExpandedPaths] = useState<string[]>([]);
+  const [originalTextMap, setOriginalTextMap] = useState<
+    Map<HTMLElement, string>
+  >(new Map());
+  const [jsonViewerKey, setJsonViewerKey] = useState(0);
+  const [jsonSize, setJsonSize] = useState<number>(0);
+  const [transformedDataset, setTransformedDataset] = useState<any>(null);
+  const [previewIndex, setPreviewIndex] = useState<number>(0);
+
+  // add spinner
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [readyPreviewData, setReadyPreviewData] = useState<any>(null);
+
+  // const onPreviewReady = (decodedData: any) => {
+  //   console.log("✅ Data is ready! Opening modal.");
+  //   setReadyPreviewData(decodedData); // Store the final data
+  //   setIsPreviewLoading(false);      // Hide the spinner
+  //   setPreviewOpen(true);            // NOW open the modal
+  // };
+
+  // Dataset download button size calculation function
+  const formatSize = (sizeInBytes: number): string => {
+    if (sizeInBytes < 1024 * 1024) {
+      return `${(sizeInBytes / 1024).toFixed(1)} KB`;
+    }
+    return `${(sizeInBytes / 1024 / 1024).toFixed(2)} MB`;
+  };
+
+  // Recursive function to find `_DataLink_`
+  const extractDataLinks = (obj: any, path: string): ExternalDataLink[] => {
+    const links: ExternalDataLink[] = [];
+
+    const traverse = (
+      node: any,
+      currentPath: string,
+      parentKey: string = ""
+    ) => {
+      if (typeof node === "object" && node !== null) {
+        for (const key in node) {
+          if (key === "_DataLink_" && typeof node[key] === "string") {
+            let correctedUrl = node[key].replace(/:\$.*$/, "");
+            const sizeMatch = node[key].match(/size=(\d+)/);
+            const size = sizeMatch
+              ? `${(parseInt(sizeMatch[1], 10) / 1024 / 1024).toFixed(2)} MB`
+              : "Unknown Size";
+
+            const parts = currentPath.split("/");
+            const subpath = parts.slice(-3).join("/");
+            const label = parentKey || "ExternalData";
+
+            links.push({
+              name: `${label} (${size}) [/${subpath}]`,
+              size,
+              path: currentPath, // keep full JSON path for file placement
+              url: correctedUrl,
+              index: links.length,
+            });
+          } else if (typeof node[key] === "object") {
+            const isMetaKey = key.startsWith("_");
+            const newLabel = !isMetaKey ? key : parentKey;
+            traverse(node[key], `${currentPath}/${key}`, newLabel);
+          }
+        }
+      }
+    };
+
+    traverse(obj, path);
+    // return links;
+    const seenUrls = new Set<string>();
+    const uniqueLinks = links.filter((link) => {
+      if (seenUrls.has(link.url)) return false;
+      seenUrls.add(link.url);
+      return true;
+    });
+
+    return uniqueLinks;
+  };
+
+  const extractInternalData = (obj: any, path = ""): InternalDataLink[] => {
+    const internalLinks: InternalDataLink[] = [];
+
+    if (obj && typeof obj === "object") {
+      if (
+        obj.hasOwnProperty("MeshNode") &&
+        (obj.hasOwnProperty("MeshSurf") || obj.hasOwnProperty("MeshElem"))
+      ) {
+        if (
+          obj.MeshNode.hasOwnProperty("_ArrayZipData_") &&
+          typeof obj.MeshNode["_ArrayZipData_"] === "string"
+        ) {
+          internalLinks.push({
+            name: `JMesh`,
+            data: obj,
+            index: internalLinks.length, // maybe can be remove
+            arraySize: obj.MeshNode._ArraySize_,
+          });
+        }
+      } else if (obj.hasOwnProperty("NIFTIData")) {
+        if (
+          obj.NIFTIData.hasOwnProperty("_ArrayZipData_") &&
+          typeof obj.NIFTIData["_ArrayZipData_"] === "string"
+        ) {
+          internalLinks.push({
+            name: `JNIfTI`,
+            data: obj,
+            index: internalLinks.length, //maybe can be remove
+            arraySize: obj.NIFTIData._ArraySize_,
+          });
+        }
+      } else if (
+        obj.hasOwnProperty("_ArraySize_") &&
+        !path.match("_EnumValue_$")
+      ) {
+        if (
+          obj.hasOwnProperty("_ArrayZipData_") &&
+          typeof obj["_ArrayZipData_"] === "string"
+        ) {
+          internalLinks.push({
+            name: `JData`,
+            data: obj,
+            index: internalLinks.length, // maybe can be remove
+            arraySize: obj._ArraySize_,
+          });
+        }
+      } else {
+        Object.keys(obj).forEach((key) => {
+          if (typeof obj[key] === "object") {
+            internalLinks.push(
+              ...extractInternalData(
+                obj[key],
+                `${path}.${key.replace(/\./g, "\\.")}`
+              )
+            );
+          }
+        });
+      }
+    }
+
+    return internalLinks;
+  };
+
+  // const formatFileSize = (bytes: number): string => {
+  //   if (bytes >= 1024 * 1024 * 1024) {
+  //     return `${Math.floor(bytes / (1024 * 1024 * 1024))} GB`;
+  //   } else if (bytes >= 1024 * 1024) {
+  //     return `${Math.floor(bytes / (1024 * 1024))} MB`;
+  //   } else {
+  //     return `${Math.floor(bytes / 1024)} KB`;
+  //   }
+  // };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (dbName && docId) {
+        await dispatch(fetchDocumentDetails({ dbName, docId }));
+        // console.log("dbName", dbName);
+        // console.log("docId", docId);
+      }
+    };
+
+    fetchData();
+  }, [dbName, docId, dispatch]);
+
+  useEffect(() => {
+    if (datasetDocument) {
+      // ✅ Extract External Data & Assign `index`
+      console.log("datasetDocument", datasetDocument);
+      const links = extractDataLinks(datasetDocument, "").map(
+        (link, index) => ({
+          ...link,
+          index, // ✅ Assign index correctly
+        })
+      );
+
+      // ✅ Extract Internal Data & Assign `index`
+      const internalData = extractInternalData(datasetDocument).map(
+        (data, index) => ({
+          ...data,
+          index, // ✅ Assign index correctly
+        })
+      );
+
+      // console.log("🟢 Extracted external links:", links);
+      // console.log("🟢 Extracted internal data:", internalData);
+
+      setExternalLinks(links);
+      setInternalLinks(internalData);
+      const transformed = transformJsonForDisplay(datasetDocument);
+      setTransformedDataset(transformed);
+
+      let totalSize = 0;
+
+      // 1️⃣ Sum external link sizes (from URL like ...?size=12345678)
+      links.forEach((link) => {
+        const sizeMatch = link.url.match(/size=(\d+)/);
+        if (sizeMatch) {
+          totalSize += parseInt(sizeMatch[1], 10);
+        }
+      });
+
+      // 2️⃣ Estimate internal size from _ArraySize_ (assume Float32 = 4 bytes)
+      internalData.forEach((link) => {
+        if (link.arraySize && Array.isArray(link.arraySize)) {
+          const count = link.arraySize.reduce((acc, val) => acc * val, 1);
+          totalSize += count * 4;
+        }
+      });
+
+      // setTotalFileSize(totalSize);
+
+      // const minifiedBlob = new Blob([JSON.stringify(datasetDocument)], {
+      //   type: "application/json",
+      // });
+      // setJsonSize(minifiedBlob.size);
+
+      const blob = new Blob([JSON.stringify(datasetDocument, null, 2)], {
+        type: "application/json",
+      });
+      setJsonSize(blob.size);
+
+      // // ✅ Construct download script dynamically
+      let script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"\n`;
+
+      externalLinks.forEach((link) => {
+        const url = link.url;
+        // console.log("url", url);
+        const match = url.match(/file=([^&]+)/);
+        // console.log("match", match);
+        // console.log("match[1]", match?.[1]);
+        // try {
+        //   const decoded = match?.[1] ? decodeURIComponent(match[1]) : "N/A";
+        //   console.log("decode", decoded);
+        // } catch (err) {
+        //   console.warn("⚠️ Failed to decode match[1]:", match?.[1], err);
+        // }
+
+        // const filename = match
+        //   ? decodeURIComponent(match[1])
+        //   : `file-${link.index}`;
+
+        const filename = match
+          ? (() => {
+              try {
+                return decodeURIComponent(match[1]);
+              } catch {
+                return match[1]; // fallback if decode fails
+              }
+            })()
+          : `file-${link.index}`;
+        // console.log("filename", filename);
+
+        const outputPath = `$HOME/.neurojson/io/${dbName}/${docId}/${filename}`;
+
+        script += `curl -L --create-dirs "${url}" -o "${outputPath}"\n`;
+      });
+      setDownloadScript(script);
+    }
+  }, [datasetDocument]);
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewDataKey, setPreviewDataKey] = useState<any>(null);
+
+  useEffect(() => {
+    highlightMatches(searchTerm);
+
+    // Cleanup to reset highlights when component re-renders or unmounts
+    return () => {
+      document.querySelectorAll(".highlighted").forEach((el) => {
+        const element = el as HTMLElement;
+        const text = element.textContent || "";
+        element.innerHTML = text;
+        element.classList.remove("highlighted");
+      });
+    };
+  }, [searchTerm, datasetDocument]);
+
+  useEffect(() => {
+    if (!transformedDataset) return;
+
+    const spans = document.querySelectorAll(".string-value");
+
+    spans.forEach((el) => {
+      if (el.textContent?.includes('<code class="puretext">')) {
+        // Inject as HTML so it renders code block correctly
+        el.innerHTML = el.textContent ?? "";
+      }
+    });
+  }, [transformedDataset]);
+
+  const handleDownloadDataset = () => {
+    if (!datasetDocument) return;
+    const jsonData = JSON.stringify(datasetDocument);
+    const blob = new Blob([jsonData], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${docId}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadScript = () => {
+    const blob = new Blob([downloadScript], { type: "text/plain" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${docId}.sh`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePreview = (
+    dataOrUrl: string | any,
+    idx: number,
+    isInternal: boolean = false
+  ) => {
+    console.log(
+      "🟢 Preview button clicked for:",
+      dataOrUrl,
+      "Index:",
+      idx,
+      "Is Internal:",
+      isInternal
+    );
+    // fix spinner
+    setIsPreviewLoading(true); // Show the spinner overlay
+    setPreviewIndex(idx);
+    setPreviewDataKey(dataOrUrl);
+    setPreviewIsInternal(isInternal);
+
+    // setPreviewOpen(false);     // IMPORTANT: Keep modal closed for now
+
+    // This callback will be triggered by the legacy script when data is ready
+    // (window as any).__onPreviewReady = (decodedData: any) => {
+    //   console.log("✅ Data is ready! Opening modal.");
+    //   setReadyPreviewData(decodedData); // Store the final data for the modal
+    //   setIsPreviewLoading(false);      // Hide the spinner
+    //   setPreviewOpen(true);            // NOW it's time to open the modal
+    // };
+
+    const is2DPreviewCandidate = (obj: any): boolean => {
+      if (!obj || typeof obj !== "object") return false;
+      if (!obj._ArrayType_ || !obj._ArraySize_ || !obj._ArrayZipData_)
+        return false;
+      const dim = obj._ArraySize_;
+      return (
+        Array.isArray(dim) &&
+        (dim.length === 1 || dim.length === 2) &&
+        dim.every((v) => typeof v === "number" && v > 0)
+      );
+    };
+    // for add spinner ---- start
+    // When legacy preview is actually ready, turn off spinner & open modal
+    window.__onPreviewReady = () => {
+      setIsPreviewLoading(false);
+      // Only open modal for 3D data
+      if (!is2DPreviewCandidate(dataOrUrl)) {
+        setPreviewOpen(true);
+      }
+      delete window.__onPreviewReady;
+    };
+    // -----end
+
+    const extractFileName = (url: string): string => {
+      const match = url.match(/file=([^&]+)/);
+      // return match ? decodeURIComponent(match[1]) : url;
+      if (match) {
+        // Strip any trailing query parameters
+        const raw = decodeURIComponent(match[1]);
+        return raw.split("?")[0].split("&")[0];
+      }
+      // fallback: try to get last path part if no 'file=' param
+      try {
+        const u = new URL(url);
+        const parts = u.pathname.split("/");
+        return parts[parts.length - 1];
+      } catch {
+        return url;
+      }
+    };
+
+    const fileName =
+      typeof dataOrUrl === "string" ? extractFileName(dataOrUrl) : "";
+    console.log("🔍 Extracted fileName:", fileName);
+
+    const isPreviewableFile = (fileName: string): boolean => {
+      return /\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(fileName);
+    };
+    console.log("🧪 isPreviewableFile:", isPreviewableFile(fileName));
+
+    // test for add spinner
+    // if (isInternal) {
+    //   if (is2DPreviewCandidate(dataOrUrl)) {
+    //     // inline 2D
+    //     window.dopreview(dataOrUrl, idx, true);
+    //   } else {
+    //     // 3D
+    //     window.previewdata(dataOrUrl, idx, true, []);
+    //   }
+    // } else {
+    //   // external
+    //   window.previewdataurl(dataOrUrl, idx);
+    // }
+
+    // for test so command out the below
+    // setPreviewIndex(idx);
+    // setPreviewDataKey(dataOrUrl);
+    // setPreviewIsInternal(isInternal);
+    // setPreviewOpen(true);
+
+    if (isInternal) {
+      try {
+        if (!(window as any).intdata) {
+          (window as any).intdata = [];
+        }
+        if (!(window as any).intdata[idx]) {
+          (window as any).intdata[idx] = ["", "", null, `Internal ${idx}`];
+        }
+        (window as any).intdata[idx][2] = JSON.parse(JSON.stringify(dataOrUrl));
+
+        const is2D = is2DPreviewCandidate(dataOrUrl);
+
+        if (is2D) {
+          console.log("📊 2D data → rendering inline with dopreview()");
+          (window as any).dopreview(dataOrUrl, idx, true);
+          const panel = document.getElementById("chartpanel");
+          if (panel) panel.style.display = "block"; // 🔓 Show it!
+          setPreviewOpen(false); // ⛔ Don't open modal
+          // setPreviewLoading(false); // stop spinner
+        } else {
+          console.log("🎬 3D data → rendering in modal");
+          (window as any).previewdata(dataOrUrl, idx, true, []);
+          // add spinner
+          // setPreviewDataKey(dataOrUrl);
+          // setPreviewOpen(true);
+          // setPreviewIsInternal(true);
+        }
+      } catch (err) {
+        console.error("❌ Error in internal preview:", err);
+        // setPreviewLoading(false); // add spinner
+      }
+    } else {
+      // external
+      // if (/\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(dataOrUrl)) {
+      const fileName =
+        typeof dataOrUrl === "string" ? extractFileName(dataOrUrl) : "";
+      if (isPreviewableFile(fileName)) {
+        (window as any).previewdataurl(dataOrUrl, idx);
+        const panel = document.getElementById("chartpanel");
+        if (panel) panel.style.display = "none"; // 🔒 Hide chart panel on 3D external
+        //add spinner
+        // setPreviewDataKey(dataOrUrl);
+        // setPreviewOpen(true);
+        // setPreviewIsInternal(false);
+      } else {
+        console.warn("⚠️ Unsupported file format for preview:", dataOrUrl);
+        // setPreviewLoading(false); // add spinner
+      }
+    }
+  };
+
+  // const handleClosePreview = () => {
+  //   console.log("🛑 Closing preview modal.");
+  //   setPreviewOpen(false);
+  //   setPreviewDataKey(null);
+
+  //   // Stop any Three.js rendering when modal closes
+  //   if (typeof (window as any).update === "function") {
+  //     cancelAnimationFrame((window as any).reqid);
+  //   }
+
+  //   const panel = document.getElementById("chartpanel");
+  //   if (panel) panel.style.display = "none"; // 🔒 Hide 2D chart if modal closes
+  // };
+  const handleClosePreview = () => {
+    console.log("🛑 Closing preview modal.");
+    setPreviewOpen(false);
+    setPreviewDataKey(null);
+
+    // Cancel animation frame loop
+    if (typeof window.reqid !== "undefined") {
+      cancelAnimationFrame(window.reqid);
+      window.reqid = undefined;
+    }
+
+    // Stop 2D chart if any
+    const panel = document.getElementById("chartpanel");
+    if (panel) panel.style.display = "none";
+
+    // Remove canvas children
+    // const canvasDiv = document.getElementById("canvas");
+    // if (canvasDiv) {
+    //   while (canvasDiv.firstChild) {
+    //     canvasDiv.removeChild(canvasDiv.firstChild);
+    //   }
+    // }
+
+    // Reset Three.js global refs
+    window.scene = undefined;
+    window.camera = undefined;
+    window.renderer = undefined;
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setHighlightedIndex(-1);
+    highlightMatches(e.target.value);
+  };
+
+  const highlightMatches = (keyword: string) => {
+    const spans = document.querySelectorAll(
+      ".react-json-view span.string-value, .react-json-view span.object-key"
+    );
+
+    // Clean up all existing highlights
+    spans.forEach((el) => {
+      const element = el as HTMLElement;
+      if (originalTextMap.has(element)) {
+        element.innerHTML = originalTextMap.get(element)!; // Restore original HTML
+        element.classList.remove("highlighted");
+      }
+    });
+
+    // Clear old state
+    setMatches([]);
+    setHighlightedIndex(-1);
+    setExpandedPaths([]);
+    setOriginalTextMap(new Map());
+
+    if (!keyword.trim() || keyword.length < 3) return;
+
+    const regex = new RegExp(`(${keyword})`, "gi");
+    const matchedElements: HTMLElement[] = [];
+    const matchedPaths: Set<string> = new Set();
+    const newOriginalMap = new Map<HTMLElement, string>();
+
+    spans.forEach((el) => {
+      const element = el as HTMLElement;
+      const original = element.innerHTML;
+      const text = element.textContent || "";
+
+      if (text.toLowerCase().includes(keyword.toLowerCase())) {
+        newOriginalMap.set(element, original); // Store original HTML
+        const highlighted = text.replace(
+          regex,
+          `<mark class="highlighted" style="background-color: yellow; color: black;">$1</mark>`
+        );
+        element.innerHTML = highlighted;
+        matchedElements.push(element);
+
+        const parent = element.closest(".variable-row");
+        const path = parent?.getAttribute("data-path");
+        if (path) matchedPaths.add(path);
+      }
+    });
+
+    // Update state
+    setOriginalTextMap(newOriginalMap);
+    setMatches(matchedElements);
+    setExpandedPaths(Array.from(matchedPaths));
+  };
+
+  const findNext = () => {
+    if (matches.length === 0) return;
+
+    setHighlightedIndex((prevIndex) => {
+      const nextIndex = (prevIndex + 1) % matches.length;
+
+      matches.forEach((match) => {
+        match
+          .querySelector("mark")
+          ?.setAttribute("style", "background: yellow; color: black;");
+      });
+
+      const current = matches[nextIndex];
+      current.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      current
+        .querySelector("mark")
+        ?.setAttribute("style", "background: orange; color: black;");
+
+      return nextIndex;
+    });
+  };
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <CircularProgress sx={{ color: Colors.primary.main }} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ textAlign: "center", padding: 4 }}>
+        <Alert severity="error" sx={{ color: Colors.error }}>
+          {error}
+        </Alert>
+      </Box>
+    );
+  }
+
+  return (
+    <>
+      {/* 🔧 Inline CSS for string formatting */}
+      <style>
+        {`
+		code.puretext {
+		white-space: pre-wrap;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 4;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		font-family: monospace;
+		color: #d14;
+		font-size: 14px;
+		background-color: transparent;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	code.puretext:hover, code.puretext:focus {
+		-webkit-line-clamp: unset;
+		overflow: visible;
+		background-color: #f0f0f0;
+	}`}
+      </style>
+      <Box sx={{ padding: 4 }}>
+        <Button
+          variant="text"
+          onClick={() => navigate(-1)}
+          sx={{
+            marginBottom: 2,
+            color: Colors.white,
+            "&:hover": {
+              transform: "scale(1.05)",
+              backgroundColor: "transparent",
+              textDecoration: "underline",
+            },
+          }}
+        >
+          Back
+        </Button>
+
+        <Box
+          sx={{
+            position: "sticky",
+            top: 0,
+            backgroundColor: "white",
+            zIndex: 10,
+            padding: 2,
+            borderBottom: `1px solid ${Colors.lightGray}`,
+            borderRadius: "8px",
+          }}
+        >
+          {/* ✅ Dataset Title (From dataset_description.json) */}
+          <Typography
+            variant="h4"
+            color={Colors.darkPurple}
+            sx={{ fontWeight: "bold", mb: 1 }}
+          >
+            {datasetDocument?.["dataset_description.json"]?.Name ??
+              `Dataset: ${docId}`}
+          </Typography>
+
+          {/* ✅ Dataset Author (If Exists) */}
+          {datasetDocument?.["dataset_description.json"]?.Authors && (
+            <Typography
+              variant="h6"
+              sx={{ fontStyle: "italic", color: Colors.textSecondary }}
+            >
+              {Array.isArray(
+                datasetDocument["dataset_description.json"].Authors
+              )
+                ? datasetDocument["dataset_description.json"].Authors.join(", ")
+                : datasetDocument["dataset_description.json"].Authors}
+            </Typography>
+          )}
+
+          {/* ✅ Breadcrumb Navigation (🏠 Home → Database → Dataset) */}
           <Box
-            key={index}
             sx={{
-              mt: 1,
-              p: 1.5,
-              bgcolor: "white",
-              borderRadius: 1,
               display: "flex",
-              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 2,
+            }}
+          >
+            {/* 🏠 Home Icon Button */}
+            <Button
+              onClick={() => navigate("/")}
+              sx={{
+                backgroundColor: "transparent",
+                padding: 0,
+                minWidth: "auto",
+                "&:hover": { backgroundColor: "transparent" },
+              }}
+            >
+              <HomeIcon
+                sx={{
+                  color: Colors.darkPurple,
+                  "&:hover": {
+                    transform: "scale(1.1)",
+                    backgroundColor: "transparent",
+                  },
+                }}
+              />
+            </Button>
+
+            <Typography variant="h5" sx={{ marginX: 1, fontWeight: "bold" }}>
+              »
+            </Typography>
+
+            {/* Database Name (Clickable) */}
+            <Button
+              onClick={() => navigate(`${RoutesEnum.DATABASES}/${dbName}`)}
+              sx={{
+                textTransform: "none",
+                fontSize: "1.2rem",
+                fontWeight: "bold",
+                color: Colors.darkPurple,
+                "&:hover": {
+                  transform: "scale(1.05)",
+                  backgroundColor: "transparent",
+                },
+              }}
+            >
+              {dbName?.toLowerCase()}
+            </Button>
+
+            <Typography variant="h5" sx={{ marginX: 1, fontWeight: "bold" }}>
+              »
+            </Typography>
+
+            {/* Dataset Name (_id field) */}
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: "bold",
+                color: Colors.darkPurple,
+                fontSize: "1.2rem",
+              }}
+            >
+              {docId}
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
               alignItems: "center",
               flexWrap: "wrap",
               gap: 2,
-              border: "1px solid #bbb",
+              mb: 2,
+              backgroundColor: "#f5f5f5",
+              padding: "12px",
+              borderRadius: "8px",
             }}
           >
-            <Typography sx={{ flexGrow: 1 }}>
-              {link.name} {link.arraySize ? `[${link.arraySize.join("x")}]` : ""}
-            </Typography>
             <Button
               variant="contained"
-              size="small"
-              sx={{ backgroundColor: "#1976d2" }}
-              onClick={() => handlePreview(link.data, link.index, true)}
+              startIcon={<CloudDownloadIcon />}
+              onClick={handleDownloadDataset}
+              sx={{
+                backgroundColor: Colors.purple,
+                color: Colors.lightGray,
+                "&:hover": { backgroundColor: Colors.secondaryPurple },
+              }}
             >
-              Preview
+              {/* Download Dataset (1 Mb) */}
+              {/* Download Dataset ({(jsonSize / 1024).toFixed(0)} MB) */}
+              Download Dataset ({formatSize(jsonSize)})
             </Button>
-          </Box>
-        ))
-      ) : (
-        <Typography sx={{ fontStyle: "italic", mt: 1 }}>No internal data found.</Typography>
-      )}
-    </Box>
-  </Collapse>
-</Box>
 
-    {/* External Data Section */}
-    {/* <Box sx={{ backgroundColor: "#eaeaea", padding: 2, borderRadius: "8px" }}>
-      <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-        External Data ({externalLinks.length} links)
-      </Typography>
-      {externalLinks.length > 0 ? (
-        externalLinks.map((link, index) => (
-          <Box key={index} sx={{ mt: 1, p: 1, bgcolor: "white", borderRadius: 1 }}>
-            <Typography>{link.name}</Typography>
-            <Button onClick={() => handlePreview(link.url, link.index, false)}>Preview</Button>
-          </Box>
-        ))
-      ) : (
-        <Typography sx={{ fontStyle: "italic", mt: 1 }}>No external links found.</Typography>
-      )}
-    </Box> */}
-	<Box sx={{ backgroundColor: "#eaeaea", padding: 2, borderRadius: "8px", marginTop: 4 }}>
-  {/* ✅ Header with toggle */}
-  <Box
-    sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
-    onClick={() => setIsExternalExpanded(!isExternalExpanded)}
-  >
-    <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-      External Data ({externalLinks.length} links)
-    </Typography>
-    {isExternalExpanded ? <ExpandLess /> : <ExpandMore />}
-  </Box>
+            <Button
+              variant="contained"
+              startIcon={<DescriptionIcon />}
+              onClick={handleDownloadScript}
+              sx={{
+                backgroundColor: Colors.purple,
+                color: Colors.lightGray,
+                "&:hover": { backgroundColor: Colors.secondaryPurple },
+              }}
+            >
+              Script to Download All Files ({downloadScript.length} Bytes)
+              (links: {externalLinks.length})
+            </Button>
 
-  <Collapse in={isExternalExpanded}>
-    {/* ✅ Scrollable card container */}
-    <Box
-      sx={{
-        maxHeight: "400px",
-        overflowY: "auto",
-        marginTop: 2,
-        paddingRight: 1,
-        "&::-webkit-scrollbar": {
-          width: "6px",
-        },
-        "&::-webkit-scrollbar-thumb": {
-          backgroundColor: "#ccc",
-          borderRadius: "4px",
-        },
-      }}
-    >
-      {externalLinks.length > 0 ? (
-        externalLinks.map((link, index) => (
-          <Box
-            key={index}
-            sx={{
-              mt: 1,
-              p: 1.5,
-              bgcolor: "white",
-              borderRadius: 1,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 2,
-              border: "1px solid #ddd",
-            }}
-          >
-            <Typography sx={{ flexGrow: 1 }}>{link.name}</Typography>
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box display="flex" alignItems="center" gap={1} sx={{ ml: "auto" }}>
+              <TextField
+                size="small"
+                variant="outlined"
+                placeholder="Find keyword in dataset"
+                value={searchTerm}
+                onChange={handleSearch}
+                sx={{ width: { xs: "auto", sm: "250px" } }}
+              />
               <Button
                 variant="contained"
-                size="small"
-                sx={{ backgroundColor: "#1976d2" }}
-                onClick={() => window.open(link.url, "_blank")}
+                onClick={findNext}
+                disabled={matches.length === 0}
+                sx={{
+                  padding: "8px",
+                }}
               >
-                Download
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => handlePreview(link.url, link.index, false)}
-              >
-                Preview
+                Find Next
               </Button>
             </Box>
           </Box>
-        ))
-      ) : (
-        <Typography sx={{ fontStyle: "italic", mt: 1 }}>No external links found.</Typography>
-      )}
-    </Box>
-  </Collapse>
-</Box>
-  </Box>
-</Box>
-
-
-			{/* <Box
-				sx={{
-					backgroundColor: "#f5f5f5",
-					padding: 2,
-					borderRadius: "8px",
-					overflowX: "auto",
-					maxHeight: "calc(100vh - 150px)", // ✅ Adjusts height dynamically
-					boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-				}}
-			>
-				{datasetDocument ? (
-					<ReactJson
-						src={datasetDocument}
-						name={false}
-						enableClipboard={true}
-						displayDataTypes={false}
-						displayObjectSize={true}
-						collapsed={2}
-						style={{ fontSize: "14px", fontFamily: "monospace" }}
-					/>
-				) : (
-					<Typography sx={{ textAlign: "center", marginTop: 4 }}>
-						No data available for this dataset.
-					</Typography>
-				)}
-			</Box>
-			
-			{externalLinks.length > 0 && (
-				<Box sx={{ marginTop: 4 }}>
-					<Box
-						onClick={() => setIsExpanded(!isExpanded)}
-						sx={{
-							display: "flex",
-							alignItems: "center",
-							cursor: "pointer",
-							marginBottom: 2,
-						}}
-					>
-						<Typography
-							variant="h5"
-							color={Colors.primary.dark}
-							sx={{ marginRight: 1 }}
-						>
-							External Data ({externalLinks.length} links)
-						</Typography>
-						{isExpanded ? <ExpandLess /> : <ExpandMore />}
-					</Box>
-
-					<Collapse in={isExpanded}>
-						<Box
-							sx={{
-								backgroundColor: Colors.white,
-								border: `1px solid ${Colors.lightGray}`,
-								borderRadius: "8px",
-								padding: 2,
-								boxShadow: "0px 2px 4px rgba(0,0,0,0.05)",
-							}}
-						>
-							<Box
-								sx={{
-									display: "flex",
-									justifyContent: "space-between",
-									alignItems: "center",
-									marginBottom: 2,
-									padding: "0 1rem",
-								}}
-							>
-								<Button
-									variant="contained"
-									sx={{
-										backgroundColor: Colors.primary.main,
-										"&:hover": {
-											backgroundColor: Colors.primary.dark,
-										},
-									}}
-									onClick={() =>
-										externalLinks.forEach((link) =>
-											window.open(link.url, "_blank")
-										)
-									}
-								>
-									Download All Files
-								</Button>
-								<Typography variant="body2" color={Colors.textSecondary}>
-									Total Size:{" "}
-									{externalLinks
-										.reduce((acc, link) => {
-											const sizeMatch = link.size.match(/(\d+(\.\d+)?)/);
-											const sizeInMB = sizeMatch ? parseFloat(sizeMatch[1]) : 0;
-											return acc + sizeInMB;
-										}, 0)
-										.toFixed(2)}{" "}
-									MB
-								</Typography>
-							</Box>
-
-							<Box
-								sx={{
-									maxHeight: "400px",
-									overflowY: "auto",
-									"&::-webkit-scrollbar": {
-										width: "8px",
-									},
-									"&::-webkit-scrollbar-track": {
-										background: Colors.lightGray,
-										borderRadius: "4px",
-									},
-									"&::-webkit-scrollbar-thumb": {
-										background: Colors.primary.light,
-										borderRadius: "4px",
-									},
-								}}
-							>
-								<Box
-									sx={{
-										display: "grid",
-										gridTemplateColumns: "repeat(3, 1fr)",
-										gap: 2,
-										padding: 1,
-									}}
-								>
-									{externalLinks.map((link, index) => (
-										<Box
-											key={index}
-											sx={{
-												padding: 2,
-												border: `1px solid ${Colors.lightGray}`,
-												borderRadius: "8px",
-												display: "flex",
-												flexDirection: "column",
-												justifyContent: "space-between",
-												backgroundColor: Colors.white,
-												"&:hover": {
-													backgroundColor: Colors.lightGray,
-												},
-											}}
-										>
-											<Box>
-												<Typography
-													color={Colors.textPrimary}
-													sx={{
-														fontWeight: 500,
-														fontFamily: theme.typography.fontFamily,
-													}}
-												>
-													{link.name}
-												</Typography>
-												<Typography
-													variant="body2"
-													color={Colors.textSecondary}
-													sx={{ fontFamily: theme.typography.fontFamily }}
-												>
-													Size: {link.size}
-												</Typography>
-											</Box>
-											<Box sx={{ display: "flex", gap: 1, marginTop: 2 }}>
-												<Button
-													variant="contained"
-													size="small"
-													sx={{
-														backgroundColor: Colors.primary.main,
-														"&:hover": {
-															backgroundColor: Colors.primary.dark,
-														},
-													}}
-													onClick={() => window.open(link.url, "_blank")}
-												>
-													Download
-												</Button>
-												<Button
-													variant="outlined"
-													size="small"
-													sx={{
-														color: Colors.secondary.main,
-														borderColor: Colors.secondary.main,
-														"&:hover": {
-															borderColor: Colors.secondary.dark,
-															color: Colors.secondary.dark,
-														},
-													}}
-													// onClick={() => console.log("preview")}
-													onClick={() => window.open(link.url)}
-												>
-											
-													View
-												</Button>
-												<Button
-													variant="outlined"
-													size="small"
-													sx={{
-														color: Colors.primary.main,
-														borderColor: Colors.primary.main,
-														"&:hover": {
-															borderColor: Colors.primary.dark,
-															color: Colors.primary.dark,
-														},
-													}}
-													onClick={() => handlePreview(link.url, link.index, false)}  // ✅ Ensure `idx` is dynamically set
-
-												>
-													Preview
-												</Button>
-											</Box>
-										</Box>
-									))}
-								</Box>
-							</Box>
-						</Box>
-					</Collapse>
-				</Box>
-			)}
-			
-			{internalLinks.length > 0 && (
-    <Box sx={{ marginTop: 4 }}>
-        <Box
-            onClick={() => setIsInternalExpanded(!isInternalExpanded)}
-            sx={{
-                display: "flex",
-                alignItems: "center",
-                cursor: "pointer",
-                marginBottom: 2,
-            }}
-        >
-            <Typography variant="h5" color={Colors.primary.dark} sx={{ marginRight: 1 }}>
-                Internal Data ({internalLinks.length} objects)
-            </Typography>
-            {isInternalExpanded ? <ExpandLess /> : <ExpandMore />}
         </Box>
 
-        <Collapse in={isInternalExpanded} timeout="auto" unmountOnExit>
+        <div
+          id="chartpanel"
+          style={{
+            display: "none",
+            marginTop: "16px",
+            background: "#555",
+            color: "#f5f5f5",
+            padding: "12px",
+            borderRadius: "8px",
+            position: "relative",
+          }}
+        ></div>
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            alignItems: "flex-start",
+            marginTop: 2,
+            flexDirection: {
+              xs: "column",
+              md: "row",
+            },
+            height: {
+              xs: "auto",
+              md: "960px", // fixed height container
+            },
+          }}
+        >
+          {/* ✅ JSON Viewer (left panel) */}
+          <Box
+            sx={{
+              flex: 3,
+              backgroundColor: "#f5f5f5",
+              padding: 2,
+              borderRadius: "8px",
+              overflowX: "auto",
+              height: {
+                xs: "auto",
+                md: "100%",
+              },
+              width: {
+                xs: "100%",
+                md: "auto",
+              },
+              minWidth: {
+                xs: "100%",
+                md: "350px",
+              },
+            }}
+          >
+            <ReactJson
+              src={transformedDataset || datasetDocument}
+              name={false}
+              enableClipboard={true}
+              displayDataTypes={false}
+              displayObjectSize={true}
+              collapsed={searchTerm.length >= 3 ? false : 1} // 🔍 Expand during search
+              style={{ fontSize: "14px", fontFamily: "monospace" }}
+            />
+          </Box>
+
+          {/* ✅ Data panels (right panel) */}
+          <Box
+            sx={{
+              width: {
+                xs: "100%",
+                md: "460px",
+              },
+              minWidth: {
+                xs: "100%",
+                md: "360px",
+              },
+              height: {
+                xs: "auto",
+                md: "100%",
+              },
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
             <Box
-                sx={{
-                    backgroundColor: Colors.white,
-                    border: `1px solid ${Colors.lightGray}`,
-                    borderRadius: "8px",
-                    padding: 2,
-                    boxShadow: "0px 2px 4px rgba(0,0,0,0.05)",
-                }}
+              sx={{
+                backgroundColor: Colors.lightBlue,
+                padding: 2,
+                borderRadius: "8px",
+                flex: 1,
+                // overflowY: "auto",
+              }}
             >
+              {/* ✅ Collapsible header */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  cursor: "pointer",
+                }}
+                onClick={() => setIsInternalExpanded(!isInternalExpanded)}
+              >
+                <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                  Internal Data ({internalLinks.length} objects)
+                </Typography>
+                {isInternalExpanded ? <ExpandLess /> : <ExpandMore />}
+              </Box>
+
+              <Collapse in={isInternalExpanded}>
+                {/* ✅ Scrollable area */}
                 <Box
-                    sx={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(3, 1fr)",
-                        gap: 2,
-                        padding: 1,
-                    }}
+                  sx={{
+                    maxHeight: "400px",
+                    overflowY: "auto",
+                    // marginTop: 2,
+                    paddingRight: 1,
+                    "&::-webkit-scrollbar": {
+                      width: "6px",
+                    },
+                    "&::-webkit-scrollbar-thumb": {
+                      backgroundColor: "#aaa",
+                      borderRadius: "4px",
+                    },
+                  }}
                 >
-                    {internalLinks.map((link, index) => (
-                        <Box
-                            key={index}
-                            sx={{
-                                padding: 2,
-                                border: `1px solid ${Colors.lightGray}`,
-                                borderRadius: "8px",
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "space-between",
-                                backgroundColor: Colors.white,
-                                "&:hover": {
-                                    backgroundColor: Colors.lightGray,
-                                },
-                            }}
+                  {internalLinks.length > 0 ? (
+                    internalLinks.map((link, index) => (
+                      <Box
+                        key={index}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "6px 10px",
+                          backgroundColor: "white",
+                          borderRadius: "4px",
+                          border: "1px solid #ddd",
+                          mt: 1,
+                          height: "34px",
+                          minWidth: 0,
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            flexGrow: 1,
+                            minWidth: 0,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            fontSize: "1rem",
+                            marginRight: "12px",
+                            maxWidth: "calc(100% - 160px)",
+                          }}
+                          title={link.name}
                         >
-                            <Box>
-                                <Typography color={Colors.textPrimary} sx={{ fontWeight: 500 }}>
-                                    {link.name}
-                                </Typography>
-                                <Typography variant="body2" color={Colors.textSecondary}>
-                                    Index: {link.index}
-                                </Typography>
-                            </Box>
-                            <Box sx={{ display: "flex", gap: 1, marginTop: 2 }}>
-                                <Button
-                                    variant="contained"
-                                    size="small"
-                                    sx={{
-                                        backgroundColor: Colors.primary.main,
-                                        "&:hover": {
-                                            backgroundColor: Colors.primary.dark,
-                                        },
-                                    }}
-                                    onClick={() => handlePreview(link.data, link.index, true)}
-                                >
-                                    Preview
-                                </Button>
-                            </Box>
-                        </Box>
-                    ))}
+                          {link.name}{" "}
+                          {link.arraySize
+                            ? `[${link.arraySize.join("x")}]`
+                            : ""}
+                        </Typography>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          sx={{
+                            backgroundColor: "#1976d2",
+                            flexShrink: 0,
+                            minWidth: "70px",
+                            fontSize: "0.7rem",
+                            padding: "2px 6px",
+                            lineHeight: 1,
+                          }}
+                          onClick={() =>
+                            handlePreview(link.data, link.index, true)
+                          }
+                        >
+                          Preview
+                        </Button>
+                      </Box>
+                    ))
+                  ) : (
+                    <Typography sx={{ fontStyle: "italic", mt: 1 }}>
+                      No internal data found.
+                    </Typography>
+                  )}
                 </Box>
+              </Collapse>
             </Box>
-        </Collapse>
-    </Box>
-)} */}
+            <Box
+              sx={{
+                backgroundColor: "#eaeaea",
+                padding: 2,
+                borderRadius: "8px",
+                flex: 1,
+                // overflowY: "auto",
+              }}
+            >
+              {/* ✅ Header with toggle */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  cursor: "pointer",
+                }}
+                onClick={() => setIsExternalExpanded(!isExternalExpanded)}
+              >
+                <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                  External Data ({externalLinks.length} links)
+                </Typography>
+                {isExternalExpanded ? <ExpandLess /> : <ExpandMore />}
+              </Box>
 
+              <Collapse in={isExternalExpanded}>
+                {/* ✅ Scrollable card container */}
+                <Box
+                  sx={{
+                    maxHeight: "400px",
+                    overflowY: "auto",
+                    // marginTop: 2,
+                    paddingRight: 1,
+                    "&::-webkit-scrollbar": {
+                      width: "6px",
+                    },
+                    "&::-webkit-scrollbar-thumb": {
+                      backgroundColor: "#ccc",
+                      borderRadius: "4px",
+                    },
+                  }}
+                >
+                  {externalLinks.length > 0 ? (
+                    externalLinks.map((link, index) => {
+                      const match = link.url.match(/file=([^&]+)/);
+                      const fileName = match ? match[1] : "";
+                      const isPreviewable =
+                        /\.(nii(\.gz)?|bnii|jdt|jdb|jmsh|bmsh)$/i.test(
+                          fileName
+                        );
 
+                      return (
+                        <Box
+                          key={index}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "6px 10px",
+                            backgroundColor: "white",
+                            borderRadius: "4px",
+                            border: "1px solid #ddd",
+                            mt: 1,
+                            height: "34px",
+                            minWidth: 0,
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              flexGrow: 1,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              minWidth: 0,
+                              fontSize: "1rem",
+                              marginRight: "12px",
+                              maxWidth: "calc(100% - 160px)",
+                            }}
+                            title={link.name}
+                          >
+                            {link.name}
+                          </Typography>
+                          <Box sx={{ display: "flex", flexShrink: 0, gap: 1 }}>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              sx={{
+                                backgroundColor: "#1976d2",
+                                minWidth: "70px",
+                                fontSize: "0.7rem",
+                                padding: "2px 6px",
+                                lineHeight: 1,
+                              }}
+                              onClick={() => window.open(link.url, "_blank")}
+                            >
+                              Download
+                            </Button>
+                            {isPreviewable && (
+                              <Button
+                                variant="outlined"
+                                size="small"
+                                sx={{
+                                  minWidth: "65px",
+                                  fontSize: "0.7rem",
+                                  padding: "2px 6px",
+                                  lineHeight: 1,
+                                }}
+                                onClick={() =>
+                                  handlePreview(link.url, link.index, false)
+                                }
+                              >
+                                Preview
+                              </Button>
+                            )}
+                          </Box>
+                        </Box>
+                      );
+                    })
+                  ) : (
+                    <Typography sx={{ fontStyle: "italic", mt: 1 }}>
+                      No external links found.
+                    </Typography>
+                  )}
+                </Box>
+              </Collapse>
+            </Box>
+          </Box>
+        </Box>
+        {/* ✅ ADD FLASHCARDS COMPONENT HERE ✅ */}
 
-			{/* ✅ ADD FLASHCARDS COMPONENT HERE ✅ */}
+        {/* <div id="chartpanel"></div> */}
+        <Box
+          sx={{
+            borderBottom: `1px solid ${Colors.lightGray}`,
+            marginTop: 4,
+            marginBottom: 3,
+          }}
+        ></Box>
 
-			<div id="chartpanel"></div>
+        {/* <DatasetFlashcards */}
+        <LoadDatasetTabs
+          pagename={docId ?? ""}
+          docname={datasetDocument?.Name || ""}
+          dbname={dbName || ""}
+          serverUrl={"https://neurojson.io:7777/"}
+          datasetDocument={datasetDocument}
+          onekey={"dataset_description.json"}
+        />
 
-			<DatasetFlashcards
-				pagename={docId ?? ""}
-				docname={datasetDocument?.Name || ""}
-				dbname={dbName || ""}
-				serverUrl={"https://neurojson.io:7777/"}
-				datasetDocument={datasetDocument} 
-				onekey={"dataset_description.json"} 
-			/>
-			{/* Preview Modal Component - Add Here */}
-			<PreviewModal
-      			isOpen={previewOpen}
-				dataKey={previewDataKey}
-				isInternal={previewIsInternal}
-				onClose={handleClosePreview}
-    		/>
-			{/* <div id="chartpanel" style={{ display: "none" }}></div> */}
-		</Box>
-	);
+        {/* Global spinner while loading (before modal mounts) */}
+        <Backdrop
+          open={isPreviewLoading && !previewOpen}
+          sx={{ zIndex: 2000, color: "#fff" }}
+        >
+          <CircularProgress color="inherit" />
+        </Backdrop>
+
+        {/* Preview Modal Component - Add Here */}
+        <PreviewModal
+          isOpen={previewOpen}
+          dataKey={previewDataKey}
+          isInternal={previewIsInternal}
+          onClose={handleClosePreview}
+          isLoading={isPreviewLoading} // add spinner
+          previewIndex={previewIndex} // provide the correct index for preview.js to look up data
+          key={`${previewIndex}-${previewOpen}`} // react will destroy the existing component and create a new one for mount
+        />
+      </Box>
+    </>
+  );
 };
 
 export default DatasetDetailPage;

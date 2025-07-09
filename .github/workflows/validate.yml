@@ -8,8 +8,6 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    env:
-      CI: false
 
     steps:
       - name: Check out the repository
@@ -31,4 +29,4 @@ jobs:
           PUBLIC_URL="/dev/${{ github.head_ref }}/" yarn build
 
       - name: Run Security Audit (non-blocking)
-        run: yarn audit --level moderate || echo "Ignoring audit failure for now"
+        run: yarn audit --level moderate || echo "Audit failed with moderate issues, continuing anyway."
