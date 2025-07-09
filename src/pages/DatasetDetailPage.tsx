@@ -8,6 +8,7 @@ import {
   Box,
   Typography,
   CircularProgress,
+  Backdrop,
   Alert,
   Button,
   Card,
@@ -151,6 +152,18 @@ const DatasetDetailPage: React.FC = () => {
   const [jsonViewerKey, setJsonViewerKey] = useState(0);
   const [jsonSize, setJsonSize] = useState<number>(0);
   const [transformedDataset, setTransformedDataset] = useState<any>(null);
+  const [previewIndex, setPreviewIndex] = useState<number>(0);
+
+  // add spinner
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [readyPreviewData, setReadyPreviewData] = useState<any>(null);
+
+  // const onPreviewReady = (decodedData: any) => {
+  //   console.log("✅ Data is ready! Opening modal.");
+  //   setReadyPreviewData(decodedData); // Store the final data
+  //   setIsPreviewLoading(false);      // Hide the spinner
+  //   setPreviewOpen(true);            // NOW open the modal
+  // };
 
   // Dataset download button size calculation function
   const formatSize = (sizeInBytes: number): string => {
@@ -273,15 +286,15 @@ const DatasetDetailPage: React.FC = () => {
     return internalLinks;
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes >= 1024 * 1024 * 1024) {
-      return `${Math.floor(bytes / (1024 * 1024 * 1024))} GB`;
-    } else if (bytes >= 1024 * 1024) {
-      return `${Math.floor(bytes / (1024 * 1024))} MB`;
-    } else {
-      return `${Math.floor(bytes / 1024)} KB`;
-    }
-  };
+  // const formatFileSize = (bytes: number): string => {
+  //   if (bytes >= 1024 * 1024 * 1024) {
+  //     return `${Math.floor(bytes / (1024 * 1024 * 1024))} GB`;
+  //   } else if (bytes >= 1024 * 1024) {
+  //     return `${Math.floor(bytes / (1024 * 1024))} MB`;
+  //   } else {
+  //     return `${Math.floor(bytes / 1024)} KB`;
+  //   }
+  // };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -456,6 +469,21 @@ const DatasetDetailPage: React.FC = () => {
       "Is Internal:",
       isInternal
     );
+    // fix spinner
+    setIsPreviewLoading(true); // Show the spinner overlay
+    setPreviewIndex(idx);
+    setPreviewDataKey(dataOrUrl);
+    setPreviewIsInternal(isInternal);
+
+    // setPreviewOpen(false);     // IMPORTANT: Keep modal closed for now
+
+    // This callback will be triggered by the legacy script when data is ready
+    // (window as any).__onPreviewReady = (decodedData: any) => {
+    //   console.log("✅ Data is ready! Opening modal.");
+    //   setReadyPreviewData(decodedData); // Store the final data for the modal
+    //   setIsPreviewLoading(false);      // Hide the spinner
+    //   setPreviewOpen(true);            // NOW it's time to open the modal
+    // };
 
     const is2DPreviewCandidate = (obj: any): boolean => {
       if (!obj || typeof obj !== "object") return false;
@@ -468,6 +496,17 @@ const DatasetDetailPage: React.FC = () => {
         dim.every((v) => typeof v === "number" && v > 0)
       );
     };
+    // for add spinner ---- start
+    // When legacy preview is actually ready, turn off spinner & open modal
+    window.__onPreviewReady = () => {
+      setIsPreviewLoading(false);
+      // Only open modal for 3D data
+      if (!is2DPreviewCandidate(dataOrUrl)) {
+        setPreviewOpen(true);
+      }
+      delete window.__onPreviewReady;
+    };
+    // -----end
 
     const extractFileName = (url: string): string => {
       const match = url.match(/file=([^&]+)/);
@@ -496,6 +535,26 @@ const DatasetDetailPage: React.FC = () => {
     };
     console.log("🧪 isPreviewableFile:", isPreviewableFile(fileName));
 
+    // test for add spinner
+    // if (isInternal) {
+    //   if (is2DPreviewCandidate(dataOrUrl)) {
+    //     // inline 2D
+    //     window.dopreview(dataOrUrl, idx, true);
+    //   } else {
+    //     // 3D
+    //     window.previewdata(dataOrUrl, idx, true, []);
+    //   }
+    // } else {
+    //   // external
+    //   window.previewdataurl(dataOrUrl, idx);
+    // }
+
+    // for test so command out the below
+    // setPreviewIndex(idx);
+    // setPreviewDataKey(dataOrUrl);
+    // setPreviewIsInternal(isInternal);
+    // setPreviewOpen(true);
+
     if (isInternal) {
       try {
         if (!(window as any).intdata) {
@@ -514,15 +573,18 @@ const DatasetDetailPage: React.FC = () => {
           const panel = document.getElementById("chartpanel");
           if (panel) panel.style.display = "block"; // 🔓 Show it!
           setPreviewOpen(false); // ⛔ Don't open modal
+          // setPreviewLoading(false); // stop spinner
         } else {
           console.log("🎬 3D data → rendering in modal");
           (window as any).previewdata(dataOrUrl, idx, true, []);
-          setPreviewDataKey(dataOrUrl);
-          setPreviewOpen(true);
-          setPreviewIsInternal(true);
+          // add spinner
+          // setPreviewDataKey(dataOrUrl);
+          // setPreviewOpen(true);
+          // setPreviewIsInternal(true);
         }
       } catch (err) {
         console.error("❌ Error in internal preview:", err);
+        // setPreviewLoading(false); // add spinner
       }
     } else {
       // external
@@ -533,27 +595,57 @@ const DatasetDetailPage: React.FC = () => {
         (window as any).previewdataurl(dataOrUrl, idx);
         const panel = document.getElementById("chartpanel");
         if (panel) panel.style.display = "none"; // 🔒 Hide chart panel on 3D external
-        setPreviewDataKey(dataOrUrl);
-        setPreviewOpen(true);
-        setPreviewIsInternal(false);
+        //add spinner
+        // setPreviewDataKey(dataOrUrl);
+        // setPreviewOpen(true);
+        // setPreviewIsInternal(false);
       } else {
         console.warn("⚠️ Unsupported file format for preview:", dataOrUrl);
+        // setPreviewLoading(false); // add spinner
       }
     }
   };
 
+  // const handleClosePreview = () => {
+  //   console.log("🛑 Closing preview modal.");
+  //   setPreviewOpen(false);
+  //   setPreviewDataKey(null);
+
+  //   // Stop any Three.js rendering when modal closes
+  //   if (typeof (window as any).update === "function") {
+  //     cancelAnimationFrame((window as any).reqid);
+  //   }
+
+  //   const panel = document.getElementById("chartpanel");
+  //   if (panel) panel.style.display = "none"; // 🔒 Hide 2D chart if modal closes
+  // };
   const handleClosePreview = () => {
     console.log("🛑 Closing preview modal.");
     setPreviewOpen(false);
     setPreviewDataKey(null);
 
-    // Stop any Three.js rendering when modal closes
-    if (typeof (window as any).update === "function") {
-      cancelAnimationFrame((window as any).reqid);
+    // Cancel animation frame loop
+    if (typeof window.reqid !== "undefined") {
+      cancelAnimationFrame(window.reqid);
+      window.reqid = undefined;
     }
 
+    // Stop 2D chart if any
     const panel = document.getElementById("chartpanel");
-    if (panel) panel.style.display = "none"; // 🔒 Hide 2D chart if modal closes
+    if (panel) panel.style.display = "none";
+
+    // Remove canvas children
+    // const canvasDiv = document.getElementById("canvas");
+    // if (canvasDiv) {
+    //   while (canvasDiv.firstChild) {
+    //     canvasDiv.removeChild(canvasDiv.firstChild);
+    //   }
+    // }
+
+    // Reset Three.js global refs
+    window.scene = undefined;
+    window.camera = undefined;
+    window.renderer = undefined;
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1207,12 +1299,24 @@ const DatasetDetailPage: React.FC = () => {
           datasetDocument={datasetDocument}
           onekey={"dataset_description.json"}
         />
+
+        {/* Global spinner while loading (before modal mounts) */}
+        <Backdrop
+          open={isPreviewLoading && !previewOpen}
+          sx={{ zIndex: 2000, color: "#fff" }}
+        >
+          <CircularProgress color="inherit" />
+        </Backdrop>
+
         {/* Preview Modal Component - Add Here */}
         <PreviewModal
           isOpen={previewOpen}
           dataKey={previewDataKey}
           isInternal={previewIsInternal}
           onClose={handleClosePreview}
+          isLoading={isPreviewLoading} // add spinner
+          previewIndex={previewIndex} // provide the correct index for preview.js to look up data
+          key={`${previewIndex}-${previewOpen}`} // react will destroy the existing component and create a new one for mount
         />
       </Box>
     </>
