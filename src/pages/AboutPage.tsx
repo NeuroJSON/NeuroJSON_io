@@ -55,7 +55,7 @@ const AboutPage: React.FC = () => {
               width="100%"
               style={{ maxHeight: "500px", objectFit: "cover" }}
             >
-              <source src="/video/introduction_video.mp4" type="video/mp4" />
+              <source src="/video/tiger.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
           </Box>
