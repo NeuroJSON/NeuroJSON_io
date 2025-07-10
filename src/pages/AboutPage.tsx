@@ -5,10 +5,17 @@ import React from "react";
 
 const AboutPage: React.FC = () => {
   return (
-    <Box>
+    <Box
+    // sx={{
+    //   position: "relative",
+    // }}
+    >
+      {/*section 1 */}
       <Box
         sx={{
           padding: 3,
+          paddingBottom: 10,
+          position: "relative",
         }}
       >
         <Container maxWidth="lg">
@@ -93,8 +100,29 @@ const AboutPage: React.FC = () => {
             </Grid>
           </Grid>
         </Container>
+        {/* icons */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: "100%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            display: "flex",
+            flexDirection: "row",
+          }}
+        >
+          <img
+            src={`${process.env.PUBLIC_URL}/img/about_page/search.png`}
+            alt="search icon"
+            style={{
+              width: "60%",
+              height: "auto",
+            }}
+          ></img>
+        </Box>
       </Box>
 
+      {/* section 2*/}
       <Box
         sx={{
           backgroundColor: Colors.white,
