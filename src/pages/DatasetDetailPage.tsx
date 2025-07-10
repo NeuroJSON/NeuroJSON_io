@@ -1176,7 +1176,7 @@ const DatasetDetailPage: React.FC = () => {
               </Box>
 
               <Collapse in={isExternalExpanded}>
-                {/* ✅ Scrollable card container */}
+                {/* Scrollable card container */}
                 <Box
                   sx={{
                     maxHeight: "400px",

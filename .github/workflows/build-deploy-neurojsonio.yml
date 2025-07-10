@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - staging
+  pull_request:
+    branches:
+      - staging
 
 jobs:
   deploy:
@@ -35,4 +38,4 @@ jobs:
           username: ${{ secrets.NEUROJ_SERVER_USER }}
           ssh_private_key: ${{ secrets.NEUROJ_SERVER_SSH_KEY }}
           local_path: "./build/*"
-          remote_path: "${{ secrets.NEUROJ_CI_PATH }}"
+          remote_path: "${{ secrets.NEUROJ_IO_CI_PATH }}"
