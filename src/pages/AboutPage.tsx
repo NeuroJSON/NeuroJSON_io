@@ -3,6 +3,13 @@ import { Box, Typography, Container, Button, Grid } from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
 
+const icons = [
+  { src: "search.png", alt: "search icon" },
+  { src: "preview.png", alt: "preview icon" },
+  { src: "download.png", alt: "download icon" },
+  { src: "api.png", alt: "api icon" },
+];
+
 const AboutPage: React.FC = () => {
   return (
     <Box
@@ -109,16 +116,26 @@ const AboutPage: React.FC = () => {
             transform: "translate(-50%, -50%)",
             display: "flex",
             flexDirection: "row",
+            gap: 4,
+            justifyContent: "center",
           }}
         >
-          <img
-            src={`${process.env.PUBLIC_URL}/img/about_page/search.png`}
-            alt="search icon"
-            style={{
-              width: "60%",
-              height: "auto",
-            }}
-          ></img>
+          {icons.map(({ src, alt }) => (
+            <Box
+              key={src}
+              component="img"
+              src={`${process.env.PUBLIC_URL}/img/about_page/${src}`}
+              alt={alt}
+              sx={{
+                width: {
+                  xs: "25%",
+                  sm: "25%",
+                  md: "15%",
+                },
+                height: "auto",
+              }}
+            />
+          ))}
         </Box>
       </Box>
 
@@ -126,7 +143,7 @@ const AboutPage: React.FC = () => {
       <Box
         sx={{
           backgroundColor: Colors.white,
-          paddingTop: 5,
+          paddingTop: 10,
           paddingBottom: 10,
         }}
       >
