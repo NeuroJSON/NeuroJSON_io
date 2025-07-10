@@ -88,10 +88,11 @@ const NavItems: React.FC = () => {
           >
             {[
               // { text: "ABOUT", url: "https://neurojson.org/Doc/Start" },
-              { text: "ABOUT", url: RoutesEnum.ABOUT },
-              { text: "WIKI", url: "https://neurojson.org/Wiki" },
-              { text: "SEARCH", url: RoutesEnum.SEARCH },
-              { text: "DATABASES", url: RoutesEnum.DATABASES },
+              { text: "About", url: RoutesEnum.ABOUT },
+              { text: "Wiki", url: "https://neurojson.org/Wiki" },
+              { text: "Search", url: RoutesEnum.SEARCH },
+              { text: "Databases", url: RoutesEnum.DATABASES },
+              { text: "V1", url: "https://neurojson.io/v1" },
             ].map(({ text, url }) => (
               <Grid item key={text}>
                 {url?.startsWith("https") ? (
@@ -104,6 +105,7 @@ const NavItems: React.FC = () => {
                     <Typography
                       align="center"
                       fontWeight={600}
+                      textTransform="uppercase"
                       lineHeight={"1.5rem"}
                       letterSpacing={"0.05rem"}
                       sx={{
