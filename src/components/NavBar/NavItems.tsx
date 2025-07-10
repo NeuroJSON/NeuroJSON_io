@@ -105,12 +105,12 @@ const NavItems: React.FC = () => {
                     <Typography
                       align="center"
                       fontWeight={600}
-                      textTransform="uppercase"
                       lineHeight={"1.5rem"}
                       letterSpacing={"0.05rem"}
                       sx={{
                         color: Colors.white,
                         transition: "color 0.3s ease, transform 0.3s ease",
+                        textTransform: "uppercase",
                         "&:hover": {
                           transform: "scale(1.2)",
                           cursor: "pointer",
