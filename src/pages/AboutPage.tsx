@@ -56,7 +56,7 @@ const AboutPage: React.FC = () => {
               style={{ maxHeight: "500px", objectFit: "cover" }}
             >
               <source
-                src={`${process.env.PUBLIC_URL}/video/introduction_video.mp4`}
+                src={`${process.env.PUBLIC_URL}/download/static/video/introduction_video.mp4`}
                 type="video/mp4"
               />
               Your browser does not support the video tag.
@@ -128,7 +128,7 @@ const AboutPage: React.FC = () => {
               style={{ maxHeight: "500px", objectFit: "cover" }}
             >
               <source
-                src={`${process.env.PUBLIC_URL}/video/preview_video.mp4`}
+                src={`${process.env.PUBLIC_URL}/download/static/video/preview_video.mp4`}
                 type="video/mp4"
               />
               Your browser does not support the video tag.
