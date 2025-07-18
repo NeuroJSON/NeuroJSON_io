@@ -754,6 +754,15 @@ const DatasetDetailPage: React.FC = () => {
       </Box>
     );
   }
+  console.log("datasetDocument", datasetDocument);
+  // const onekey = "README";
+  const onekey = datasetDocument
+    ? datasetDocument.hasOwnProperty("README")
+      ? "README"
+      : datasetDocument.hasOwnProperty("dataset_description.json")
+      ? "dataset_description.json"
+      : "_id"
+    : "_id";
 
   return (
     <>
@@ -1297,7 +1306,8 @@ const DatasetDetailPage: React.FC = () => {
           dbname={dbName || ""}
           serverUrl={"https://neurojson.io:7777/"}
           datasetDocument={datasetDocument}
-          onekey={"dataset_description.json"}
+          // onekey={"dataset_description.json"}
+          onekey={onekey}
         />
 
         {/* Global spinner while loading (before modal mounts) */}

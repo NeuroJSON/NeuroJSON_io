@@ -1,5 +1,13 @@
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { Tabs, Tab, Box, Typography, IconButton, Tooltip } from "@mui/material";
+import {
+  Tabs,
+  Tab,
+  Box,
+  Typography,
+  IconButton,
+  Tooltip,
+  Link,
+} from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
 import { useState } from "react";
@@ -79,8 +87,15 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
   const datasetName = datasetDesc?.Name?.includes(" - ")
     ? datasetDesc.Name.split(" - ")[1]
     : datasetDesc?.Name || datasetDocument?._id || docname;
+  console.log("datasetName", datasetName);
+  console.log("dbname", dbname);
+  console.log("pagename", pagename);
+  console.log("onekey", onekey);
+  // const datasetUrl = datasetName
+  //   ? `${serverUrl}${dbname}/${encodeURIComponent(datasetName)}/`
+  //   : `${serverUrl}${dbname}/`;
   const datasetUrl = datasetName
-    ? `${serverUrl}${dbname}/${encodeURIComponent(datasetName)}/`
+    ? `${serverUrl}${dbname}/${pagename}`
     : `${serverUrl}${dbname}/`;
 
   const TabPanel = ({
@@ -212,7 +227,7 @@ data = jd.loadurl('${datasetUrl}')
 links = jd.jsonpath(data, '$.._DataLink_')
 
 # Download & cache anatomical nii.gz data for sub-01/sub-02
-jd.jdlink(links, {'regex': 'anat/sub-0[12]_.*\\.nii'})`}
+jd.jdlink(links, {'regex': 'anat/sub-0[12]_.*\.nii'})`}
             language="python"
           />
         </Box>
@@ -225,10 +240,20 @@ jd.jdlink(links, {'regex': 'anat/sub-0[12]_.*\\.nii'})`}
             Load by URL with REST-API in MATLAB
           </Typography>
           <Typography>Install:</Typography>
-          <CopyableCodeBlock
+          {/* <CopyableCodeBlock
             code={`Download and addpath to JSONLab`}
             language="text"
-          />
+          /> */}
+          <Typography>
+            Download and addpath to{" "}
+            <Link
+              href="https://github.com/NeuroJSON/jsonlab"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              JSONLab
+            </Link>
+          </Typography>
           <Typography>Load from URL:</Typography>
           <CopyableCodeBlock
             code={`data = loadjson('${datasetUrl}');
@@ -240,7 +265,7 @@ data = webread('${datasetUrl}');
 links = jsonpath(data, '$.._DataLink_');
 
 % Download & cache anatomical nii.gz data for sub-01/sub-02
-niidata = jdlink(links, 'regex', 'anat/sub-0[12]_.*\\.nii');`}
+niidata = jdlink(links, 'regex', 'anat/sub-0[12]_.*\.nii');`}
             language="matlab"
           />
         </Box>
@@ -254,7 +279,8 @@ niidata = jdlink(links, 'regex', 'anat/sub-0[12]_.*\\.nii');`}
           </Typography>
           <Typography>Load:</Typography>
           <CopyableCodeBlock
-            code={`data = loadjd('${docname}.json');`}
+            // code={`data = loadjd('${docname}.json');`}
+            code={`data = loadjd('${pagename}.json');`}
             language="matlab"
           />
           <Typography>Read value:</Typography>
@@ -274,7 +300,7 @@ niidata = jdlink(links, 'regex', 'anat/sub-0[12]_.*\\.nii');`}
           <Typography>Load:</Typography>
           <CopyableCodeBlock
             code={`import jdata as jd
-data = jd.load('${docname}.json')`}
+data = jd.load('${pagename}.json')`}
             language="python"
           />
           <Typography>Read value:</Typography>
@@ -289,16 +315,26 @@ data = jd.load('${docname}.json')`}
             Use in C++
           </Typography>
           <Typography>Install:</Typography>
-          <CopyableCodeBlock
+          {/* <CopyableCodeBlock
             code={`Download JSON for Modern C++ json.hpp`}
             language="text"
-          />
+          /> */}
+          <Typography>
+            Download{" "}
+            <Link
+              href="https://raw.githubusercontent.com/nlohmann/json/v3.11.3/single_include/nlohmann/json.hpp"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              JSON for Modern C++ json.hpp
+            </Link>
+          </Typography>
           <Typography>Load:</Typography>
           <CopyableCodeBlock
             code={`#include "json.hpp"
 using json=nlohmann::ordered_json;
 
-std::ifstream datafile("${docname}.json");
+std::ifstream datafile("${pagename}.json");
 json data(datafile);`}
             language="cpp"
           />
@@ -327,7 +363,7 @@ json data(datafile);`}
 const jd = require("jda");
 global.atob = require("atob");
         
-const fn = "${docname}.json";
+const fn = "${pagename}.json";
 var jstr = fs.readFileSync(fn).toString().replace(/\\n/g, "");
 var data = new jd(JSON.parse(jstr));
 data = data.decode();`}
