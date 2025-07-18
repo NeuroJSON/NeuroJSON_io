@@ -1,16 +1,65 @@
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import { Box, Typography, Container, Button, Grid } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Container,
+  Button,
+  Grid,
+  Tooltip,
+} from "@mui/material";
 import { Colors } from "design/theme";
-import React from "react";
+import React, { useRef } from "react";
 
-const icons = [
-  { src: "search.png", alt: "search icon" },
-  { src: "preview.png", alt: "preview icon" },
-  { src: "download.png", alt: "download icon" },
-  { src: "api.png", alt: "api icon" },
+const videoData = [
+  {
+    src: "search.png",
+    alt: "search icon",
+    tip: "Search tutotial video",
+    video: "preview_video.mp4",
+    // ref: searchVideoRef,
+  },
+  { src: "preview.png", alt: "preview icon", tip: "Preview tutotial video" },
+  { src: "download.png", alt: "download icon", tip: "Download tutotial video" },
+  { src: "api.png", alt: "api icon", tip: "Restful API tutotial video" },
 ];
 
 const AboutPage: React.FC = () => {
+  const searchVideoRef = useRef<HTMLVideoElement | null>(null);
+  const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+  const downloadVideoRef = useRef<HTMLVideoElement | null>(null);
+  const apiVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  const videoData = [
+    {
+      src: "search.png",
+      alt: "search icon",
+      tip: "Search tutotial video",
+      video: "preview_video.mp4",
+      ref: searchVideoRef,
+    },
+    {
+      src: "preview.png",
+      alt: "preview icon",
+      tip: "Preview tutotial video",
+      video: "preview_video.mp4",
+      ref: previewVideoRef,
+    },
+    {
+      src: "download.png",
+      alt: "download icon",
+      tip: "Download tutotial video",
+      video: "preview_video.mp4",
+      ref: downloadVideoRef,
+    },
+    {
+      src: "api.png",
+      alt: "api icon",
+      tip: "Restful API tutotial video",
+      video: "preview_video.mp4",
+      ref: searchVideoRef,
+    },
+  ];
+
   return (
     <Box
     // sx={{
@@ -98,7 +147,8 @@ const AboutPage: React.FC = () => {
                   style={{ maxHeight: "500px", objectFit: "cover" }}
                 >
                   <source
-                    src={`${process.env.PUBLIC_URL}/video/introduction_video.mp4`}
+                    // src={`${process.env.PUBLIC_URL}/video/introduction_video.mp4`}
+                    src="https://neurojson.io/video/introduction_video.mp4"
                     type="video/mp4"
                   />
                   Your browser does not support the video tag.
@@ -120,21 +170,25 @@ const AboutPage: React.FC = () => {
             justifyContent: "center",
           }}
         >
-          {icons.map(({ src, alt }) => (
-            <Box
-              key={src}
-              component="img"
-              src={`${process.env.PUBLIC_URL}/img/about_page/${src}`}
-              alt={alt}
-              sx={{
-                width: {
-                  xs: "25%",
-                  sm: "25%",
-                  md: "15%",
-                },
-                height: "auto",
-              }}
-            />
+          {videoData.map(({ src, alt, tip }) => (
+            <Tooltip title={tip} arrow key={src}>
+              <Box
+                component="img"
+                src={`${process.env.PUBLIC_URL}/img/about_page/${src}`}
+                alt={alt}
+                sx={{
+                  width: {
+                    xs: "25%",
+                    sm: "25%",
+                    md: "15%",
+                  },
+                  height: "auto",
+                  cursor: "pointer",
+                  transition: "transform 0.3s",
+                  "&:hover": { transform: "scale(1.1)" },
+                }}
+              />
+            </Tooltip>
           ))}
         </Box>
       </Box>
@@ -176,7 +230,8 @@ const AboutPage: React.FC = () => {
               style={{ maxHeight: "500px", objectFit: "cover" }}
             >
               <source
-                src={`${process.env.PUBLIC_URL}/video/preview_video.mp4`}
+                // src={`${process.env.PUBLIC_URL}/video/preview_video.mp4`}
+                src="https://neurojson.io/video/preview_video.mp4"
                 type="video/mp4"
               />
               Your browser does not support the video tag.
