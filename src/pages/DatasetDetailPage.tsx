@@ -351,7 +351,7 @@ const DatasetDetailPage: React.FC = () => {
       const transformed = transformJsonForDisplay(datasetDocument);
       setTransformedDataset(transformed);
 
-      // ✅ Calculate total file size from size= query param
+      // Calculate total file size from size= query param
       let total = 0;
       links.forEach((link) => {
         const sizeMatch = link.url.match(/(?:[?&]size=)(\d+)/);
