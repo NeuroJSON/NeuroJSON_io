@@ -143,6 +143,9 @@ const DatasetDetailPage: React.FC = () => {
   const [matches, setMatches] = useState<HTMLElement[]>([]);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [downloadScript, setDownloadScript] = useState<string>("");
+  const [downloadScriptSize, setDownloadScriptSize] = useState<number>(0);
+  const [totalFileSize, setTotalFileSize] = useState<number>(0);
+
   const [previewIsInternal, setPreviewIsInternal] = useState(false);
   const [isExternalExpanded, setIsExternalExpanded] = useState(true);
   const [expandedPaths, setExpandedPaths] = useState<string[]>([]);
@@ -166,11 +169,24 @@ const DatasetDetailPage: React.FC = () => {
   // };
 
   // Dataset download button size calculation function
+  // const formatSize = (sizeInBytes: number): string => {
+  //   if (sizeInBytes < 1024 * 1024) {
+  //     return `${(sizeInBytes / 1024).toFixed(1)} KB`;
+  //   }
+  //   return `${(sizeInBytes / 1024 / 1024).toFixed(2)} MB`;
+  // };
   const formatSize = (sizeInBytes: number): string => {
-    if (sizeInBytes < 1024 * 1024) {
+    if (sizeInBytes < 1024) {
+      return `${sizeInBytes} Bytes`;
+    } else if (sizeInBytes < 1024 * 1024) {
       return `${(sizeInBytes / 1024).toFixed(1)} KB`;
+    } else if (sizeInBytes < 1024 * 1024 * 1024) {
+      return `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
+    } else if (sizeInBytes < 1024 * 1024 * 1024 * 1024) {
+      return `${(sizeInBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    } else {
+      return `${(sizeInBytes / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB`;
     }
-    return `${(sizeInBytes / 1024 / 1024).toFixed(2)} MB`;
   };
 
   // Recursive function to find `_DataLink_`
@@ -335,6 +351,16 @@ const DatasetDetailPage: React.FC = () => {
       const transformed = transformJsonForDisplay(datasetDocument);
       setTransformedDataset(transformed);
 
+      // ✅ Calculate total file size from size= query param
+      let total = 0;
+      links.forEach((link) => {
+        const sizeMatch = link.url.match(/(?:[?&]size=)(\d+)/);
+        if (sizeMatch && sizeMatch[1]) {
+          total += parseInt(sizeMatch[1], 10);
+        }
+      });
+      setTotalFileSize(total);
+
       let totalSize = 0;
 
       // 1️⃣ Sum external link sizes (from URL like ...?size=12345678)
@@ -401,6 +427,9 @@ const DatasetDetailPage: React.FC = () => {
         script += `curl -L --create-dirs "${url}" -o "${outputPath}"\n`;
       });
       setDownloadScript(script);
+      // ✅ Calculate and set script size
+      const scriptBlob = new Blob([script], { type: "text/plain" });
+      setDownloadScriptSize(scriptBlob.size);
     }
   }, [datasetDocument]);
 
@@ -755,7 +784,6 @@ const DatasetDetailPage: React.FC = () => {
     );
   }
   console.log("datasetDocument", datasetDocument);
-  // const onekey = "README";
   const onekey = datasetDocument
     ? datasetDocument.hasOwnProperty("README")
       ? "README"
@@ -946,8 +974,13 @@ const DatasetDetailPage: React.FC = () => {
                 "&:hover": { backgroundColor: Colors.secondaryPurple },
               }}
             >
-              Script to Download All Files ({downloadScript.length} Bytes)
-              (links: {externalLinks.length})
+              {/* Script to Download All Files ({downloadScript.length} Bytes) */}
+              Script to Download All Files ({formatSize(downloadScriptSize)})
+              {/* (links: {externalLinks.length}) */}
+              {externalLinks.length > 0 &&
+                ` (links: ${externalLinks.length}, total: ${formatSize(
+                  totalFileSize
+                )})`}
             </Button>
 
             <Box display="flex" alignItems="center" gap={1} sx={{ ml: "auto" }}>
