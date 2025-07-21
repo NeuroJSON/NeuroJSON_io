@@ -394,7 +394,7 @@ const DatasetDetailPage: React.FC = () => {
       // // ✅ Construct download script dynamically
       let script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"\n`;
 
-      externalLinks.forEach((link) => {
+      links.forEach((link) => {
         const url = link.url;
         // console.log("url", url);
         const match = url.match(/file=([^&]+)/);
