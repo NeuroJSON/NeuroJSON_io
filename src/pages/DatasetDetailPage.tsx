@@ -431,7 +431,7 @@ const DatasetDetailPage: React.FC = () => {
       const scriptBlob = new Blob([script], { type: "text/plain" });
       setDownloadScriptSize(scriptBlob.size);
     }
-  }, [datasetDocument]);
+  }, [datasetDocument, docId]);
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDataKey, setPreviewDataKey] = useState<any>(null);
