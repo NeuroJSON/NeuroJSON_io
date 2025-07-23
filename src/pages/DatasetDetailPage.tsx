@@ -961,7 +961,7 @@ const DatasetDetailPage: React.FC = () => {
             >
               {/* Download Dataset (1 Mb) */}
               {/* Download Dataset ({(jsonSize / 1024).toFixed(0)} MB) */}
-              Download Dataset ({formatSize(jsonSize)})
+              Download Matadata ({formatSize(jsonSize)})
             </Button>
 
             <Button
