@@ -1,0 +1,32 @@
+name: Validate NeuroJson_io Project
+
+on:
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: yarn install
+
+      # - name: Run Linter (Report Issues)
+      #   run: yarn lint
+
+      - name: Compile TypeScript
+        run: |
+          PUBLIC_URL="/dev/${{ github.head_ref }}/" yarn build
+
+      - name: Run Security Audit (non-blocking)
+        run: yarn audit --level moderate || echo "Audit failed with moderate issues, continuing anyway."

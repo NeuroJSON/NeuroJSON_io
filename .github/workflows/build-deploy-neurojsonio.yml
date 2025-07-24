@@ -1,0 +1,41 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    env:
+      CI: false
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build React App for production
+        run: |
+          echo "Building for production at root /"
+          PUBLIC_URL="/" yarn build
+
+      - name: Copy JS libraries
+        run: |
+          mkdir -p build/js
+          cp -r public/js/* build/js/
+
+      - name: Deploy to neurojson.io
+        uses: NeuroJSON/SFTP-Deploy-Action@v1.2.5
+        with:
+          server: ${{ secrets.NEUROJ_IO_SERVER }}
+          username: ${{ secrets.NEUROJ_SERVER_USER }}
+          ssh_private_key: ${{ secrets.NEUROJ_SERVER_SSH_KEY }}
+          local_path: "./build/*"
+          remote_path: "${{ secrets.NEUROJ_IO_CI_PATH }}"

@@ -1,0 +1,50 @@
+name: Deploy Zodiac Server
+
+on:
+  push:
+    branches:
+      - dev-fan
+      - dev_mario
+      - fangq
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    env:
+      CI: false
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Determine Branch Name
+        id: get_branch
+        run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
+      - name: Print GitHub Runner Public IP
+        run: |
+          echo "GitHub runner public IP:"
+          curl https://api.ipify.org
+
+      - name: Build React App with Dynamic PUBLIC_URL
+        run: |
+          echo "Building for /dev/${{ env.BRANCH_NAME }}/"
+          PUBLIC_URL="/dev/${{ env.BRANCH_NAME }}/" yarn build
+
+      - name: Copy JS libraries (jdata, bjdata etc.)
+        run: |
+          mkdir -p build/js
+          cp -r public/js/* build/js/
+
+      - name: Copy package to server
+        uses: NeuroJSON/SFTP-Deploy-Action@v1.2.5
+        with:
+          server: ${{ secrets.NEUROJ_SERVER }}
+          username: ${{ secrets.NEUROJ_SERVER_USER }}
+          ssh_private_key: ${{ secrets.NEUROJ_SERVER_SSH_KEY }}
+          local_path: "./build/*"
+          remote_path: "${{ secrets.NEUROJ_CI_PATH }}/${{ env.BRANCH_NAME }}"
