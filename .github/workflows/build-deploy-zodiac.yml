@@ -3,10 +3,9 @@ name: Deploy Zodiac Server
 on:
   push:
     branches:
-      - dev_hari
       - dev-fan
       - dev_mario
-      - dev_fang
+      - fangq
       - staging
 
 jobs:
