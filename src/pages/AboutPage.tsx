@@ -147,7 +147,7 @@ const AboutPage: React.FC = () => {
                   style={{ maxHeight: "500px", objectFit: "cover" }}
                 >
                   <source
-                    src={`${process.env.PUBLIC_URL}/video/introduction_video.mp4`}
+                    src="https://neurojson.io/video/introduction_video.mp4"
                     type="video/mp4"
                   />
                   Your browser does not support the video tag.
@@ -229,7 +229,7 @@ const AboutPage: React.FC = () => {
               style={{ maxHeight: "500px", objectFit: "cover" }}
             >
               <source
-                src={`${process.env.PUBLIC_URL}/video/preview_video.mp4`}
+                src="https://neurojson.io/video/preview_video.mp4"
                 type="video/mp4"
               />
               Your browser does not support the video tag.
