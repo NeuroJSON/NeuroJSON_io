@@ -1,4 +1,5 @@
 import FullScreen from "design/Layouts/FullScreen";
+import AboutPage from "pages/AboutPage";
 import DatabasePage from "pages/DatabasePage";
 import DatasetDetailPage from "pages/DatasetDetailPage";
 import DatasetPage from "pages/DatasetPage";
@@ -33,6 +34,9 @@ const Routes = () => (
 
       {/* Search Page */}
       <Route path={RoutesEnum.SEARCH} element={<SearchPage />} />
+
+      {/* About Page */}
+      <Route path={RoutesEnum.ABOUT} element={<AboutPage />} />
     </Route>
   </RouterRoutes>
 );

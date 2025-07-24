@@ -89,10 +89,10 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
         onClick={handleOpen}
       >
         <img
-          src={`${process.env.PUBLIC_URL}/img/3cards_vertical.png`}
+          src={`${process.env.PUBLIC_URL}/img/section3_cards.png`}
           alt="rendering feature info cards"
           style={{
-            width: "100%",
+            width: "70%",
             height: "auto",
           }}
         ></img>
@@ -116,7 +116,7 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
 
           <video controls style={{ width: "100%", borderRadius: "4px" }}>
             <source
-              src="https://neurojson.org/tutorials/overview/neurojsonio_volume_render_short.mp4"
+              src="https://neurojson.io/video/preview_video.mp4"
               type="video/mp4"
             />
             Your browser does not support the video tag.

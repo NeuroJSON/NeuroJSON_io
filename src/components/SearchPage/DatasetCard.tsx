@@ -22,6 +22,7 @@ interface DatasetCardProps {
   };
   index: number;
   onChipClick: (key: string, value: string) => void;
+  keyword?: string; // for keyword highlight
 }
 
 const DatasetCard: React.FC<DatasetCardProps> = ({
@@ -30,6 +31,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
   parsedJson,
   index,
   onChipClick,
+  keyword,
 }) => {
   const { name, readme, modality, subj, info } = parsedJson.value;
   const datasetLink = `${RoutesEnum.DATABASES}/${dbname}/${dsname}`;
@@ -37,6 +39,33 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
   // prepare DOI URL
   const rawDOI = info?.DatasetDOI?.replace(/^doi:/, "");
   const doiLink = rawDOI ? `https://doi.org/${rawDOI}` : null;
+
+  // keyword hightlight functional component
+  const highlightKeyword = (text: string, keyword?: string) => {
+    if (!keyword || !text?.toLowerCase().includes(keyword.toLowerCase())) {
+      return text;
+    }
+
+    const regex = new RegExp(`(${keyword})`, "gi"); // for case-insensitive and global
+    const parts = text.split(regex);
+
+    return (
+      <>
+        {parts.map((part, i) =>
+          part.toLowerCase() === keyword.toLowerCase() ? (
+            <mark
+              key={i}
+              style={{ backgroundColor: "yellow", fontWeight: 600 }}
+            >
+              {part}
+            </mark>
+          ) : (
+            <React.Fragment key={i}>{part}</React.Fragment>
+          )
+        )}
+      </>
+    );
+  };
 
   return (
     <Card sx={{ mb: 3, position: "relative" }}>
@@ -67,7 +96,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
           to={datasetLink}
           target="_blank"
         >
-          {name || "Untitled Dataset"}
+          {highlightKeyword(name || "Untitled Dataset", keyword)}
         </Typography>
         <Typography>
           Database: {dbname} &nbsp;&nbsp;|&nbsp;&nbsp; Dataset: {dsname}
@@ -91,7 +120,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
                   key={idx}
                   label={mod}
                   variant="outlined"
-                  onClick={() => onChipClick("modality", mod)} //
+                  onClick={() => onChipClick("modality", mod)}
                   sx={{
                     "& .MuiChip-label": {
                       paddingX: "6px",
@@ -129,7 +158,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
                 paragraph
                 sx={{ textOverflow: "ellipsis" }}
               >
-                <strong>Summary:</strong> {readme}
+                <strong>Summary:</strong> {highlightKeyword(readme, keyword)}
               </Typography>
             )}
           </Stack>
@@ -139,11 +168,14 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
                 {info?.Authors && (
                   <Typography variant="body2" mt={1}>
                     <strong>Authors:</strong>{" "}
-                    {Array.isArray(info.Authors)
-                      ? info.Authors.join(", ")
-                      : typeof info.Authors === "string"
-                      ? info.Authors
-                      : "N/A"}
+                    {highlightKeyword(
+                      Array.isArray(info.Authors)
+                        ? info.Authors.join(", ")
+                        : typeof info.Authors === "string"
+                        ? info.Authors
+                        : "N/A",
+                      keyword
+                    )}
                   </Typography>
                 )}
               </Typography>

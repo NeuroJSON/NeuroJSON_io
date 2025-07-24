@@ -3,10 +3,9 @@ name: Deploy Zodiac Server
 on:
   push:
     branches:
-      - dev_hari
       - dev-fan
       - dev_mario
-      - dev_fang
+      - fangq
       - staging
 
 jobs:
@@ -26,11 +25,16 @@ jobs:
         id: get_branch
         run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
+      - name: Print GitHub Runner Public IP
+        run: |
+          echo "GitHub runner public IP:"
+          curl https://api.ipify.org
+
       - name: Build React App with Dynamic PUBLIC_URL
         run: |
           echo "Building for /dev/${{ env.BRANCH_NAME }}/"
           PUBLIC_URL="/dev/${{ env.BRANCH_NAME }}/" yarn build
-      
+
       - name: Copy JS libraries (jdata, bjdata etc.)
         run: |
           mkdir -p build/js

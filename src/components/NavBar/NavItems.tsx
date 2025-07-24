@@ -54,6 +54,10 @@ const NavItems: React.FC = () => {
                 variant="h1"
                 sx={{
                   color: Colors.yellow,
+                  fontSize: {
+                    xs: "2.2rem", // font size on mobile
+                    sm: "2.5rem",
+                  },
                 }}
               >
                 NeuroJSON.io
@@ -62,6 +66,10 @@ const NavItems: React.FC = () => {
                 variant="h2"
                 sx={{
                   color: Colors.lightGray,
+                  fontSize: {
+                    xs: "1rem", // font size on mobile
+                    sm: "1.2rem",
+                  },
                 }}
               >
                 Free Data Worth Sharing
@@ -79,10 +87,12 @@ const NavItems: React.FC = () => {
             sx={{ mb: { xs: 1 } }}
           >
             {[
-              { text: "ABOUT", url: "https://neurojson.org/Doc/Start" },
-              { text: "WIKI", url: "https://neurojson.org/Wiki" },
-              { text: "SEARCH", url: RoutesEnum.SEARCH },
-              { text: "DATABASES", url: RoutesEnum.DATABASES },
+              // { text: "ABOUT", url: "https://neurojson.org/Doc/Start" },
+              { text: "About", url: RoutesEnum.ABOUT },
+              { text: "Wiki", url: "https://neurojson.org/Wiki" },
+              { text: "Search", url: RoutesEnum.SEARCH },
+              { text: "Databases", url: RoutesEnum.DATABASES },
+              { text: "V1", url: "https://neurojson.io/v1" },
             ].map(({ text, url }) => (
               <Grid item key={text}>
                 {url?.startsWith("https") ? (
@@ -100,6 +110,7 @@ const NavItems: React.FC = () => {
                       sx={{
                         color: Colors.white,
                         transition: "color 0.3s ease, transform 0.3s ease",
+                        textTransform: "uppercase",
                         "&:hover": {
                           transform: "scale(1.2)",
                           cursor: "pointer",
@@ -119,6 +130,7 @@ const NavItems: React.FC = () => {
                       sx={{
                         color: Colors.white,
                         transition: "color 0.3s ease, transform 0.3s ease",
+                        textTransform: "uppercase",
                         "&:hover": {
                           transform: "scale(1.2)",
                           cursor: "pointer",

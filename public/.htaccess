@@ -1,16 +1,9 @@
+RedirectMatch 404 /\.git
 <IfModule mod_rewrite.c>
-
-RewriteEngine on
-# RewriteBase /dev/dev-fan
-
-# Don't rewrite files or directories
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-
-# Rewrite everything else to index.html to allow html5 state links
-RewriteRule ^ /dev/dev-fan/index.html [L]
-
-#RewriteCond %{REQUEST_FILENAME} (.*)/databases/.*$
-#RewriteRule ^(.*)/databases/.*  $1/index.html [QSA,L]
+  RewriteEngine On 
+  RewriteBase / 
+  RewriteCond %{REQUEST_FILENAME} -f [OR] 
+  RewriteCond %{REQUEST_FILENAME} -d 
+  RewriteRule ^ - [L] 
+  RewriteRule ^ index.html [L]
 </IfModule>

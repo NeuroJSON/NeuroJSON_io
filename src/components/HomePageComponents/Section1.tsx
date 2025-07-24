@@ -1,5 +1,4 @@
 import ArrowCircleDownIcon from "@mui/icons-material/ArrowCircleDown";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SearchIcon from "@mui/icons-material/Search";
 import {
   Typography,
@@ -94,8 +93,7 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
                 },
               }}
             >
-              Efficiently manage and explore your databases and datasets with
-              ease.
+              Search Findable, Accessible, Interoperable, and Reusable datasets
             </Typography>
           </Box>
         </Grid>
@@ -128,6 +126,7 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
                 "& label.Mui-focused": {
                   color: Colors.darkGreen, // label color when focused
                   fontWeight: "bold",
+                  transform: "translate(12px, -22px) scale(0.75)", // translate(x, y) move label further up
                   padding: "5px",
                   borderRadius: "5px",
                 },
