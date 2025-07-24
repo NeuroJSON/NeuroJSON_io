@@ -1,3 +1,4 @@
+import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {
   Tabs,
@@ -7,6 +8,7 @@ import {
   IconButton,
   Tooltip,
   Link,
+  Button,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
@@ -34,6 +36,7 @@ interface LoadDatasetTabsProps {
   serverUrl: string;
   datasetDocument?: any;
   onekey: string;
+  handleDownloadDataset: () => void;
 }
 
 const flashcardStyles = {
@@ -76,6 +79,7 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
   serverUrl,
   datasetDocument,
   onekey,
+  handleDownloadDataset,
 }) => {
   const [tabIndex, setTabIndex] = useState(0);
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -201,8 +205,8 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
       >
         <Tab label="Python (REST API)" />
         <Tab label="MATLAB (REST API)" />
-        <Tab label="MATLAB/Octave (Local)" />
         <Tab label="Python (Local)" />
+        <Tab label="MATLAB/Octave (Local)" />
         <Tab label="C++" />
         <Tab label="Node.js" />
       </Tabs>
@@ -240,10 +244,6 @@ jd.jdlink(links, {'regex': 'anat/sub-0[12]_.*\.nii'})`}
             Load by URL with REST-API in MATLAB
           </Typography>
           <Typography>Install:</Typography>
-          {/* <CopyableCodeBlock
-            code={`Download and addpath to JSONLab`}
-            language="text"
-          /> */}
           <Typography>
             Download and addpath to{" "}
             <Link
@@ -271,12 +271,62 @@ niidata = jdlink(links, 'regex', 'anat/sub-0[12]_.*\.nii');`}
         </Box>
       </TabPanel>
 
-      {/* FLASHCARD 3: MATLAB/Octave */}
+      {/* FLASHCARD 3: Python Local */}
       <TabPanel value={tabIndex} index={2}>
+        <Box style={flashcardStyles.flashcard}>
+          <Typography variant="h6" style={flashcardStyles.flashcardTitle}>
+            Use in Python
+          </Typography>
+
+          <Typography sx={{ marginBottom: 1 }}>Download dataset</Typography>
+          <Button
+            variant="contained"
+            startIcon={<CloudDownloadIcon />}
+            onClick={handleDownloadDataset}
+            sx={{
+              backgroundColor: Colors.purple,
+              color: Colors.lightGray,
+              mb: 2,
+              "&:hover": {
+                backgroundColor: Colors.secondaryPurple,
+              },
+            }}
+          >
+            Download Metadata
+          </Button>
+          <Typography>Load:</Typography>
+          <CopyableCodeBlock
+            code={`import jdata as jd
+data = jd.load('${pagename}.json')`}
+            language="python"
+          />
+          <Typography>Read value:</Typography>
+          <CopyableCodeBlock code={`data["${onekey}"]`} language="python" />
+        </Box>
+      </TabPanel>
+
+      {/* FLASHCARD 4: MATLAB/Octave */}
+      <TabPanel value={tabIndex} index={3}>
         <Box style={flashcardStyles.flashcard}>
           <Typography variant="h6" style={flashcardStyles.flashcardTitle}>
             Use in MATLAB/Octave
           </Typography>
+          <Typography sx={{ marginBottom: 1 }}>Download dataset</Typography>
+          <Button
+            variant="contained"
+            startIcon={<CloudDownloadIcon />}
+            onClick={handleDownloadDataset}
+            sx={{
+              backgroundColor: Colors.purple,
+              color: Colors.lightGray,
+              mb: 2,
+              "&:hover": {
+                backgroundColor: Colors.secondaryPurple,
+              },
+            }}
+          >
+            Download Metadata
+          </Button>
           <Typography>Load:</Typography>
           <CopyableCodeBlock
             // code={`data = loadjd('${docname}.json');`}
@@ -288,23 +338,6 @@ niidata = jdlink(links, 'regex', 'anat/sub-0[12]_.*\.nii');`}
             code={`data.(encodevarname('${onekey}'))`}
             language="matlab"
           />
-        </Box>
-      </TabPanel>
-
-      {/* FLASHCARD 4: Python Local */}
-      <TabPanel value={tabIndex} index={3}>
-        <Box style={flashcardStyles.flashcard}>
-          <Typography variant="h6" style={flashcardStyles.flashcardTitle}>
-            Use in Python
-          </Typography>
-          <Typography>Load:</Typography>
-          <CopyableCodeBlock
-            code={`import jdata as jd
-data = jd.load('${pagename}.json')`}
-            language="python"
-          />
-          <Typography>Read value:</Typography>
-          <CopyableCodeBlock code={`data["${onekey}"]`} language="python" />
         </Box>
       </TabPanel>
 

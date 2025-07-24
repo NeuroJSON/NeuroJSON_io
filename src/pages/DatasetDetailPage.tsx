@@ -1339,8 +1339,8 @@ const DatasetDetailPage: React.FC = () => {
           dbname={dbName || ""}
           serverUrl={"https://neurojson.io:7777/"}
           datasetDocument={datasetDocument}
-          // onekey={"dataset_description.json"}
           onekey={onekey}
+          handleDownloadDataset={handleDownloadDataset}
         />
 
         {/* Global spinner while loading (before modal mounts) */}
