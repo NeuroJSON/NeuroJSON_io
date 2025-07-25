@@ -1,4 +1,4 @@
-import { Toolbar, Grid, Button, Typography, Box } from "@mui/material";
+import { Toolbar, Grid, Button, Typography, Box, Tooltip } from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -96,10 +96,57 @@ const NavItems: React.FC = () => {
               { text: "Wiki", url: "https://neurojson.org/Wiki" },
               { text: "Search", url: RoutesEnum.SEARCH },
               { text: "Databases", url: RoutesEnum.DATABASES },
-              { text: "V1", url: "https://neurojson.io/v1" },
-            ].map(({ text, url }) => (
+              {
+                text: "V1",
+                url: "https://neurojson.io/v1",
+                tooltip: "Visit the previous version of website",
+              },
+            ].map(({ text, url, tooltip }) => (
               <Grid item key={text}>
-                {url?.startsWith("https") ? (
+                {tooltip ? (
+                  <Tooltip
+                    title={tooltip}
+                    arrow
+                    componentsProps={{
+                      tooltip: {
+                        sx: {
+                          bgcolor: Colors.lightGray,
+                          color: Colors.darkPurple,
+                        },
+                      },
+                      arrow: {
+                        sx: {
+                          color: Colors.lightGray,
+                        },
+                      },
+                    }}
+                  >
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ textDecoration: "none" }}
+                    >
+                      <Typography
+                        align="center"
+                        fontWeight={600}
+                        lineHeight={"1.5rem"}
+                        letterSpacing={"0.05rem"}
+                        sx={{
+                          color: Colors.white,
+                          transition: "color 0.3s ease, transform 0.3s ease",
+                          textTransform: "uppercase",
+                          "&:hover": {
+                            transform: "scale(1.2)",
+                            cursor: "pointer",
+                          },
+                        }}
+                      >
+                        {text}
+                      </Typography>
+                    </a>
+                  </Tooltip>
+                ) : url?.startsWith("https") ? (
                   <a
                     href={url}
                     target="_blank"
