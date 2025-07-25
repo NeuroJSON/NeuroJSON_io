@@ -12,6 +12,36 @@ import { fetchDbStats } from "redux/neurojson/neurojson.action";
 import { DbStatsItem } from "redux/neurojson/types/neurojson.interface";
 import { RootState } from "redux/store";
 
+const iconStyle = {
+  marginRight: 1,
+  verticalAlign: "middle",
+  color: Colors.lightGray,
+  fontSize: {
+    xs: "2rem",
+    sm: "2.5rem",
+  },
+};
+
+const numberTextStyle = {
+  color: Colors.lightGreen,
+  fontWeight: "medium",
+  textAlign: "center",
+  fontSize: {
+    xs: "1rem",
+    sm: "1.4rem",
+  },
+};
+
+const labelTextStyle = {
+  color: Colors.lightGreen,
+  fontWeight: "medium",
+  textAlign: "center",
+  fontSize: {
+    xs: "0.6rem",
+    sm: "0.9rem",
+  },
+};
+
 // function for calculate links and size
 const calculateLinksAndSize = (dbStats: DbStatsItem[] | null) => {
   if (!dbStats) return { totalLinks: 0, totalSizeTB: "0.00" };
@@ -46,6 +76,24 @@ const StatisticsBanner: React.FC = () => {
     dispatch(fetchDbStats());
   }, [dispatch]);
 
+  const StatItem = ({
+    icon,
+    number,
+    label,
+  }: {
+    icon: React.ReactNode;
+    number: string;
+    label: string;
+  }) => (
+    <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
+      <Box sx={iconStyle}>{icon}</Box>
+      <Box>
+        <Typography sx={numberTextStyle}>{number}</Typography>
+        <Typography sx={labelTextStyle}>{label}</Typography>
+      </Box>
+    </Box>
+  );
+
   return (
     <Box
       sx={{
@@ -58,177 +106,35 @@ const StatisticsBanner: React.FC = () => {
       }}
     >
       {/* Databases */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-        }}
-      >
-        <StorageIcon
-          sx={{
-            marginRight: 1,
-            verticalAlign: "middle",
-            color: Colors.lightGray,
-            fontSize: "2.5rem",
-          }}
-        />
-        <Box>
-          <Typography
-            sx={{
-              color: Colors.green,
-              fontWeight: "bold",
-              textAlign: "center",
-              fontSize: "1.4rem",
-            }}
-          >
-            {databaseCount.toLocaleString()}
-          </Typography>
-          <Typography
-            sx={{
-              color: Colors.green,
-              fontWeight: "medium",
-              fontSize: "0.9rem",
-              textAlign: "center",
-            }}
-          >
-            Databases
-          </Typography>
-        </Box>
-      </Box>
-
+      <StatItem
+        icon={<StorageIcon fontSize="inherit" />}
+        number={databaseCount.toLocaleString()}
+        label="Databases"
+      />
       {/* Datasets */}
-      <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
-        <ContentPasteSearchIcon
-          sx={{
-            marginRight: 1,
-            verticalAlign: "middle",
-            color: Colors.lightGray,
-            fontSize: "2.5rem",
-          }}
-        />
-        <Box>
-          <Typography
-            sx={{
-              color: Colors.green,
-              fontWeight: "bold",
-              textAlign: "center",
-              fontSize: "1.4rem",
-            }}
-          >
-            {formatNumber(datasetStat?.num)}
-          </Typography>
-          <Typography
-            sx={{
-              color: Colors.green,
-              fontWeight: "medium",
-              fontSize: "0.9rem",
-              textAlign: "center",
-            }}
-          >
-            Datasets
-          </Typography>
-        </Box>
-      </Box>
+      <StatItem
+        icon={<ContentPasteSearchIcon fontSize="inherit" />}
+        number={formatNumber(datasetStat?.num)}
+        label="Datasets"
+      />
       {/* Subjects */}
-      <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
-        <PeopleAltIcon
-          sx={{
-            marginRight: 1,
-            verticalAlign: "middle",
-            color: Colors.lightGray,
-            fontSize: "2.5rem",
-          }}
-        />
-        <Box>
-          <Typography
-            sx={{
-              color: Colors.green,
-              fontWeight: "bold",
-              textAlign: "center",
-              fontSize: "1.4rem",
-            }}
-          >
-            {formatNumber(subjectStat?.num)}
-          </Typography>
-          <Typography
-            sx={{
-              color: Colors.green,
-              fontWeight: "medium",
-              fontSize: "0.9rem",
-              textAlign: "center",
-            }}
-          >
-            Subjects
-          </Typography>
-        </Box>
-      </Box>
+      <StatItem
+        icon={<PeopleAltIcon fontSize="inherit" />}
+        number={formatNumber(subjectStat?.num)}
+        label="Subjects"
+      />
       {/* Links */}
-      <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
-        <DatasetLinkedIcon
-          sx={{
-            marginRight: 1,
-            verticalAlign: "middle",
-            color: Colors.lightGray,
-            fontSize: "2.5rem",
-          }}
-        />
-        <Box>
-          <Typography
-            sx={{
-              color: Colors.green,
-              fontWeight: "bold",
-              textAlign: "center",
-              fontSize: "1.4rem",
-            }}
-          >
-            {totalLinks.toLocaleString() ?? "-"}
-          </Typography>
-          <Typography
-            sx={{
-              color: Colors.green,
-              fontWeight: "medium",
-              fontSize: "0.9rem",
-              textAlign: "center",
-            }}
-          >
-            Links
-          </Typography>
-        </Box>
-      </Box>
+      <StatItem
+        icon={<DatasetLinkedIcon fontSize="inherit" />}
+        number={formatNumber(totalLinks)}
+        label="Links"
+      />
       {/* Size */}
-      <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
-        <TopicIcon
-          sx={{
-            marginRight: 1,
-            verticalAlign: "middle",
-            color: Colors.lightGray,
-            fontSize: "2.5rem",
-          }}
-        />
-        <Box>
-          <Typography
-            sx={{
-              color: Colors.green,
-              fontWeight: "bold",
-              textAlign: "center",
-              fontSize: "1.4rem",
-            }}
-          >
-            {totalSizeTB ?? "-"}&nbsp;TB
-          </Typography>
-          <Typography
-            sx={{
-              color: Colors.green,
-              fontWeight: "medium",
-              fontSize: "0.9rem",
-              textAlign: "center",
-            }}
-          >
-            Size
-          </Typography>
-        </Box>
-      </Box>
+      <StatItem
+        icon={<TopicIcon fontSize="inherit" />}
+        number={`${totalSizeTB ?? "-"} TB`}
+        label="Size"
+      />
     </Box>
   );
 };
