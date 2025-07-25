@@ -82,9 +82,14 @@ const NavItems: React.FC = () => {
         <Grid item xs={12} md="auto">
           <Grid
             container
-            spacing={3}
+            spacing={{ xs: 2, md: 5 }}
+            direction={{ xs: "row", sm: "row" }} // row on mobile
             justifyContent="center"
-            sx={{ mb: { xs: 1 } }}
+            alignItems="center"
+            sx={{
+              mb: { xs: 1 },
+              rowGap: { xs: 1, sm: 2 },
+            }}
           >
             {[
               { text: "About", url: RoutesEnum.ABOUT },
@@ -107,6 +112,10 @@ const NavItems: React.FC = () => {
                       lineHeight={"1.5rem"}
                       letterSpacing={"0.05rem"}
                       sx={{
+                        fontSize: {
+                          xs: "0.8rem", // font size on mobile
+                          sm: "1rem",
+                        },
                         color: Colors.white,
                         transition: "color 0.3s ease, transform 0.3s ease",
                         textTransform: "uppercase",
@@ -127,6 +136,10 @@ const NavItems: React.FC = () => {
                       lineHeight={"1.5rem"}
                       letterSpacing={"0.05rem"}
                       sx={{
+                        fontSize: {
+                          xs: "0.8rem", // font size on mobile
+                          sm: "1rem",
+                        },
                         color: Colors.white,
                         transition: "color 0.3s ease, transform 0.3s ease",
                         textTransform: "uppercase",

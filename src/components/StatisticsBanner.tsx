@@ -85,7 +85,17 @@ const StatisticsBanner: React.FC = () => {
     number: string;
     label: string;
   }) => (
-    <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        textAlign: {
+          xs: "left",
+          sm: "center",
+        },
+      }}
+    >
       <Box sx={iconStyle}>{icon}</Box>
       <Box>
         <Typography sx={numberTextStyle}>{number}</Typography>
@@ -101,7 +111,10 @@ const StatisticsBanner: React.FC = () => {
         padding: "1rem",
         display: "flex",
         flexWrap: "wrap",
-        justifyContent: "center",
+        justifyContent: {
+          xs: "flex-start",
+          sm: "center",
+        },
         gap: "2rem",
       }}
     >
