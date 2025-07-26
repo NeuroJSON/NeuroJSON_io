@@ -10,18 +10,18 @@ import {
 import { Colors } from "design/theme";
 import React, { useRef } from "react";
 
-const videoData = [
-  {
-    src: "search.png",
-    alt: "search icon",
-    tip: "Search tutotial video",
-    video: "preview_video.mp4",
-    // ref: searchVideoRef,
-  },
-  { src: "preview.png", alt: "preview icon", tip: "Preview tutotial video" },
-  { src: "download.png", alt: "download icon", tip: "Download tutotial video" },
-  { src: "api.png", alt: "api icon", tip: "Restful API tutotial video" },
-];
+// const videoData = [
+//   {
+//     src: "search.png",
+//     alt: "search icon",
+//     tip: "Search tutotial video",
+//     video: "preview_video.mp4",
+//     // ref: searchVideoRef,
+//   },
+//   { src: "preview.png", alt: "preview icon", tip: "Preview tutotial video" },
+//   { src: "download.png", alt: "download icon", tip: "Download tutotial video" },
+//   { src: "api.png", alt: "api icon", tip: "Restful API tutotial video" },
+// ];
 
 const AboutPage: React.FC = () => {
   const searchVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -34,7 +34,7 @@ const AboutPage: React.FC = () => {
       src: "search.png",
       alt: "search icon",
       tip: "Search tutotial video",
-      video: "preview_video.mp4",
+      video: "search_video.mp4",
       ref: searchVideoRef,
     },
     {
@@ -48,18 +48,53 @@ const AboutPage: React.FC = () => {
       src: "download.png",
       alt: "download icon",
       tip: "Download tutotial video",
-      video: "preview_video.mp4",
+      video: "download_video.mp4",
       ref: downloadVideoRef,
     },
     {
       src: "api.png",
       alt: "api icon",
-      tip: "Restful API tutotial video",
-      video: "preview_video.mp4",
-      ref: searchVideoRef,
+      tip: "Rest API - Python tutotial video",
+      video: "python_api_video.mp4",
+      ref: apiVideoRef,
     },
   ];
 
+  const TutorialVideoItem = ({
+    title,
+    videoUrl,
+  }: {
+    title: string;
+    videoUrl: string;
+  }) => (
+    <Box
+      sx={{
+        mb: 6,
+        boxShadow: 3,
+        borderRadius: 2,
+        overflow: "hidden",
+      }}
+    >
+      <Typography
+        variant="h6"
+        sx={{
+          mb: 1,
+          color: Colors.darkPurple,
+          fontWeight: "medium",
+        }}
+      >
+        {title}
+      </Typography>
+      <video
+        controls
+        width="100%"
+        style={{ maxHeight: "500px", objectFit: "cover" }}
+      >
+        <source src={videoUrl} type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+    </Box>
+  );
   return (
     <Box
     // sx={{
@@ -147,7 +182,7 @@ const AboutPage: React.FC = () => {
                   style={{ maxHeight: "500px", objectFit: "cover" }}
                 >
                   <source
-                    src="https://neurojson.io/video/introduction_video.mp4"
+                    src="https://neurojson.io/io/download/static/videos/introduction_video.mp4"
                     type="video/mp4"
                   />
                   Your browser does not support the video tag.
@@ -170,7 +205,24 @@ const AboutPage: React.FC = () => {
           }}
         >
           {videoData.map(({ src, alt, tip }) => (
-            <Tooltip title={tip} arrow key={src}>
+            <Tooltip
+              title={tip}
+              arrow
+              key={src}
+              componentsProps={{
+                tooltip: {
+                  sx: {
+                    bgcolor: Colors.lightGray,
+                    color: Colors.darkPurple,
+                  },
+                },
+                arrow: {
+                  sx: {
+                    color: Colors.lightGray,
+                  },
+                },
+              }}
+            >
               <Box
                 component="img"
                 src={`${process.env.PUBLIC_URL}/img/about_page/${src}`}
@@ -215,26 +267,41 @@ const AboutPage: React.FC = () => {
           >
             Getting Started with NeuroJSON
           </Typography>
-          <Box
-            sx={{
-              mt: 4,
-              boxShadow: 3,
-              borderRadius: 2,
-              overflow: "hidden",
-            }}
-          >
-            <video
-              controls
-              width="100%"
-              style={{ maxHeight: "500px", objectFit: "cover" }}
-            >
-              <source
-                src="https://neurojson.io/video/preview_video.mp4"
-                type="video/mp4"
+          <Grid container spacing={5} sx={{ mt: 3 }}>
+            <Grid item xs={12} sm={6}>
+              <TutorialVideoItem
+                title="Search tutorial"
+                videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
               />
-              Your browser does not support the video tag.
-            </video>
-          </Box>
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TutorialVideoItem
+                title="Preview tutorial"
+                videoUrl="https://neurojson.io/io/download/static/videos/preview_video.mp4"
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={4}>
+              <TutorialVideoItem
+                title="Download tutorial"
+                videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={4}>
+              <TutorialVideoItem
+                title="Rest API - Python tutorial"
+                videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TutorialVideoItem
+                title="Rest API - Matlab tutorial"
+                videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
+              />
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </Box>
