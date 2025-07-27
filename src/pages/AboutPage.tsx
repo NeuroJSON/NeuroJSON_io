@@ -10,24 +10,11 @@ import {
 import { Colors } from "design/theme";
 import React, { useRef } from "react";
 
-// const videoData = [
-//   {
-//     src: "search.png",
-//     alt: "search icon",
-//     tip: "Search tutotial video",
-//     video: "preview_video.mp4",
-//     // ref: searchVideoRef,
-//   },
-//   { src: "preview.png", alt: "preview icon", tip: "Preview tutotial video" },
-//   { src: "download.png", alt: "download icon", tip: "Download tutotial video" },
-//   { src: "api.png", alt: "api icon", tip: "Restful API tutotial video" },
-// ];
-
 const AboutPage: React.FC = () => {
-  const searchVideoRef = useRef<HTMLVideoElement | null>(null);
-  const previewVideoRef = useRef<HTMLVideoElement | null>(null);
-  const downloadVideoRef = useRef<HTMLVideoElement | null>(null);
-  const apiVideoRef = useRef<HTMLVideoElement | null>(null);
+  const searchVideoRef = useRef<HTMLDivElement | null>(null);
+  const previewVideoRef = useRef<HTMLDivElement | null>(null);
+  const downloadVideoRef = useRef<HTMLDivElement | null>(null);
+  const apiVideoRef = useRef<HTMLDivElement | null>(null);
 
   const videoData = [
     {
@@ -75,7 +62,7 @@ const AboutPage: React.FC = () => {
         overflow: "hidden",
       }}
     >
-      <Typography
+      {/* <Typography
         variant="h6"
         sx={{
           mb: 1,
@@ -84,7 +71,7 @@ const AboutPage: React.FC = () => {
         }}
       >
         {title}
-      </Typography>
+      </Typography> */}
       <video
         controls
         width="100%"
@@ -96,11 +83,7 @@ const AboutPage: React.FC = () => {
     </Box>
   );
   return (
-    <Box
-    // sx={{
-    //   position: "relative",
-    // }}
-    >
+    <Box>
       {/*section 1 */}
       <Box
         sx={{
@@ -204,7 +187,7 @@ const AboutPage: React.FC = () => {
             justifyContent: "center",
           }}
         >
-          {videoData.map(({ src, alt, tip }) => (
+          {videoData.map(({ src, alt, tip, ref }) => (
             <Tooltip
               title={tip}
               arrow
@@ -227,6 +210,9 @@ const AboutPage: React.FC = () => {
                 component="img"
                 src={`${process.env.PUBLIC_URL}/img/about_page/${src}`}
                 alt={alt}
+                onClick={() =>
+                  ref?.current?.scrollIntoView({ behavior: "smooth" })
+                }
                 sx={{
                   width: {
                     xs: "25%",
@@ -253,7 +239,7 @@ const AboutPage: React.FC = () => {
         }}
       >
         <Container
-          maxWidth="md"
+          maxWidth="lg"
           sx={{
             textAlign: "center",
           }}
@@ -268,37 +254,38 @@ const AboutPage: React.FC = () => {
             Getting Started with NeuroJSON
           </Typography>
           <Grid container spacing={5} sx={{ mt: 3 }}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6} ref={searchVideoRef}>
               <TutorialVideoItem
                 title="Search tutorial"
                 videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6} ref={previewVideoRef}>
               <TutorialVideoItem
                 title="Preview tutorial"
                 videoUrl="https://neurojson.io/io/download/static/videos/preview_video.mp4"
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={4} ref={downloadVideoRef}>
               <TutorialVideoItem
                 title="Download tutorial"
                 videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={4} ref={apiVideoRef}>
               <TutorialVideoItem
                 title="Rest API - Python tutorial"
                 videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
               />
             </Grid>
+
             <Grid item xs={12} sm={4}>
               <TutorialVideoItem
                 title="Rest API - Matlab tutorial"
-                videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
+                videoUrl="https://neurojson.io/io/download/static/videos/matlab_api.mp4"
               />
             </Grid>
           </Grid>
