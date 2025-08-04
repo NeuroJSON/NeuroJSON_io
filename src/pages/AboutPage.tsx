@@ -32,18 +32,18 @@ const AboutPage: React.FC = () => {
       ref: previewVideoRef,
     },
     {
-      src: "download.png",
-      alt: "download icon",
-      tip: "Download tutotial video",
-      video: "download_video.mp4",
-      ref: downloadVideoRef,
-    },
-    {
       src: "api.png",
       alt: "api icon",
       tip: "Rest API - Python tutotial video",
       video: "python_api_video.mp4",
       ref: apiVideoRef,
+    },
+    {
+      src: "download.png",
+      alt: "download icon",
+      tip: "Download tutotial video",
+      video: "download_video.mp4",
+      ref: downloadVideoRef,
     },
   ];
 
@@ -165,7 +165,7 @@ const AboutPage: React.FC = () => {
                   style={{ maxHeight: "500px", objectFit: "cover" }}
                 >
                   <source
-                    src="https://neurojson.io/io/download/static/videos/introduction_video.mp4"
+                    src="https://neurojson.io/io/download/static/videos/introduction.mp4"
                     type="video/mp4"
                   />
                   Your browser does not support the video tag.
@@ -210,9 +210,17 @@ const AboutPage: React.FC = () => {
                 component="img"
                 src={`${process.env.PUBLIC_URL}/img/about_page/${src}`}
                 alt={alt}
-                onClick={() =>
-                  ref?.current?.scrollIntoView({ behavior: "smooth" })
-                }
+                // onClick={() =>
+                //   ref?.current?.scrollIntoView({ behavior: "smooth" })
+
+                // }
+                onClick={() => {
+                  if (ref?.current) {
+                    const offset = 80; // adjust this to match your fixed navbar height
+                    const top = ref.current.offsetTop - offset;
+                    window.scrollTo({ top, behavior: "smooth" });
+                  }
+                }}
                 sx={{
                   width: {
                     xs: "25%",
@@ -264,28 +272,28 @@ const AboutPage: React.FC = () => {
             <Grid item xs={12} sm={6} ref={previewVideoRef}>
               <TutorialVideoItem
                 title="Preview tutorial"
-                videoUrl="https://neurojson.io/io/download/static/videos/preview_video.mp4"
+                videoUrl="https://neurojson.io/io/download/static/videos/preview.mp4"
               />
             </Grid>
 
-            <Grid item xs={12} sm={4} ref={downloadVideoRef}>
-              <TutorialVideoItem
-                title="Download tutorial"
-                videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={4} ref={apiVideoRef}>
+            <Grid item xs={12} sm={6} ref={apiVideoRef}>
               <TutorialVideoItem
                 title="Rest API - Python tutorial"
-                videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
+                videoUrl="https://neurojson.io/io/download/static/videos/python_api.mp4"
               />
             </Grid>
 
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <TutorialVideoItem
                 title="Rest API - Matlab tutorial"
                 videoUrl="https://neurojson.io/io/download/static/videos/matlab_api.mp4"
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6} ref={downloadVideoRef}>
+              <TutorialVideoItem
+                title="Download tutorial"
+                videoUrl="https://neurojson.io/io/download/static/videos/download.mp4"
               />
             </Grid>
           </Grid>
