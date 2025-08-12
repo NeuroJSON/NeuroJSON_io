@@ -1727,14 +1727,52 @@ function previewdataurl(url, idx) {
     console.warn("⚠️ Unsupported file format for preview:", url);
     return;
   }
-  // disable cache
+  // cached
+  // if (urldata.hasOwnProperty(url)) {
+  //   if (
+  //     urldata[url] instanceof nj.NdArray ||
+  //     urldata[url].hasOwnProperty("MeshNode")
+  //   ) {
+  //     previewdata(urldata[url], idx, false);
+  //   }
+  //   return;
+  // }
+
   if (urldata.hasOwnProperty(url)) {
-    if (
-      urldata[url] instanceof nj.NdArray ||
-      urldata[url].hasOwnProperty("MeshNode")
-    ) {
-      previewdata(urldata[url], idx, false);
+    const cached = urldata[url];
+
+    // ✅ fNIRS / time-series (cached)
+    if (cached?.data?.dataTimeSeries) {
+      let serieslabel = true;
+      if (cached.data.measurementList) {
+        serieslabel = Array(cached.data.measurementList.length)
+          .fill("")
+          .map(
+            (_, i) =>
+              "S" +
+              cached.data.measurementList[i].sourceIndex +
+              "D" +
+              cached.data.measurementList[i].detectorIndex
+          );
+      }
+
+      const plotData2D = nj.concatenate(
+        cached.data.time.reshape(cached.data.time.size, 1),
+        cached.data.dataTimeSeries
+      ).T;
+
+      previewdata(plotData2D, idx, false, serieslabel); // 🔔 triggers __onPreviewReady
+      return;
     }
+
+    // ✅ Mesh/volume (cached)
+    if (cached instanceof nj.NdArray || cached?.MeshNode) {
+      previewdata(cached, idx, false); // 🔔 triggers __onPreviewReady
+      return;
+    }
+
+    // 🔂 Fallback: still try to preview whatever it is
+    previewdata(cached, idx, false);
     return;
   }
 
