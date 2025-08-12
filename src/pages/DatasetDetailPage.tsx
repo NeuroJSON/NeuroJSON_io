@@ -515,15 +515,47 @@ const DatasetDetailPage: React.FC = () => {
     // };
 
     const is2DPreviewCandidate = (obj: any): boolean => {
-      if (!obj || typeof obj !== "object") return false;
-      if (!obj._ArrayType_ || !obj._ArraySize_ || !obj._ArrayZipData_)
+      // return true;
+      console.log("obj", obj);
+      if (typeof obj === "string" && obj.includes("db=optics-at-martinos")) {
         return false;
+      }
+      if (typeof obj === "string" && obj.endsWith(".jdb")) {
+        return true;
+      }
+      if (!obj || typeof obj !== "object") {
+        return false;
+      }
+      console.log("=======after first condition");
+      if (!obj._ArrayType_ || !obj._ArraySize_ || !obj._ArrayZipData_) {
+        console.log("inside second condition");
+        return false;
+      }
       const dim = obj._ArraySize_;
+      console.log("array.isarray(dim)", Array.isArray(dim));
+      console.log("dim.length", dim.length === 1 || dim.length === 2);
+
       return (
         Array.isArray(dim) &&
         (dim.length === 1 || dim.length === 2) &&
         dim.every((v) => typeof v === "number" && v > 0)
       );
+
+      // 2. Ensure `dim` is a valid array of numbers.
+      // if (!Array.isArray(dim) || dim.some((v) => typeof v !== "number")) {
+      //   return false;
+      // }
+
+      // 3. THE CORE FIX: Count dimensions with a size greater than 1.
+      // const significantDimensions = dim.filter((size) => size > 1).length;
+
+      // 4. If there are 1 or 2 significant dimensions, it can be plotted in 2D.
+      // This will correctly handle shapes like:
+      // - [1500]           (significantDimensions = 1) -> true
+      // - [52, 1500]       (significantDimensions = 2) -> true
+      // - [52, 1500, 1]    (significantDimensions = 2) -> true
+      // - [64, 64, 20]     (significantDimensions = 3) -> false
+      // return significantDimensions > 0 && significantDimensions <= 2;
     };
     // for add spinner ---- start
     // When legacy preview is actually ready, turn off spinner & open modal
@@ -622,8 +654,18 @@ const DatasetDetailPage: React.FC = () => {
         typeof dataOrUrl === "string" ? extractFileName(dataOrUrl) : "";
       if (isPreviewableFile(fileName)) {
         (window as any).previewdataurl(dataOrUrl, idx);
+        const is2D = is2DPreviewCandidate(dataOrUrl);
         const panel = document.getElementById("chartpanel");
-        if (panel) panel.style.display = "none"; // 🔒 Hide chart panel on 3D external
+        console.log("is2D", is2D);
+        console.log("panel", panel);
+
+        if (is2D) {
+          console.log("📊 2D data → rendering inline with dopreview()");
+          if (panel) panel.style.display = "block"; // 🔓 Show it!
+          setPreviewOpen(false); // ⛔ Don't open modal
+        } else {
+          if (panel) panel.style.display = "none"; // 🔒 Hide chart panel on 3D external
+        }
         //add spinner
         // setPreviewDataKey(dataOrUrl);
         // setPreviewOpen(true);
