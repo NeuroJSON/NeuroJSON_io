@@ -161,20 +161,6 @@ const DatasetDetailPage: React.FC = () => {
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [readyPreviewData, setReadyPreviewData] = useState<any>(null);
 
-  // const onPreviewReady = (decodedData: any) => {
-  //   console.log("✅ Data is ready! Opening modal.");
-  //   setReadyPreviewData(decodedData); // Store the final data
-  //   setIsPreviewLoading(false);      // Hide the spinner
-  //   setPreviewOpen(true);            // NOW open the modal
-  // };
-
-  // Dataset download button size calculation function
-  // const formatSize = (sizeInBytes: number): string => {
-  //   if (sizeInBytes < 1024 * 1024) {
-  //     return `${(sizeInBytes / 1024).toFixed(1)} KB`;
-  //   }
-  //   return `${(sizeInBytes / 1024 / 1024).toFixed(2)} MB`;
-  // };
   const formatSize = (sizeInBytes: number): string => {
     if (sizeInBytes < 1024) {
       return `${sizeInBytes} Bytes`;
@@ -301,16 +287,6 @@ const DatasetDetailPage: React.FC = () => {
 
     return internalLinks;
   };
-
-  // const formatFileSize = (bytes: number): string => {
-  //   if (bytes >= 1024 * 1024 * 1024) {
-  //     return `${Math.floor(bytes / (1024 * 1024 * 1024))} GB`;
-  //   } else if (bytes >= 1024 * 1024) {
-  //     return `${Math.floor(bytes / (1024 * 1024))} MB`;
-  //   } else {
-  //     return `${Math.floor(bytes / 1024)} KB`;
-  //   }
-  // };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -498,8 +474,10 @@ const DatasetDetailPage: React.FC = () => {
       "Is Internal:",
       isInternal
     );
+
     // Clear any stale preview type from last run
     delete (window as any).__previewType;
+
     // fix spinner
     setIsPreviewLoading(true); // Show the spinner overlay
     setPreviewIndex(idx);
@@ -518,6 +496,7 @@ const DatasetDetailPage: React.FC = () => {
 
     const is2DPreviewCandidate = (obj: any): boolean => {
       if (typeof window !== "undefined" && (window as any).__previewType) {
+        console.log("work~~~~~~~");
         return (window as any).__previewType === "2d";
       }
       // if (window.__previewType) {
