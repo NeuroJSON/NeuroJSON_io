@@ -232,6 +232,7 @@ function drawpreview(cfg) {
   }
   // for spinner
   // --- Signal React that 3D preview is ready ---
+  window.__previewType = "3d";
   if (typeof window.__onPreviewReady === "function") {
     window.__onPreviewReady();
   }
@@ -402,6 +403,7 @@ function dopreview(key, idx, isinternal, hastime) {
 
     // for spinner
     // --- Signal React that 2D preview is ready ---
+    window.__previewType = "2d";
     if (typeof window.__onPreviewReady === "function") {
       window.__onPreviewReady();
     }
@@ -1741,7 +1743,7 @@ function previewdataurl(url, idx) {
   if (urldata.hasOwnProperty(url)) {
     const cached = urldata[url];
 
-    // ✅ fNIRS / time-series (cached)
+    //  fNIRS / time-series (cached)
     if (cached?.data?.dataTimeSeries) {
       let serieslabel = true;
       if (cached.data.measurementList) {
@@ -1761,17 +1763,17 @@ function previewdataurl(url, idx) {
         cached.data.dataTimeSeries
       ).T;
 
-      previewdata(plotData2D, idx, false, serieslabel); // 🔔 triggers __onPreviewReady
+      previewdata(plotData2D, idx, false, serieslabel); //  triggers __onPreviewReady
       return;
     }
 
-    // ✅ Mesh/volume (cached)
+    //  Mesh/volume (cached)
     if (cached instanceof nj.NdArray || cached?.MeshNode) {
-      previewdata(cached, idx, false); // 🔔 triggers __onPreviewReady
+      previewdata(cached, idx, false); //  triggers __onPreviewReady
       return;
     }
 
-    // 🔂 Fallback: still try to preview whatever it is
+    //  Fallback: still try to preview whatever it is
     previewdata(cached, idx, false);
     return;
   }

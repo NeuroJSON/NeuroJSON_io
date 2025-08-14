@@ -498,6 +498,8 @@ const DatasetDetailPage: React.FC = () => {
       "Is Internal:",
       isInternal
     );
+    // Clear any stale preview type from last run
+    delete (window as any).__previewType;
     // fix spinner
     setIsPreviewLoading(true); // Show the spinner overlay
     setPreviewIndex(idx);
@@ -515,14 +517,21 @@ const DatasetDetailPage: React.FC = () => {
     // };
 
     const is2DPreviewCandidate = (obj: any): boolean => {
-      // return true;
+      if (typeof window !== "undefined" && (window as any).__previewType) {
+        return (window as any).__previewType === "2d";
+      }
+      // if (window.__previewType) {
+      //   console.log("work~~~~~~~");
+      //   return window.__previewType === "2d";
+      // }
+      console.log("is 2d preview candidate !== 2d");
       console.log("obj", obj);
-      if (typeof obj === "string" && obj.includes("db=optics-at-martinos")) {
-        return false;
-      }
-      if (typeof obj === "string" && obj.endsWith(".jdb")) {
-        return true;
-      }
+      // if (typeof obj === "string" && obj.includes("db=optics-at-martinos")) {
+      //   return false;
+      // }
+      // if (typeof obj === "string" && obj.endsWith(".jdb")) {
+      //   return true;
+      // }
       if (!obj || typeof obj !== "object") {
         return false;
       }
@@ -540,22 +549,6 @@ const DatasetDetailPage: React.FC = () => {
         (dim.length === 1 || dim.length === 2) &&
         dim.every((v) => typeof v === "number" && v > 0)
       );
-
-      // 2. Ensure `dim` is a valid array of numbers.
-      // if (!Array.isArray(dim) || dim.some((v) => typeof v !== "number")) {
-      //   return false;
-      // }
-
-      // 3. THE CORE FIX: Count dimensions with a size greater than 1.
-      // const significantDimensions = dim.filter((size) => size > 1).length;
-
-      // 4. If there are 1 or 2 significant dimensions, it can be plotted in 2D.
-      // This will correctly handle shapes like:
-      // - [1500]           (significantDimensions = 1) -> true
-      // - [52, 1500]       (significantDimensions = 2) -> true
-      // - [52, 1500, 1]    (significantDimensions = 2) -> true
-      // - [64, 64, 20]     (significantDimensions = 3) -> false
-      // return significantDimensions > 0 && significantDimensions <= 2;
     };
     // for add spinner ---- start
     // When legacy preview is actually ready, turn off spinner & open modal
@@ -566,6 +559,7 @@ const DatasetDetailPage: React.FC = () => {
         setPreviewOpen(true);
       }
       delete window.__onPreviewReady;
+      delete (window as any).__previewType; // for is2DPreviewCandidate
     };
     // -----end
 
