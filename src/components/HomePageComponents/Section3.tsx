@@ -14,25 +14,25 @@ type Tile = {
 
 const tiles: Tile[] = [
   {
-    src: `${process.env.PUBLIC_URL}/img/mesh.png`,
+    src: `${process.env.PUBLIC_URL}/img/section3/mesh.png`,
     // src: "/img/section3/mesh.png",
     alt: "Brain mesh",
     video: "https://neurojson.io/io/download/static/videos/preview_mesh.mp4",
   },
   {
-    src: `${process.env.PUBLIC_URL}/img/fnirs.png`,
+    src: `${process.env.PUBLIC_URL}/img/section3/fnirs.png`,
     // src: "/img/section3/fnirs.png",
     alt: "fNIRS signals",
     video: "https://neurojson.io/io/download/static/videos/preview_fnirs.mp4",
   },
   {
-    src: `${process.env.PUBLIC_URL}/img/altlas.png`,
+    src: `${process.env.PUBLIC_URL}/img/section3/altlas.png`,
     // src: "/img/section3/altlas.png",
     alt: "altlas",
     video: "https://neurojson.io/io/download/static/videos/preview_altlas.mp4",
   },
   {
-    src: `${process.env.PUBLIC_URL}/img/mri.png`,
+    src: `${process.env.PUBLIC_URL}/img/section3/mri.png`,
     // src: "/img/section3/mri.png",
     alt: "mri",
     video: "https://neurojson.io/io/download/static/videos/preview_mri.mp4",
