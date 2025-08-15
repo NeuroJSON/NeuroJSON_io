@@ -496,7 +496,7 @@ const DatasetDetailPage: React.FC = () => {
 
     const is2DPreviewCandidate = (obj: any): boolean => {
       if (typeof window !== "undefined" && (window as any).__previewType) {
-        console.log("work~~~~~~~");
+        // console.log("preview type: 2d");
         return (window as any).__previewType === "2d";
       }
       // if (window.__previewType) {
