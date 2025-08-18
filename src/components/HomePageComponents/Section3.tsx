@@ -6,15 +6,82 @@ import { Colors } from "design/theme";
 import React from "react";
 import { useState } from "react";
 
+type Tile = {
+  src: string;
+  alt: string;
+  video: string;
+};
+
+const tiles: Tile[] = [
+  {
+    src: `${process.env.PUBLIC_URL}/img/section3/mesh.png`,
+    // src: "/img/section3/mesh.png",
+    alt: "Brain mesh",
+    video: "https://neurojson.io/io/download/static/videos/preview_mesh.mp4",
+  },
+  {
+    src: `${process.env.PUBLIC_URL}/img/section3/fnirs.png`,
+    // src: "/img/section3/fnirs.png",
+    alt: "fNIRS signals",
+    video: "https://neurojson.io/io/download/static/videos/preview_fnirs.mp4",
+  },
+  {
+    src: `${process.env.PUBLIC_URL}/img/section3/atlas.png`,
+    // src: "/img/section3/atlas.png",
+    alt: "atlas",
+    video: "https://neurojson.io/io/download/static/videos/preview_atlas.mp4",
+  },
+  {
+    src: `${process.env.PUBLIC_URL}/img/section3/mri.png`,
+    // src: "/img/section3/mri.png",
+    alt: "mri",
+    video: "https://neurojson.io/io/download/static/videos/preview_mri.mp4",
+  },
+];
+
+// Vertical rectangle image tile (clickable)
+const PreviewTile: React.FC<{ tile: Tile; onClick: () => void }> = ({
+  tile,
+  onClick,
+}) => (
+  <Box
+    onClick={onClick}
+    role="button"
+    aria-label={tile.alt}
+    sx={{
+      position: "relative",
+      width: "100%",
+      aspectRatio: "2.5 / 3",
+      borderRadius: 3,
+      overflow: "hidden",
+      cursor: "pointer",
+      boxShadow: 4,
+      backgroundImage: `url(${tile.src})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      transition: "transform .2s ease",
+      "&:hover": { transform: "translateY(-2px)" },
+    }}
+  />
+);
+
 interface Section3Props {
   scrollToNext: () => void;
 }
 
 const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
   const [open, setOpen] = useState(false);
+  const [videoSrc, setVideoSrc] = useState("");
 
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const handleOpen = (video: string) => {
+    setVideoSrc(video);
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setVideoSrc("");
+  };
 
   return (
     <Box
@@ -84,18 +151,25 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
           alignItems: "center",
           mt: { xs: 4, md: 2 },
           mb: { xs: 8, md: 0 },
-          cursor: "pointer",
         }}
-        onClick={handleOpen}
       >
-        <img
-          src={`${process.env.PUBLIC_URL}/img/section3_cards.png`}
-          alt="rendering feature info cards"
-          style={{
-            width: "70%",
-            height: "auto",
-          }}
-        ></img>
+        <Box sx={{ width: "70%" }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr 1fr", sm: "1fr 1fr" },
+              gap: 2,
+            }}
+          >
+            {tiles.map((t, i) => (
+              <PreviewTile
+                key={i}
+                tile={t}
+                onClick={() => handleOpen(t.video)}
+              />
+            ))}
+          </Box>
+        </Box>
       </Box>
 
       {/* video dialog */}
@@ -113,12 +187,12 @@ const Section3: React.FC<Section3Props> = ({ scrollToNext }) => {
           >
             <CloseIcon />
           </IconButton>
-
-          <video controls style={{ width: "100%", borderRadius: "4px" }}>
-            <source
-              src="https://neurojson.io/video/preview_video.mp4"
-              type="video/mp4"
-            />
+          <video
+            key={videoSrc}
+            controls
+            style={{ width: "100%", borderRadius: 4 }}
+          >
+            {videoSrc && <source src={videoSrc} type="video/mp4" />}
             Your browser does not support the video tag.
           </video>
         </Box>

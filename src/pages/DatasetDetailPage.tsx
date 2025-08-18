@@ -161,20 +161,6 @@ const DatasetDetailPage: React.FC = () => {
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [readyPreviewData, setReadyPreviewData] = useState<any>(null);
 
-  // const onPreviewReady = (decodedData: any) => {
-  //   console.log("✅ Data is ready! Opening modal.");
-  //   setReadyPreviewData(decodedData); // Store the final data
-  //   setIsPreviewLoading(false);      // Hide the spinner
-  //   setPreviewOpen(true);            // NOW open the modal
-  // };
-
-  // Dataset download button size calculation function
-  // const formatSize = (sizeInBytes: number): string => {
-  //   if (sizeInBytes < 1024 * 1024) {
-  //     return `${(sizeInBytes / 1024).toFixed(1)} KB`;
-  //   }
-  //   return `${(sizeInBytes / 1024 / 1024).toFixed(2)} MB`;
-  // };
   const formatSize = (sizeInBytes: number): string => {
     if (sizeInBytes < 1024) {
       return `${sizeInBytes} Bytes`;
@@ -301,16 +287,6 @@ const DatasetDetailPage: React.FC = () => {
 
     return internalLinks;
   };
-
-  // const formatFileSize = (bytes: number): string => {
-  //   if (bytes >= 1024 * 1024 * 1024) {
-  //     return `${Math.floor(bytes / (1024 * 1024 * 1024))} GB`;
-  //   } else if (bytes >= 1024 * 1024) {
-  //     return `${Math.floor(bytes / (1024 * 1024))} MB`;
-  //   } else {
-  //     return `${Math.floor(bytes / 1024)} KB`;
-  //   }
-  // };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -498,6 +474,10 @@ const DatasetDetailPage: React.FC = () => {
       "Is Internal:",
       isInternal
     );
+
+    // Clear any stale preview type from last run
+    delete (window as any).__previewType;
+
     // fix spinner
     setIsPreviewLoading(true); // Show the spinner overlay
     setPreviewIndex(idx);
@@ -515,10 +495,34 @@ const DatasetDetailPage: React.FC = () => {
     // };
 
     const is2DPreviewCandidate = (obj: any): boolean => {
-      if (!obj || typeof obj !== "object") return false;
-      if (!obj._ArrayType_ || !obj._ArraySize_ || !obj._ArrayZipData_)
+      if (typeof window !== "undefined" && (window as any).__previewType) {
+        // console.log("preview type: 2d");
+        return (window as any).__previewType === "2d";
+      }
+      // if (window.__previewType) {
+      //   console.log("work~~~~~~~");
+      //   return window.__previewType === "2d";
+      // }
+      console.log("is 2d preview candidate !== 2d");
+      console.log("obj", obj);
+      // if (typeof obj === "string" && obj.includes("db=optics-at-martinos")) {
+      //   return false;
+      // }
+      // if (typeof obj === "string" && obj.endsWith(".jdb")) {
+      //   return true;
+      // }
+      if (!obj || typeof obj !== "object") {
         return false;
+      }
+      console.log("=======after first condition");
+      if (!obj._ArrayType_ || !obj._ArraySize_ || !obj._ArrayZipData_) {
+        console.log("inside second condition");
+        return false;
+      }
       const dim = obj._ArraySize_;
+      console.log("array.isarray(dim)", Array.isArray(dim));
+      console.log("dim.length", dim.length === 1 || dim.length === 2);
+
       return (
         Array.isArray(dim) &&
         (dim.length === 1 || dim.length === 2) &&
@@ -534,6 +538,7 @@ const DatasetDetailPage: React.FC = () => {
         setPreviewOpen(true);
       }
       delete window.__onPreviewReady;
+      delete (window as any).__previewType; // for is2DPreviewCandidate
     };
     // -----end
 
@@ -622,8 +627,18 @@ const DatasetDetailPage: React.FC = () => {
         typeof dataOrUrl === "string" ? extractFileName(dataOrUrl) : "";
       if (isPreviewableFile(fileName)) {
         (window as any).previewdataurl(dataOrUrl, idx);
+        const is2D = is2DPreviewCandidate(dataOrUrl);
         const panel = document.getElementById("chartpanel");
-        if (panel) panel.style.display = "none"; // 🔒 Hide chart panel on 3D external
+        console.log("is2D", is2D);
+        console.log("panel", panel);
+
+        if (is2D) {
+          console.log("📊 2D data → rendering inline with dopreview()");
+          if (panel) panel.style.display = "block"; // 🔓 Show it!
+          setPreviewOpen(false); // ⛔ Don't open modal
+        } else {
+          if (panel) panel.style.display = "none"; // 🔒 Hide chart panel on 3D external
+        }
         //add spinner
         // setPreviewDataKey(dataOrUrl);
         // setPreviewOpen(true);
