@@ -26,10 +26,10 @@ const tiles: Tile[] = [
     video: "https://neurojson.io/io/download/static/videos/preview_fnirs.mp4",
   },
   {
-    src: `${process.env.PUBLIC_URL}/img/section3/altlas.png`,
-    // src: "/img/section3/altlas.png",
-    alt: "altlas",
-    video: "https://neurojson.io/io/download/static/videos/preview_altlas.mp4",
+    src: `${process.env.PUBLIC_URL}/img/section3/atlas.png`,
+    // src: "/img/section3/atlas.png",
+    alt: "atlas",
+    video: "https://neurojson.io/io/download/static/videos/preview_atlas.mp4",
   },
   {
     src: `${process.env.PUBLIC_URL}/img/section3/mri.png`,
