@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import { TextField } from "@mui/material";
 import LoadDatasetTabs from "components/DatasetDetailPage/LoadDatasetTabs";
+import ReadMoreText from "design/ReadMoreText";
 import theme, { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -156,6 +157,7 @@ const DatasetDetailPage: React.FC = () => {
   const [jsonSize, setJsonSize] = useState<number>(0);
   const [transformedDataset, setTransformedDataset] = useState<any>(null);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
+  const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
 
   // add spinner
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -951,6 +953,24 @@ const DatasetDetailPage: React.FC = () => {
               {docId}
             </Typography>
           </Box>
+
+          {/* ai summary */}
+          {/* {aiSummary && (
+            <Box
+              sx={{
+                mb: 2,
+                p: 2,
+                borderRadius: "8px",
+                border: "1px solid #ddd",
+              }}
+            >
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+                AI Summary
+              </Typography>
+              <Typography variant="body1">{aiSummary}</Typography>
+            </Box>
+          )} */}
+          {aiSummary && <ReadMoreText text={aiSummary} />}
 
           <Box
             sx={{
