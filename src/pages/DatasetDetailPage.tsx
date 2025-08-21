@@ -955,21 +955,16 @@ const DatasetDetailPage: React.FC = () => {
           </Box>
 
           {/* ai summary */}
-          {/* {aiSummary && (
-            <Box
+          {aiSummary && (
+            <Typography
               sx={{
-                mb: 2,
-                p: 2,
-                borderRadius: "8px",
-                border: "1px solid #ddd",
+                color: Colors.darkPurple,
+                fontWeight: "bold",
               }}
             >
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                AI Summary
-              </Typography>
-              <Typography variant="body1">{aiSummary}</Typography>
-            </Box>
-          )} */}
+              AI Summary
+            </Typography>
+          )}
           {aiSummary && <ReadMoreText text={aiSummary} />}
 
           <Box
