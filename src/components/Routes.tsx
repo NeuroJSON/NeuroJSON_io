@@ -6,6 +6,7 @@ import DatasetDetailPage from "pages/DatasetDetailPage";
 import DatasetPage from "pages/DatasetPage";
 import Home from "pages/Home";
 import SearchPage from "pages/SearchPage";
+import UpdatedDatasetDetailPage from "pages/UpdatedDatasetDetailPage";
 import NewDatasetPage from "pages/UpdatedDatasetPage";
 import React from "react";
 import { Navigate, Route, Routes as RouterRoutes } from "react-router-dom";
@@ -32,7 +33,8 @@ const Routes = () => (
         {/* Dataset Details Page */}
         <Route
           path={`${RoutesEnum.DATABASES}/:dbName/:docId`}
-          element={<DatasetDetailPage />}
+          // element={<DatasetDetailPage />}
+          element={<UpdatedDatasetDetailPage />}
         />
 
         {/* Search Page */}
