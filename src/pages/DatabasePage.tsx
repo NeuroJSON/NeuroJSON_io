@@ -42,7 +42,7 @@ const DatabasePage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl">
       <Box sx={{ padding: { xs: 2, md: 4 }, marginTop: { xs: 4 } }}>
         <Typography variant="h1" gutterBottom sx={{ color: Colors.green }}>
           Databases
@@ -76,9 +76,9 @@ const DatabasePage: React.FC = () => {
                   textTransform: "none",
                   fontWeight: 600,
                   borderColor: Colors.lightGray,
-                  backgroundImage: db.logo ? `url(${db.logo})` : "none",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
+                  // backgroundImage: db.logo ? `url(${db.logo})` : "none",
+                  // backgroundSize: "cover",
+                  // backgroundPosition: "center",
                   color: Colors.lightGray,
                   borderRadius: 2,
                   transition: "all 0.3s ease",
@@ -97,8 +97,28 @@ const DatabasePage: React.FC = () => {
                 }}
                 onClick={() => navigate(`${RoutesEnum.DATABASES}/${db.id}`)}
               >
+                {/* Logo as Avatar */}
+                {db.logo && (
+                  <Avatar
+                    variant="square"
+                    src={db.logo}
+                    alt={db.fullname || "Database Logo"}
+                    sx={{
+                      width: 46,
+                      height: 46,
+                      mb: 1,
+                      // position: "absolute",
+                      // bottom: 5,
+                      // right: 5,
+                      "& img": {
+                        objectFit: "contain", // show full image inside
+                      },
+                    }}
+                  />
+                )}
+
                 {/* Overlay for fade/blur */}
-                <Box
+                {/* <Box
                   sx={{
                     position: "absolute",
                     top: 0,
@@ -109,7 +129,7 @@ const DatabasePage: React.FC = () => {
                     backdropFilter: "blur(4px)",
                     zIndex: 1,
                   }}
-                />
+                /> */}
 
                 {/* Text goes above overlay */}
                 <Box sx={{ zIndex: 2, textAlign: "center" }}>
@@ -117,7 +137,7 @@ const DatabasePage: React.FC = () => {
                     variant="h6"
                     component="span"
                     sx={{
-                      color: "white",
+                      color: Colors.lightGray,
                       display: "-webkit-box",
                       WebkitBoxOrient: "vertical",
                       WebkitLineClamp: 2, // only show 2 lines
@@ -129,7 +149,7 @@ const DatabasePage: React.FC = () => {
                     {db.fullname || "Unnamed Database"}
                   </Typography>
                   <Typography
-                    sx={{ color: "white" }}
+                    sx={{ color: Colors.primary.light }}
                   >{`(${db.name})`}</Typography>
                 </Box>
               </Button>
