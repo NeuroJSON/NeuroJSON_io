@@ -1,9 +1,13 @@
 import PreviewModal from "../components/PreviewModal";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import DescriptionIcon from "@mui/icons-material/Description";
+import DownloadIcon from "@mui/icons-material/Download";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
+import FolderIcon from "@mui/icons-material/Folder";
 import HomeIcon from "@mui/icons-material/Home";
+// import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+// import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Box,
   Typography,
@@ -15,10 +19,20 @@ import {
   CardContent,
   Collapse,
 } from "@mui/material";
-import { TextField } from "@mui/material";
+// new import
+import FileTree from "components/DatasetDetailPage/FileTree/FileTree";
+import type {
+  TreeNode,
+  LinkMeta,
+} from "components/DatasetDetailPage/FileTree/types";
+import {
+  buildTreeFromDoc,
+  makeLinkMap,
+} from "components/DatasetDetailPage/FileTree/utils";
+// import { TextField } from "@mui/material";
 import LoadDatasetTabs from "components/DatasetDetailPage/LoadDatasetTabs";
 import ReadMoreText from "design/ReadMoreText";
-import theme, { Colors } from "design/theme";
+import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect, useMemo, useState } from "react";
@@ -43,90 +57,90 @@ interface InternalDataLink {
   arraySize?: number[];
 }
 
-const transformJsonForDisplay = (obj: any): any => {
-  if (typeof obj !== "object" || obj === null) return obj;
+// const transformJsonForDisplay = (obj: any): any => {
+//   if (typeof obj !== "object" || obj === null) return obj;
 
-  const transformed: any = Array.isArray(obj) ? [] : {};
+//   const transformed: any = Array.isArray(obj) ? [] : {};
 
-  for (const key in obj) {
-    if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
+//   for (const key in obj) {
+//     if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
 
-    const value = obj[key];
+//     const value = obj[key];
 
-    // Match README, CHANGES, or file extensions
-    const isLongTextKey = /^(README|CHANGES)$|\.md$|\.txt$|\.m$/i.test(key);
+//     // Match README, CHANGES, or file extensions
+//     const isLongTextKey = /^(README|CHANGES)$|\.md$|\.txt$|\.m$/i.test(key);
 
-    if (typeof value === "string" && isLongTextKey) {
-      transformed[key] = `<code class="puretext">${value}</code>`;
-    } else if (typeof value === "object") {
-      transformed[key] = transformJsonForDisplay(value);
-    } else {
-      transformed[key] = value;
-    }
-  }
+//     if (typeof value === "string" && isLongTextKey) {
+//       transformed[key] = `<code class="puretext">${value}</code>`;
+//     } else if (typeof value === "object") {
+//       transformed[key] = transformJsonForDisplay(value);
+//     } else {
+//       transformed[key] = value;
+//     }
+//   }
 
-  return transformed;
-};
+//   return transformed;
+// };
 
-const formatAuthorsWithDOI = (
-  authors: string[] | string,
-  doi: string
-): JSX.Element => {
-  let authorText = "";
+// const formatAuthorsWithDOI = (
+//   authors: string[] | string,
+//   doi: string
+// ): JSX.Element => {
+//   let authorText = "";
 
-  if (Array.isArray(authors)) {
-    if (authors.length === 1) {
-      authorText = authors[0];
-    } else if (authors.length === 2) {
-      authorText = authors.join(", ");
-    } else {
-      authorText = `${authors.slice(0, 2).join("; ")} et al.`;
-    }
-  } else {
-    authorText = authors;
-  }
+//   if (Array.isArray(authors)) {
+//     if (authors.length === 1) {
+//       authorText = authors[0];
+//     } else if (authors.length === 2) {
+//       authorText = authors.join(", ");
+//     } else {
+//       authorText = `${authors.slice(0, 2).join("; ")} et al.`;
+//     }
+//   } else {
+//     authorText = authors;
+//   }
 
-  let doiUrl = "";
-  if (doi) {
-    if (/^[0-9]/.test(doi)) {
-      doiUrl = `https://doi.org/${doi}`;
-    } else if (/^doi\./.test(doi)) {
-      doiUrl = `https://${doi}`;
-    } else if (/^doi:/.test(doi)) {
-      doiUrl = doi.replace(/^doi:/, "https://doi.org/");
-    } else {
-      doiUrl = doi;
-    }
-  }
+//   let doiUrl = "";
+//   if (doi) {
+//     if (/^[0-9]/.test(doi)) {
+//       doiUrl = `https://doi.org/${doi}`;
+//     } else if (/^doi\./.test(doi)) {
+//       doiUrl = `https://${doi}`;
+//     } else if (/^doi:/.test(doi)) {
+//       doiUrl = doi.replace(/^doi:/, "https://doi.org/");
+//     } else {
+//       doiUrl = doi;
+//     }
+//   }
 
-  return (
-    <>
-      <i>{authorText}</i>
-      {doiUrl && (
-        <a
-          href={doiUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            marginLeft: "10px",
-            color: "black",
-            fontWeight: 500,
-            fontStyle: "normal",
-            textDecoration: "none",
-          }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.textDecoration = "underline")
-          }
-          onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-        >
-          {doiUrl}
-        </a>
-      )}
-    </>
-  );
-};
+//   return (
+//     <>
+//       <i>{authorText}</i>
+//       {doiUrl && (
+//         <a
+//           href={doiUrl}
+//           target="_blank"
+//           rel="noopener noreferrer"
+//           style={{
+//             marginLeft: "10px",
+//             color: "black",
+//             fontWeight: 500,
+//             fontStyle: "normal",
+//             textDecoration: "none",
+//           }}
+//           onMouseEnter={(e) =>
+//             (e.currentTarget.style.textDecoration = "underline")
+//           }
+//           onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+//         >
+//           {doiUrl}
+//         </a>
+//       )}
+//     </>
+//   );
+// };
 
-const DatasetDetailPage: React.FC = () => {
+const UpdatedDatasetDetailPage: React.FC = () => {
   const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -138,26 +152,98 @@ const DatasetDetailPage: React.FC = () => {
 
   const [externalLinks, setExternalLinks] = useState<ExternalDataLink[]>([]);
   const [internalLinks, setInternalLinks] = useState<InternalDataLink[]>([]);
-  const [isExpanded, setIsExpanded] = useState(false);
+  // const [isExpanded, setIsExpanded] = useState(false);
   const [isInternalExpanded, setIsInternalExpanded] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [matches, setMatches] = useState<HTMLElement[]>([]);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  // const [searchTerm, setSearchTerm] = useState("");
+  // const [matches, setMatches] = useState<HTMLElement[]>([]);
+  // const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [downloadScript, setDownloadScript] = useState<string>("");
   const [downloadScriptSize, setDownloadScriptSize] = useState<number>(0);
   const [totalFileSize, setTotalFileSize] = useState<number>(0);
 
   const [previewIsInternal, setPreviewIsInternal] = useState(false);
   const [isExternalExpanded, setIsExternalExpanded] = useState(true);
-  const [expandedPaths, setExpandedPaths] = useState<string[]>([]);
-  const [originalTextMap, setOriginalTextMap] = useState<
-    Map<HTMLElement, string>
-  >(new Map());
-  const [jsonViewerKey, setJsonViewerKey] = useState(0);
+  // const [expandedPaths, setExpandedPaths] = useState<string[]>([]);
+  // const [originalTextMap, setOriginalTextMap] = useState<
+  //   Map<HTMLElement, string>
+  // >(new Map());
+  // const [jsonViewerKey, setJsonViewerKey] = useState(0);
   const [jsonSize, setJsonSize] = useState<number>(0);
-  const [transformedDataset, setTransformedDataset] = useState<any>(null);
+  // const [transformedDataset, setTransformedDataset] = useState<any>(null);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
   const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
+
+  // 1) detect subjects at the top level, return true or false
+  const hasTopLevelSubjects = useMemo(
+    () => Object.keys(datasetDocument || {}).some((k) => /^sub-/i.test(k)),
+    [datasetDocument]
+  );
+
+  // 2) keep current subjects-only split, return subject objects list
+  const subjectsOnly = useMemo(() => {
+    const out: any = {};
+    if (!datasetDocument) return out;
+    Object.keys(datasetDocument).forEach((k) => {
+      if (/^sub-/i.test(k)) out[k] = (datasetDocument as any)[k];
+    });
+    return out;
+  }, [datasetDocument]);
+
+  // 3) link maps
+  const subjectLinks = useMemo(
+    () => externalLinks.filter((l) => /^\/sub-/i.test(l.path)),
+    [externalLinks]
+  );
+  const subjectLinkMap = useMemo(
+    () => makeLinkMap(subjectLinks),
+    [subjectLinks]
+  );
+
+  // 4) build a folder/file tree with a fallback to the WHOLE doc when no subjects exist
+  const treeData = useMemo(
+    () =>
+      hasTopLevelSubjects
+        ? buildTreeFromDoc(subjectsOnly, subjectLinkMap)
+        : buildTreeFromDoc(datasetDocument || {}, makeLinkMap(externalLinks)),
+    [
+      hasTopLevelSubjects,
+      subjectsOnly,
+      subjectLinkMap,
+      datasetDocument,
+      externalLinks,
+    ]
+  );
+
+  // “rest” JSON only when we actually have subjects
+  const rest = useMemo(() => {
+    if (!datasetDocument || !hasTopLevelSubjects) return {};
+    const r: any = {};
+    Object.keys(datasetDocument).forEach((k) => {
+      if (!/^sub-/i.test(k)) r[k] = (datasetDocument as any)[k];
+    });
+    return r;
+  }, [datasetDocument, hasTopLevelSubjects]);
+
+  // JSON panel should always render:
+  // - if we have subjects -> show "rest" (everything except sub-*)
+  // - if we don't have subjects -> show the whole document
+  const jsonPanelData = useMemo(
+    () => (hasTopLevelSubjects ? rest : datasetDocument || {}),
+    [hasTopLevelSubjects, rest, datasetDocument]
+  );
+
+  // 5) header title + counts also fall back
+  const treeTitle = hasTopLevelSubjects ? "Subjects" : "Files";
+
+  const { filesCount, totalBytes } = useMemo(() => {
+    const group = hasTopLevelSubjects ? subjectLinks : externalLinks;
+    let bytes = 0;
+    for (const l of group) {
+      const m = l.url.match(/size=(\d+)/);
+      if (m) bytes += parseInt(m[1], 10);
+    }
+    return { filesCount: group.length, totalBytes: bytes };
+  }, [hasTopLevelSubjects, subjectLinks, externalLinks]);
 
   // add spinner
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -294,8 +380,6 @@ const DatasetDetailPage: React.FC = () => {
     const fetchData = async () => {
       if (dbName && docId) {
         await dispatch(fetchDocumentDetails({ dbName, docId }));
-        // console.log("dbName", dbName);
-        // console.log("docId", docId);
       }
     };
 
@@ -304,30 +388,30 @@ const DatasetDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (datasetDocument) {
-      // ✅ Extract External Data & Assign `index`
+      // Extract External Data & Assign `index`
       console.log("datasetDocument", datasetDocument);
       const links = extractDataLinks(datasetDocument, "").map(
         (link, index) => ({
           ...link,
-          index, // ✅ Assign index correctly
+          index, // Assign index correctly
         })
       );
 
-      // ✅ Extract Internal Data & Assign `index`
+      // Extract Internal Data & Assign `index`
       const internalData = extractInternalData(datasetDocument).map(
         (data, index) => ({
           ...data,
-          index, // ✅ Assign index correctly
+          index, // Assign index correctly
         })
       );
 
-      // console.log("🟢 Extracted external links:", links);
-      // console.log("🟢 Extracted internal data:", internalData);
+      console.log(" Extracted external links:", links);
+      console.log(" Extracted internal data:", internalData);
 
       setExternalLinks(links);
       setInternalLinks(internalData);
-      const transformed = transformJsonForDisplay(datasetDocument);
-      setTransformedDataset(transformed);
+      // const transformed = transformJsonForDisplay(datasetDocument);
+      // setTransformedDataset(transformed);
 
       // Calculate total file size from size= query param
       let total = 0;
@@ -414,32 +498,32 @@ const DatasetDetailPage: React.FC = () => {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDataKey, setPreviewDataKey] = useState<any>(null);
 
-  useEffect(() => {
-    highlightMatches(searchTerm);
+  // useEffect(() => {
+  //   highlightMatches(searchTerm);
 
-    // Cleanup to reset highlights when component re-renders or unmounts
-    return () => {
-      document.querySelectorAll(".highlighted").forEach((el) => {
-        const element = el as HTMLElement;
-        const text = element.textContent || "";
-        element.innerHTML = text;
-        element.classList.remove("highlighted");
-      });
-    };
-  }, [searchTerm, datasetDocument]);
+  //   // Cleanup to reset highlights when component re-renders or unmounts
+  //   return () => {
+  //     document.querySelectorAll(".highlighted").forEach((el) => {
+  //       const element = el as HTMLElement;
+  //       const text = element.textContent || "";
+  //       element.innerHTML = text;
+  //       element.classList.remove("highlighted");
+  //     });
+  //   };
+  // }, [searchTerm, datasetDocument]);
 
-  useEffect(() => {
-    if (!transformedDataset) return;
+  // useEffect(() => {
+  //   if (!transformedDataset) return;
 
-    const spans = document.querySelectorAll(".string-value");
+  //   const spans = document.querySelectorAll(".string-value");
 
-    spans.forEach((el) => {
-      if (el.textContent?.includes('<code class="puretext">')) {
-        // Inject as HTML so it renders code block correctly
-        el.innerHTML = el.textContent ?? "";
-      }
-    });
-  }, [transformedDataset]);
+  //   spans.forEach((el) => {
+  //     if (el.textContent?.includes('<code class="puretext">')) {
+  //       // Inject as HTML so it renders code block correctly
+  //       el.innerHTML = el.textContent ?? "";
+  //     }
+  //   });
+  // }, [transformedDataset]);
 
   const handleDownloadDataset = () => {
     if (!datasetDocument) return;
@@ -652,19 +736,6 @@ const DatasetDetailPage: React.FC = () => {
     }
   };
 
-  // const handleClosePreview = () => {
-  //   console.log("🛑 Closing preview modal.");
-  //   setPreviewOpen(false);
-  //   setPreviewDataKey(null);
-
-  //   // Stop any Three.js rendering when modal closes
-  //   if (typeof (window as any).update === "function") {
-  //     cancelAnimationFrame((window as any).reqid);
-  //   }
-
-  //   const panel = document.getElementById("chartpanel");
-  //   if (panel) panel.style.display = "none"; // 🔒 Hide 2D chart if modal closes
-  // };
   const handleClosePreview = () => {
     console.log("🛑 Closing preview modal.");
     setPreviewOpen(false);
@@ -694,87 +765,87 @@ const DatasetDetailPage: React.FC = () => {
     window.renderer = undefined;
   };
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setHighlightedIndex(-1);
-    highlightMatches(e.target.value);
-  };
+  // const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   setSearchTerm(e.target.value);
+  //   setHighlightedIndex(-1);
+  //   highlightMatches(e.target.value);
+  // };
 
-  const highlightMatches = (keyword: string) => {
-    const spans = document.querySelectorAll(
-      ".react-json-view span.string-value, .react-json-view span.object-key"
-    );
+  // const highlightMatches = (keyword: string) => {
+  //   const spans = document.querySelectorAll(
+  //     ".react-json-view span.string-value, .react-json-view span.object-key"
+  //   );
 
-    // Clean up all existing highlights
-    spans.forEach((el) => {
-      const element = el as HTMLElement;
-      if (originalTextMap.has(element)) {
-        element.innerHTML = originalTextMap.get(element)!; // Restore original HTML
-        element.classList.remove("highlighted");
-      }
-    });
+  //   // Clean up all existing highlights
+  //   spans.forEach((el) => {
+  //     const element = el as HTMLElement;
+  //     if (originalTextMap.has(element)) {
+  //       element.innerHTML = originalTextMap.get(element)!; // Restore original HTML
+  //       element.classList.remove("highlighted");
+  //     }
+  //   });
 
-    // Clear old state
-    setMatches([]);
-    setHighlightedIndex(-1);
-    setExpandedPaths([]);
-    setOriginalTextMap(new Map());
+  //   // Clear old state
+  //   setMatches([]);
+  //   setHighlightedIndex(-1);
+  //   setExpandedPaths([]);
+  //   setOriginalTextMap(new Map());
 
-    if (!keyword.trim() || keyword.length < 3) return;
+  //   if (!keyword.trim() || keyword.length < 3) return;
 
-    const regex = new RegExp(`(${keyword})`, "gi");
-    const matchedElements: HTMLElement[] = [];
-    const matchedPaths: Set<string> = new Set();
-    const newOriginalMap = new Map<HTMLElement, string>();
+  //   const regex = new RegExp(`(${keyword})`, "gi");
+  //   const matchedElements: HTMLElement[] = [];
+  //   const matchedPaths: Set<string> = new Set();
+  //   const newOriginalMap = new Map<HTMLElement, string>();
 
-    spans.forEach((el) => {
-      const element = el as HTMLElement;
-      const original = element.innerHTML;
-      const text = element.textContent || "";
+  //   spans.forEach((el) => {
+  //     const element = el as HTMLElement;
+  //     const original = element.innerHTML;
+  //     const text = element.textContent || "";
 
-      if (text.toLowerCase().includes(keyword.toLowerCase())) {
-        newOriginalMap.set(element, original); // Store original HTML
-        const highlighted = text.replace(
-          regex,
-          `<mark class="highlighted" style="background-color: yellow; color: black;">$1</mark>`
-        );
-        element.innerHTML = highlighted;
-        matchedElements.push(element);
+  //     if (text.toLowerCase().includes(keyword.toLowerCase())) {
+  //       newOriginalMap.set(element, original); // Store original HTML
+  //       const highlighted = text.replace(
+  //         regex,
+  //         `<mark class="highlighted" style="background-color: yellow; color: black;">$1</mark>`
+  //       );
+  //       element.innerHTML = highlighted;
+  //       matchedElements.push(element);
 
-        const parent = element.closest(".variable-row");
-        const path = parent?.getAttribute("data-path");
-        if (path) matchedPaths.add(path);
-      }
-    });
+  //       const parent = element.closest(".variable-row");
+  //       const path = parent?.getAttribute("data-path");
+  //       if (path) matchedPaths.add(path);
+  //     }
+  //   });
 
-    // Update state
-    setOriginalTextMap(newOriginalMap);
-    setMatches(matchedElements);
-    setExpandedPaths(Array.from(matchedPaths));
-  };
+  //   // Update state
+  //   setOriginalTextMap(newOriginalMap);
+  //   setMatches(matchedElements);
+  //   setExpandedPaths(Array.from(matchedPaths));
+  // };
 
-  const findNext = () => {
-    if (matches.length === 0) return;
+  // const findNext = () => {
+  //   if (matches.length === 0) return;
 
-    setHighlightedIndex((prevIndex) => {
-      const nextIndex = (prevIndex + 1) % matches.length;
+  //   setHighlightedIndex((prevIndex) => {
+  //     const nextIndex = (prevIndex + 1) % matches.length;
 
-      matches.forEach((match) => {
-        match
-          .querySelector("mark")
-          ?.setAttribute("style", "background: yellow; color: black;");
-      });
+  //     matches.forEach((match) => {
+  //       match
+  //         .querySelector("mark")
+  //         ?.setAttribute("style", "background: yellow; color: black;");
+  //     });
 
-      const current = matches[nextIndex];
-      current.scrollIntoView({ behavior: "smooth", block: "center" });
+  //     const current = matches[nextIndex];
+  //     current.scrollIntoView({ behavior: "smooth", block: "center" });
 
-      current
-        .querySelector("mark")
-        ?.setAttribute("style", "background: orange; color: black;");
+  //     current
+  //       .querySelector("mark")
+  //       ?.setAttribute("style", "background: orange; color: black;");
 
-      return nextIndex;
-    });
-  };
+  //     return nextIndex;
+  //   });
+  // };
 
   if (loading) {
     return (
@@ -812,7 +883,7 @@ const DatasetDetailPage: React.FC = () => {
   return (
     <>
       {/* 🔧 Inline CSS for string formatting */}
-      <style>
+      {/* <style>
         {`
 		code.puretext {
 		white-space: pre-wrap;
@@ -834,7 +905,7 @@ const DatasetDetailPage: React.FC = () => {
 		overflow: visible;
 		background-color: #f0f0f0;
 	}`}
-      </style>
+      </style> */}
       <Box sx={{ padding: 4 }}>
         <Button
           variant="text"
@@ -955,16 +1026,6 @@ const DatasetDetailPage: React.FC = () => {
           </Box>
 
           {/* ai summary */}
-          {aiSummary && (
-            <Typography
-              sx={{
-                color: Colors.darkPurple,
-                fontWeight: "bold",
-              }}
-            >
-              AI Summary
-            </Typography>
-          )}
           {aiSummary && <ReadMoreText text={aiSummary} />}
 
           <Box
@@ -1013,7 +1074,7 @@ const DatasetDetailPage: React.FC = () => {
                 )})`}
             </Button>
 
-            <Box display="flex" alignItems="center" gap={1} sx={{ ml: "auto" }}>
+            {/* <Box display="flex" alignItems="center" gap={1} sx={{ ml: "auto" }}>
               <TextField
                 size="small"
                 variant="outlined"
@@ -1032,7 +1093,7 @@ const DatasetDetailPage: React.FC = () => {
               >
                 Find Next
               </Button>
-            </Box>
+            </Box> */}
           </Box>
         </Box>
 
@@ -1064,7 +1125,7 @@ const DatasetDetailPage: React.FC = () => {
             },
           }}
         >
-          {/* ✅ JSON Viewer (left panel) */}
+          {/* JSON Viewer (left panel) */}
           <Box
             sx={{
               flex: 3,
@@ -1086,7 +1147,54 @@ const DatasetDetailPage: React.FC = () => {
               },
             }}
           >
-            <ReactJson
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                height: "100%",
+                overflow: "hidden",
+              }}
+            >
+              {/* 1) SUBJECTS FILE BROWSER */}
+              {hasTopLevelSubjects && (
+                <Box sx={{ flex: 1, minHeight: 240, overflow: "hidden" }}>
+                  <FileTree
+                    title="Subjects"
+                    tree={treeData} // this is already built from subjectsOnly when hasTopLevelSubjects === true
+                    filesCount={filesCount}
+                    totalBytes={totalBytes}
+                    onPreview={(url, index) => handlePreview(url, index, false)}
+                  />
+                </Box>
+              )}
+
+              {/* 2) EVERYTHING ELSE AS JSON */}
+              <Box
+                sx={{
+                  flex: 1,
+                  minHeight: 240,
+                  backgroundColor: "#fff",
+                  borderRadius: 2,
+                  border: "1px solid #e0e0e0",
+                  overflow: "auto",
+                  p: 1,
+                }}
+              >
+                <ReactJson
+                  //   src={rest || {}}
+                  src={jsonPanelData}
+                  name={false}
+                  enableClipboard
+                  displayDataTypes={false}
+                  displayObjectSize
+                  collapsed={1}
+                  style={{ fontSize: "14px", fontFamily: "monospace" }}
+                />
+              </Box>
+            </Box>
+
+            {/* <ReactJson
               src={transformedDataset || datasetDocument}
               name={false}
               enableClipboard={true}
@@ -1094,10 +1202,10 @@ const DatasetDetailPage: React.FC = () => {
               displayObjectSize={true}
               collapsed={searchTerm.length >= 3 ? false : 1} // 🔍 Expand during search
               style={{ fontSize: "14px", fontFamily: "monospace" }}
-            />
+            /> */}
           </Box>
 
-          {/* ✅ Data panels (right panel) */}
+          {/* Data panels (right panel) */}
           <Box
             sx={{
               width: {
@@ -1351,7 +1459,6 @@ const DatasetDetailPage: React.FC = () => {
             </Box>
           </Box>
         </Box>
-        {/* ✅ ADD FLASHCARDS COMPONENT HERE ✅ */}
 
         {/* <div id="chartpanel"></div> */}
         <Box
@@ -1396,4 +1503,4 @@ const DatasetDetailPage: React.FC = () => {
   );
 };
 
-export default DatasetDetailPage;
+export default UpdatedDatasetDetailPage;
