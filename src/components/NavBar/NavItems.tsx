@@ -1,4 +1,4 @@
-import { Toolbar, Grid, Button, Typography, Box } from "@mui/material";
+import { Toolbar, Grid, Button, Typography, Box, Tooltip } from "@mui/material";
 import { Colors } from "design/theme";
 import React from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -82,20 +82,71 @@ const NavItems: React.FC = () => {
         <Grid item xs={12} md="auto">
           <Grid
             container
-            spacing={3}
+            spacing={{ xs: 2, md: 5 }}
+            direction={{ xs: "row", sm: "row" }} // row on mobile
             justifyContent="center"
-            sx={{ mb: { xs: 1 } }}
+            alignItems="center"
+            sx={{
+              mb: { xs: 1 },
+              rowGap: { xs: 1, sm: 2 },
+            }}
           >
             {[
-              // { text: "ABOUT", url: "https://neurojson.org/Doc/Start" },
               { text: "About", url: RoutesEnum.ABOUT },
               { text: "Wiki", url: "https://neurojson.org/Wiki" },
               { text: "Search", url: RoutesEnum.SEARCH },
               { text: "Databases", url: RoutesEnum.DATABASES },
-              { text: "V1", url: "https://neurojson.io/v1" },
-            ].map(({ text, url }) => (
+              {
+                text: "V1",
+                url: "https://neurojson.io/v1",
+                tooltip: "Visit the previous version of website",
+              },
+            ].map(({ text, url, tooltip }) => (
               <Grid item key={text}>
-                {url?.startsWith("https") ? (
+                {tooltip ? (
+                  <Tooltip
+                    title={tooltip}
+                    arrow
+                    componentsProps={{
+                      tooltip: {
+                        sx: {
+                          bgcolor: Colors.lightGray,
+                          color: Colors.darkPurple,
+                        },
+                      },
+                      arrow: {
+                        sx: {
+                          color: Colors.lightGray,
+                        },
+                      },
+                    }}
+                  >
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ textDecoration: "none" }}
+                    >
+                      <Typography
+                        align="center"
+                        fontWeight={600}
+                        lineHeight={"1.5rem"}
+                        letterSpacing={"0.05rem"}
+                        sx={{
+                          color: Colors.white,
+                          transition: "color 0.3s ease, transform 0.3s ease",
+                          textTransform: "uppercase",
+                          "&:hover": {
+                            transform: "scale(1.2)",
+                            cursor: "pointer",
+                          },
+                        }}
+                      >
+                        {text}
+                      </Typography>
+                    </a>
+                  </Tooltip>
+                ) : url?.startsWith("https") ? (
                   <a
                     href={url}
                     target="_blank"
@@ -108,6 +159,10 @@ const NavItems: React.FC = () => {
                       lineHeight={"1.5rem"}
                       letterSpacing={"0.05rem"}
                       sx={{
+                        fontSize: {
+                          xs: "0.8rem", // font size on mobile
+                          sm: "1rem",
+                        },
                         color: Colors.white,
                         transition: "color 0.3s ease, transform 0.3s ease",
                         textTransform: "uppercase",
@@ -128,6 +183,10 @@ const NavItems: React.FC = () => {
                       lineHeight={"1.5rem"}
                       letterSpacing={"0.05rem"}
                       sx={{
+                        fontSize: {
+                          xs: "0.8rem", // font size on mobile
+                          sm: "1rem",
+                        },
                         color: Colors.white,
                         transition: "color 0.3s ease, transform 0.3s ease",
                         textTransform: "uppercase",

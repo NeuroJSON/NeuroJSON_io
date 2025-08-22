@@ -1,4 +1,4 @@
-import { Box, Typography, Button, Container } from "@mui/material";
+import { Box, Typography, Button, Container, Avatar } from "@mui/material";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -12,6 +12,7 @@ const DatabasePage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { registry } = useAppSelector(NeurojsonSelector);
+  console.log("registry", registry);
 
   useEffect(() => {
     dispatch(fetchRegistry());
@@ -41,7 +42,7 @@ const DatabasePage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg">
+    <Container maxWidth="xl">
       <Box sx={{ padding: { xs: 2, md: 4 }, marginTop: { xs: 4 } }}>
         <Typography variant="h1" gutterBottom sx={{ color: Colors.green }}>
           Databases
@@ -70,17 +71,23 @@ const DatabasePage: React.FC = () => {
                 key={db.id}
                 variant="outlined"
                 sx={{
+                  position: "relative", // for overlay positioning
                   padding: 3,
                   textTransform: "none",
                   fontWeight: 600,
                   borderColor: Colors.lightGray,
+                  // backgroundImage: db.logo ? `url(${db.logo})` : "none",
+                  // backgroundSize: "cover",
+                  // backgroundPosition: "center",
                   color: Colors.lightGray,
                   borderRadius: 2,
                   transition: "all 0.3s ease",
-                  height: "100px",
+                  height: "150px",
                   display: "flex",
-                  flexDirection: "column",
+                  flexDirection: "row",
                   justifyContent: "center",
+                  overflow: "hidden", // clip overlay inside
+                  gap: 1,
                   "&:hover": {
                     borderColor: Colors.lightGray,
                     backgroundColor: Colors.secondaryPurple,
@@ -90,9 +97,61 @@ const DatabasePage: React.FC = () => {
                 }}
                 onClick={() => navigate(`${RoutesEnum.DATABASES}/${db.id}`)}
               >
-                <Typography variant="h6" component="span">
-                  {db.name || "Unnamed Database"}
-                </Typography>
+                {/* Logo as Avatar */}
+                {db.logo && (
+                  <Avatar
+                    variant="square"
+                    src={db.logo}
+                    alt={db.fullname || "Database Logo"}
+                    sx={{
+                      width: 46,
+                      height: 46,
+                      mb: 1,
+                      // position: "absolute",
+                      // bottom: 5,
+                      // right: 5,
+                      "& img": {
+                        objectFit: "contain", // show full image inside
+                      },
+                    }}
+                  />
+                )}
+
+                {/* Overlay for fade/blur */}
+                {/* <Box
+                  sx={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    backgroundColor: "rgba(0,0,0,0.4)", // dark overlay
+                    backdropFilter: "blur(4px)",
+                    zIndex: 1,
+                  }}
+                /> */}
+
+                {/* Text goes above overlay */}
+                <Box sx={{ zIndex: 2, textAlign: "center" }}>
+                  <Typography
+                    variant="h6"
+                    component="span"
+                    sx={{
+                      color: Colors.lightGray,
+                      display: "-webkit-box",
+                      WebkitBoxOrient: "vertical",
+                      WebkitLineClamp: 2, // only show 2 lines
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                    title={db.fullname} // tooltip full name
+                  >
+                    {db.fullname || "Unnamed Database"}
+                  </Typography>
+                  <Typography
+                    sx={{ color: Colors.primary.light }}
+                  >{`(${db.name})`}</Typography>
+                </Box>
               </Button>
             );
           })}
