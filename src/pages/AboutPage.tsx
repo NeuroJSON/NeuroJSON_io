@@ -272,7 +272,7 @@ const AboutPage: React.FC = () => {
             Getting Started with NeuroJSON
           </Typography>
 
-          <Grid container spacing={5} sx={{ mt: 3 }}>
+          <Grid container spacing={5} sx={{ mt: 3 }} ref={searchVideoRef}>
             <Grid item xs={12}>
               <Divider
                 sx={{
@@ -292,14 +292,14 @@ const AboutPage: React.FC = () => {
                 </Typography>
               </Divider>
             </Grid>
-            <Grid item xs={12} sm={6} ref={searchVideoRef}>
+            <Grid item xs={12} sm={6}>
               <TutorialVideoItem
                 title="Search tutorial"
                 videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
               />
             </Grid>
           </Grid>
-          <Grid container spacing={5} sx={{ mt: 3 }}>
+          <Grid container spacing={5} sx={{ mt: 3 }} ref={previewVideoRef}>
             <Grid item xs={12}>
               <Divider
                 sx={{ borderColor: Colors.darkPurple, opacity: 1, mb: 2 }}
@@ -312,14 +312,38 @@ const AboutPage: React.FC = () => {
                 </Typography>
               </Divider>
             </Grid>
-            <Grid item xs={12} sm={6} ref={previewVideoRef}>
+            <Grid item xs={12} sm={6}>
               <TutorialVideoItem
                 title="Preview tutorial"
                 videoUrl="https://neurojson.io/io/download/static/videos/preview.mp4"
               />
             </Grid>
+            <Grid item xs={12} sm={6}>
+              <TutorialVideoItem
+                title="mesh preview tutorial"
+                videoUrl="https://neurojson.io/io/download/static/videos/preview_mesh.mp4"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TutorialVideoItem
+                title="fnirs preview tutorial"
+                videoUrl="https://neurojson.io/io/download/static/videos/preview_fnirs.mp4"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TutorialVideoItem
+                title="atlas preview tutorial"
+                videoUrl="https://neurojson.io/io/download/static/videos/preview_atlas.mp4"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TutorialVideoItem
+                title="mri preview tutorial"
+                videoUrl="https://neurojson.io/io/download/static/videos/preview_mri.mp4"
+              />
+            </Grid>
           </Grid>
-          <Grid container spacing={5} sx={{ mt: 3 }}>
+          <Grid container spacing={5} sx={{ mt: 3 }} ref={downloadVideoRef}>
             <Grid item xs={12}>
               <Divider
                 sx={{ borderColor: Colors.darkPurple, opacity: 1, mb: 2 }}
@@ -332,6 +356,12 @@ const AboutPage: React.FC = () => {
                 </Typography>
               </Divider>
             </Grid>
+            <Grid item xs={12} sm={6}>
+              <TutorialVideoItem
+                title="Download tutorial"
+                videoUrl="https://neurojson.io/io/download/static/videos/download.mp4"
+              />
+            </Grid>
             <Grid item xs={12} sm={6} ref={apiVideoRef}>
               <TutorialVideoItem
                 title="Rest API - Python tutorial"
@@ -343,13 +373,6 @@ const AboutPage: React.FC = () => {
               <TutorialVideoItem
                 title="Rest API - Matlab tutorial"
                 videoUrl="https://neurojson.io/io/download/static/videos/matlab_api.mp4"
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6} ref={downloadVideoRef}>
-              <TutorialVideoItem
-                title="Download tutorial"
-                videoUrl="https://neurojson.io/io/download/static/videos/download.mp4"
               />
             </Grid>
           </Grid>
