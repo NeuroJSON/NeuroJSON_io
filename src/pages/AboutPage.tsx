@@ -6,15 +6,18 @@ import {
   Button,
   Grid,
   Tooltip,
+  Divider,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import React, { useRef } from "react";
+import { Color } from "three";
 
 const AboutPage: React.FC = () => {
   const searchVideoRef = useRef<HTMLDivElement | null>(null);
   const previewVideoRef = useRef<HTMLDivElement | null>(null);
   const downloadVideoRef = useRef<HTMLDivElement | null>(null);
   const apiVideoRef = useRef<HTMLDivElement | null>(null);
+  const convertVideoRef = useRef<HTMLDivElement | null>(null);
 
   const videoData = [
     {
@@ -44,6 +47,13 @@ const AboutPage: React.FC = () => {
       tip: "Download tutotial video",
       video: "download_video.mp4",
       ref: downloadVideoRef,
+    },
+    {
+      src: "download.png",
+      alt: "download icon",
+      tip: "Download tutotial video",
+      video: "download_video.mp4",
+      ref: convertVideoRef,
     },
   ];
 
@@ -261,21 +271,67 @@ const AboutPage: React.FC = () => {
           >
             Getting Started with NeuroJSON
           </Typography>
+
           <Grid container spacing={5} sx={{ mt: 3 }}>
+            <Grid item xs={12}>
+              <Divider
+                sx={{
+                  opacity: 1,
+                  mb: 2,
+                  "&::before, &::after": {
+                    // borderTopWidth: 2, // make the line more thicker
+                    // borderColor: Colors.secondaryPurple, // change the default line color
+                  },
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{ color: Colors.darkPurple, fontWeight: 600 }}
+                >
+                  Search
+                </Typography>
+              </Divider>
+            </Grid>
             <Grid item xs={12} sm={6} ref={searchVideoRef}>
               <TutorialVideoItem
                 title="Search tutorial"
                 videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
               />
             </Grid>
-
+          </Grid>
+          <Grid container spacing={5} sx={{ mt: 3 }}>
+            <Grid item xs={12}>
+              <Divider
+                sx={{ borderColor: Colors.darkPurple, opacity: 1, mb: 2 }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{ color: Colors.darkPurple, fontWeight: 600 }}
+                >
+                  Preview
+                </Typography>
+              </Divider>
+            </Grid>
             <Grid item xs={12} sm={6} ref={previewVideoRef}>
               <TutorialVideoItem
                 title="Preview tutorial"
                 videoUrl="https://neurojson.io/io/download/static/videos/preview.mp4"
               />
             </Grid>
-
+          </Grid>
+          <Grid container spacing={5} sx={{ mt: 3 }}>
+            <Grid item xs={12}>
+              <Divider
+                sx={{ borderColor: Colors.darkPurple, opacity: 1, mb: 2 }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{ color: Colors.darkPurple, fontWeight: 600 }}
+                >
+                  Download
+                </Typography>
+              </Divider>
+            </Grid>
             <Grid item xs={12} sm={6} ref={apiVideoRef}>
               <TutorialVideoItem
                 title="Rest API - Python tutorial"
@@ -294,6 +350,29 @@ const AboutPage: React.FC = () => {
               <TutorialVideoItem
                 title="Download tutorial"
                 videoUrl="https://neurojson.io/io/download/static/videos/download.mp4"
+              />
+            </Grid>
+          </Grid>
+          <Grid container spacing={5} sx={{ mt: 3 }}>
+            <Grid item xs={12}>
+              <Divider
+                sx={{
+                  opacity: 1,
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{ color: Colors.darkPurple, fontWeight: 600 }}
+                >
+                  Convert And Upload
+                </Typography>
+              </Divider>
+            </Grid>
+            <Grid item xs={12} sm={6} ref={convertVideoRef}>
+              <TutorialVideoItem
+                title="Convert tutorial"
+                videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
               />
             </Grid>
           </Grid>

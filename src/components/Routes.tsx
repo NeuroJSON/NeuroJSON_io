@@ -33,8 +33,8 @@ const Routes = () => (
         {/* Dataset Details Page */}
         <Route
           path={`${RoutesEnum.DATABASES}/:dbName/:docId`}
-          element={<DatasetDetailPage />}
-          // element={<UpdatedDatasetDetailPage />}
+          // element={<DatasetDetailPage />}
+          element={<UpdatedDatasetDetailPage />}
         />
 
         {/* Search Page */}
