@@ -49,10 +49,10 @@ const AboutPage: React.FC = () => {
       ref: downloadVideoRef,
     },
     {
-      src: "download.png",
-      alt: "download icon",
-      tip: "Download tutotial video",
-      video: "download_video.mp4",
+      src: "convert.png",
+      alt: "convert icon",
+      tip: "Convert tutotial video",
+      video: "convert.mp4",
       ref: convertVideoRef,
     },
   ];
@@ -372,7 +372,7 @@ const AboutPage: React.FC = () => {
             <Grid item xs={12} sm={6} ref={convertVideoRef}>
               <TutorialVideoItem
                 title="Convert tutorial"
-                videoUrl="https://neurojson.io/io/download/static/videos/search_video.mp4"
+                videoUrl="https://neurojson.io/io/download/static/videos/convert.mp4"
               />
             </Grid>
           </Grid>
