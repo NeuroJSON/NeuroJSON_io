@@ -25,7 +25,7 @@ NeuroJSON leverages **modern web technologies and scalable NoSQL databases** and
 - **Search** — Browse across multiple databases, datasets, and modalities
 - **Preview** — Interact with JSON metadata and visualize imaging data (2D/3D) in browser
 - **Download** — Retrieve datasets in JSON format, ready for use in Python, MATLAB/Octave, C++, and more
-- **Upload** - Contribute your own datasets to NeuroJSON.io ([Steps to contribute](#for-data-contributors))
+- **Upload** - Contribute your own datasets to NeuroJSON.io ([Steps to contribute](#-for-data-contributors))
 - **REST API** — Automate your workflows with lightweight endpoints, designed for smooth integration into both local analyses and large-scale pipelines
 
 ---
@@ -37,7 +37,9 @@ NeuroJSON leverages **modern web technologies and scalable NoSQL databases** and
 3. Click any dataset to **preview** or **download** data
 4. For automation, use the **[REST API](#rest-api)**
 
-## For Data Contributors
+---
+
+## 👩‍🔬 For Data Contributors
 
 We welcome your datasets!
 
@@ -56,7 +58,7 @@ Contributions ensure **long-term public availability and reusability**.
 
 ---
 
-## For Developers
+## 💻 For Developers
 
 ### REST API
 
@@ -79,6 +81,8 @@ links = jd.jsonpath(data, '$.._DataLink_')
 # Download & cache anatomical nii.gz data for sub-01/sub-02
 jd.jdlink(links, {'regex': 'anat/sub-0[12]_.*.nii'})
 ```
+
+---
 
 ## 📊 Current Stats (as of latest release)
 
