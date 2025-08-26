@@ -1,46 +1,109 @@
-# Getting Started with Create React App
+# NeuroJSON.io
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**Free Data Worth Sharing**
 
-## Available Scripts
+[![Website](https://img.shields.io/badge/website-NeuroJSON.io-blue)](https://neurojson.io)  
+[![FAIR](https://img.shields.io/badge/FAIR-Findable%2C%20Accessible%2C%20Interoperable%2C%20Reusable-purple)](#)
 
-In the project directory, you can run:
+---
 
-### `yarn start`
+## 📖 Overview
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+[NeuroJSON.io](https://neurojson.io) is an **NIH-funded open data portal** for **neuroimaging datasets**, designed to make scientific data:
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+- **Findable**: Fully searchable metadata and datasets
+- **Accessible**: Open, lightweight JSON format
+- **Interoperable**: Compatible across platforms and programming languages
+- **Reusable**: Rich metadata, visualizations, and long-term viability
 
-### `yarn test`
+NeuroJSON leverages **modern web technologies and scalable NoSQL databases** and the **JSON standard** to distribute large-scale, complex imaging data in a **human- and machine-readable** form.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `yarn build`
+## 🚀 Features
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- **Search** — Browse across multiple databases, datasets, and modalities
+- **Preview** — Interact with JSON metadata and visualize imaging data (2D/3D) in browser
+- **Download** — Retrieve datasets in JSON format, ready for use in Python, MATLAB/Octave, C++, and more
+- **Upload** - Contribute your own datasets to NeuroJSON.io ([Steps to contribute](#for-data-contributors))
+- **REST API** — Automate your workflows with lightweight endpoints, designed for smooth integration into both local analyses and large-scale pipelines
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+---
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 🏁 Getting Started
 
-### `yarn eject`
+1. Visit [https://neurojson.io](https://neurojson.io)
+2. Use the **search page** to find datasets or subjects of interest
+3. Click any dataset to **preview** or **download** data
+4. For automation, use the **[REST API](#rest-api)**
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## For Data Contributors
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+We welcome your datasets!
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+- NeuroJSON prefers **BIDS-compliant data**
+- Convert datasets to JSON using:
+  - [`neuroj`](https://github.com/NeuroJSON/neuroj)
+  - [`tutorial video - convert data`](https://neurojson.io/about)
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+### Steps to contribute
 
-## Learn More
+1. Convert your dataset to JSON
+2. Validate metadata
+3. [Open a ticket](https://github.com/NeuroJSON/registry) to upload your dataset
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Contributions ensure **long-term public availability and reusability**.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+---
+
+## For Developers
+
+### REST API
+
+- Lightweight endpoints for download
+- JSON responses designed for integration with cloud and local workflows
+
+Example (Load by URL with REST-API in Python):
+
+```
+pip install jdata bjdata numpy
+```
+
+```
+import jdata as jd
+data = jd.loadurl('https://neurojson.io:7777/openneuro/ds000001')
+
+# List all externally linked files
+links = jd.jsonpath(data, '$.._DataLink_')
+
+# Download & cache anatomical nii.gz data for sub-01/sub-02
+jd.jdlink(links, {'regex': 'anat/sub-0[12]_.*.nii'})
+```
+
+## 📊 Current Stats (as of latest release)
+
+| Metric    | Value       |
+| --------- | ----------- |
+| Databases | **22**      |
+| Datasets  | **1,529**   |
+| Subjects  | **58,026**  |
+| Links     | **580,857** |
+| Data Size | **38 TB**   |
+
+---
+
+## 🤝 Governance & Support
+
+- NIH-funded data dissemination service
+- Maintained by the [COTI Lab, Northeastern University](http://fanglab.org/wiki/)
+- Contact: **admin@neurojson.io**
+
+---
+
+## 🛠 Roadmap
+
+We’re continuing to grow NeuroJSON.io to better serve the community. Some of the upcoming directions include:
+
+- 🔜 **Expanding databases and datasets** — broadening coverage to include more sources and subjects
+- 🔜 **Enhancing visualization** — improving 2D/3D previews for richer and more intuitive exploration of data
+- 🔜 **Streamlining uploads** — introducing new features to make dataset contributions more automatic and user-friendly
