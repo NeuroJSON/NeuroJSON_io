@@ -44,15 +44,25 @@ NeuroJSON leverages **modern web technologies and scalable NoSQL databases** and
 We welcome your datasets!
 
 - NeuroJSON prefers **BIDS-compliant data**
-- Convert datasets to JSON using:
-  - [`neuroj`](https://github.com/NeuroJSON/neuroj)
-  - [`tutorial video - convert data`](https://neurojson.io/about)
+- Convert datasets to JSON using [`NeuroJSON Client(neuroj)`](https://github.com/NeuroJSON/neuroj):
+  - Install Docker (skip this step if you already have it): [Get Docker](https://docs.docker.com/get-docker/)
+  - Download neuroj via docker:
+    ```
+    docker pull openjdata/neuroj:v2025
+    ```
+  - Example (convert a single dataset to JSON via neuroj):
+    ```
+    docker run openjdata/neuroj:v2025 neuroj -i /path/to/database/rootfolder -o /path/to/output/json/folder -db openneuro -ds ds000001 --convert
+    ```
+  - See the full list of available [NeuroJSON Client commands](https://hub.docker.com/r/openjdata/neuroj)
+  - Watch our [`tutorial video - convert data`](https://neurojson.io/about)
 
 ### Steps to contribute
 
-1. Convert your dataset to JSON
-2. Validate metadata
-3. [Open a ticket](https://github.com/NeuroJSON/registry) to upload your dataset
+1. Download NeuroJSON Client (neuroj)
+2. Convert your dataset to JSON
+3. Validate metadata
+4. [Open a ticket](https://github.com/NeuroJSON/registry) to upload your dataset
 
 Contributions ensure **long-term public availability and reusability**.
 
