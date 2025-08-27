@@ -23,8 +23,9 @@ export const formatLeafValue = (v: any): string => {
 };
 
 // ignore meta keys
-export const shouldSkipKey = (key: string) =>
-  key === "_id" || key === "_rev" || key.startsWith(".");
+// export const shouldSkipKey = (key: string) =>
+//   key === "_id" || key === "_rev" || key.startsWith(".");
+export const shouldSkipKey = (_key: string) => false;
 
 // build path -> {url, index} lookup, built from extractDataLinks function
 // if external link objects have {path, url, index}, build a Map for the tree
@@ -39,37 +40,92 @@ export const makeLinkMap = <
 };
 
 // Recursively convert the dataset JSON to a file-tree
+// export const buildTreeFromDoc = (
+//   doc: any,
+//   linkMap: Map<string, LinkMeta>,
+//   curPath = ""
+// ): TreeNode[] => {
+//   if (!doc || typeof doc !== "object") return [];
+//   const out: TreeNode[] = [];
+
+//   Object.keys(doc).forEach((key) => {
+//     if (shouldSkipKey(key)) return;
+
+//     const val = doc[key];
+//     const path = `${curPath}/${key}`;
+//     const link = linkMap.get(path);
+
+//     if (link) {
+//       out.push({ kind: "file", name: key, path, link });
+//       return;
+//     }
+
+//     if (val && typeof val === "object" && !Array.isArray(val)) {
+//       out.push({
+//         kind: "folder",
+//         name: key,
+//         path,
+//         children: buildTreeFromDoc(val, linkMap, path),
+//       });
+//       return;
+//     }
+
+//     out.push({ kind: "file", name: key, path, value: val });
+//   });
+
+//   return out;
+// };
 export const buildTreeFromDoc = (
   doc: any,
   linkMap: Map<string, LinkMeta>,
   curPath = ""
 ): TreeNode[] => {
-  if (!doc || typeof doc !== "object") return [];
+  if (doc === null || typeof doc !== "object") return [];
+
   const out: TreeNode[] = [];
 
-  Object.keys(doc).forEach((key) => {
-    if (shouldSkipKey(key)) return;
+  if (Array.isArray(doc)) {
+    doc.forEach((item, i) => {
+      const path = `${curPath}/[${i}]`;
+      const linkHere = linkMap.get(path) || linkMap.get(`${path}/_DataLink_`);
 
+      if (item && typeof item === "object") {
+        out.push({
+          kind: "folder",
+          name: `[${i}]`,
+          path,
+          link: linkHere,
+          children: buildTreeFromDoc(item, linkMap, path),
+        });
+      } else {
+        out.push({
+          kind: "file",
+          name: `[${i}]`,
+          path,
+          link: linkHere,
+          value: item,
+        });
+      }
+    });
+    return out;
+  }
+
+  Object.keys(doc).forEach((key) => {
     const val = doc[key];
     const path = `${curPath}/${key}`;
-    const link = linkMap.get(path);
+    const linkHere = linkMap.get(path) || linkMap.get(`${path}/_DataLink_`);
 
-    if (link) {
-      out.push({ kind: "file", name: key, path, link });
-      return;
-    }
-
-    if (val && typeof val === "object" && !Array.isArray(val)) {
+    if (val && typeof val === "object") {
       out.push({
         kind: "folder",
         name: key,
         path,
+        link: linkHere,
         children: buildTreeFromDoc(val, linkMap, path),
       });
-      return;
+    } else {
+      out.push({ kind: "file", name: key, path, link: linkHere, value: val });
     }
-
-    out.push({ kind: "file", name: key, path, value: val });
   });
 
   return out;

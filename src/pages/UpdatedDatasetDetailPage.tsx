@@ -180,38 +180,43 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   );
 
   // 2) keep current subjects-only split, return subject objects list
-  const subjectsOnly = useMemo(() => {
-    const out: any = {};
-    if (!datasetDocument) return out;
-    Object.keys(datasetDocument).forEach((k) => {
-      if (/^sub-/i.test(k)) out[k] = (datasetDocument as any)[k];
-    });
-    return out;
-  }, [datasetDocument]);
+  //   const subjectsOnly = useMemo(() => {
+  //     const out: any = {};
+  //     if (!datasetDocument) return out;
+  //     Object.keys(datasetDocument).forEach((k) => {
+  //       if (/^sub-/i.test(k)) out[k] = (datasetDocument as any)[k];
+  //     });
+  //     return out;
+  //   }, [datasetDocument]);
 
   // 3) link maps
-  const subjectLinks = useMemo(
-    () => externalLinks.filter((l) => /^\/sub-/i.test(l.path)),
-    [externalLinks]
-  );
-  const subjectLinkMap = useMemo(
-    () => makeLinkMap(subjectLinks),
-    [subjectLinks]
-  );
+  //   const subjectLinks = useMemo(
+  //     () => externalLinks.filter((l) => /^\/sub-/i.test(l.path)),
+  //     [externalLinks]
+  //   );
+  //   const subjectLinkMap = useMemo(
+  //     () => makeLinkMap(subjectLinks),
+  //     [subjectLinks]
+  //   );
+  const linkMap = useMemo(() => makeLinkMap(externalLinks), [externalLinks]);
 
   // 4) build a folder/file tree with a fallback to the WHOLE doc when no subjects exist
+  //   const treeData = useMemo(
+  //     () =>
+  //       hasTopLevelSubjects
+  //         ? buildTreeFromDoc(subjectsOnly, subjectLinkMap)
+  //         : buildTreeFromDoc(datasetDocument || {}, makeLinkMap(externalLinks)),
+  //     [
+  //       hasTopLevelSubjects,
+  //       subjectsOnly,
+  //       subjectLinkMap,
+  //       datasetDocument,
+  //       externalLinks,
+  //     ]
+  //   );
   const treeData = useMemo(
-    () =>
-      hasTopLevelSubjects
-        ? buildTreeFromDoc(subjectsOnly, subjectLinkMap)
-        : buildTreeFromDoc(datasetDocument || {}, makeLinkMap(externalLinks)),
-    [
-      hasTopLevelSubjects,
-      subjectsOnly,
-      subjectLinkMap,
-      datasetDocument,
-      externalLinks,
-    ]
+    () => buildTreeFromDoc(datasetDocument || {}, linkMap, ""),
+    [datasetDocument, linkMap]
   );
 
   // “rest” JSON only when we actually have subjects
@@ -233,17 +238,26 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   );
 
   // 5) header title + counts also fall back
-  const treeTitle = hasTopLevelSubjects ? "Subjects" : "Files";
-
-  const { filesCount, totalBytes } = useMemo(() => {
-    const group = hasTopLevelSubjects ? subjectLinks : externalLinks;
+  //   const treeTitle = hasTopLevelSubjects ? "Subjects" : "Files";
+  const treeTitle = "Files";
+  const filesCount = externalLinks.length;
+  const totalBytes = useMemo(() => {
     let bytes = 0;
-    for (const l of group) {
+    for (const l of externalLinks) {
       const m = l.url.match(/size=(\d+)/);
       if (m) bytes += parseInt(m[1], 10);
     }
-    return { filesCount: group.length, totalBytes: bytes };
-  }, [hasTopLevelSubjects, subjectLinks, externalLinks]);
+    return bytes;
+  }, [externalLinks]);
+  //   const { filesCount, totalBytes } = useMemo(() => {
+  //     const group = hasTopLevelSubjects ? subjectLinks : externalLinks;
+  //     let bytes = 0;
+  //     for (const l of group) {
+  //       const m = l.url.match(/size=(\d+)/);
+  //       if (m) bytes += parseInt(m[1], 10);
+  //     }
+  //     return { filesCount: group.length, totalBytes: bytes };
+  //   }, [hasTopLevelSubjects, subjectLinks, externalLinks]);
 
   // add spinner
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -1160,7 +1174,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               {hasTopLevelSubjects && (
                 <Box sx={{ flex: 1, minHeight: 240, overflow: "hidden" }}>
                   <FileTree
-                    title="Subjects"
+                    title={treeTitle}
                     tree={treeData} // this is already built from subjectsOnly when hasTopLevelSubjects === true
                     filesCount={filesCount}
                     totalBytes={totalBytes}
