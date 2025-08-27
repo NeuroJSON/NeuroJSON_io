@@ -56,6 +56,7 @@ const FileTreeRow: React.FC<Props> = ({ node, level, onPreview }) => {
   //     );
   //   }
   if (node.kind === "folder") {
+    const isSubject = /^sub-/i.test(node.name); // subject folders only
     return (
       <>
         <Box
@@ -71,11 +72,18 @@ const FileTreeRow: React.FC<Props> = ({ node, level, onPreview }) => {
           onClick={() => setOpen((o) => !o)}
         >
           <Box sx={{ pl: level * 1.25 }}>
-            <FolderIcon fontSize="small" sx={{ color: Colors.darkPurple }} />
+            <FolderIcon
+              fontSize="small"
+              sx={{ color: isSubject ? Colors.purple : Colors.darkPurple }}
+            />
           </Box>
 
           <Typography
-            sx={{ fontWeight: 600, flex: 1, color: Colors.darkPurple }}
+            sx={{
+              fontWeight: 600,
+              flex: 1,
+              color: isSubject ? Colors.purple : Colors.darkPurple,
+            }}
           >
             {node.name}
           </Typography>
