@@ -56,7 +56,8 @@ const FileTreeRow: React.FC<Props> = ({ node, level, onPreview }) => {
   //     );
   //   }
   if (node.kind === "folder") {
-    const isSubject = /^sub-/i.test(node.name); // subject folders only
+    // const isSubject = /^sub-/i.test(node.name); // subject folders only
+    const isJson = /\.json$/i.test(node.name); // end with .json only
     return (
       <>
         <Box
@@ -74,15 +75,17 @@ const FileTreeRow: React.FC<Props> = ({ node, level, onPreview }) => {
           <Box sx={{ pl: level * 1.25 }}>
             <FolderIcon
               fontSize="small"
-              sx={{ color: isSubject ? Colors.purple : Colors.darkPurple }}
+              sx={{
+                color: isJson ? Colors.orange : Colors.darkPurple,
+              }}
             />
           </Box>
 
           <Typography
             sx={{
-              fontWeight: 600,
+              //   fontWeight: 600,
               flex: 1,
-              color: isSubject ? Colors.purple : Colors.darkPurple,
+              color: Colors.darkPurple,
             }}
           >
             {node.name}
@@ -149,7 +152,7 @@ const FileTreeRow: React.FC<Props> = ({ node, level, onPreview }) => {
         <Typography
           title={node.name}
           sx={{
-            fontWeight: 500,
+            // fontWeight: 500,
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
