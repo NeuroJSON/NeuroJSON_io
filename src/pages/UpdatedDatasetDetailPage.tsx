@@ -1170,20 +1170,19 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 overflow: "hidden",
               }}
             >
-              {/* 1) SUBJECTS FILE BROWSER */}
-              {hasTopLevelSubjects && (
-                <Box sx={{ flex: 1, minHeight: 240, overflow: "hidden" }}>
-                  <FileTree
-                    title={treeTitle}
-                    tree={treeData} // this is already built from subjectsOnly when hasTopLevelSubjects === true
-                    filesCount={filesCount}
-                    totalBytes={totalBytes}
-                    onPreview={(url, index) => handlePreview(url, index, false)}
-                  />
-                </Box>
-              )}
+              {/* folder structure */}
 
-              {/* 2) EVERYTHING ELSE AS JSON */}
+              <Box sx={{ flex: 1, minHeight: 240, overflow: "hidden" }}>
+                <FileTree
+                  title={treeTitle}
+                  tree={treeData} // this is already built from subjectsOnly when hasTopLevelSubjects === true
+                  filesCount={filesCount}
+                  totalBytes={totalBytes}
+                  onPreview={(url, index) => handlePreview(url, index, false)}
+                />
+              </Box>
+
+              {/* JSON */}
               <Box
                 sx={{
                   flex: 1,
@@ -1195,6 +1194,22 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                   p: 1,
                 }}
               >
+                <Box
+                  sx={{
+                    px: 2,
+                    py: 1.5,
+                    borderBottom: "1px solid #eee",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Typography sx={{ fontWeight: 700, flex: 1 }}>
+                    Raw data
+                  </Typography>
+                </Box>
+
                 <ReactJson
                   //   src={rest || {}}
                   src={jsonPanelData}

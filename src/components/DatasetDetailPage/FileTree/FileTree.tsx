@@ -49,11 +49,11 @@ const FileTree: React.FC<Props> = ({
         flexShrink: 0,
       }}
     >
-      <FolderIcon />
+      {/* <FolderIcon /> */}
       <Typography sx={{ fontWeight: 700, flex: 1 }}>{title}</Typography>
-      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+      {/* <Typography variant="body2" sx={{ color: "text.secondary" }}>
         Files: {filesCount} &nbsp; Size: {formatSize(totalBytes)}
-      </Typography>
+      </Typography> */}
     </Box>
 
     <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", py: 0.5 }}>

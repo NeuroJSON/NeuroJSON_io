@@ -88,11 +88,18 @@ export const buildTreeFromDoc = (
     doc.forEach((item, i) => {
       const path = `${curPath}/[${i}]`;
       const linkHere = linkMap.get(path) || linkMap.get(`${path}/_DataLink_`);
+      // For primitive items, show "1: value" in the *name*
+      const isPrimitive =
+        item === null || ["string", "number", "boolean"].includes(typeof item);
+      const label = isPrimitive
+        ? `${i + 1}: ${formatLeafValue(item)}`
+        : String(i + 1); // objects/arrays just show "1", "2", ...
 
-      if (item && typeof item === "object") {
+      if (item && typeof item === "object" && !isPrimitive) {
         out.push({
           kind: "folder",
-          name: `[${i}]`,
+          //   name: `[${i}]`,
+          name: label,
           path,
           link: linkHere,
           children: buildTreeFromDoc(item, linkMap, path),
@@ -100,10 +107,11 @@ export const buildTreeFromDoc = (
       } else {
         out.push({
           kind: "file",
-          name: `[${i}]`,
+          //   name: `[${i}]`,
+          name: label,
           path,
           link: linkHere,
-          value: item,
+          //   value: item,
         });
       }
     });

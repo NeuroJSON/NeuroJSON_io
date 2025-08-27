@@ -8,6 +8,7 @@ import FolderIcon from "@mui/icons-material/Folder";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { Box, Button, Collapse, Typography } from "@mui/material";
+import { Colors } from "design/theme";
 import React from "react";
 
 type Props = {
@@ -70,10 +71,14 @@ const FileTreeRow: React.FC<Props> = ({ node, level, onPreview }) => {
           onClick={() => setOpen((o) => !o)}
         >
           <Box sx={{ pl: level * 1.25 }}>
-            <FolderIcon fontSize="small" />
+            <FolderIcon fontSize="small" sx={{ color: Colors.darkPurple }} />
           </Box>
 
-          <Typography sx={{ fontWeight: 600, flex: 1 }}>{node.name}</Typography>
+          <Typography
+            sx={{ fontWeight: 600, flex: 1, color: Colors.darkPurple }}
+          >
+            {node.name}
+          </Typography>
 
           {/* ✅ Actions on folder if it carries a link (from linkHere) */}
           {node.link?.url && (
@@ -86,6 +91,7 @@ const FileTreeRow: React.FC<Props> = ({ node, level, onPreview }) => {
                 variant="text"
                 startIcon={<DownloadIcon fontSize="small" />}
                 onClick={() => window.open(node.link!.url, "_blank")}
+                sx={{ color: Colors.purple }}
               >
                 Download
               </Button>
@@ -95,6 +101,7 @@ const FileTreeRow: React.FC<Props> = ({ node, level, onPreview }) => {
                   variant="text"
                   startIcon={<VisibilityIcon fontSize="small" />}
                   onClick={() => onPreview(node.link!.url, node.link!.index)}
+                  sx={{ color: Colors.purple }}
                 >
                   Preview
                 </Button>
@@ -124,7 +131,10 @@ const FileTreeRow: React.FC<Props> = ({ node, level, onPreview }) => {
       sx={{ display: "flex", alignItems: "flex-start", gap: 1, py: 0.5, px: 1 }}
     >
       <Box sx={{ pl: level * 1.25, pt: "2px" }}>
-        <InsertDriveFileIcon fontSize="small" />
+        <InsertDriveFileIcon
+          fontSize="small"
+          sx={{ color: Colors.darkGreen }}
+        />
       </Box>
 
       <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
