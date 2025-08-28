@@ -27,7 +27,7 @@ export const formatLeafValue = (v: any): string => {
 //   key === "_id" || key === "_rev" || key.startsWith(".");
 export const shouldSkipKey = (_key: string) => false;
 
-// build path -> {url, index} lookup, built from extractDataLinks function
+// build path -> {url, index} lookup, built from extractDataLinks function (return { name, size, path, url, index })
 // if external link objects have {path, url, index}, build a Map for the tree
 export const makeLinkMap = <
   T extends { path: string; url: string; index: number }

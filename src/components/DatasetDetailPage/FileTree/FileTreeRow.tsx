@@ -123,6 +123,7 @@ const FileTreeRow: React.FC<Props> = ({ node, level, onPreview }) => {
           {open ? <ExpandLess /> : <ExpandMore />}
         </Box>
 
+        {/*timeout controls the duration of the expand/collapse animation*/}
         <Collapse in={open} timeout="auto" unmountOnExit>
           {node.children.map((child) => (
             <FileTreeRow
@@ -136,7 +137,7 @@ const FileTreeRow: React.FC<Props> = ({ node, level, onPreview }) => {
       </>
     );
   }
-
+  // if the node is a file
   return (
     <Box
       sx={{ display: "flex", alignItems: "flex-start", gap: 1, py: 0.5, px: 1 }}

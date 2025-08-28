@@ -1,3 +1,4 @@
+//renders the header (title, counts, total size) and the scrollable area.
 import FileTreeRow from "./FileTreeRow";
 import type { TreeNode } from "./types";
 import FolderIcon from "@mui/icons-material/Folder";
@@ -58,7 +59,7 @@ const FileTree: React.FC<Props> = ({
 
     <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", py: 0.5 }}>
       {tree.map((n) => (
-        <FileTreeRow key={n.path} node={n} level={0} onPreview={onPreview} />
+        <FileTreeRow key={n.path} node={n} level={0} onPreview={onPreview} /> // pass the handlePreview(onPreview = handlePreview) function to FileTreeRow
       ))}
     </Box>
   </Box>

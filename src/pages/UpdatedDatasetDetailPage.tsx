@@ -1175,10 +1175,11 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               <Box sx={{ flex: 1, minHeight: 240, overflow: "hidden" }}>
                 <FileTree
                   title={treeTitle}
-                  tree={treeData} // this is already built from subjectsOnly when hasTopLevelSubjects === true
+                  tree={treeData}
                   filesCount={filesCount}
                   totalBytes={totalBytes}
-                  onPreview={(url, index) => handlePreview(url, index, false)}
+                  //   onPreview={(url, index) => handlePreview(url, index, false)}
+                  onPreview={handlePreview} // pass the function down to FileTree
                 />
               </Box>
 
