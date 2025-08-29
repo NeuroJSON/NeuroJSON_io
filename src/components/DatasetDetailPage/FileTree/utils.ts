@@ -91,9 +91,7 @@ export const buildTreeFromDoc = (
       // For primitive items, show "1: value" in the *name*
       const isPrimitive =
         item === null || ["string", "number", "boolean"].includes(typeof item);
-      const label = isPrimitive
-        ? `${i + 1}: ${formatLeafValue(item)}`
-        : String(i + 1); // objects/arrays just show "1", "2", ...
+      const label = isPrimitive ? `${i}: ${formatLeafValue(item)}` : String(i); // objects/arrays just show "1", "2", ...
 
       if (item && typeof item === "object" && !isPrimitive) {
         out.push({

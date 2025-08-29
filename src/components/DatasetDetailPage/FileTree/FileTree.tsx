@@ -10,7 +10,12 @@ type Props = {
   tree: TreeNode[];
   filesCount: number;
   totalBytes: number;
-  onPreview: (url: string, index: number) => void;
+  // for preview in tree row
+  // onPreview: (url: string, index: number) => void;
+  onPreview: (src: string | any, index: number, isInternal?: boolean) => void; // ← type it
+  getInternalByPath?: (
+    path: string
+  ) => { data: any; index: number } | undefined;
 };
 
 const formatSize = (n: number) => {
@@ -27,6 +32,7 @@ const FileTree: React.FC<Props> = ({
   filesCount,
   totalBytes,
   onPreview,
+  getInternalByPath,
 }) => (
   <Box
     sx={{
@@ -59,7 +65,13 @@ const FileTree: React.FC<Props> = ({
 
     <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", py: 0.5 }}>
       {tree.map((n) => (
-        <FileTreeRow key={n.path} node={n} level={0} onPreview={onPreview} /> // pass the handlePreview(onPreview = handlePreview) function to FileTreeRow
+        <FileTreeRow
+          key={n.path}
+          node={n}
+          level={0}
+          onPreview={onPreview}
+          getInternalByPath={getInternalByPath}
+        /> // pass the handlePreview(onPreview = handlePreview) function to FileTreeRow
       ))}
     </Box>
   </Box>

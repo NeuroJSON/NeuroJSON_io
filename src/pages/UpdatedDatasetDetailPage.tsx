@@ -55,6 +55,7 @@ interface InternalDataLink {
   data: any;
   index: number;
   arraySize?: number[];
+  path: string; // for preview in tree row
 }
 
 // const transformJsonForDisplay = (obj: any): any => {
@@ -331,64 +332,172 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     const internalLinks: InternalDataLink[] = [];
 
     if (obj && typeof obj === "object") {
+      // JMesh (MeshNode + MeshSurf/Elem)
       if (
         obj.hasOwnProperty("MeshNode") &&
-        (obj.hasOwnProperty("MeshSurf") || obj.hasOwnProperty("MeshElem"))
+        (obj.hasOwnProperty("MeshSurf") || obj.hasOwnProperty("MeshElem")) &&
+        typeof obj.MeshNode?._ArrayZipData_ === "string"
       ) {
-        if (
-          obj.MeshNode.hasOwnProperty("_ArrayZipData_") &&
-          typeof obj.MeshNode["_ArrayZipData_"] === "string"
-        ) {
-          internalLinks.push({
-            name: `JMesh`,
-            data: obj,
-            index: internalLinks.length, // maybe can be remove
-            arraySize: obj.MeshNode._ArraySize_,
-          });
-        }
-      } else if (obj.hasOwnProperty("NIFTIData")) {
-        if (
-          obj.NIFTIData.hasOwnProperty("_ArrayZipData_") &&
-          typeof obj.NIFTIData["_ArrayZipData_"] === "string"
-        ) {
-          internalLinks.push({
-            name: `JNIfTI`,
-            data: obj,
-            index: internalLinks.length, //maybe can be remove
-            arraySize: obj.NIFTIData._ArraySize_,
-          });
-        }
-      } else if (
+        internalLinks.push({
+          name: "JMesh",
+          data: obj,
+          index: internalLinks.length,
+          arraySize: obj.MeshNode._ArraySize_,
+          path, // <-- add path
+        });
+      }
+      // JNIfTI
+      else if (
+        obj.hasOwnProperty("NIFTIData") &&
+        typeof obj.NIFTIData?._ArrayZipData_ === "string"
+      ) {
+        internalLinks.push({
+          name: "JNIfTI",
+          data: obj,
+          index: internalLinks.length,
+          arraySize: obj.NIFTIData._ArraySize_,
+          path, // <-- add path
+        });
+      }
+      // Generic JData
+      else if (
         obj.hasOwnProperty("_ArraySize_") &&
-        !path.match("_EnumValue_$")
+        !/_EnumValue_$/.test(path) &&
+        typeof obj["_ArrayZipData_"] === "string"
       ) {
-        if (
-          obj.hasOwnProperty("_ArrayZipData_") &&
-          typeof obj["_ArrayZipData_"] === "string"
-        ) {
-          internalLinks.push({
-            name: `JData`,
-            data: obj,
-            index: internalLinks.length, // maybe can be remove
-            arraySize: obj._ArraySize_,
-          });
-        }
+        internalLinks.push({
+          name: "JData",
+          data: obj,
+          index: internalLinks.length,
+          arraySize: obj._ArraySize_,
+          path, // <-- add path
+        });
       } else {
+        // Recurse with slash-separated path to match buildTreeFromDoc
         Object.keys(obj).forEach((key) => {
           if (typeof obj[key] === "object") {
             internalLinks.push(
-              ...extractInternalData(
-                obj[key],
-                `${path}.${key.replace(/\./g, "\\.")}`
-              )
+              ...extractInternalData(obj[key], `${path}/${key}`)
             );
           }
         });
       }
     }
 
+    console.log("test==========", internalLinks);
     return internalLinks;
   };
+
+  //   const extractInternalData = (obj: any, path = ""): InternalDataLink[] => {
+  //     // const internalLinks: InternalDataLink[] = [];
+  //     // for preview in tree row
+  //     const res: InternalDataLink[] = [];
+  //     const push = (
+  //       name: string,
+  //       dataObj: any,
+  //       p: string,
+  //       arraySize?: number[]
+  //     ) => {
+  //       res.push({ name, data: dataObj, index: res.length, arraySize, path: p });
+  //     };
+
+  //     if (!obj || typeof obj !== "object") return res;
+  //     if (obj && typeof obj === "object") {
+  //       // JMesh (MeshNode + MeshSurf/Elem)
+  //       if (
+  //         obj.hasOwnProperty("MeshNode") &&
+  //         (obj.hasOwnProperty("MeshSurf") || obj.hasOwnProperty("MeshElem")) &&
+  //         typeof obj.MeshNode?._ArrayZipData_ === "string"
+  //       ) {
+  //         push("JMesh", obj, `${path}/MeshNode`, obj.MeshNode._ArraySize_);
+  //       }
+  //       // JNIfTI
+  //       else if (
+  //         obj.hasOwnProperty("NIFTIData") &&
+  //         typeof obj.NIFTIData?._ArrayZipData_ === "string"
+  //       ) {
+  //         push("JNIfTI", obj, `${path}/NIFTIData`, obj.NIFTIData._ArraySize_);
+  //       }
+  //       // Generic JData
+  //       else if (
+  //         obj.hasOwnProperty("_ArrayZipData_") &&
+  //         typeof obj._ArrayZipData_ === "string" &&
+  //         !/_EnumValue_$/.test(path)
+  //       ) {
+  //         push("JData", obj, path, obj._ArraySize_);
+  //       }
+
+  //       // Recurse into children
+  //       Object.keys(obj).forEach((key) => {
+  //         const v = obj[key];
+  //         if (v && typeof v === "object") {
+  //           // IMPORTANT: use "/" to match buildTreeFromDoc paths
+  //           res.push(...extractInternalData(v, `${path}/${key}`));
+  //         }
+  //       });
+  //     }
+
+  //     return res;
+
+  //     // if (obj && typeof obj === "object") {
+  //     //   if (
+  //     //     obj.hasOwnProperty("MeshNode") &&
+  //     //     (obj.hasOwnProperty("MeshSurf") || obj.hasOwnProperty("MeshElem"))
+  //     //   ) {
+  //     //     if (
+  //     //       obj.MeshNode.hasOwnProperty("_ArrayZipData_") &&
+  //     //       typeof obj.MeshNode["_ArrayZipData_"] === "string"
+  //     //     ) {
+  //     //       internalLinks.push({
+  //     //         name: `JMesh`,
+  //     //         data: obj,
+  //     //         index: internalLinks.length, // maybe can be remove
+  //     //         arraySize: obj.MeshNode._ArraySize_,
+  //     //       });
+  //     //     }
+  //     //   } else if (obj.hasOwnProperty("NIFTIData")) {
+  //     //     if (
+  //     //       obj.NIFTIData.hasOwnProperty("_ArrayZipData_") &&
+  //     //       typeof obj.NIFTIData["_ArrayZipData_"] === "string"
+  //     //     ) {
+  //     //       internalLinks.push({
+  //     //         name: `JNIfTI`,
+  //     //         data: obj,
+  //     //         index: internalLinks.length, //maybe can be remove
+  //     //         arraySize: obj.NIFTIData._ArraySize_,
+  //     //       });
+  //     //     }
+  //     //   } else if (
+  //     //     obj.hasOwnProperty("_ArraySize_") &&
+  //     //     !path.match("_EnumValue_$")
+  //     //   ) {
+  //     //     if (
+  //     //       obj.hasOwnProperty("_ArrayZipData_") &&
+  //     //       typeof obj["_ArrayZipData_"] === "string"
+  //     //     ) {
+  //     //       internalLinks.push({
+  //     //         name: `JData`,
+  //     //         data: obj,
+  //     //         index: internalLinks.length, // maybe can be remove
+  //     //         arraySize: obj._ArraySize_,
+  //     //       });
+  //     //     }
+  //     //   } else {
+  //     //     Object.keys(obj).forEach((key) => {
+  //     //       if (typeof obj[key] === "object") {
+  //     //         internalLinks.push(
+  //     //           ...extractInternalData(
+  //     //             obj[key],
+  //     //             `${path}.${key.replace(/\./g, "\\.")}`
+  //     //           )
+  //     //         );
+  //     //       }
+  //     //     });
+  //     //   }
+  //     // }
+
+  //     // return internalLinks;
+  //   };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -749,6 +858,20 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       }
     }
   };
+
+  // for preview in tree row
+
+  const internalMap = React.useMemo(() => {
+    const m = new Map<string, { data: any; index: number }>();
+    for (const it of internalLinks)
+      m.set(it.path, { data: it.data, index: it.index });
+    return m;
+  }, [internalLinks]);
+
+  const getInternalByPath = React.useCallback(
+    (path: string) => internalMap.get(path),
+    [internalMap]
+  );
 
   const handleClosePreview = () => {
     console.log("🛑 Closing preview modal.");
@@ -1179,7 +1302,13 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                   filesCount={filesCount}
                   totalBytes={totalBytes}
                   //   onPreview={(url, index) => handlePreview(url, index, false)}
-                  onPreview={handlePreview} // pass the function down to FileTree
+                  //   onPreview={handlePreview} // pass the function down to FileTree
+                  onPreview={(
+                    src: string | any,
+                    index: number,
+                    isInternal?: boolean
+                  ) => handlePreview(src, index, !!isInternal)}
+                  getInternalByPath={getInternalByPath}
                 />
               </Box>
 
