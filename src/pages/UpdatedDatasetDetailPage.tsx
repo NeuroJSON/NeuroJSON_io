@@ -1,13 +1,10 @@
 import PreviewModal from "../components/PreviewModal";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import DescriptionIcon from "@mui/icons-material/Description";
-import DownloadIcon from "@mui/icons-material/Download";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import FolderIcon from "@mui/icons-material/Folder";
 import HomeIcon from "@mui/icons-material/Home";
-// import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-// import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Box,
   Typography,
@@ -15,16 +12,10 @@ import {
   Backdrop,
   Alert,
   Button,
-  Card,
-  CardContent,
   Collapse,
 } from "@mui/material";
 // new import
 import FileTree from "components/DatasetDetailPage/FileTree/FileTree";
-import type {
-  TreeNode,
-  LinkMeta,
-} from "components/DatasetDetailPage/FileTree/types";
 import {
   buildTreeFromDoc,
   makeLinkMap,
@@ -231,8 +222,8 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   }, [datasetDocument, hasTopLevelSubjects]);
 
   // JSON panel should always render:
-  // - if we have subjects -> show "rest" (everything except sub-*)
-  // - if we don't have subjects -> show the whole document
+  // - if we have subjects -> JSON show "rest" (everything except sub-*)
+  // - if we don't have subjects -> JSON show the whole document
   const jsonPanelData = useMemo(
     () => (hasTopLevelSubjects ? rest : datasetDocument || {}),
     [hasTopLevelSubjects, rest, datasetDocument]
@@ -262,7 +253,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
 
   // add spinner
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [readyPreviewData, setReadyPreviewData] = useState<any>(null);
 
   const formatSize = (sizeInBytes: number): string => {
     if (sizeInBytes < 1024) {
@@ -317,7 +307,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     };
 
     traverse(obj, path);
-    // return links;
     const seenUrls = new Set<string>();
     const uniqueLinks = links.filter((link) => {
       if (seenUrls.has(link.url)) return false;
@@ -332,50 +321,64 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     const internalLinks: InternalDataLink[] = [];
 
     if (obj && typeof obj === "object") {
-      // JMesh (MeshNode + MeshSurf/Elem)
+      // Handle arrays so paths match the tree (/[0], /[1], …)
+      if (Array.isArray(obj)) {
+        obj.forEach((item, i) => {
+          internalLinks.push(...extractInternalData(item, `${path}/[${i}]`));
+        });
+        return internalLinks;
+      }
+
       if (
         obj.hasOwnProperty("MeshNode") &&
-        (obj.hasOwnProperty("MeshSurf") || obj.hasOwnProperty("MeshElem")) &&
-        typeof obj.MeshNode?._ArrayZipData_ === "string"
+        (obj.hasOwnProperty("MeshSurf") || obj.hasOwnProperty("MeshElem"))
       ) {
-        internalLinks.push({
-          name: "JMesh",
-          data: obj,
-          index: internalLinks.length,
-          arraySize: obj.MeshNode._ArraySize_,
-          path, // <-- add path
-        });
-      }
-      // JNIfTI
-      else if (
-        obj.hasOwnProperty("NIFTIData") &&
-        typeof obj.NIFTIData?._ArrayZipData_ === "string"
-      ) {
-        internalLinks.push({
-          name: "JNIfTI",
-          data: obj,
-          index: internalLinks.length,
-          arraySize: obj.NIFTIData._ArraySize_,
-          path, // <-- add path
-        });
-      }
-      // Generic JData
-      else if (
+        if (
+          obj.MeshNode?.hasOwnProperty("_ArrayZipData_") &&
+          typeof obj.MeshNode["_ArrayZipData_"] === "string"
+        ) {
+          console.log("path", path);
+          internalLinks.push({
+            name: "JMesh",
+            data: obj,
+            index: internalLinks.length,
+            arraySize: obj.MeshNode._ArraySize_,
+            path: `${path}/MeshNode`, // attach to the MeshNode row in the tree
+          });
+        }
+      } else if (obj.hasOwnProperty("NIFTIData")) {
+        if (
+          obj.NIFTIData?.hasOwnProperty("_ArrayZipData_") &&
+          typeof obj.NIFTIData["_ArrayZipData_"] === "string"
+        ) {
+          internalLinks.push({
+            name: "JNIfTI",
+            data: obj,
+            index: internalLinks.length,
+            arraySize: obj.NIFTIData._ArraySize_,
+            path: `${path}/NIFTIData`, // attach to the NIFTIData row
+          });
+        }
+      } else if (
         obj.hasOwnProperty("_ArraySize_") &&
-        !/_EnumValue_$/.test(path) &&
-        typeof obj["_ArrayZipData_"] === "string"
+        !/_EnumValue_$/.test(path)
       ) {
-        internalLinks.push({
-          name: "JData",
-          data: obj,
-          index: internalLinks.length,
-          arraySize: obj._ArraySize_,
-          path, // <-- add path
-        });
+        if (
+          obj.hasOwnProperty("_ArrayZipData_") &&
+          typeof obj["_ArrayZipData_"] === "string"
+        ) {
+          internalLinks.push({
+            name: "JData",
+            data: obj,
+            index: internalLinks.length,
+            arraySize: obj._ArraySize_,
+            path, // attach to the current node
+          });
+        }
       } else {
-        // Recurse with slash-separated path to match buildTreeFromDoc
         Object.keys(obj).forEach((key) => {
           if (typeof obj[key] === "object") {
+            // use slash paths to match buildTreeFromDoc
             internalLinks.push(
               ...extractInternalData(obj[key], `${path}/${key}`)
             );
@@ -384,120 +387,8 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       }
     }
 
-    console.log("test==========", internalLinks);
     return internalLinks;
   };
-
-  //   const extractInternalData = (obj: any, path = ""): InternalDataLink[] => {
-  //     // const internalLinks: InternalDataLink[] = [];
-  //     // for preview in tree row
-  //     const res: InternalDataLink[] = [];
-  //     const push = (
-  //       name: string,
-  //       dataObj: any,
-  //       p: string,
-  //       arraySize?: number[]
-  //     ) => {
-  //       res.push({ name, data: dataObj, index: res.length, arraySize, path: p });
-  //     };
-
-  //     if (!obj || typeof obj !== "object") return res;
-  //     if (obj && typeof obj === "object") {
-  //       // JMesh (MeshNode + MeshSurf/Elem)
-  //       if (
-  //         obj.hasOwnProperty("MeshNode") &&
-  //         (obj.hasOwnProperty("MeshSurf") || obj.hasOwnProperty("MeshElem")) &&
-  //         typeof obj.MeshNode?._ArrayZipData_ === "string"
-  //       ) {
-  //         push("JMesh", obj, `${path}/MeshNode`, obj.MeshNode._ArraySize_);
-  //       }
-  //       // JNIfTI
-  //       else if (
-  //         obj.hasOwnProperty("NIFTIData") &&
-  //         typeof obj.NIFTIData?._ArrayZipData_ === "string"
-  //       ) {
-  //         push("JNIfTI", obj, `${path}/NIFTIData`, obj.NIFTIData._ArraySize_);
-  //       }
-  //       // Generic JData
-  //       else if (
-  //         obj.hasOwnProperty("_ArrayZipData_") &&
-  //         typeof obj._ArrayZipData_ === "string" &&
-  //         !/_EnumValue_$/.test(path)
-  //       ) {
-  //         push("JData", obj, path, obj._ArraySize_);
-  //       }
-
-  //       // Recurse into children
-  //       Object.keys(obj).forEach((key) => {
-  //         const v = obj[key];
-  //         if (v && typeof v === "object") {
-  //           // IMPORTANT: use "/" to match buildTreeFromDoc paths
-  //           res.push(...extractInternalData(v, `${path}/${key}`));
-  //         }
-  //       });
-  //     }
-
-  //     return res;
-
-  //     // if (obj && typeof obj === "object") {
-  //     //   if (
-  //     //     obj.hasOwnProperty("MeshNode") &&
-  //     //     (obj.hasOwnProperty("MeshSurf") || obj.hasOwnProperty("MeshElem"))
-  //     //   ) {
-  //     //     if (
-  //     //       obj.MeshNode.hasOwnProperty("_ArrayZipData_") &&
-  //     //       typeof obj.MeshNode["_ArrayZipData_"] === "string"
-  //     //     ) {
-  //     //       internalLinks.push({
-  //     //         name: `JMesh`,
-  //     //         data: obj,
-  //     //         index: internalLinks.length, // maybe can be remove
-  //     //         arraySize: obj.MeshNode._ArraySize_,
-  //     //       });
-  //     //     }
-  //     //   } else if (obj.hasOwnProperty("NIFTIData")) {
-  //     //     if (
-  //     //       obj.NIFTIData.hasOwnProperty("_ArrayZipData_") &&
-  //     //       typeof obj.NIFTIData["_ArrayZipData_"] === "string"
-  //     //     ) {
-  //     //       internalLinks.push({
-  //     //         name: `JNIfTI`,
-  //     //         data: obj,
-  //     //         index: internalLinks.length, //maybe can be remove
-  //     //         arraySize: obj.NIFTIData._ArraySize_,
-  //     //       });
-  //     //     }
-  //     //   } else if (
-  //     //     obj.hasOwnProperty("_ArraySize_") &&
-  //     //     !path.match("_EnumValue_$")
-  //     //   ) {
-  //     //     if (
-  //     //       obj.hasOwnProperty("_ArrayZipData_") &&
-  //     //       typeof obj["_ArrayZipData_"] === "string"
-  //     //     ) {
-  //     //       internalLinks.push({
-  //     //         name: `JData`,
-  //     //         data: obj,
-  //     //         index: internalLinks.length, // maybe can be remove
-  //     //         arraySize: obj._ArraySize_,
-  //     //       });
-  //     //     }
-  //     //   } else {
-  //     //     Object.keys(obj).forEach((key) => {
-  //     //       if (typeof obj[key] === "object") {
-  //     //         internalLinks.push(
-  //     //           ...extractInternalData(
-  //     //             obj[key],
-  //     //             `${path}.${key.replace(/\./g, "\\.")}`
-  //     //           )
-  //     //         );
-  //     //       }
-  //     //     });
-  //     //   }
-  //     // }
-
-  //     // return internalLinks;
-  //   };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -528,8 +419,8 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         })
       );
 
-      console.log(" Extracted external links:", links);
-      console.log(" Extracted internal data:", internalData);
+      //   console.log(" Extracted external links:", links);
+      //   console.log(" Extracted internal data:", internalData);
 
       setExternalLinks(links);
       setInternalLinks(internalData);
@@ -548,7 +439,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
 
       let totalSize = 0;
 
-      // 1️⃣ Sum external link sizes (from URL like ...?size=12345678)
+      // 1. Sum external link sizes (from URL like ...?size=12345678)
       links.forEach((link) => {
         const sizeMatch = link.url.match(/size=(\d+)/);
         if (sizeMatch) {
@@ -556,7 +447,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         }
       });
 
-      // 2️⃣ Estimate internal size from _ArraySize_ (assume Float32 = 4 bytes)
+      // 2. Estimate internal size from _ArraySize_ (assume Float32 = 4 bytes)
       internalData.forEach((link) => {
         if (link.arraySize && Array.isArray(link.arraySize)) {
           const count = link.arraySize.reduce((acc, val) => acc * val, 1);
@@ -564,37 +455,17 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         }
       });
 
-      // setTotalFileSize(totalSize);
-
-      // const minifiedBlob = new Blob([JSON.stringify(datasetDocument)], {
-      //   type: "application/json",
-      // });
-      // setJsonSize(minifiedBlob.size);
-
       const blob = new Blob([JSON.stringify(datasetDocument, null, 2)], {
         type: "application/json",
       });
       setJsonSize(blob.size);
 
-      // // ✅ Construct download script dynamically
+      //  Construct download script dynamically
       let script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"\n`;
 
       links.forEach((link) => {
         const url = link.url;
-        // console.log("url", url);
         const match = url.match(/file=([^&]+)/);
-        // console.log("match", match);
-        // console.log("match[1]", match?.[1]);
-        // try {
-        //   const decoded = match?.[1] ? decodeURIComponent(match[1]) : "N/A";
-        //   console.log("decode", decoded);
-        // } catch (err) {
-        //   console.warn("⚠️ Failed to decode match[1]:", match?.[1], err);
-        // }
-
-        // const filename = match
-        //   ? decodeURIComponent(match[1])
-        //   : `file-${link.index}`;
 
         const filename = match
           ? (() => {
@@ -605,14 +476,13 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               }
             })()
           : `file-${link.index}`;
-        // console.log("filename", filename);
 
         const outputPath = `$HOME/.neurojson/io/${dbName}/${docId}/${filename}`;
 
         script += `curl -L --create-dirs "${url}" -o "${outputPath}"\n`;
       });
       setDownloadScript(script);
-      // ✅ Calculate and set script size
+      // Calculate and set script size
       const scriptBlob = new Blob([script], { type: "text/plain" });
       setDownloadScriptSize(scriptBlob.size);
     }
@@ -693,27 +563,16 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     setPreviewDataKey(dataOrUrl);
     setPreviewIsInternal(isInternal);
 
-    // setPreviewOpen(false);     // IMPORTANT: Keep modal closed for now
-
-    // This callback will be triggered by the legacy script when data is ready
-    // (window as any).__onPreviewReady = (decodedData: any) => {
-    //   console.log("✅ Data is ready! Opening modal.");
-    //   setReadyPreviewData(decodedData); // Store the final data for the modal
-    //   setIsPreviewLoading(false);      // Hide the spinner
-    //   setPreviewOpen(true);            // NOW it's time to open the modal
-    // };
-
     const is2DPreviewCandidate = (obj: any): boolean => {
       if (typeof window !== "undefined" && (window as any).__previewType) {
-        // console.log("preview type: 2d");
         return (window as any).__previewType === "2d";
       }
       // if (window.__previewType) {
       //   console.log("work~~~~~~~");
       //   return window.__previewType === "2d";
       // }
-      console.log("is 2d preview candidate !== 2d");
-      console.log("obj", obj);
+      //   console.log("is 2d preview candidate !== 2d");
+      //   console.log("obj", obj);
       // if (typeof obj === "string" && obj.includes("db=optics-at-martinos")) {
       //   return false;
       // }
@@ -723,14 +582,13 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       if (!obj || typeof obj !== "object") {
         return false;
       }
-      console.log("=======after first condition");
+
       if (!obj._ArrayType_ || !obj._ArraySize_ || !obj._ArrayZipData_) {
-        console.log("inside second condition");
         return false;
       }
       const dim = obj._ArraySize_;
-      console.log("array.isarray(dim)", Array.isArray(dim));
-      console.log("dim.length", dim.length === 1 || dim.length === 2);
+      //   console.log("array.isarray(dim)", Array.isArray(dim));
+      //   console.log("dim.length", dim.length === 1 || dim.length === 2);
 
       return (
         Array.isArray(dim) &&
@@ -753,7 +611,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
 
     const extractFileName = (url: string): string => {
       const match = url.match(/file=([^&]+)/);
-      // return match ? decodeURIComponent(match[1]) : url;
       if (match) {
         // Strip any trailing query parameters
         const raw = decodeURIComponent(match[1]);
@@ -771,32 +628,12 @@ const UpdatedDatasetDetailPage: React.FC = () => {
 
     const fileName =
       typeof dataOrUrl === "string" ? extractFileName(dataOrUrl) : "";
-    console.log("🔍 Extracted fileName:", fileName);
+    // console.log("🔍 Extracted fileName:", fileName);
 
     const isPreviewableFile = (fileName: string): boolean => {
       return /\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(fileName);
     };
-    console.log("🧪 isPreviewableFile:", isPreviewableFile(fileName));
-
-    // test for add spinner
-    // if (isInternal) {
-    //   if (is2DPreviewCandidate(dataOrUrl)) {
-    //     // inline 2D
-    //     window.dopreview(dataOrUrl, idx, true);
-    //   } else {
-    //     // 3D
-    //     window.previewdata(dataOrUrl, idx, true, []);
-    //   }
-    // } else {
-    //   // external
-    //   window.previewdataurl(dataOrUrl, idx);
-    // }
-
-    // for test so command out the below
-    // setPreviewIndex(idx);
-    // setPreviewDataKey(dataOrUrl);
-    // setPreviewIsInternal(isInternal);
-    // setPreviewOpen(true);
+    // console.log("🧪 isPreviewableFile:", isPreviewableFile(fileName));
 
     if (isInternal) {
       try {
@@ -814,47 +651,34 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           console.log("📊 2D data → rendering inline with dopreview()");
           (window as any).dopreview(dataOrUrl, idx, true);
           const panel = document.getElementById("chartpanel");
-          if (panel) panel.style.display = "block"; // 🔓 Show it!
-          setPreviewOpen(false); // ⛔ Don't open modal
-          // setPreviewLoading(false); // stop spinner
+          if (panel) panel.style.display = "block"; // Show it!
+          setPreviewOpen(false); // Don't open modal
         } else {
-          console.log("🎬 3D data → rendering in modal");
+          //   console.log("🎬 3D data → rendering in modal");
           (window as any).previewdata(dataOrUrl, idx, true, []);
-          // add spinner
-          // setPreviewDataKey(dataOrUrl);
-          // setPreviewOpen(true);
-          // setPreviewIsInternal(true);
         }
       } catch (err) {
         console.error("❌ Error in internal preview:", err);
-        // setPreviewLoading(false); // add spinner
       }
     } else {
-      // external
-      // if (/\.(nii\.gz|jdt|jdb|bmsh|jmsh|bnii)$/i.test(dataOrUrl)) {
       const fileName =
         typeof dataOrUrl === "string" ? extractFileName(dataOrUrl) : "";
       if (isPreviewableFile(fileName)) {
         (window as any).previewdataurl(dataOrUrl, idx);
         const is2D = is2DPreviewCandidate(dataOrUrl);
         const panel = document.getElementById("chartpanel");
-        console.log("is2D", is2D);
-        console.log("panel", panel);
+        // console.log("is2D", is2D);
+        // console.log("panel", panel);
 
         if (is2D) {
-          console.log("📊 2D data → rendering inline with dopreview()");
-          if (panel) panel.style.display = "block"; // 🔓 Show it!
-          setPreviewOpen(false); // ⛔ Don't open modal
+          //   console.log("📊 2D data → rendering inline with dopreview()");
+          if (panel) panel.style.display = "block"; // Show it!
+          setPreviewOpen(false); // Don't open modal
         } else {
-          if (panel) panel.style.display = "none"; // 🔒 Hide chart panel on 3D external
+          if (panel) panel.style.display = "none"; // Hide chart panel on 3D external
         }
-        //add spinner
-        // setPreviewDataKey(dataOrUrl);
-        // setPreviewOpen(true);
-        // setPreviewIsInternal(false);
       } else {
         console.warn("⚠️ Unsupported file format for preview:", dataOrUrl);
-        // setPreviewLoading(false); // add spinner
       }
     }
   };
@@ -868,13 +692,9 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     return m;
   }, [internalLinks]);
 
-  const getInternalByPath = React.useCallback(
-    (path: string) => internalMap.get(path),
-    [internalMap]
-  );
+  const getInternalByPath = (path: string) => internalMap.get(path);
 
   const handleClosePreview = () => {
-    console.log("🛑 Closing preview modal.");
     setPreviewOpen(false);
     setPreviewDataKey(null);
 
@@ -1019,30 +839,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
 
   return (
     <>
-      {/* 🔧 Inline CSS for string formatting */}
-      {/* <style>
-        {`
-		code.puretext {
-		white-space: pre-wrap;
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 4;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		font-family: monospace;
-		color: #d14;
-		font-size: 14px;
-		background-color: transparent;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	code.puretext:hover, code.puretext:focus {
-		-webkit-line-clamp: unset;
-		overflow: visible;
-		background-color: #f0f0f0;
-	}`}
-      </style> */}
       <Box sx={{ padding: 4 }}>
         <Button
           variant="text"
@@ -1071,7 +867,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             borderRadius: "8px",
           }}
         >
-          {/* ✅ Dataset Title (From dataset_description.json) */}
+          {/* Dataset Title (From dataset_description.json) */}
           <Typography
             variant="h4"
             color={Colors.darkPurple}
@@ -1081,7 +877,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               `Dataset: ${docId}`}
           </Typography>
 
-          {/* ✅ Dataset Author (If Exists) */}
+          {/* Dataset Author (If Exists) */}
           {datasetDocument?.["dataset_description.json"]?.Authors && (
             <Typography
               variant="h6"
@@ -1095,7 +891,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             </Typography>
           )}
 
-          {/* ✅ Breadcrumb Navigation (🏠 Home → Database → Dataset) */}
+          {/* Breadcrumb Navigation (Home → Database → Dataset) */}
           <Box
             sx={{
               display: "flex",
@@ -1103,7 +899,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               marginBottom: 2,
             }}
           >
-            {/* 🏠 Home Icon Button */}
+            {/* Home Icon Button */}
             <Button
               onClick={() => navigate("/")}
               sx={{
@@ -1187,8 +983,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 "&:hover": { backgroundColor: Colors.secondaryPurple },
               }}
             >
-              {/* Download Dataset (1 Mb) */}
-              {/* Download Dataset ({(jsonSize / 1024).toFixed(0)} MB) */}
               Download Matadata ({formatSize(jsonSize)})
             </Button>
 
@@ -1204,7 +998,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             >
               {/* Script to Download All Files ({downloadScript.length} Bytes) */}
               Script to Download All Files ({formatSize(downloadScriptSize)})
-              {/* (links: {externalLinks.length}) */}
               {externalLinks.length > 0 &&
                 ` (links: ${externalLinks.length}, total: ${formatSize(
                   totalFileSize
@@ -1301,13 +1094,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                   tree={treeData}
                   filesCount={filesCount}
                   totalBytes={totalBytes}
-                  //   onPreview={(url, index) => handlePreview(url, index, false)}
-                  //   onPreview={handlePreview} // pass the function down to FileTree
-                  onPreview={(
-                    src: string | any,
-                    index: number,
-                    isInternal?: boolean
-                  ) => handlePreview(src, index, !!isInternal)}
+                  onPreview={handlePreview} // pass the function down to FileTree
                   getInternalByPath={getInternalByPath}
                 />
               </Box>
@@ -1393,7 +1180,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 // overflowY: "auto",
               }}
             >
-              {/* ✅ Collapsible header */}
+              {/* Collapsible header */}
               <Box
                 sx={{
                   display: "flex",
@@ -1410,7 +1197,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               </Box>
 
               <Collapse in={isInternalExpanded}>
-                {/* ✅ Scrollable area */}
+                {/* Scrollable area */}
                 <Box
                   sx={{
                     maxHeight: "400px",
@@ -1498,7 +1285,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 // overflowY: "auto",
               }}
             >
-              {/* ✅ Header with toggle */}
+              {/* Header with toggle */}
               <Box
                 sx={{
                   display: "flex",

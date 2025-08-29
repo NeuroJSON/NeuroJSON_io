@@ -11,11 +11,8 @@ type Props = {
   filesCount: number;
   totalBytes: number;
   // for preview in tree row
-  // onPreview: (url: string, index: number) => void;
-  onPreview: (src: string | any, index: number, isInternal?: boolean) => void; // ← type it
-  getInternalByPath?: (
-    path: string
-  ) => { data: any; index: number } | undefined;
+  onPreview: (src: string | any, index: number, isInternal?: boolean) => void;
+  getInternalByPath: (path: string) => { data: any; index: number } | undefined;
 };
 
 const formatSize = (n: number) => {

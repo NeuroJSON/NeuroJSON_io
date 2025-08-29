@@ -14,12 +14,10 @@ import React from "react";
 type Props = {
   node: TreeNode;
   level: number;
-  //   onPreview: (url: string, index: number) => void;
-  // for preview in the tree row
+
+  // src is either an external URL(string) or the internal object
   onPreview: (src: string | any, index: number, isInternal?: boolean) => void;
-  getInternalByPath?: (
-    path: string
-  ) => { data: any; index: number } | undefined;
+  getInternalByPath: (path: string) => { data: any; index: number } | undefined;
 };
 
 const FileTreeRow: React.FC<Props> = ({
@@ -29,7 +27,9 @@ const FileTreeRow: React.FC<Props> = ({
   getInternalByPath,
 }) => {
   const [open, setOpen] = React.useState(false);
-  const internal = getInternalByPath?.(node.path); // 👈 resolve by path
+  //   const internal = getInternalByPath?.(node.path);
+  // const internal = getInternalByPath ? getInternalByPath(node.path) : undefined;
+  const internal = getInternalByPath(node.path);
   const externalUrl = node.link?.url;
 
   //   if (node.kind === "folder") {
@@ -129,6 +129,24 @@ const FileTreeRow: React.FC<Props> = ({
                   Preview
                 </Button>
               )}
+            </Box>
+          )}
+
+          {/* internal preview action for folders */}
+          {internal && (
+            <Box
+              sx={{ display: "flex", gap: 1, mr: 0.5, flexShrink: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button
+                size="small"
+                variant="text"
+                startIcon={<VisibilityIcon fontSize="small" />}
+                onClick={() => onPreview(internal.data, internal.index, true)}
+                sx={{ color: Colors.purple }}
+              >
+                Preview
+              </Button>
             </Box>
           )}
 
