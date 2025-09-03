@@ -364,7 +364,7 @@ const DatasetDetailPage: React.FC = () => {
       // });
       // setJsonSize(minifiedBlob.size);
 
-      const blob = new Blob([JSON.stringify(datasetDocument, null, 2)], {
+      const blob = new Blob([JSON.stringify(datasetDocument)], {
         type: "application/json",
       });
       setJsonSize(blob.size);

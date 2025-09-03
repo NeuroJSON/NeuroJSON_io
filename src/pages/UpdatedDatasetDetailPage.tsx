@@ -403,7 +403,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   useEffect(() => {
     if (datasetDocument) {
       // Extract External Data & Assign `index`
-      console.log("datasetDocument", datasetDocument);
+      //   console.log("datasetDocument", datasetDocument);
       const links = extractDataLinks(datasetDocument, "").map(
         (link, index) => ({
           ...link,
@@ -828,7 +828,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       </Box>
     );
   }
-  console.log("datasetDocument", datasetDocument);
+  //   console.log("datasetDocument", datasetDocument);
   const onekey = datasetDocument
     ? datasetDocument.hasOwnProperty("README")
       ? "README"
