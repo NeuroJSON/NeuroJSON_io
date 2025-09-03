@@ -13,6 +13,7 @@ type Props = {
   // for preview in tree row
   onPreview: (src: string | any, index: number, isInternal?: boolean) => void;
   getInternalByPath: (path: string) => { data: any; index: number } | undefined;
+  getJsonByPath?: (path: string) => any;
 };
 
 const formatSize = (n: number) => {
@@ -30,6 +31,7 @@ const FileTree: React.FC<Props> = ({
   totalBytes,
   onPreview,
   getInternalByPath,
+  getJsonByPath,
 }) => (
   <Box
     sx={{
@@ -68,6 +70,7 @@ const FileTree: React.FC<Props> = ({
           level={0}
           onPreview={onPreview}
           getInternalByPath={getInternalByPath}
+          getJsonByPath={getJsonByPath}
         /> // pass the handlePreview(onPreview = handlePreview) function to FileTreeRow
       ))}
     </Box>

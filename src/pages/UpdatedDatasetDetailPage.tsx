@@ -694,6 +694,29 @@ const UpdatedDatasetDetailPage: React.FC = () => {
 
   const getInternalByPath = (path: string) => internalMap.get(path);
 
+  // returns the subtree/primitive at that path—returning the whole document if the path is empty, or undefined if any step is invalid.
+  const getJsonByPath = React.useCallback(
+    (path: string) => {
+      if (!datasetDocument) return undefined;
+      if (!path) return datasetDocument; // root
+
+      const parts = path.split("/").filter(Boolean); // "/a/b/[0]/c" → ["a","b","[0]","c"]
+      let cur: any = datasetDocument;
+      for (const p of parts) {
+        if (/^\[\d+\]$/.test(p)) {
+          const idx = parseInt(p.slice(1, -1), 10);
+          if (!Array.isArray(cur)) return undefined;
+          cur = cur[idx];
+        } else {
+          if (cur == null || typeof cur !== "object") return undefined;
+          cur = cur[p];
+        }
+      }
+      return cur;
+    },
+    [datasetDocument]
+  );
+
   const handleClosePreview = () => {
     setPreviewOpen(false);
     setPreviewDataKey(null);
@@ -1096,6 +1119,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                   totalBytes={totalBytes}
                   onPreview={handlePreview} // pass the function down to FileTree
                   getInternalByPath={getInternalByPath}
+                  getJsonByPath={getJsonByPath}
                 />
               </Box>
 
