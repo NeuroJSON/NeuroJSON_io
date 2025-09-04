@@ -14,10 +14,10 @@ import { Tooltip, IconButton } from "@mui/material";
 import { Colors } from "design/theme";
 import React, { useState } from "react";
 
-// FileTreeRow.tsx (top of file, below imports)
+// show more / show less button for long string
 const LeafString: React.FC<{ value: string }> = ({ value }) => {
   const LIMIT = 120;
-  const [expanded, setExpanded] = React.useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const isLong = value.length > LIMIT;
   const display = expanded
@@ -45,7 +45,7 @@ const LeafString: React.FC<{ value: string }> = ({ value }) => {
           // collapsed: clamp to 2 lines; expanded: fully wrap
           display: expanded ? "block" : "-webkit-box",
           WebkitBoxOrient: "vertical",
-          WebkitLineClamp: expanded ? ("unset" as any) : 2,
+          WebkitLineClamp: expanded ? ("unset" as any) : 1,
           whiteSpace: expanded ? "pre-wrap" : "normal",
           overflow: expanded ? "visible" : "hidden",
           textOverflow: expanded ? "unset" : "ellipsis",
@@ -63,7 +63,11 @@ const LeafString: React.FC<{ value: string }> = ({ value }) => {
             e.stopPropagation(); // don’t toggle the row
             setExpanded((v) => !v);
           }}
-          sx={{ px: 0.5, minWidth: "auto" }}
+          sx={{
+            px: 0.5,
+            minWidth: "auto",
+            color: Colors.purple,
+          }}
         >
           {expanded ? "Show less" : "Show more"}
         </Button>
@@ -110,7 +114,6 @@ const FileTreeRow: React.FC<Props> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showFull, setShowFull] = useState(false);
   //   const internal = getInternalByPath?.(node.path);
   // const internal = getInternalByPath ? getInternalByPath(node.path) : undefined;
   const internal = getInternalByPath(node.path);
@@ -154,7 +157,6 @@ const FileTreeRow: React.FC<Props> = ({
 
           <Typography
             sx={{
-              //   fontWeight: 600,
               flex: 1,
               color: Colors.darkPurple,
             }}
@@ -277,8 +279,6 @@ const FileTreeRow: React.FC<Props> = ({
               title={
                 node.name === "_ArrayZipData_"
                   ? "[compressed data]"
-                  : typeof node.value === "string"
-                  ? node.value
                   : JSON.stringify(node.value)
               }
               sx={{
