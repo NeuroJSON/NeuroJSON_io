@@ -232,6 +232,7 @@ function drawpreview(cfg) {
   }
   // for spinner
   // --- Signal React that 3D preview is ready ---
+  window.__previewType = "3d";
   if (typeof window.__onPreviewReady === "function") {
     window.__onPreviewReady();
   }
@@ -246,6 +247,7 @@ function previewdata(key, idx, isinternal, hastime) {
     isinternal,
     intdata: window.intdata,
   });
+  console.log("key in previewdata", key);
   if (!hasthreejs) {
     $.when(
       $.getScript("https://mcx.space/cloud/js/OrbitControls.js"),
@@ -255,9 +257,11 @@ function previewdata(key, idx, isinternal, hastime) {
     ).done(function () {
       hasthreejs = true;
       dopreview(key, idx, isinternal, hastime);
+      console.log("into the previewdata function if");
     });
   } else {
     dopreview(key, idx, isinternal, hastime);
+    console.log("into the previewdata function else");
   }
 }
 
@@ -281,8 +285,21 @@ function dopreview(key, idx, isinternal, hastime) {
       return;
     }
   } else {
+    // dataroot = key;
+    // console.log("into dopreview external data's dataroot", dataroot);
+
     if (window.extdata && window.extdata[idx] && window.extdata[idx][2]) {
-      dataroot = window.extdata[idx][2];
+      if (typeof key === "object") {
+        dataroot = key;
+        console.log("if key is object", typeof key);
+      } else {
+        dataroot = window.extdata[idx][2];
+        console.log("type of key", typeof key);
+      }
+
+      // dataroot = key;
+
+      console.log("into dopreview external data's dataroot", dataroot);
     } else {
       console.error("❌ External data not ready for index", idx);
       return;
@@ -302,7 +319,9 @@ function dopreview(key, idx, isinternal, hastime) {
       dataroot = window.extdata[idx][2];
     }
   } else if (dataroot instanceof nj.NdArray) {
+    console.log("dataroot before ndim", dataroot);
     ndim = dataroot.shape.length;
+    console.log("ndim", ndim);
   }
 
   if (ndim < 3 && ndim > 0) {
@@ -327,9 +346,16 @@ function dopreview(key, idx, isinternal, hastime) {
       '<h4>Data preview</h4><a href="javascript:void(0)" class="closebtn" onclick="$(\'#chartpanel\').hide()" title="Close">&times;</a><div id="plotchart"></div>'
     );
     if (dataroot instanceof nj.NdArray) {
+      console.log("dataroot", dataroot);
       if (dataroot.shape[0] > dataroot.shape[1])
         dataroot = dataroot.transpose();
+      console.log("is nj.NdArray:", dataroot instanceof nj.NdArray);
+      console.log("dtype:", dataroot.dtype);
+      console.log("shape:", dataroot.shape);
+      console.log("size:", dataroot.size);
+
       let plotdata = dataroot.tolist();
+      console.log("plotdata", plotdata);
       if (hastime.length == 0) {
         if (plotdata[0] instanceof Array)
           plotdata.unshift([...Array(plotdata[0].length).keys()]);
@@ -357,12 +383,14 @@ function dopreview(key, idx, isinternal, hastime) {
             : hastime[i];
       }
       let u = new uPlot(opts, plotdata, document.getElementById("plotchart"));
+      console.log("first u", u);
     } else {
       let u = new uPlot(
         opts,
         [[...Array(dataroot.length).keys()], dataroot],
         document.getElementById("plotchart")
       );
+      console.log("second u", u);
     }
     // add spinner
     // --- NEW LOGIC for 2D plot ---
@@ -375,6 +403,7 @@ function dopreview(key, idx, isinternal, hastime) {
 
     // for spinner
     // --- Signal React that 2D preview is ready ---
+    window.__previewType = "2d";
     if (typeof window.__onPreviewReady === "function") {
       window.__onPreviewReady();
     }
@@ -1700,14 +1729,52 @@ function previewdataurl(url, idx) {
     console.warn("⚠️ Unsupported file format for preview:", url);
     return;
   }
-  // disable cache
+  // cached
+  // if (urldata.hasOwnProperty(url)) {
+  //   if (
+  //     urldata[url] instanceof nj.NdArray ||
+  //     urldata[url].hasOwnProperty("MeshNode")
+  //   ) {
+  //     previewdata(urldata[url], idx, false);
+  //   }
+  //   return;
+  // }
+
   if (urldata.hasOwnProperty(url)) {
-    if (
-      urldata[url] instanceof nj.NdArray ||
-      urldata[url].hasOwnProperty("MeshNode")
-    ) {
-      previewdata(urldata[url], idx, false);
+    const cached = urldata[url];
+
+    //  fNIRS / time-series (cached)
+    if (cached?.data?.dataTimeSeries) {
+      let serieslabel = true;
+      if (cached.data.measurementList) {
+        serieslabel = Array(cached.data.measurementList.length)
+          .fill("")
+          .map(
+            (_, i) =>
+              "S" +
+              cached.data.measurementList[i].sourceIndex +
+              "D" +
+              cached.data.measurementList[i].detectorIndex
+          );
+      }
+
+      const plotData2D = nj.concatenate(
+        cached.data.time.reshape(cached.data.time.size, 1),
+        cached.data.dataTimeSeries
+      ).T;
+
+      previewdata(plotData2D, idx, false, serieslabel); //  triggers __onPreviewReady
+      return;
     }
+
+    //  Mesh/volume (cached)
+    if (cached instanceof nj.NdArray || cached?.MeshNode) {
+      previewdata(cached, idx, false); //  triggers __onPreviewReady
+      return;
+    }
+
+    //  Fallback: still try to preview whatever it is
+    previewdata(cached, idx, false);
     return;
   }
 
@@ -1782,6 +1849,7 @@ function previewdataurl(url, idx) {
     }
 
     var plotdata = bjd;
+    console.log("plotdata", plotdata);
 
     if (linkpath.length > 1 && !linkpath[1].match(/^Mesh[NSEVT]/)) {
       let objpath = linkpath[1].split(/(?<!\\)\./);
@@ -1855,6 +1923,7 @@ function previewdataurl(url, idx) {
       plotdata.hasOwnProperty("data") &&
       plotdata.data.hasOwnProperty("dataTimeSeries")
     ) {
+      console.log("into the datatimeseries condition");
       let serieslabel = true;
       if (plotdata.data.hasOwnProperty("measurementList")) {
         serieslabel = Array(plotdata.data.measurementList.length);
@@ -1866,6 +1935,8 @@ function previewdataurl(url, idx) {
             plotdata.data.measurementList[i].detectorIndex;
         }
       }
+      console.log("serieslabel in plotdata.hasownproperty", serieslabel);
+      console.log("plotdata 2nd", plotdata);
       previewdata(
         nj.concatenate(
           plotdata.data.time.reshape(plotdata.data.time.size, 1),
@@ -1886,6 +1957,40 @@ function previewdataurl(url, idx) {
       console.log("window.extdata in preview", window.extdata); //
     }
     window.extdata[idx][2] = plotdata;
+    // window.extdata[idx][2] = bjd;
+    // urldata[url] = bjd; // Update cache
+
+    // // Case 1: 2D Time-Series Data (fNIRS)
+    // if (
+    //   bjd.hasOwnProperty("data") &&
+    //   bjd.data.hasOwnProperty("dataTimeSeries")
+    // ) {
+    //   console.log("into the datatimeseries condition");
+    //   let serieslabel = true;
+    //   if (bjd.data.hasOwnProperty("measurementList")) {
+    //     serieslabel = Array(bjd.data.measurementList.length);
+    //     for (let i = 0; i < serieslabel.length; i++) {
+    //       serieslabel[i] =
+    //         "S" +
+    //         bjd.data.measurementList[i].sourceIndex +
+    //         "D" +
+    //         bjd.data.measurementList[i].detectorIndex;
+    //     }
+    //   }
+
+    //   // Prepare the specific numjs array needed for the 2D plot
+    //   const plotData2D = nj.concatenate(
+    //     bjd.data.time.reshape(bjd.data.time.size, 1),
+    //     bjd.data.dataTimeSeries
+    //   ).T;
+
+    //   // Trigger the preview with the 2D data
+    //   previewdata(plotData2D, idx, false, serieslabel);
+    // } else {
+    //   // Case 2: All Other Data (NIfTI, Mesh, etc.)
+    //   // Trigger the preview with the complete processed object.
+    //   previewdata(bjd, idx, false);
+    // }
 
     // ✅ Special case: time series preview
     if (plotdata?.data?.dataTimeSeries) {
