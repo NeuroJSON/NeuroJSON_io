@@ -12,7 +12,65 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { Box, Button, Collapse, Typography } from "@mui/material";
 import { Tooltip, IconButton } from "@mui/material";
 import { Colors } from "design/theme";
-import React from "react";
+import React, { useState } from "react";
+
+// FileTreeRow.tsx (top of file, below imports)
+const LeafString: React.FC<{ value: string }> = ({ value }) => {
+  const LIMIT = 120;
+  const [expanded, setExpanded] = React.useState(false);
+
+  const isLong = value.length > LIMIT;
+  const display = expanded
+    ? value
+    : isLong
+    ? value.slice(0, LIMIT) + "…"
+    : value;
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "baseline",
+        gap: 1,
+        mt: 0.25,
+        minWidth: 0,
+      }}
+    >
+      <Typography
+        sx={{
+          fontFamily: "monospace",
+          fontSize: "0.85rem",
+          color: "text.secondary",
+
+          // collapsed: clamp to 2 lines; expanded: fully wrap
+          display: expanded ? "block" : "-webkit-box",
+          WebkitBoxOrient: "vertical",
+          WebkitLineClamp: expanded ? ("unset" as any) : 2,
+          whiteSpace: expanded ? "pre-wrap" : "normal",
+          overflow: expanded ? "visible" : "hidden",
+          textOverflow: expanded ? "unset" : "ellipsis",
+          flex: 1,
+        }}
+      >
+        {display}
+      </Typography>
+
+      {isLong && (
+        <Button
+          size="small"
+          variant="text"
+          onClick={(e) => {
+            e.stopPropagation(); // don’t toggle the row
+            setExpanded((v) => !v);
+          }}
+          sx={{ px: 0.5, minWidth: "auto" }}
+        >
+          {expanded ? "Show less" : "Show more"}
+        </Button>
+      )}
+    </Box>
+  );
+};
 
 type Props = {
   node: TreeNode;
@@ -50,8 +108,9 @@ const FileTreeRow: React.FC<Props> = ({
   getInternalByPath,
   getJsonByPath,
 }) => {
-  const [open, setOpen] = React.useState(false);
-  const [copied, setCopied] = React.useState(false);
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showFull, setShowFull] = useState(false);
   //   const internal = getInternalByPath?.(node.path);
   // const internal = getInternalByPath ? getInternalByPath(node.path) : undefined;
   const internal = getInternalByPath(node.path);
@@ -69,14 +128,13 @@ const FileTreeRow: React.FC<Props> = ({
   };
 
   if (node.kind === "folder") {
-    // const isSubject = /^sub-/i.test(node.name); // subject folders only
     const isJson = /\.json$/i.test(node.name); // end with .json only
     return (
       <>
         <Box
           sx={{
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-start",
             gap: 1,
             py: 0.5,
             px: 1,
@@ -188,7 +246,9 @@ const FileTreeRow: React.FC<Props> = ({
   }
   // if the node is a file
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.5, px: 1 }}>
+    <Box
+      sx={{ display: "flex", alignItems: "flex-start", gap: 1, py: 0.5, px: 1 }}
+    >
       <Box sx={{ pl: level * 1.25, pt: "2px" }}>
         <InsertDriveFileIcon
           fontSize="small"
@@ -200,7 +260,6 @@ const FileTreeRow: React.FC<Props> = ({
         <Typography
           title={node.name}
           sx={{
-            // fontWeight: 500,
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -209,7 +268,36 @@ const FileTreeRow: React.FC<Props> = ({
           {node.name}
         </Typography>
 
-        {!node.link && node.value !== undefined && (
+        {!node.link &&
+          node.value !== undefined &&
+          (typeof node.value === "string" ? (
+            <LeafString value={node.value} />
+          ) : (
+            <Typography
+              title={
+                node.name === "_ArrayZipData_"
+                  ? "[compressed data]"
+                  : typeof node.value === "string"
+                  ? node.value
+                  : JSON.stringify(node.value)
+              }
+              sx={{
+                fontFamily: "monospace",
+                fontSize: "0.85rem",
+                color: "text.secondary",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                mt: 0.25,
+              }}
+            >
+              {node.name === "_ArrayZipData_"
+                ? "[compressed data]"
+                : formatLeafValue(node.value)}
+            </Typography>
+          ))}
+
+        {/* {!node.link && node.value !== undefined && (
           <Typography
             title={
               node.name === "_ArrayZipData_"
@@ -232,24 +320,26 @@ const FileTreeRow: React.FC<Props> = ({
               ? "[compressed data]"
               : formatLeafValue(node.value)}
           </Typography>
-        )}
+        )} */}
       </Box>
       {/* ALWAYS show copy for files, even when no external/internal */}
-      <Tooltip title={copied ? "Copied!" : "Copy JSON"} arrow>
-        <span>
-          <IconButton
-            size="small"
-            onClick={handleCopy}
-            disabled={!getJsonByPath} // optional safety
-          >
-            {copied ? (
-              <CheckIcon fontSize="inherit" />
-            ) : (
-              <ContentCopyIcon fontSize="inherit" />
-            )}
-          </IconButton>
-        </span>
-      </Tooltip>
+      <Box sx={{ alignSelf: "flex-start" }}>
+        <Tooltip title={copied ? "Copied!" : "Copy JSON"} arrow>
+          <span>
+            <IconButton
+              size="small"
+              onClick={handleCopy}
+              disabled={!getJsonByPath} // optional safety
+            >
+              {copied ? (
+                <CheckIcon fontSize="inherit" />
+              ) : (
+                <ContentCopyIcon fontSize="inherit" />
+              )}
+            </IconButton>
+          </span>
+        </Tooltip>
+      </Box>
       {/* Placeholder to align with folder chevron */}
       <Box sx={{ width: 28 }} />
       {(externalUrl || internal) && (

@@ -1124,7 +1124,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               </Box>
 
               {/* JSON */}
-              <Box
+              {/* <Box
                 sx={{
                   flex: 1,
                   minHeight: 240,
@@ -1161,18 +1161,8 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                   collapsed={1}
                   style={{ fontSize: "14px", fontFamily: "monospace" }}
                 />
-              </Box>
+              </Box> */}
             </Box>
-
-            {/* <ReactJson
-              src={transformedDataset || datasetDocument}
-              name={false}
-              enableClipboard={true}
-              displayDataTypes={false}
-              displayObjectSize={true}
-              collapsed={searchTerm.length >= 3 ? false : 1} // 🔍 Expand during search
-              style={{ fontSize: "14px", fontFamily: "monospace" }}
-            /> */}
           </Box>
 
           {/* Data panels (right panel) */}
