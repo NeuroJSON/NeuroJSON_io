@@ -2,8 +2,6 @@
 import type { TreeNode } from "./types";
 import { formatLeafValue, isPreviewable } from "./utils";
 import CheckIcon from "@mui/icons-material/Check";
-// for copy button
-// add to imports
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
 import ExpandLess from "@mui/icons-material/ExpandLess";
@@ -70,41 +68,6 @@ const FileTreeRow: React.FC<Props> = ({
     }
   };
 
-  //   if (node.kind === "folder") {
-  //     return (
-  //       <>
-  //         <Box
-  //           sx={{
-  //             display: "flex",
-  //             alignItems: "center",
-  //             gap: 1,
-  //             py: 0.5,
-  //             px: 1,
-  //             cursor: "pointer",
-  //             "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
-  //           }}
-  //           onClick={() => setOpen((o) => !o)}
-  //         >
-  //           <Box sx={{ pl: level * 1.25 }}>
-  //             <FolderIcon fontSize="small" />
-  //           </Box>
-  //           <Typography sx={{ fontWeight: 600, flex: 1 }}>{node.name}</Typography>
-  //           {open ? <ExpandLess /> : <ExpandMore />}
-  //         </Box>
-
-  //         <Collapse in={open} timeout="auto" unmountOnExit>
-  //           {node.children.map((child) => (
-  //             <FileTreeRow
-  //               key={child.path}
-  //               node={child}
-  //               level={level + 1}
-  //               onPreview={onPreview}
-  //             />
-  //           ))}
-  //         </Collapse>
-  //       </>
-  //     );
-  //   }
   if (node.kind === "folder") {
     // const isSubject = /^sub-/i.test(node.name); // subject folders only
     const isJson = /\.json$/i.test(node.name); // end with .json only
@@ -225,9 +188,7 @@ const FileTreeRow: React.FC<Props> = ({
   }
   // if the node is a file
   return (
-    <Box
-      sx={{ display: "flex", alignItems: "flex-start", gap: 1, py: 0.5, px: 1 }}
-    >
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.5, px: 1 }}>
       <Box sx={{ pl: level * 1.25, pt: "2px" }}>
         <InsertDriveFileIcon
           fontSize="small"
@@ -289,6 +250,8 @@ const FileTreeRow: React.FC<Props> = ({
           </IconButton>
         </span>
       </Tooltip>
+      {/* Placeholder to align with folder chevron */}
+      <Box sx={{ width: 28 }} />
       {(externalUrl || internal) && (
         <Box
           sx={{ display: "flex", gap: 1, flexShrink: 0 }}
@@ -331,27 +294,6 @@ const FileTreeRow: React.FC<Props> = ({
               Preview
             </Button>
           )}
-
-          {/* {node.link?.url && (
-        <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
-          <Button
-            size="small"
-            variant="text"
-            onClick={() => window.open(node.link!.url, "_blank")}
-            startIcon={<DownloadIcon fontSize="small" />}
-          >
-            Download
-          </Button>
-          {isPreviewable(node.link.url) && (
-            <Button
-              size="small"
-              variant="text"
-              startIcon={<VisibilityIcon fontSize="small" />}
-              onClick={() => onPreview(node.link!.url, node.link!.index)}
-            >
-              Preview
-            </Button>
-          )} */}
         </Box>
       )}
     </Box>
