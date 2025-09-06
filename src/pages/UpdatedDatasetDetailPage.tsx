@@ -29,7 +29,10 @@ import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect, useMemo, useState } from "react";
 import ReactJson from "react-json-view";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchDocumentDetails } from "redux/neurojson/neurojson.action";
+import {
+  fetchDocumentDetails,
+  fetchDbInfoByDatasetId,
+} from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
 import RoutesEnum from "types/routes.enum";
 
@@ -140,6 +143,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     selectedDocument: datasetDocument,
     loading,
     error,
+    datasetViewInfo: dbViewInfo,
   } = useAppSelector(NeurojsonSelector);
 
   const [externalLinks, setExternalLinks] = useState<ExternalDataLink[]>([]);
@@ -394,6 +398,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     const fetchData = async () => {
       if (dbName && docId) {
         await dispatch(fetchDocumentDetails({ dbName, docId }));
+        await dispatch(fetchDbInfoByDatasetId({ dbName, docId }));
       }
     };
 
@@ -401,9 +406,14 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   }, [dbName, docId, dispatch]);
 
   useEffect(() => {
+    if (dbViewInfo) {
+      console.log("yeeeeeeee", dbViewInfo);
+    }
+  });
+  useEffect(() => {
     if (datasetDocument) {
       // Extract External Data & Assign `index`
-      //   console.log("datasetDocument", datasetDocument);
+      console.log("datasetDocument", datasetDocument);
       const links = extractDataLinks(datasetDocument, "").map(
         (link, index) => ({
           ...link,
@@ -665,18 +675,18 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         typeof dataOrUrl === "string" ? extractFileName(dataOrUrl) : "";
       if (isPreviewableFile(fileName)) {
         (window as any).previewdataurl(dataOrUrl, idx);
-        const is2D = is2DPreviewCandidate(dataOrUrl);
-        const panel = document.getElementById("chartpanel");
+        // const is2D = is2DPreviewCandidate(dataOrUrl);
+        // const panel = document.getElementById("chartpanel");
         // console.log("is2D", is2D);
         // console.log("panel", panel);
 
-        if (is2D) {
-          //   console.log("📊 2D data → rendering inline with dopreview()");
-          if (panel) panel.style.display = "block"; // Show it!
-          setPreviewOpen(false); // Don't open modal
-        } else {
-          if (panel) panel.style.display = "none"; // Hide chart panel on 3D external
-        }
+        // if (is2D) {
+        //   //   console.log("📊 2D data → rendering inline with dopreview()");
+        //   if (panel) panel.style.display = "block"; // Show it!
+        //   setPreviewOpen(false); // Don't open modal
+        // } else {
+        //   if (panel) panel.style.display = "none"; // Hide chart panel on 3D external
+        // }
       } else {
         console.warn("⚠️ Unsupported file format for preview:", dataOrUrl);
       }
@@ -851,7 +861,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       </Box>
     );
   }
-  //   console.log("datasetDocument", datasetDocument);
+
   const onekey = datasetDocument
     ? datasetDocument.hasOwnProperty("README")
       ? "README"
@@ -1050,18 +1060,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           </Box>
         </Box>
 
-        <div
-          id="chartpanel"
-          style={{
-            display: "none",
-            marginTop: "16px",
-            background: "#555",
-            color: "#f5f5f5",
-            padding: "12px",
-            borderRadius: "8px",
-            position: "relative",
-          }}
-        ></div>
         <Box
           sx={{
             display: "flex",
@@ -1074,7 +1072,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             },
             height: {
               xs: "auto",
-              md: "960px", // fixed height container
+              md: "560px", // fixed height container
             },
           }}
         >
@@ -1122,46 +1120,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                   getJsonByPath={getJsonByPath}
                 />
               </Box>
-
-              {/* JSON */}
-              {/* <Box
-                sx={{
-                  flex: 1,
-                  minHeight: 240,
-                  backgroundColor: "#fff",
-                  borderRadius: 2,
-                  border: "1px solid #e0e0e0",
-                  overflow: "auto",
-                  p: 1,
-                }}
-              >
-                <Box
-                  sx={{
-                    px: 2,
-                    py: 1.5,
-                    borderBottom: "1px solid #eee",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    flexShrink: 0,
-                  }}
-                >
-                  <Typography sx={{ fontWeight: 700, flex: 1 }}>
-                    Raw data
-                  </Typography>
-                </Box>
-
-                <ReactJson
-                  //   src={rest || {}}
-                  src={jsonPanelData}
-                  name={false}
-                  enableClipboard
-                  displayDataTypes={false}
-                  displayObjectSize
-                  collapsed={1}
-                  style={{ fontSize: "14px", fontFamily: "monospace" }}
-                />
-              </Box> */}
             </Box>
           </Box>
 
@@ -1187,48 +1145,259 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           >
             <Box
               sx={{
-                backgroundColor: Colors.lightBlue,
+                backgroundColor: Colors.white,
                 padding: 2,
                 borderRadius: "8px",
                 flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: 1,
                 // overflowY: "auto",
               }}
             >
-              {/* Collapsible header */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  cursor: "pointer",
-                }}
-                onClick={() => setIsInternalExpanded(!isInternalExpanded)}
-              >
-                <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                  Internal Data ({internalLinks.length} objects)
+              <Box>
+                <Typography
+                  sx={{ color: Colors.darkPurple, fontWeight: "600" }}
+                >
+                  Modalities
                 </Typography>
-                {isInternalExpanded ? <ExpandLess /> : <ExpandMore />}
+                <Typography sx={{ color: "text.secondary" }}>
+                  {dbViewInfo?.rows?.[0]?.value?.modality?.join(", ") ?? "N/A"}
+                </Typography>
               </Box>
 
-              <Collapse in={isInternalExpanded}>
-                {/* Scrollable area */}
-                <Box
-                  sx={{
-                    maxHeight: "400px",
-                    overflowY: "auto",
-                    // marginTop: 2,
-                    paddingRight: 1,
-                    "&::-webkit-scrollbar": {
-                      width: "6px",
-                    },
-                    "&::-webkit-scrollbar-thumb": {
-                      backgroundColor: "#aaa",
-                      borderRadius: "4px",
-                    },
-                  }}
+              <Box>
+                <Typography
+                  sx={{ color: Colors.darkPurple, fontWeight: "600" }}
                 >
-                  {internalLinks.length > 0 ? (
-                    internalLinks.map((link, index) => (
+                  DOI
+                </Typography>
+                <Typography sx={{ color: "text.secondary" }}>
+                  {datasetDocument?.["dataset_description.json"]?.DatasetDOI ||
+                    datasetDocument?.["dataset_description.json"]
+                      ?.ReferenceDOI ||
+                    "N/A"}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography
+                  sx={{ color: Colors.darkPurple, fontWeight: "600" }}
+                >
+                  Subjects
+                </Typography>
+                <Typography sx={{ color: "text.secondary" }}>
+                  {datasetDocument?.["participants.tsv"]?.["participant_id"]
+                    ?.length ?? "N/A"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography
+                  sx={{ color: Colors.darkPurple, fontWeight: "600" }}
+                >
+                  License
+                </Typography>
+                <Typography sx={{ color: "text.secondary" }}>
+                  {datasetDocument?.["dataset_description.json"]?.License ??
+                    "N/A"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography
+                  sx={{ color: Colors.darkPurple, fontWeight: "600" }}
+                >
+                  BIDS Version
+                </Typography>
+                <Typography sx={{ color: "text.secondary" }}>
+                  {datasetDocument?.["dataset_description.json"]?.BIDSVersion ??
+                    "N/A"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography
+                  sx={{ color: Colors.darkPurple, fontWeight: "600" }}
+                >
+                  References and Links
+                </Typography>
+                <Typography sx={{ color: "text.secondary" }}>
+                  {Array.isArray(
+                    datasetDocument?.["dataset_description.json"]
+                      ?.ReferencesAndLinks
+                  )
+                    ? datasetDocument["dataset_description.json"]
+                        .ReferencesAndLinks.length > 0
+                      ? datasetDocument[
+                          "dataset_description.json"
+                        ].ReferencesAndLinks.join(", ")
+                      : "N/A"
+                    : datasetDocument?.["dataset_description.json"]
+                        ?.ReferencesAndLinks ?? "N/A"}
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            gap: 2,
+            marginTop: 2,
+          }}
+        >
+          <Box
+            sx={{
+              backgroundColor: Colors.lightBlue,
+              padding: 2,
+              borderRadius: "8px",
+              flex: 1,
+            }}
+          >
+            {/* Collapsible header */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                cursor: "pointer",
+              }}
+              onClick={() => setIsInternalExpanded(!isInternalExpanded)}
+            >
+              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                Internal Data ({internalLinks.length} objects)
+              </Typography>
+              {isInternalExpanded ? <ExpandLess /> : <ExpandMore />}
+            </Box>
+
+            <Collapse in={isInternalExpanded}>
+              {/* Scrollable area */}
+              <Box
+                sx={{
+                  maxHeight: "300px",
+                  overflowY: "auto",
+                  // marginTop: 2,
+                  paddingRight: 1,
+                  "&::-webkit-scrollbar": {
+                    width: "6px",
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    backgroundColor: "#aaa",
+                    borderRadius: "4px",
+                  },
+                }}
+              >
+                {internalLinks.length > 0 ? (
+                  internalLinks.map((link, index) => (
+                    <Box
+                      key={index}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "6px 10px",
+                        backgroundColor: "white",
+                        borderRadius: "4px",
+                        border: "1px solid #ddd",
+                        mt: 1,
+                        height: "34px",
+                        minWidth: 0,
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          flexGrow: 1,
+                          minWidth: 0,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          fontSize: "1rem",
+                          marginRight: "12px",
+                          maxWidth: "calc(100% - 160px)",
+                        }}
+                        title={link.name}
+                      >
+                        {link.name}{" "}
+                        {link.arraySize ? `[${link.arraySize.join("x")}]` : ""}
+                      </Typography>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        sx={{
+                          backgroundColor: "#1976d2",
+                          flexShrink: 0,
+                          minWidth: "70px",
+                          fontSize: "0.7rem",
+                          padding: "2px 6px",
+                          lineHeight: 1,
+                        }}
+                        onClick={() =>
+                          handlePreview(link.data, link.index, true)
+                        }
+                      >
+                        Preview
+                      </Button>
+                    </Box>
+                  ))
+                ) : (
+                  <Typography sx={{ fontStyle: "italic", mt: 1 }}>
+                    No internal data found.
+                  </Typography>
+                )}
+              </Box>
+            </Collapse>
+          </Box>
+          <Box
+            sx={{
+              backgroundColor: "#eaeaea",
+              padding: 2,
+              borderRadius: "8px",
+              flex: 1,
+              // overflowY: "auto",
+            }}
+          >
+            {/* Header with toggle */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                cursor: "pointer",
+              }}
+              onClick={() => setIsExternalExpanded(!isExternalExpanded)}
+            >
+              <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                External Data ({externalLinks.length} links)
+              </Typography>
+              {isExternalExpanded ? <ExpandLess /> : <ExpandMore />}
+            </Box>
+
+            <Collapse in={isExternalExpanded}>
+              {/* Scrollable card container */}
+              <Box
+                sx={{
+                  maxHeight: "300px",
+                  overflowY: "auto",
+                  // marginTop: 2,
+                  paddingRight: 1,
+                  "&::-webkit-scrollbar": {
+                    width: "6px",
+                  },
+                  "&::-webkit-scrollbar-thumb": {
+                    backgroundColor: "#ccc",
+                    borderRadius: "4px",
+                  },
+                }}
+              >
+                {externalLinks.length > 0 ? (
+                  externalLinks.map((link, index) => {
+                    const match = link.url.match(/file=([^&]+)/);
+                    const fileName = match ? match[1] : "";
+                    const isPreviewable =
+                      /\.(nii(\.gz)?|bnii|jdt|jdb|jmsh|bmsh)$/i.test(fileName);
+
+                    return (
                       <Box
                         key={index}
                         sx={{
@@ -1248,177 +1417,76 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                         <Typography
                           sx={{
                             flexGrow: 1,
-                            minWidth: 0,
                             whiteSpace: "nowrap",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
+                            minWidth: 0,
                             fontSize: "1rem",
                             marginRight: "12px",
                             maxWidth: "calc(100% - 160px)",
                           }}
                           title={link.name}
                         >
-                          {link.name}{" "}
-                          {link.arraySize
-                            ? `[${link.arraySize.join("x")}]`
-                            : ""}
+                          {link.name}
                         </Typography>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          sx={{
-                            backgroundColor: "#1976d2",
-                            flexShrink: 0,
-                            minWidth: "70px",
-                            fontSize: "0.7rem",
-                            padding: "2px 6px",
-                            lineHeight: 1,
-                          }}
-                          onClick={() =>
-                            handlePreview(link.data, link.index, true)
-                          }
-                        >
-                          Preview
-                        </Button>
-                      </Box>
-                    ))
-                  ) : (
-                    <Typography sx={{ fontStyle: "italic", mt: 1 }}>
-                      No internal data found.
-                    </Typography>
-                  )}
-                </Box>
-              </Collapse>
-            </Box>
-            <Box
-              sx={{
-                backgroundColor: "#eaeaea",
-                padding: 2,
-                borderRadius: "8px",
-                flex: 1,
-                // overflowY: "auto",
-              }}
-            >
-              {/* Header with toggle */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  cursor: "pointer",
-                }}
-                onClick={() => setIsExternalExpanded(!isExternalExpanded)}
-              >
-                <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                  External Data ({externalLinks.length} links)
-                </Typography>
-                {isExternalExpanded ? <ExpandLess /> : <ExpandMore />}
-              </Box>
-
-              <Collapse in={isExternalExpanded}>
-                {/* Scrollable card container */}
-                <Box
-                  sx={{
-                    maxHeight: "400px",
-                    overflowY: "auto",
-                    // marginTop: 2,
-                    paddingRight: 1,
-                    "&::-webkit-scrollbar": {
-                      width: "6px",
-                    },
-                    "&::-webkit-scrollbar-thumb": {
-                      backgroundColor: "#ccc",
-                      borderRadius: "4px",
-                    },
-                  }}
-                >
-                  {externalLinks.length > 0 ? (
-                    externalLinks.map((link, index) => {
-                      const match = link.url.match(/file=([^&]+)/);
-                      const fileName = match ? match[1] : "";
-                      const isPreviewable =
-                        /\.(nii(\.gz)?|bnii|jdt|jdb|jmsh|bmsh)$/i.test(
-                          fileName
-                        );
-
-                      return (
-                        <Box
-                          key={index}
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "6px 10px",
-                            backgroundColor: "white",
-                            borderRadius: "4px",
-                            border: "1px solid #ddd",
-                            mt: 1,
-                            height: "34px",
-                            minWidth: 0,
-                            fontSize: "0.85rem",
-                          }}
-                        >
-                          <Typography
+                        <Box sx={{ display: "flex", flexShrink: 0, gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
                             sx={{
-                              flexGrow: 1,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              minWidth: 0,
-                              fontSize: "1rem",
-                              marginRight: "12px",
-                              maxWidth: "calc(100% - 160px)",
+                              backgroundColor: "#1976d2",
+                              minWidth: "70px",
+                              fontSize: "0.7rem",
+                              padding: "2px 6px",
+                              lineHeight: 1,
                             }}
-                            title={link.name}
+                            onClick={() => window.open(link.url, "_blank")}
                           >
-                            {link.name}
-                          </Typography>
-                          <Box sx={{ display: "flex", flexShrink: 0, gap: 1 }}>
+                            Download
+                          </Button>
+                          {isPreviewable && (
                             <Button
-                              variant="contained"
+                              variant="outlined"
                               size="small"
                               sx={{
-                                backgroundColor: "#1976d2",
-                                minWidth: "70px",
+                                minWidth: "65px",
                                 fontSize: "0.7rem",
                                 padding: "2px 6px",
                                 lineHeight: 1,
                               }}
-                              onClick={() => window.open(link.url, "_blank")}
+                              onClick={() =>
+                                handlePreview(link.url, link.index, false)
+                              }
                             >
-                              Download
+                              Preview
                             </Button>
-                            {isPreviewable && (
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                sx={{
-                                  minWidth: "65px",
-                                  fontSize: "0.7rem",
-                                  padding: "2px 6px",
-                                  lineHeight: 1,
-                                }}
-                                onClick={() =>
-                                  handlePreview(link.url, link.index, false)
-                                }
-                              >
-                                Preview
-                              </Button>
-                            )}
-                          </Box>
+                          )}
                         </Box>
-                      );
-                    })
-                  ) : (
-                    <Typography sx={{ fontStyle: "italic", mt: 1 }}>
-                      No external links found.
-                    </Typography>
-                  )}
-                </Box>
-              </Collapse>
-            </Box>
+                      </Box>
+                    );
+                  })
+                ) : (
+                  <Typography sx={{ fontStyle: "italic", mt: 1 }}>
+                    No external links found.
+                  </Typography>
+                )}
+              </Box>
+            </Collapse>
           </Box>
         </Box>
+
+        <div
+          id="chartpanel"
+          style={{
+            display: "none",
+            marginTop: "16px",
+            background: Colors.darkGray,
+            color: Colors.black,
+            padding: "12px",
+            borderRadius: "8px",
+            position: "relative",
+          }}
+        ></div>
 
         {/* <div id="chartpanel"></div> */}
         <Box

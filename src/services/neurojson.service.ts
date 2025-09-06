@@ -100,4 +100,20 @@ export const NeurojsonService = {
 
     return response.data;
   },
+
+  getDbInfoByDatasetId: async (dbName: string, dsId: string): Promise<any> => {
+    const response = await api.get(
+      `${baseURL}/${dbName}/_design/qq/_view/dbinfo`,
+      {
+        params: {
+          // CouchDB expects a JSON value; this produces %22ds000001%22
+          key: JSON.stringify(dsId),
+          // include_docs is optional; keep it if your view needs the full doc
+          include_docs: true,
+          // reduce: false, // uncomment if your view has a reduce function
+        },
+      }
+    );
+    return response.data;
+  },
 };

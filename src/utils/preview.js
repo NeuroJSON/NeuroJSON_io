@@ -281,24 +281,36 @@ function dopreview(key, idx, isinternal, hastime) {
     }
   } else {
     // dataroot = key;
-    // console.log("into dopreview external data's dataroot", dataroot);
+    // new code start----
+    // if (typeof key === "object") {
+    //   dataroot = key;
+    //   console.log("dataroot======", dataroot);
+    // } else if (
+    //   window.extdata &&
+    //   window.extdata[idx] &&
+    //   window.extdata[idx][2]
+    // ) {
+    //   dataroot = window.extdata[idx][2];
+    //   console.log("dataroot======>", dataroot);
+    // } else {
+    //   console.error("External data not ready for index", idx);
+    //   return;
+    // }
+    // new code end----
 
+    // original code start-----
     if (window.extdata && window.extdata[idx] && window.extdata[idx][2]) {
       if (typeof key === "object") {
         dataroot = key;
-        // console.log("if key is object", typeof key);
       } else {
         dataroot = window.extdata[idx][2];
-        // console.log("type of key", typeof key);
       }
-
       // dataroot = key;
-
-      // console.log("into dopreview external data's dataroot", dataroot);
     } else {
       console.error("❌ External data not ready for index", idx);
       return;
     }
+    // original code end----
   }
 
   if (dataroot.hasOwnProperty("_ArraySize_")) {

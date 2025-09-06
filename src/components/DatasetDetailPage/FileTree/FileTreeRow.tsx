@@ -7,6 +7,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import FolderIcon from "@mui/icons-material/Folder";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { Box, Button, Collapse, Typography } from "@mui/material";
@@ -147,12 +148,23 @@ const FileTreeRow: React.FC<Props> = ({
           onClick={() => setOpen((o) => !o)}
         >
           <Box sx={{ pl: level * 1.25 }}>
-            <FolderIcon
+            {/* <FolderIcon
               fontSize="small"
               sx={{
                 color: isJson ? Colors.orange : Colors.darkPurple,
               }}
-            />
+            /> */}
+            {open ? (
+              <FolderOpenIcon
+                fontSize="small"
+                sx={{ color: isJson ? Colors.orange : Colors.darkPurple }}
+              />
+            ) : (
+              <FolderIcon
+                fontSize="small"
+                sx={{ color: isJson ? Colors.orange : Colors.darkPurple }}
+              />
+            )}
           </Box>
 
           <Typography
