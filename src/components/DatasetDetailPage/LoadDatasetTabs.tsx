@@ -91,10 +91,10 @@ const LoadDatasetTabs: React.FC<LoadDatasetTabsProps> = ({
   const datasetName = datasetDesc?.Name?.includes(" - ")
     ? datasetDesc.Name.split(" - ")[1]
     : datasetDesc?.Name || datasetDocument?._id || docname;
-  console.log("datasetName", datasetName);
-  console.log("dbname", dbname);
-  console.log("pagename", pagename);
-  console.log("onekey", onekey);
+  // console.log("datasetName", datasetName);
+  // console.log("dbname", dbname);
+  // console.log("pagename", pagename);
+  // console.log("onekey", onekey);
   // const datasetUrl = datasetName
   //   ? `${serverUrl}${dbname}/${encodeURIComponent(datasetName)}/`
   //   : `${serverUrl}${dbname}/`;

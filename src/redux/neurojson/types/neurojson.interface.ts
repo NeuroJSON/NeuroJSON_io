@@ -12,6 +12,7 @@ export interface INeuroJsonState {
   dbInfo: DBParticulars | null; // add dbInfo type
   dbStats: DbStatsItem[] | null; // for dbStats on landing page
   searchResults: any[] | { status: string; msg: string } | null;
+  datasetViewInfo: any | null;
 }
 
 export interface DBParticulars {

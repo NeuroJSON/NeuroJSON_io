@@ -12,7 +12,6 @@ const DatabasePage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { registry } = useAppSelector(NeurojsonSelector);
-  console.log("registry", registry);
 
   useEffect(() => {
     dispatch(fetchRegistry());

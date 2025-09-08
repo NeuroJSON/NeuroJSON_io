@@ -1,3 +1,4 @@
+//renders the header (title, counts, total size) and the scrollable area.
 import FileTreeRow from "./FileTreeRow";
 import type { TreeNode } from "./types";
 import FolderIcon from "@mui/icons-material/Folder";
@@ -9,7 +10,10 @@ type Props = {
   tree: TreeNode[];
   filesCount: number;
   totalBytes: number;
-  onPreview: (url: string, index: number) => void;
+  // for preview in tree row
+  onPreview: (src: string | any, index: number, isInternal?: boolean) => void;
+  getInternalByPath: (path: string) => { data: any; index: number } | undefined;
+  getJsonByPath?: (path: string) => any;
 };
 
 const formatSize = (n: number) => {
@@ -26,6 +30,8 @@ const FileTree: React.FC<Props> = ({
   filesCount,
   totalBytes,
   onPreview,
+  getInternalByPath,
+  getJsonByPath,
 }) => (
   <Box
     sx={{
@@ -49,16 +55,23 @@ const FileTree: React.FC<Props> = ({
         flexShrink: 0,
       }}
     >
-      <FolderIcon />
+      {/* <FolderIcon /> */}
       <Typography sx={{ fontWeight: 700, flex: 1 }}>{title}</Typography>
-      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+      {/* <Typography variant="body2" sx={{ color: "text.secondary" }}>
         Files: {filesCount} &nbsp; Size: {formatSize(totalBytes)}
-      </Typography>
+      </Typography> */}
     </Box>
 
     <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", py: 0.5 }}>
       {tree.map((n) => (
-        <FileTreeRow key={n.path} node={n} level={0} onPreview={onPreview} />
+        <FileTreeRow
+          key={n.path}
+          node={n}
+          level={0}
+          onPreview={onPreview}
+          getInternalByPath={getInternalByPath}
+          getJsonByPath={getJsonByPath}
+        /> // pass the handlePreview(onPreview = handlePreview) function to FileTreeRow
       ))}
     </Box>
   </Box>
