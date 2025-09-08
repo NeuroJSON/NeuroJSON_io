@@ -116,7 +116,6 @@ export const fetchDbInfoByDatasetId = createAsyncThunk(
   ) => {
     try {
       const data = await NeurojsonService.getDbInfoByDatasetId(dbName, docId);
-      console.log("data in action", data);
       return { ...data, dbName, docId };
     } catch (error: any) {
       return rejectWithValue(error.message || "Failed to fetch dataset info.");

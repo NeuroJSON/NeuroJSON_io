@@ -3,7 +3,7 @@ import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import DescriptionIcon from "@mui/icons-material/Description";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
-import FolderIcon from "@mui/icons-material/Folder";
+// import FolderIcon from "@mui/icons-material/Folder";
 import HomeIcon from "@mui/icons-material/Home";
 import {
   Box,
@@ -14,13 +14,11 @@ import {
   Button,
   Collapse,
 } from "@mui/material";
-// new import
 import FileTree from "components/DatasetDetailPage/FileTree/FileTree";
 import {
   buildTreeFromDoc,
   makeLinkMap,
 } from "components/DatasetDetailPage/FileTree/utils";
-// import { TextField } from "@mui/material";
 import LoadDatasetTabs from "components/DatasetDetailPage/LoadDatasetTabs";
 import ReadMoreText from "design/ReadMoreText";
 import { Colors } from "design/theme";
@@ -52,89 +50,6 @@ interface InternalDataLink {
   path: string; // for preview in tree row
 }
 
-// const transformJsonForDisplay = (obj: any): any => {
-//   if (typeof obj !== "object" || obj === null) return obj;
-
-//   const transformed: any = Array.isArray(obj) ? [] : {};
-
-//   for (const key in obj) {
-//     if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
-
-//     const value = obj[key];
-
-//     // Match README, CHANGES, or file extensions
-//     const isLongTextKey = /^(README|CHANGES)$|\.md$|\.txt$|\.m$/i.test(key);
-
-//     if (typeof value === "string" && isLongTextKey) {
-//       transformed[key] = `<code class="puretext">${value}</code>`;
-//     } else if (typeof value === "object") {
-//       transformed[key] = transformJsonForDisplay(value);
-//     } else {
-//       transformed[key] = value;
-//     }
-//   }
-
-//   return transformed;
-// };
-
-// const formatAuthorsWithDOI = (
-//   authors: string[] | string,
-//   doi: string
-// ): JSX.Element => {
-//   let authorText = "";
-
-//   if (Array.isArray(authors)) {
-//     if (authors.length === 1) {
-//       authorText = authors[0];
-//     } else if (authors.length === 2) {
-//       authorText = authors.join(", ");
-//     } else {
-//       authorText = `${authors.slice(0, 2).join("; ")} et al.`;
-//     }
-//   } else {
-//     authorText = authors;
-//   }
-
-//   let doiUrl = "";
-//   if (doi) {
-//     if (/^[0-9]/.test(doi)) {
-//       doiUrl = `https://doi.org/${doi}`;
-//     } else if (/^doi\./.test(doi)) {
-//       doiUrl = `https://${doi}`;
-//     } else if (/^doi:/.test(doi)) {
-//       doiUrl = doi.replace(/^doi:/, "https://doi.org/");
-//     } else {
-//       doiUrl = doi;
-//     }
-//   }
-
-//   return (
-//     <>
-//       <i>{authorText}</i>
-//       {doiUrl && (
-//         <a
-//           href={doiUrl}
-//           target="_blank"
-//           rel="noopener noreferrer"
-//           style={{
-//             marginLeft: "10px",
-//             color: "black",
-//             fontWeight: 500,
-//             fontStyle: "normal",
-//             textDecoration: "none",
-//           }}
-//           onMouseEnter={(e) =>
-//             (e.currentTarget.style.textDecoration = "underline")
-//           }
-//           onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
-//         >
-//           {doiUrl}
-//         </a>
-//       )}
-//     </>
-//   );
-// };
-
 const UpdatedDatasetDetailPage: React.FC = () => {
   const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
   const navigate = useNavigate();
@@ -148,24 +63,13 @@ const UpdatedDatasetDetailPage: React.FC = () => {
 
   const [externalLinks, setExternalLinks] = useState<ExternalDataLink[]>([]);
   const [internalLinks, setInternalLinks] = useState<InternalDataLink[]>([]);
-  // const [isExpanded, setIsExpanded] = useState(false);
   const [isInternalExpanded, setIsInternalExpanded] = useState(true);
-  // const [searchTerm, setSearchTerm] = useState("");
-  // const [matches, setMatches] = useState<HTMLElement[]>([]);
-  // const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [downloadScript, setDownloadScript] = useState<string>("");
   const [downloadScriptSize, setDownloadScriptSize] = useState<number>(0);
   const [totalFileSize, setTotalFileSize] = useState<number>(0);
-
   const [previewIsInternal, setPreviewIsInternal] = useState(false);
   const [isExternalExpanded, setIsExternalExpanded] = useState(true);
-  // const [expandedPaths, setExpandedPaths] = useState<string[]>([]);
-  // const [originalTextMap, setOriginalTextMap] = useState<
-  //   Map<HTMLElement, string>
-  // >(new Map());
-  // const [jsonViewerKey, setJsonViewerKey] = useState(0);
   const [jsonSize, setJsonSize] = useState<number>(0);
-  // const [transformedDataset, setTransformedDataset] = useState<any>(null);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
   const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
 
@@ -175,41 +79,8 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     [datasetDocument]
   );
 
-  // 2) keep current subjects-only split, return subject objects list
-  //   const subjectsOnly = useMemo(() => {
-  //     const out: any = {};
-  //     if (!datasetDocument) return out;
-  //     Object.keys(datasetDocument).forEach((k) => {
-  //       if (/^sub-/i.test(k)) out[k] = (datasetDocument as any)[k];
-  //     });
-  //     return out;
-  //   }, [datasetDocument]);
-
-  // 3) link maps
-  //   const subjectLinks = useMemo(
-  //     () => externalLinks.filter((l) => /^\/sub-/i.test(l.path)),
-  //     [externalLinks]
-  //   );
-  //   const subjectLinkMap = useMemo(
-  //     () => makeLinkMap(subjectLinks),
-  //     [subjectLinks]
-  //   );
   const linkMap = useMemo(() => makeLinkMap(externalLinks), [externalLinks]);
 
-  // 4) build a folder/file tree with a fallback to the WHOLE doc when no subjects exist
-  //   const treeData = useMemo(
-  //     () =>
-  //       hasTopLevelSubjects
-  //         ? buildTreeFromDoc(subjectsOnly, subjectLinkMap)
-  //         : buildTreeFromDoc(datasetDocument || {}, makeLinkMap(externalLinks)),
-  //     [
-  //       hasTopLevelSubjects,
-  //       subjectsOnly,
-  //       subjectLinkMap,
-  //       datasetDocument,
-  //       externalLinks,
-  //     ]
-  //   );
   const treeData = useMemo(
     () => buildTreeFromDoc(datasetDocument || {}, linkMap, ""),
     [datasetDocument, linkMap]
@@ -245,15 +116,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     }
     return bytes;
   }, [externalLinks]);
-  //   const { filesCount, totalBytes } = useMemo(() => {
-  //     const group = hasTopLevelSubjects ? subjectLinks : externalLinks;
-  //     let bytes = 0;
-  //     for (const l of group) {
-  //       const m = l.url.match(/size=(\d+)/);
-  //       if (m) bytes += parseInt(m[1], 10);
-  //     }
-  //     return { filesCount: group.length, totalBytes: bytes };
-  //   }, [hasTopLevelSubjects, subjectLinks, externalLinks]);
 
   // add spinner
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -406,11 +268,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   }, [dbName, docId, dispatch]);
 
   useEffect(() => {
-    if (dbViewInfo) {
-      console.log("yeeeeeeee", dbViewInfo);
-    }
-  });
-  useEffect(() => {
     if (datasetDocument) {
       // Extract External Data & Assign `index`
       console.log("datasetDocument", datasetDocument);
@@ -429,13 +286,8 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         })
       );
 
-      //   console.log(" Extracted external links:", links);
-      //   console.log(" Extracted internal data:", internalData);
-
       setExternalLinks(links);
       setInternalLinks(internalData);
-      // const transformed = transformJsonForDisplay(datasetDocument);
-      // setTransformedDataset(transformed);
 
       // Calculate total file size from size= query param
       let total = 0;
@@ -500,33 +352,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDataKey, setPreviewDataKey] = useState<any>(null);
-
-  // useEffect(() => {
-  //   highlightMatches(searchTerm);
-
-  //   // Cleanup to reset highlights when component re-renders or unmounts
-  //   return () => {
-  //     document.querySelectorAll(".highlighted").forEach((el) => {
-  //       const element = el as HTMLElement;
-  //       const text = element.textContent || "";
-  //       element.innerHTML = text;
-  //       element.classList.remove("highlighted");
-  //     });
-  //   };
-  // }, [searchTerm, datasetDocument]);
-
-  // useEffect(() => {
-  //   if (!transformedDataset) return;
-
-  //   const spans = document.querySelectorAll(".string-value");
-
-  //   spans.forEach((el) => {
-  //     if (el.textContent?.includes('<code class="puretext">')) {
-  //       // Inject as HTML so it renders code block correctly
-  //       el.innerHTML = el.textContent ?? "";
-  //     }
-  //   });
-  // }, [transformedDataset]);
 
   const handleDownloadDataset = () => {
     if (!datasetDocument) return;
@@ -741,101 +566,11 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     const panel = document.getElementById("chartpanel");
     if (panel) panel.style.display = "none";
 
-    // Remove canvas children
-    // const canvasDiv = document.getElementById("canvas");
-    // if (canvasDiv) {
-    //   while (canvasDiv.firstChild) {
-    //     canvasDiv.removeChild(canvasDiv.firstChild);
-    //   }
-    // }
-
     // Reset Three.js global refs
     window.scene = undefined;
     window.camera = undefined;
     window.renderer = undefined;
   };
-
-  // const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   setSearchTerm(e.target.value);
-  //   setHighlightedIndex(-1);
-  //   highlightMatches(e.target.value);
-  // };
-
-  // const highlightMatches = (keyword: string) => {
-  //   const spans = document.querySelectorAll(
-  //     ".react-json-view span.string-value, .react-json-view span.object-key"
-  //   );
-
-  //   // Clean up all existing highlights
-  //   spans.forEach((el) => {
-  //     const element = el as HTMLElement;
-  //     if (originalTextMap.has(element)) {
-  //       element.innerHTML = originalTextMap.get(element)!; // Restore original HTML
-  //       element.classList.remove("highlighted");
-  //     }
-  //   });
-
-  //   // Clear old state
-  //   setMatches([]);
-  //   setHighlightedIndex(-1);
-  //   setExpandedPaths([]);
-  //   setOriginalTextMap(new Map());
-
-  //   if (!keyword.trim() || keyword.length < 3) return;
-
-  //   const regex = new RegExp(`(${keyword})`, "gi");
-  //   const matchedElements: HTMLElement[] = [];
-  //   const matchedPaths: Set<string> = new Set();
-  //   const newOriginalMap = new Map<HTMLElement, string>();
-
-  //   spans.forEach((el) => {
-  //     const element = el as HTMLElement;
-  //     const original = element.innerHTML;
-  //     const text = element.textContent || "";
-
-  //     if (text.toLowerCase().includes(keyword.toLowerCase())) {
-  //       newOriginalMap.set(element, original); // Store original HTML
-  //       const highlighted = text.replace(
-  //         regex,
-  //         `<mark class="highlighted" style="background-color: yellow; color: black;">$1</mark>`
-  //       );
-  //       element.innerHTML = highlighted;
-  //       matchedElements.push(element);
-
-  //       const parent = element.closest(".variable-row");
-  //       const path = parent?.getAttribute("data-path");
-  //       if (path) matchedPaths.add(path);
-  //     }
-  //   });
-
-  //   // Update state
-  //   setOriginalTextMap(newOriginalMap);
-  //   setMatches(matchedElements);
-  //   setExpandedPaths(Array.from(matchedPaths));
-  // };
-
-  // const findNext = () => {
-  //   if (matches.length === 0) return;
-
-  //   setHighlightedIndex((prevIndex) => {
-  //     const nextIndex = (prevIndex + 1) % matches.length;
-
-  //     matches.forEach((match) => {
-  //       match
-  //         .querySelector("mark")
-  //         ?.setAttribute("style", "background: yellow; color: black;");
-  //     });
-
-  //     const current = matches[nextIndex];
-  //     current.scrollIntoView({ behavior: "smooth", block: "center" });
-
-  //     current
-  //       .querySelector("mark")
-  //       ?.setAttribute("style", "background: orange; color: black;");
-
-  //     return nextIndex;
-  //   });
-  // };
 
   if (loading) {
     return (
@@ -1036,27 +771,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                   totalFileSize
                 )})`}
             </Button>
-
-            {/* <Box display="flex" alignItems="center" gap={1} sx={{ ml: "auto" }}>
-              <TextField
-                size="small"
-                variant="outlined"
-                placeholder="Find keyword in dataset"
-                value={searchTerm}
-                onChange={handleSearch}
-                sx={{ width: { xs: "auto", sm: "250px" } }}
-              />
-              <Button
-                variant="contained"
-                onClick={findNext}
-                disabled={matches.length === 0}
-                sx={{
-                  padding: "8px",
-                }}
-              >
-                Find Next
-              </Button>
-            </Box> */}
           </Box>
         </Box>
 
@@ -1076,7 +790,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             },
           }}
         >
-          {/* JSON Viewer (left panel) */}
+          {/* tree viewer (left panel) */}
           <Box
             sx={{
               flex: 3,
@@ -1123,7 +837,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             </Box>
           </Box>
 
-          {/* Data panels (right panel) */}
+          {/* MetaData panels (right panel) */}
           <Box
             sx={{
               width: {
@@ -1140,99 +854,137 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               },
               display: "flex",
               flexDirection: "column",
-              gap: 2,
             }}
           >
             <Box
               sx={{
                 backgroundColor: Colors.white,
-                padding: 2,
                 borderRadius: "8px",
-                flex: 1,
                 display: "flex",
                 flexDirection: "column",
-                gap: 1,
-                // overflowY: "auto",
+                overflow: "hidden",
+                height: "100%",
+                minHeight: 0,
               }}
             >
-              <Box>
-                <Typography
-                  sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                >
-                  Modalities
-                </Typography>
-                <Typography sx={{ color: "text.secondary" }}>
-                  {dbViewInfo?.rows?.[0]?.value?.modality?.join(", ") ?? "N/A"}
-                </Typography>
-              </Box>
+              <Box
+                sx={{
+                  flex: 1,
+                  minHeight: 0, // <-- for scroller
+                  overflowY: "auto", // <-- keep the scroller here
+                  p: 2,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1,
+                }}
+              >
+                <Box>
+                  <Typography
+                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
+                  >
+                    Modalities
+                  </Typography>
+                  <Typography sx={{ color: "text.secondary" }}>
+                    {dbViewInfo?.rows?.[0]?.value?.modality?.join(", ") ??
+                      "N/A"}
+                  </Typography>
+                </Box>
 
-              <Box>
-                <Typography
-                  sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                >
-                  DOI
-                </Typography>
-                <Typography sx={{ color: "text.secondary" }}>
-                  {datasetDocument?.["dataset_description.json"]?.DatasetDOI ||
-                    datasetDocument?.["dataset_description.json"]
-                      ?.ReferenceDOI ||
-                    "N/A"}
-                </Typography>
-              </Box>
+                <Box>
+                  <Typography
+                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
+                  >
+                    DOI
+                  </Typography>
+                  <Typography sx={{ color: "text.secondary" }}>
+                    {(() => {
+                      const doi =
+                        datasetDocument?.["dataset_description.json"]
+                          ?.DatasetDOI ||
+                        datasetDocument?.["dataset_description.json"]
+                          ?.ReferenceDOI;
 
-              <Box>
-                <Typography
-                  sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                >
-                  Subjects
-                </Typography>
-                <Typography sx={{ color: "text.secondary" }}>
-                  {datasetDocument?.["participants.tsv"]?.["participant_id"]
-                    ?.length ?? "N/A"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography
-                  sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                >
-                  License
-                </Typography>
-                <Typography sx={{ color: "text.secondary" }}>
-                  {datasetDocument?.["dataset_description.json"]?.License ??
-                    "N/A"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography
-                  sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                >
-                  BIDS Version
-                </Typography>
-                <Typography sx={{ color: "text.secondary" }}>
-                  {datasetDocument?.["dataset_description.json"]?.BIDSVersion ??
-                    "N/A"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography
-                  sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                >
-                  References and Links
-                </Typography>
-                <Typography sx={{ color: "text.secondary" }}>
-                  {Array.isArray(
-                    datasetDocument?.["dataset_description.json"]
-                      ?.ReferencesAndLinks
-                  )
-                    ? datasetDocument["dataset_description.json"]
-                        .ReferencesAndLinks.length > 0
-                      ? datasetDocument[
-                          "dataset_description.json"
-                        ].ReferencesAndLinks.join(", ")
-                      : "N/A"
-                    : datasetDocument?.["dataset_description.json"]
-                        ?.ReferencesAndLinks ?? "N/A"}
-                </Typography>
+                      if (!doi) return "N/A";
+
+                      // Normalize into a clickable URL
+                      let url = doi;
+                      if (/^10\./.test(doi)) {
+                        url = `https://doi.org/${doi}`;
+                      } else if (/^doi:/.test(doi)) {
+                        url = `https://doi.org/${doi.replace(/^doi:/, "")}`;
+                      }
+
+                      return (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: "inherit",
+                            textDecoration: "underline",
+                          }}
+                        >
+                          {url}
+                        </a>
+                      );
+                    })()}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography
+                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
+                  >
+                    Subjects
+                  </Typography>
+                  <Typography sx={{ color: "text.secondary" }}>
+                    {datasetDocument?.["participants.tsv"]?.["participant_id"]
+                      ?.length ?? "N/A"}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography
+                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
+                  >
+                    License
+                  </Typography>
+                  <Typography sx={{ color: "text.secondary" }}>
+                    {datasetDocument?.["dataset_description.json"]?.License ??
+                      "N/A"}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography
+                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
+                  >
+                    BIDS Version
+                  </Typography>
+                  <Typography sx={{ color: "text.secondary" }}>
+                    {datasetDocument?.["dataset_description.json"]
+                      ?.BIDSVersion ?? "N/A"}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography
+                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
+                  >
+                    References and Links
+                  </Typography>
+                  <Typography sx={{ color: "text.secondary" }}>
+                    {Array.isArray(
+                      datasetDocument?.["dataset_description.json"]
+                        ?.ReferencesAndLinks
+                    )
+                      ? datasetDocument["dataset_description.json"]
+                          .ReferencesAndLinks.length > 0
+                        ? datasetDocument[
+                            "dataset_description.json"
+                          ].ReferencesAndLinks.join(", ")
+                        : "N/A"
+                      : datasetDocument?.["dataset_description.json"]
+                          ?.ReferencesAndLinks ?? "N/A"}
+                  </Typography>
+                </Box>
               </Box>
             </Box>
           </Box>
@@ -1241,9 +993,21 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         <Box
           sx={{
             display: "flex",
-            flexDirection: "row",
+            flexDirection: { xs: "column", md: "column", lg: "row" },
             gap: 2,
             marginTop: 2,
+            height: {
+              xs: "auto",
+              md: "100%",
+            },
+            width: {
+              xs: "100%",
+              md: "auto",
+            },
+            minWidth: {
+              xs: "100%",
+              md: "350px",
+            },
           }}
         >
           <Box
@@ -1355,6 +1119,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               borderRadius: "8px",
               flex: 1,
               // overflowY: "auto",
+              overflow: "hidden",
             }}
           >
             {/* Header with toggle */}
