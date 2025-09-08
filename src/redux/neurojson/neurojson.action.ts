@@ -107,3 +107,18 @@ export const fetchMetadataSearchResults = createAsyncThunk(
     }
   }
 );
+
+export const fetchDbInfoByDatasetId = createAsyncThunk(
+  "neurojson/fetchDbInfoByDatasetId",
+  async (
+    { dbName, docId }: { dbName: string; docId: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const data = await NeurojsonService.getDbInfoByDatasetId(dbName, docId);
+      return { ...data, dbName, docId };
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to fetch dataset info.");
+    }
+  }
+);

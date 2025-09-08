@@ -6,6 +6,7 @@ import {
   fetchDocumentDetails,
   fetchDbStats,
   fetchMetadataSearchResults,
+  fetchDbInfoByDatasetId,
 } from "./neurojson.action";
 import { DBDatafields, INeuroJsonState } from "./types/neurojson.interface";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
@@ -24,6 +25,7 @@ const initialState: INeuroJsonState = {
   dbInfo: null, // add dbInfo in neurojson.interface.ts
   dbStats: null,
   searchResults: null,
+  datasetViewInfo: null,
 };
 
 const neurojsonSlice = createSlice({
@@ -146,6 +148,21 @@ const neurojsonSlice = createSlice({
         }
       )
       .addCase(fetchMetadataSearchResults.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(fetchDbInfoByDatasetId.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(
+        fetchDbInfoByDatasetId.fulfilled,
+        (state, action: PayloadAction<any>) => {
+          state.loading = false;
+          state.datasetViewInfo = action.payload;
+        }
+      )
+      .addCase(fetchDbInfoByDatasetId.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
