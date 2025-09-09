@@ -15,6 +15,24 @@ import { useNavigate } from "react-router-dom";
 import { Row } from "redux/neurojson/types/neurojson.interface";
 import RoutesEnum from "types/routes.enum";
 
+const formatSize = (sizeInBytes: number): string => {
+  if (sizeInBytes < 1024) {
+    return `${sizeInBytes} Bytes`;
+  } else if (sizeInBytes < 1024 * 1024) {
+    return `${(sizeInBytes / 1024).toFixed(1)} KB`;
+  } else if (sizeInBytes < 1024 * 1024 * 1024) {
+    return `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
+  } else if (sizeInBytes < 1024 * 1024 * 1024 * 1024) {
+    return `${(sizeInBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  } else {
+    return `${(sizeInBytes / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB`;
+  }
+};
+
+// for showing the size
+const jsonBytes = (obj: unknown) =>
+  obj ? new TextEncoder().encode(JSON.stringify(obj)).length : 0;
+
 interface DatasetPageCardProps {
   doc: Row;
   index: number;
@@ -32,6 +50,11 @@ const DatasetPageCard: React.FC<DatasetPageCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const datasetIndex = (page - 1) * pageSize + index + 1;
+  const sizeInBytes = React.useMemo(() => {
+    const len = (doc as any)?.value?.length; // bytes from backend (full doc)
+    if (typeof len === "number" && Number.isFinite(len)) return len;
+    return jsonBytes(doc.value); // fallback: summary object size
+  }, [doc.value]);
   return (
     <Grid item xs={12} sm={6} key={doc.id}>
       <Card
@@ -133,9 +156,10 @@ const DatasetPageCard: React.FC<DatasetPageCardProps> = ({
             <Stack direction="row" spacing={2} alignItems="center">
               <Typography variant="body2" color={Colors.textPrimary}>
                 <strong>Size:</strong>{" "}
-                {doc.value.length
+                {/* {doc.value.length
                   ? `${(doc.value.length / 1024 / 1024).toFixed(2)} MB`
-                  : "Unknown"}
+                  : "Unknown"} */}
+                {formatSize(sizeInBytes)}
               </Typography>
 
               {doc.value.info?.DatasetDOI && (

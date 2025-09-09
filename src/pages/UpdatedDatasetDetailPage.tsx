@@ -20,6 +20,7 @@ import {
   makeLinkMap,
 } from "components/DatasetDetailPage/FileTree/utils";
 import LoadDatasetTabs from "components/DatasetDetailPage/LoadDatasetTabs";
+import MetaDataPanel from "components/DatasetDetailPage/MetaDataPanel";
 import ReadMoreText from "design/ReadMoreText";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
@@ -73,6 +74,17 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const [previewIndex, setPreviewIndex] = useState<number>(0);
   const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
 
+  useEffect(() => {
+    if (!datasetDocument) {
+      setJsonSize(0);
+      return;
+    }
+    const bytes = new TextEncoder().encode(
+      JSON.stringify(datasetDocument)
+    ).length;
+    setJsonSize(bytes);
+  }, [datasetDocument]);
+
   // 1) detect subjects at the top level, return true or false
   const hasTopLevelSubjects = useMemo(
     () => Object.keys(datasetDocument || {}).some((k) => /^sub-/i.test(k)),
@@ -87,22 +99,22 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   );
 
   // “rest” JSON only when we actually have subjects
-  const rest = useMemo(() => {
-    if (!datasetDocument || !hasTopLevelSubjects) return {};
-    const r: any = {};
-    Object.keys(datasetDocument).forEach((k) => {
-      if (!/^sub-/i.test(k)) r[k] = (datasetDocument as any)[k];
-    });
-    return r;
-  }, [datasetDocument, hasTopLevelSubjects]);
+  //   const rest = useMemo(() => {
+  //     if (!datasetDocument || !hasTopLevelSubjects) return {};
+  //     const r: any = {};
+  //     Object.keys(datasetDocument).forEach((k) => {
+  //       if (!/^sub-/i.test(k)) r[k] = (datasetDocument as any)[k];
+  //     });
+  //     return r;
+  //   }, [datasetDocument, hasTopLevelSubjects]);
 
   // JSON panel should always render:
   // - if we have subjects -> JSON show "rest" (everything except sub-*)
   // - if we don't have subjects -> JSON show the whole document
-  const jsonPanelData = useMemo(
-    () => (hasTopLevelSubjects ? rest : datasetDocument || {}),
-    [hasTopLevelSubjects, rest, datasetDocument]
-  );
+  //   const jsonPanelData = useMemo(
+  //     () => (hasTopLevelSubjects ? rest : datasetDocument || {}),
+  //     [hasTopLevelSubjects, rest, datasetDocument]
+  //   );
 
   // 5) header title + counts also fall back
   //   const treeTitle = hasTopLevelSubjects ? "Subjects" : "Files";
@@ -317,10 +329,10 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         }
       });
 
-      const blob = new Blob([JSON.stringify(datasetDocument, null, 2)], {
-        type: "application/json",
-      });
-      setJsonSize(blob.size);
+      //   const blob = new Blob([JSON.stringify(datasetDocument, null, 2)], {
+      //     type: "application/json",
+      //   });
+      //   setJsonSize(blob.size);
 
       //  Construct download script dynamically
       let script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"\n`;
@@ -856,137 +868,10 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               flexDirection: "column",
             }}
           >
-            <Box
-              sx={{
-                backgroundColor: Colors.white,
-                borderRadius: "8px",
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-                height: "100%",
-                minHeight: 0,
-              }}
-            >
-              <Box
-                sx={{
-                  flex: 1,
-                  minHeight: 0, // <-- for scroller
-                  overflowY: "auto", // <-- keep the scroller here
-                  p: 2,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 1,
-                }}
-              >
-                <Box>
-                  <Typography
-                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                  >
-                    Modalities
-                  </Typography>
-                  <Typography sx={{ color: "text.secondary" }}>
-                    {dbViewInfo?.rows?.[0]?.value?.modality?.join(", ") ??
-                      "N/A"}
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography
-                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                  >
-                    DOI
-                  </Typography>
-                  <Typography sx={{ color: "text.secondary" }}>
-                    {(() => {
-                      const doi =
-                        datasetDocument?.["dataset_description.json"]
-                          ?.DatasetDOI ||
-                        datasetDocument?.["dataset_description.json"]
-                          ?.ReferenceDOI;
-
-                      if (!doi) return "N/A";
-
-                      // Normalize into a clickable URL
-                      let url = doi;
-                      if (/^10\./.test(doi)) {
-                        url = `https://doi.org/${doi}`;
-                      } else if (/^doi:/.test(doi)) {
-                        url = `https://doi.org/${doi.replace(/^doi:/, "")}`;
-                      }
-
-                      return (
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            color: "inherit",
-                            textDecoration: "underline",
-                          }}
-                        >
-                          {url}
-                        </a>
-                      );
-                    })()}
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography
-                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                  >
-                    Subjects
-                  </Typography>
-                  <Typography sx={{ color: "text.secondary" }}>
-                    {datasetDocument?.["participants.tsv"]?.["participant_id"]
-                      ?.length ?? "N/A"}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography
-                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                  >
-                    License
-                  </Typography>
-                  <Typography sx={{ color: "text.secondary" }}>
-                    {datasetDocument?.["dataset_description.json"]?.License ??
-                      "N/A"}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography
-                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                  >
-                    BIDS Version
-                  </Typography>
-                  <Typography sx={{ color: "text.secondary" }}>
-                    {datasetDocument?.["dataset_description.json"]
-                      ?.BIDSVersion ?? "N/A"}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography
-                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                  >
-                    References and Links
-                  </Typography>
-                  <Typography sx={{ color: "text.secondary" }}>
-                    {Array.isArray(
-                      datasetDocument?.["dataset_description.json"]
-                        ?.ReferencesAndLinks
-                    )
-                      ? datasetDocument["dataset_description.json"]
-                          .ReferencesAndLinks.length > 0
-                        ? datasetDocument[
-                            "dataset_description.json"
-                          ].ReferencesAndLinks.join(", ")
-                        : "N/A"
-                      : datasetDocument?.["dataset_description.json"]
-                          ?.ReferencesAndLinks ?? "N/A"}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
+            <MetaDataPanel
+              datasetDocument={datasetDocument}
+              dbViewInfo={dbViewInfo}
+            />
           </Box>
         </Box>
 
