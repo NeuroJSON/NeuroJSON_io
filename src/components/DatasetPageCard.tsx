@@ -51,7 +51,7 @@ const DatasetPageCard: React.FC<DatasetPageCardProps> = ({
   const navigate = useNavigate();
   const datasetIndex = (page - 1) * pageSize + index + 1;
   const sizeInBytes = React.useMemo(() => {
-    const len = (doc as any)?.value?.length; // bytes from backend (full doc)
+    const len = (doc as any)?.value?.length; // bytes from length key
     if (typeof len === "number" && Number.isFinite(len)) return len;
     return jsonBytes(doc.value); // fallback: summary object size
   }, [doc.value]);

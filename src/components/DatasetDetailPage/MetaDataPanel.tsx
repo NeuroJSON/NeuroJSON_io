@@ -1,13 +1,44 @@
-import { Box, Typography } from "@mui/material";
+import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import {
+  Box,
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip,
+  IconButton,
+  Tooltip,
+} from "@mui/material";
 import { Colors } from "design/theme";
-import React from "react";
+import React, { useMemo, useState } from "react";
 
 type Props = {
   dbViewInfo: any;
   datasetDocument: any;
+  dbName: string | undefined;
+  docId: string | undefined;
 };
 
-const MetaDataPanel: React.FC<Props> = ({ dbViewInfo, datasetDocument }) => {
+type RevInfo = { rev: string };
+
+const MetaDataPanel: React.FC<Props> = ({
+  dbViewInfo,
+  datasetDocument,
+  dbName,
+  docId,
+}) => {
+  const revs: RevInfo[] = useMemo(
+    () =>
+      Array.isArray(datasetDocument?.["_revs_info"])
+        ? (datasetDocument!["_revs_info"] as RevInfo[])
+        : [],
+    [datasetDocument]
+  );
+  const [revIdx, setRevIdx] = useState(0);
+  const selected = revs[revIdx];
+
   return (
     <Box
       sx={{
@@ -39,7 +70,6 @@ const MetaDataPanel: React.FC<Props> = ({ dbViewInfo, datasetDocument }) => {
             {dbViewInfo?.rows?.[0]?.value?.modality?.join(", ") ?? "N/A"}
           </Typography>
         </Box>
-
         <Box>
           <Typography sx={{ color: Colors.darkPurple, fontWeight: "600" }}>
             DOI
@@ -76,7 +106,6 @@ const MetaDataPanel: React.FC<Props> = ({ dbViewInfo, datasetDocument }) => {
             })()}
           </Typography>
         </Box>
-
         <Box>
           <Typography sx={{ color: Colors.darkPurple, fontWeight: "600" }}>
             Subjects
@@ -120,6 +149,87 @@ const MetaDataPanel: React.FC<Props> = ({ dbViewInfo, datasetDocument }) => {
                   ?.ReferencesAndLinks ?? "N/A"}
           </Typography>
         </Box>
+
+        {revs.length > 0 && (
+          <Box
+            sx={{
+              mt: 2,
+              p: 2,
+              border: `1px solid ${Colors.lightGray}`,
+              borderRadius: 1,
+            }}
+          >
+            <Typography
+              //   variant="subtitle1"
+              sx={{ mb: 1, fontWeight: 600, color: Colors.darkPurple }}
+            >
+              Revisions
+            </Typography>
+
+            <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+              <InputLabel id="rev-select-label">Select revision</InputLabel>
+              <Select
+                labelId="rev-select-label"
+                label="Select revision"
+                value={revIdx}
+                onChange={(e) => setRevIdx(Number(e.target.value))}
+              >
+                {revs.map((r, idx) => (
+                  <MenuItem key={r.rev} value={idx}>
+                    <Typography
+                      component="span"
+                      sx={{ fontFamily: "monospace" }}
+                    >
+                      {r.rev.slice(0, 8)}…{r.rev.slice(-4)}
+                    </Typography>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {selected && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 1,
+                }}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                    Selected rev:
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontFamily: "monospace", wordBreak: "break-all" }}
+                    title={selected.rev}
+                  >
+                    {selected.rev}
+                  </Typography>
+                </Box>
+                <Tooltip title="Open this revision in NeuroJSON.io">
+                  <IconButton
+                    size="small"
+                    onClick={() =>
+                      window.open(
+                        `https://neurojson.io:7777/${dbName}/${docId}?rev=${selected.rev}`,
+                        "_blank"
+                      )
+                    }
+                  >
+                    <ArrowCircleRightIcon
+                      fontSize="small"
+                      sx={{
+                        color: Colors.purple,
+                      }}
+                    />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            )}
+          </Box>
+        )}
       </Box>
     </Box>
   );

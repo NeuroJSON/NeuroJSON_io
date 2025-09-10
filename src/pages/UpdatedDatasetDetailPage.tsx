@@ -26,7 +26,7 @@ import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect, useMemo, useState } from "react";
-import ReactJson from "react-json-view";
+// import ReactJson from "react-json-view";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   fetchDocumentDetails,
@@ -74,22 +74,16 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const [previewIndex, setPreviewIndex] = useState<number>(0);
   const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
 
-  useEffect(() => {
-    if (!datasetDocument) {
-      setJsonSize(0);
-      return;
-    }
-    const bytes = new TextEncoder().encode(
-      JSON.stringify(datasetDocument)
-    ).length;
-    setJsonSize(bytes);
-  }, [datasetDocument]);
-
-  // 1) detect subjects at the top level, return true or false
-  const hasTopLevelSubjects = useMemo(
-    () => Object.keys(datasetDocument || {}).some((k) => /^sub-/i.test(k)),
-    [datasetDocument]
-  );
+  //   useEffect(() => {
+  //     if (!datasetDocument) {
+  //       setJsonSize(0);
+  //       return;
+  //     }
+  //     const bytes = new TextEncoder().encode(
+  //       JSON.stringify(datasetDocument)
+  //     ).length;
+  //     setJsonSize(bytes);
+  //   }, [datasetDocument]);
 
   const linkMap = useMemo(() => makeLinkMap(externalLinks), [externalLinks]);
 
@@ -98,26 +92,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     [datasetDocument, linkMap]
   );
 
-  // “rest” JSON only when we actually have subjects
-  //   const rest = useMemo(() => {
-  //     if (!datasetDocument || !hasTopLevelSubjects) return {};
-  //     const r: any = {};
-  //     Object.keys(datasetDocument).forEach((k) => {
-  //       if (!/^sub-/i.test(k)) r[k] = (datasetDocument as any)[k];
-  //     });
-  //     return r;
-  //   }, [datasetDocument, hasTopLevelSubjects]);
-
-  // JSON panel should always render:
-  // - if we have subjects -> JSON show "rest" (everything except sub-*)
-  // - if we don't have subjects -> JSON show the whole document
-  //   const jsonPanelData = useMemo(
-  //     () => (hasTopLevelSubjects ? rest : datasetDocument || {}),
-  //     [hasTopLevelSubjects, rest, datasetDocument]
-  //   );
-
-  // 5) header title + counts also fall back
-  //   const treeTitle = hasTopLevelSubjects ? "Subjects" : "Files";
   const treeTitle = "Files";
   const filesCount = externalLinks.length;
   const totalBytes = useMemo(() => {
@@ -268,15 +242,24 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     return internalLinks;
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (dbName && docId) {
-        await dispatch(fetchDocumentDetails({ dbName, docId }));
-        await dispatch(fetchDbInfoByDatasetId({ dbName, docId }));
-      }
-    };
+  //   useEffect(() => {
+  //     const fetchData = async () => {
+  //       if (dbName && docId) {
+  //         await dispatch(fetchDocumentDetails({ dbName, docId }));
+  //         await dispatch(fetchDbInfoByDatasetId({ dbName, docId }));
+  //       }
+  //     };
 
-    fetchData();
+  //     fetchData();
+  //   }, [dbName, docId, dispatch]);
+
+  useEffect(() => {
+    if (!dbName || !docId) return;
+
+    (async () => {
+      await dispatch(fetchDocumentDetails({ dbName, docId })); // render tree ASAP
+      dispatch(fetchDbInfoByDatasetId({ dbName, docId })); // don't await
+    })();
   }, [dbName, docId, dispatch]);
 
   useEffect(() => {
@@ -289,7 +272,10 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           index, // Assign index correctly
         })
       );
-
+      const bytes = new TextEncoder().encode(
+        JSON.stringify(datasetDocument)
+      ).length;
+      setJsonSize(bytes);
       // Extract Internal Data & Assign `index`
       const internalData = extractInternalData(datasetDocument).map(
         (data, index) => ({
@@ -414,18 +400,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       if (typeof window !== "undefined" && (window as any).__previewType) {
         return (window as any).__previewType === "2d";
       }
-      // if (window.__previewType) {
-      //   console.log("work~~~~~~~");
-      //   return window.__previewType === "2d";
-      // }
-      //   console.log("is 2d preview candidate !== 2d");
-      //   console.log("obj", obj);
-      // if (typeof obj === "string" && obj.includes("db=optics-at-martinos")) {
-      //   return false;
-      // }
-      // if (typeof obj === "string" && obj.endsWith(".jdb")) {
-      //   return true;
-      // }
+
       if (!obj || typeof obj !== "object") {
         return false;
       }
@@ -434,8 +409,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         return false;
       }
       const dim = obj._ArraySize_;
-      //   console.log("array.isarray(dim)", Array.isArray(dim));
-      //   console.log("dim.length", dim.length === 1 || dim.length === 2);
 
       return (
         Array.isArray(dim) &&
@@ -512,18 +485,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         typeof dataOrUrl === "string" ? extractFileName(dataOrUrl) : "";
       if (isPreviewableFile(fileName)) {
         (window as any).previewdataurl(dataOrUrl, idx);
-        // const is2D = is2DPreviewCandidate(dataOrUrl);
-        // const panel = document.getElementById("chartpanel");
-        // console.log("is2D", is2D);
-        // console.log("panel", panel);
-
-        // if (is2D) {
-        //   //   console.log("📊 2D data → rendering inline with dopreview()");
-        //   if (panel) panel.style.display = "block"; // Show it!
-        //   setPreviewOpen(false); // Don't open modal
-        // } else {
-        //   if (panel) panel.style.display = "none"; // Hide chart panel on 3D external
-        // }
       } else {
         console.warn("⚠️ Unsupported file format for preview:", dataOrUrl);
       }
@@ -871,6 +832,8 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             <MetaDataPanel
               datasetDocument={datasetDocument}
               dbViewInfo={dbViewInfo}
+              dbName={dbName}
+              docId={docId}
             />
           </Box>
         </Box>
