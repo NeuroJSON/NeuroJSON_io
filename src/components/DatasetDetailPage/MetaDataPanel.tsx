@@ -166,7 +166,27 @@ const MetaDataPanel: React.FC<Props> = ({
               Revisions
             </Typography>
 
-            <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+            <FormControl
+              fullWidth
+              size="small"
+              sx={{
+                mb: 1,
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: Colors.purple,
+                  },
+                  "&:hover fieldset": {
+                    borderColor: Colors.purple,
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: Colors.purple,
+                  },
+                },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: Colors.purple,
+                },
+              }}
+            >
               <InputLabel id="rev-select-label">Select revision</InputLabel>
               <Select
                 labelId="rev-select-label"
@@ -174,16 +194,17 @@ const MetaDataPanel: React.FC<Props> = ({
                 value={revIdx}
                 onChange={(e) => setRevIdx(Number(e.target.value))}
               >
-                {revs.map((r, idx) => (
-                  <MenuItem key={r.rev} value={idx}>
-                    <Typography
-                      component="span"
-                      sx={{ fontFamily: "monospace" }}
-                    >
-                      {r.rev.slice(0, 8)}…{r.rev.slice(-4)}
-                    </Typography>
-                  </MenuItem>
-                ))}
+                {revs.map((r, idx) => {
+                  const [verNum, hash] = r.rev.split("-", 2);
+                  return (
+                    <MenuItem key={r.rev} value={idx}>
+                      <Typography component="span">
+                        Revision {verNum} ({r.rev.slice(0, 8)}…{r.rev.slice(-4)}
+                        )
+                      </Typography>
+                    </MenuItem>
+                  );
+                })}
               </Select>
             </FormControl>
 
