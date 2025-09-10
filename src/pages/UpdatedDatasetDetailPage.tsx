@@ -937,12 +937,15 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                         variant="contained"
                         size="small"
                         sx={{
-                          backgroundColor: "#1976d2",
+                          backgroundColor: Colors.purple,
                           flexShrink: 0,
                           minWidth: "70px",
                           fontSize: "0.7rem",
                           padding: "2px 6px",
                           lineHeight: 1,
+                          "&:hover": {
+                            backgroundColor: Colors.secondaryPurple,
+                          },
                         }}
                         onClick={() =>
                           handlePreview(link.data, link.index, true)
@@ -962,7 +965,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           </Box>
           <Box
             sx={{
-              backgroundColor: "#eaeaea",
+              backgroundColor: Colors.lightBlue,
               padding: 2,
               borderRadius: "8px",
               flex: 1,
@@ -1047,11 +1050,14 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                             variant="contained"
                             size="small"
                             sx={{
-                              backgroundColor: "#1976d2",
+                              backgroundColor: Colors.purple,
                               minWidth: "70px",
                               fontSize: "0.7rem",
                               padding: "2px 6px",
                               lineHeight: 1,
+                              "&:hover": {
+                                backgroundColor: Colors.secondaryPurple,
+                              },
                             }}
                             onClick={() => window.open(link.url, "_blank")}
                           >
@@ -1062,10 +1068,16 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                               variant="outlined"
                               size="small"
                               sx={{
+                                color: Colors.purple,
+                                borderColor: Colors.purple,
                                 minWidth: "65px",
                                 fontSize: "0.7rem",
                                 padding: "2px 6px",
                                 lineHeight: 1,
+                                "&:hover": {
+                                  color: Colors.secondaryPurple,
+                                  borderColor: Colors.secondaryPurple,
+                                },
                               }}
                               onClick={() =>
                                 handlePreview(link.url, link.index, false)

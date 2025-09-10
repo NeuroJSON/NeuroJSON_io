@@ -1,5 +1,4 @@
 import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import {
   Box,
   Typography,
@@ -42,7 +41,7 @@ const MetaDataPanel: React.FC<Props> = ({
   return (
     <Box
       sx={{
-        backgroundColor: Colors.white,
+        backgroundColor: "#fff",
         borderRadius: "8px",
         display: "flex",
         flexDirection: "column",
@@ -173,17 +172,17 @@ const MetaDataPanel: React.FC<Props> = ({
                 mb: 1,
                 "& .MuiOutlinedInput-root": {
                   "& fieldset": {
-                    borderColor: Colors.purple,
+                    borderColor: Colors.green,
                   },
                   "&:hover fieldset": {
-                    borderColor: Colors.purple,
+                    borderColor: Colors.green,
                   },
                   "&.Mui-focused fieldset": {
-                    borderColor: Colors.purple,
+                    borderColor: Colors.green,
                   },
                 },
                 "& .MuiInputLabel-root.Mui-focused": {
-                  color: Colors.purple,
+                  color: Colors.green,
                 },
               }}
             >
@@ -242,7 +241,7 @@ const MetaDataPanel: React.FC<Props> = ({
                     <ArrowCircleRightIcon
                       fontSize="small"
                       sx={{
-                        color: Colors.purple,
+                        color: Colors.green,
                       }}
                     />
                   </IconButton>
