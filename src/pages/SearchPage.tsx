@@ -14,6 +14,7 @@ import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import Form from "@rjsf/mui";
 import validator from "@rjsf/validator-ajv8";
+import DatabaseCard from "components/SearchPage/DatabaseCard";
 import DatasetCard from "components/SearchPage/DatasetCard";
 import SubjectCard from "components/SearchPage/SubjectCard";
 import { Colors } from "design/theme";
@@ -29,6 +30,25 @@ import {
 import { RootState } from "redux/store";
 import { generateUiSchema } from "utils/SearchPageFunctions/generateUiSchema";
 import { modalityValueToEnumLabel } from "utils/SearchPageFunctions/modalityLabels";
+
+type RegistryItem = {
+  id: string;
+  name?: string;
+  fullname?: string;
+  datatype?: string[];
+  datasets?: number;
+  logo?: string;
+};
+
+const matchesKeyword = (item: RegistryItem, keyword: string) => {
+  if (!keyword) return false;
+  const needle = keyword.toLowerCase();
+  return (
+    item.name?.toLowerCase().includes(needle) ||
+    item.fullname?.toLowerCase().includes(needle) ||
+    item.datatype?.some((dt) => dt.toLowerCase().includes(needle))
+  );
+};
 
 const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -53,6 +73,17 @@ const SearchPage: React.FC = () => {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // for database card
+  const keywordInput = String(formData?.keyword ?? "").trim();
+  console.log("keyword", keywordInput);
+
+  const registryMatches: RegistryItem[] = React.useMemo(() => {
+    if (!Array.isArray(registry) || !keywordInput) return [];
+    return (registry as RegistryItem[]).filter((r) =>
+      matchesKeyword(r, keywordInput)
+    );
+  }, [registry, keywordInput]);
 
   // to show the applied chips on the top of results
   const activeFilters = Object.entries(appliedFilters).filter(
@@ -298,13 +329,14 @@ const SearchPage: React.FC = () => {
 
   return (
     <Container
+      maxWidth={false}
       style={{
         marginTop: "2rem",
         marginBottom: "2rem",
         backgroundColor: Colors.white,
         padding: "2rem",
         borderRadius: 4,
-        width: "100%",
+        width: "95%",
       }}
     >
       <Box // box for title and show filters button(mobile version)
@@ -460,6 +492,30 @@ const SearchPage: React.FC = () => {
                       setResults([]);
                     }
                   }}
+                />
+              ))}
+            </Box>
+          )}
+
+          {/* matching databases */}
+          {keywordInput && registryMatches.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography
+                variant="h6"
+                sx={{ mb: 1.5, mt: 1.5, fontWeight: "600" }}
+              >
+                Matching Databases
+              </Typography>
+              {registryMatches.map((db) => (
+                <DatabaseCard
+                  key={db.id}
+                  dbName={db.name}
+                  fullName={db.fullname}
+                  datasets={db.datasets}
+                  modalities={db.datatype}
+                  logo={db.logo}
+                  keyword={formData.keyword} // for keyword highlight
+                  onChipClick={handleChipClick}
                 />
               ))}
             </Box>

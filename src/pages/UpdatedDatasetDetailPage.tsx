@@ -272,10 +272,16 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           index, // Assign index correctly
         })
       );
-      const bytes = new TextEncoder().encode(
-        JSON.stringify(datasetDocument)
-      ).length;
-      setJsonSize(bytes);
+
+      const bytes = new Blob([JSON.stringify(datasetDocument)], {
+        type: "application/json",
+      });
+      setJsonSize(bytes.size);
+
+      //   const bytes = new TextEncoder().encode(
+      //     JSON.stringify(datasetDocument)
+      //   ).length;
+      //   setJsonSize(bytes);
       // Extract Internal Data & Assign `index`
       const internalData = extractInternalData(datasetDocument).map(
         (data, index) => ({
