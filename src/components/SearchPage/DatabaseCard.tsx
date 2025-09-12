@@ -11,6 +11,7 @@ import { Colors } from "design/theme";
 import React from "react";
 import { Link } from "react-router-dom";
 import RoutesEnum from "types/routes.enum";
+import { modalityValueToEnumLabel } from "utils/SearchPageFunctions/modalityLabels";
 
 type Props = {
   dbName?: string;
@@ -56,6 +57,47 @@ const DatabaseCard: React.FC<Props> = ({
           )
         )}
       </>
+    );
+  };
+
+  // for datatype rendering
+  const isClickableModality = (raw: string) =>
+    !!modalityValueToEnumLabel[raw.toLowerCase()];
+
+  const renderDatatype = (raw: string, idx: number) => {
+    const key = raw.toLowerCase();
+    const label = modalityValueToEnumLabel[key];
+
+    if (label) {
+      // Clickable modality → drives the "modality" filter
+      return (
+        <Chip
+          key={`${key}-${idx}`}
+          label={key}
+          variant="outlined"
+          onClick={() => onChipClick("modality", key)} // pass normalized key
+          sx={{
+            "& .MuiChip-label": { px: "6px", fontSize: "0.8rem" },
+            height: 24,
+            color: Colors.darkPurple,
+            border: `1px solid ${Colors.darkPurple}`,
+            fontWeight: "bold",
+            transition: "all 0.2s ease",
+            "&:hover": {
+              backgroundColor: `${Colors.purple} !important`,
+              color: "white",
+              borderColor: Colors.purple,
+            },
+          }}
+        />
+      );
+    }
+
+    // Not a modality → render as plain text (or a disabled/outlined chip if you prefer)
+    return (
+      <Typography key={`${key}-${idx}`} variant="body2" sx={{ mt: 1, mr: 1 }}>
+        {raw}
+      </Typography>
     );
   };
 
@@ -115,35 +157,38 @@ const DatabaseCard: React.FC<Props> = ({
                 alignItems="center"
               >
                 <Typography variant="body2" mt={1}>
-                  <strong>Modalities:</strong>
+                  <strong>Data Type:</strong>
                 </Typography>
 
                 {Array.isArray(modalities) && modalities.length > 0 ? (
-                  modalities.map((mod, idx) => (
-                    <Chip
-                      key={idx}
-                      label={mod}
-                      variant="outlined"
-                      onClick={() => onChipClick("modality", mod)}
-                      sx={{
-                        "& .MuiChip-label": {
-                          paddingX: "6px",
-                          fontSize: "0.8rem",
-                        },
-                        height: "24px",
-                        color: Colors.darkPurple,
-                        border: `1px solid ${Colors.darkPurple}`,
-                        fontWeight: "bold",
-                        transition: "all 0.2s ease",
-                        "&:hover": {
-                          backgroundColor: `${Colors.purple} !important`,
-                          color: "white",
-                          borderColor: Colors.purple,
-                        },
-                      }}
-                    />
-                  ))
+                  modalities.map(renderDatatype)
                 ) : (
+                  // (
+                  //   modalities.map((mod, idx) => (
+                  //     <Chip
+                  //       key={idx}
+                  //       label={mod}
+                  //       variant="outlined"
+                  //       onClick={() => onChipClick("modality", mod)}
+                  //       sx={{
+                  //         "& .MuiChip-label": {
+                  //           paddingX: "6px",
+                  //           fontSize: "0.8rem",
+                  //         },
+                  //         height: "24px",
+                  //         color: Colors.darkPurple,
+                  //         border: `1px solid ${Colors.darkPurple}`,
+                  //         fontWeight: "bold",
+                  //         transition: "all 0.2s ease",
+                  //         "&:hover": {
+                  //           backgroundColor: `${Colors.purple} !important`,
+                  //           color: "white",
+                  //           borderColor: Colors.purple,
+                  //         },
+                  //       }}
+                  //     />
+                  //   ))
+                  // )
                   <Typography variant="body2" mt={1}>
                     N/A
                   </Typography>

@@ -408,7 +408,7 @@ const SearchPage: React.FC = () => {
               p: 3,
               borderRadius: 2,
               boxShadow: 1,
-              minWidth: "35%",
+              minWidth: "25%",
             }}
           >
             {renderFilterForm()}
@@ -510,162 +510,187 @@ const SearchPage: React.FC = () => {
             </Box>
           )}
 
-          {/* matching databases */}
-          {keywordInput && registryMatches.length > 0 && (
-            <Box sx={{ mb: 3 }}>
-              <Typography
-                variant="h6"
-                sx={{ mb: 1.5, mt: 1.5, fontWeight: "600" }}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                md: hasDbMatches ? "1fr 2fr" : "1fr",
+              },
+              gap: 2,
+              alignItems: "baseline",
+            }}
+          >
+            {/* matching databases */}
+            {keywordInput && registryMatches.length > 0 && (
+              <Box
+                sx={{
+                  mb: 3,
+                  borderRight: `2px solid ${Colors.lightGray}`,
+                  pr: 2,
+                }}
               >
-                Matching Databases
-              </Typography>
-              {registryMatches.map((db) => (
-                <DatabaseCard
-                  key={db.id}
-                  dbName={db.name}
-                  fullName={db.fullname}
-                  datasets={db.datasets}
-                  modalities={db.datatype}
-                  logo={db.logo}
-                  keyword={formData.keyword} // for keyword highlight
-                  onChipClick={handleChipClick}
-                />
-              ))}
-            </Box>
-          )}
+                <Typography
+                  variant="h6"
+                  sx={{
+                    mb: 1.5,
+                    mt: 1.5,
+                    borderBottom: "1px solid lightgray",
+                  }}
+                >
+                  Matching Databases
+                </Typography>
+                {registryMatches.map((db) => (
+                  <DatabaseCard
+                    key={db.id}
+                    dbName={db.name}
+                    fullName={db.fullname}
+                    datasets={db.datasets}
+                    modalities={db.datatype}
+                    logo={db.logo}
+                    keyword={formData.keyword} // for keyword highlight
+                    onChipClick={handleChipClick}
+                  />
+                ))}
+              </Box>
+            )}
 
-          {/* results */}
-          {hasSearched && (
-            <Box mt={4}>
-              {loading ? (
-                <Box textAlign="center" my={4}>
-                  <CircularProgress />
-                  <Typography mt={2} color="text.secondary">
-                    Loading search results...
-                  </Typography>
-                </Box>
-              ) : (
-                <>
-                  {/* Only show header when there are dataset hits */}
-                  {hasDatasetMatches && (
-                    <Typography
-                      variant="h6"
-                      sx={{ borderBottom: "1px solid lightgray", mb: 2 }}
-                    >
-                      {`Showing ${results.length} ${
-                        isDataset ? "Datasets" : "Subjects"
-                      }`}
+            {/* results */}
+            {hasSearched && (
+              <Box mt={4}>
+                {loading ? (
+                  <Box textAlign="center" my={4}>
+                    <CircularProgress />
+                    <Typography mt={2} color="text.secondary">
+                      Loading search results...
                     </Typography>
-                  )}
-
-                  {/* pagination + cards (unchanged, but guard with hasDatasetMatches) */}
-                  {hasDatasetMatches && (
-                    <>
-                      {results.length >= 50 && (
-                        <Box textAlign="center" mt={2}>
-                          <Button
-                            variant="outlined"
-                            onClick={handleLoadMore}
-                            sx={{
-                              color: Colors.purple,
-                              borderColor: Colors.purple,
-                              "&:hover": {
-                                transform: "scale(1.05)",
-                                borderColor: Colors.purple,
-                              },
-                            }}
-                          >
-                            Load Extra 50 Results
-                          </Button>
-                        </Box>
-                      )}
-
-                      <Box textAlign="center" mt={2} mb={2}>
-                        <Pagination
-                          count={Math.ceil(results.length / itemsPerPage)}
-                          page={page}
-                          onChange={handlePageChange}
-                          showFirstButton
-                          showLastButton
-                          siblingCount={2}
-                          sx={{
-                            "& .MuiPagination-ul": { justifyContent: "center" },
-                            "& .MuiPaginationItem-root": {
-                              color: Colors.darkPurple,
-                            },
-                            "& .MuiPaginationItem-root.Mui-selected": {
-                              backgroundColor: Colors.purple,
-                              color: "white",
-                              fontWeight: "bold",
-                              "&:hover": {
-                                backgroundColor: Colors.secondaryPurple,
-                              },
-                            },
-                          }}
-                        />
-                      </Box>
-
-                      {results.length > 0 &&
-                        paginatedResults.length > 0 &&
-                        paginatedResults.map((item, idx) => {
-                          try {
-                            const parsedJson = JSON.parse(item.json);
-                            const globalIndex = (page - 1) * itemsPerPage + idx;
-
-                            const isDataset =
-                              parsedJson?.value?.subj &&
-                              Array.isArray(parsedJson.value.subj);
-
-                            return isDataset ? (
-                              <DatasetCard
-                                key={idx}
-                                index={globalIndex}
-                                dbname={item.dbname}
-                                dsname={item.dsname}
-                                parsedJson={parsedJson}
-                                onChipClick={handleChipClick}
-                                keyword={formData.keyword} // for keyword highlight
-                              />
-                            ) : (
-                              <SubjectCard
-                                key={idx}
-                                index={globalIndex}
-                                {...item}
-                                parsedJson={parsedJson}
-                                onChipClick={handleChipClick}
-                              />
-                            );
-                          } catch (e) {
-                            console.error(
-                              `Failed to parse JSON for item #${idx}`,
-                              e
-                            );
-                            return null;
-                          }
-                        })}
-                    </>
-                  )}
-
-                  {/* Single place to show the red message */}
-                  {showNoResults && (
-                    <Typography sx={{ color: Colors.error }}>
-                      No results found based on your criteria. Please adjust the
-                      filters and try again.
-                    </Typography>
-                  )}
-
-                  {hasSearched &&
-                    !loading &&
-                    !Array.isArray(results) &&
-                    results?.msg !== "empty output" && (
-                      <Typography sx={{ color: Colors.error }}>
-                        Something went wrong. Please try again later.
+                  </Box>
+                ) : (
+                  <>
+                    {/* Only show header when there are dataset hits */}
+                    {hasDatasetMatches && (
+                      <Typography
+                        variant="h6"
+                        sx={{ borderBottom: "1px solid lightgray", mb: 2 }}
+                      >
+                        {`Showing ${results.length} ${
+                          isDataset ? "Datasets" : "Subjects"
+                        }`}
                       </Typography>
                     )}
-                </>
-              )}
-            </Box>
-          )}
+
+                    {/* pagination + cards (unchanged, but guard with hasDatasetMatches) */}
+                    {hasDatasetMatches && (
+                      <>
+                        {results.length >= 50 && (
+                          <Box textAlign="center" mt={2}>
+                            <Button
+                              variant="outlined"
+                              onClick={handleLoadMore}
+                              sx={{
+                                color: Colors.purple,
+                                borderColor: Colors.purple,
+                                "&:hover": {
+                                  transform: "scale(1.05)",
+                                  borderColor: Colors.purple,
+                                },
+                              }}
+                            >
+                              Load Extra 50 Results
+                            </Button>
+                          </Box>
+                        )}
+
+                        <Box textAlign="center" mt={2} mb={2}>
+                          <Pagination
+                            count={Math.ceil(results.length / itemsPerPage)}
+                            page={page}
+                            onChange={handlePageChange}
+                            showFirstButton
+                            showLastButton
+                            siblingCount={2}
+                            sx={{
+                              "& .MuiPagination-ul": {
+                                justifyContent: "center",
+                              },
+                              "& .MuiPaginationItem-root": {
+                                color: Colors.darkPurple,
+                              },
+                              "& .MuiPaginationItem-root.Mui-selected": {
+                                backgroundColor: Colors.purple,
+                                color: "white",
+                                fontWeight: "bold",
+                                "&:hover": {
+                                  backgroundColor: Colors.secondaryPurple,
+                                },
+                              },
+                            }}
+                          />
+                        </Box>
+
+                        {results.length > 0 &&
+                          paginatedResults.length > 0 &&
+                          paginatedResults.map((item, idx) => {
+                            try {
+                              const parsedJson = JSON.parse(item.json);
+                              const globalIndex =
+                                (page - 1) * itemsPerPage + idx;
+
+                              const isDataset =
+                                parsedJson?.value?.subj &&
+                                Array.isArray(parsedJson.value.subj);
+
+                              return isDataset ? (
+                                <DatasetCard
+                                  key={idx}
+                                  index={globalIndex}
+                                  dbname={item.dbname}
+                                  dsname={item.dsname}
+                                  parsedJson={parsedJson}
+                                  onChipClick={handleChipClick}
+                                  keyword={formData.keyword} // for keyword highlight
+                                />
+                              ) : (
+                                <SubjectCard
+                                  key={idx}
+                                  index={globalIndex}
+                                  {...item}
+                                  parsedJson={parsedJson}
+                                  onChipClick={handleChipClick}
+                                />
+                              );
+                            } catch (e) {
+                              console.error(
+                                `Failed to parse JSON for item #${idx}`,
+                                e
+                              );
+                              return null;
+                            }
+                          })}
+                      </>
+                    )}
+
+                    {/* Single place to show the red message */}
+                    {showNoResults && (
+                      <Typography sx={{ color: Colors.error }}>
+                        No results found based on your criteria. Please adjust
+                        the filters and try again.
+                      </Typography>
+                    )}
+
+                    {hasSearched &&
+                      !loading &&
+                      !Array.isArray(results) &&
+                      results?.msg !== "empty output" && (
+                        <Typography sx={{ color: Colors.error }}>
+                          Something went wrong. Please try again later.
+                        </Typography>
+                      )}
+                  </>
+                )}
+              </Box>
+            )}
+          </Box>
 
           {/* {hasSearched && (
             <Box mt={4}>

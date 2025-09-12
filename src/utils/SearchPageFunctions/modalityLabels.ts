@@ -1,6 +1,8 @@
 export const modalityValueToEnumLabel: Record<string, string> = {
   anat: "Structural MRI (anat)",
+  mri: "Structural MRI (anat)",
   func: "fMRI (func)",
+  fmri: "fMRI (func)",
   dwi: "DWI (dwi)",
   fmap: "Field maps (fmap)",
   perf: "Perfusion (perf)",
@@ -11,5 +13,6 @@ export const modalityValueToEnumLabel: Record<string, string> = {
   pet: "PET (pet)",
   micr: "microscopy (micr)",
   nirs: "fNIRS (nirs)",
+  fnirs: "fNIRS (nirs)",
   motion: "motion (motion)",
 };
