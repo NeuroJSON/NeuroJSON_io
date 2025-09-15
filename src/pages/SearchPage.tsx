@@ -76,14 +76,34 @@ const SearchPage: React.FC = () => {
 
   // for database card
   const keywordInput = String(formData?.keyword ?? "").trim();
+  const selectedDbId = String(formData?.database ?? "").trim();
   console.log("keyword", keywordInput);
 
+  // const registryMatches: RegistryItem[] = React.useMemo(() => {
+  //   if (!Array.isArray(registry) || !keywordInput) return [];
+  //   return (registry as RegistryItem[]).filter((r) =>
+  //     matchesKeyword(r, keywordInput)
+  //   );
+  // }, [registry, keywordInput]);
+
   const registryMatches: RegistryItem[] = React.useMemo(() => {
-    if (!Array.isArray(registry) || !keywordInput) return [];
-    return (registry as RegistryItem[]).filter((r) =>
-      matchesKeyword(r, keywordInput)
-    );
-  }, [registry, keywordInput]);
+    if (!Array.isArray(registry)) return [];
+    const list = registry as RegistryItem[];
+
+    const fromId =
+      selectedDbId && selectedDbId !== "any"
+        ? list.filter((r) => r.id === selectedDbId)
+        : [];
+
+    const fromKeyword = keywordInput
+      ? list.filter((r) => matchesKeyword(r, keywordInput))
+      : [];
+
+    // merge the db results of selectedDB and keywordInput --> de duplicates
+    const map = new Map<string, RegistryItem>();
+    [...fromId, ...fromKeyword].forEach((r) => map.set(r.id, r));
+    return Array.from(map.values()); // return matched registry
+  }, [registry, selectedDbId, keywordInput]);
 
   // to show the applied chips on the top of results
   const activeFilters = Object.entries(appliedFilters).filter(
@@ -328,7 +348,8 @@ const SearchPage: React.FC = () => {
   );
 
   // check if has database/dataset matches
-  const hasDbMatches = !!keywordInput && registryMatches.length > 0;
+  // const hasDbMatches = !!keywordInput && registryMatches.length > 0;
+  const hasDbMatches = registryMatches.length > 0;
   const hasDatasetMatches = Array.isArray(results) && results.length > 0;
   // when backend find nothing
   const backendEmpty =
@@ -522,7 +543,8 @@ const SearchPage: React.FC = () => {
             }}
           >
             {/* matching databases */}
-            {keywordInput && registryMatches.length > 0 && (
+            {/* {keywordInput && registryMatches.length > 0 && ( */}
+            {registryMatches.length > 0 && (
               <Box
                 sx={{
                   mb: 3,
@@ -543,8 +565,8 @@ const SearchPage: React.FC = () => {
                 {registryMatches.map((db) => (
                   <DatabaseCard
                     key={db.id}
-                    dbName={db.name}
-                    fullName={db.fullname}
+                    dbId={db.id}
+                    fullName={db.fullname ?? db.name}
                     datasets={db.datasets}
                     modalities={db.datatype}
                     logo={db.logo}

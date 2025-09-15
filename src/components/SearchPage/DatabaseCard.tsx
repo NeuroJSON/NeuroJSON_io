@@ -14,7 +14,7 @@ import RoutesEnum from "types/routes.enum";
 import { modalityValueToEnumLabel } from "utils/SearchPageFunctions/modalityLabels";
 
 type Props = {
-  dbName?: string;
+  dbId?: string;
   fullName?: string;
   datasets?: number;
   modalities?: string[];
@@ -24,7 +24,7 @@ type Props = {
 };
 
 const DatabaseCard: React.FC<Props> = ({
-  dbName,
+  dbId,
   fullName,
   datasets,
   modalities,
@@ -32,7 +32,7 @@ const DatabaseCard: React.FC<Props> = ({
   keyword,
   onChipClick,
 }) => {
-  const databaseLink = `${RoutesEnum.DATABASES}/${dbName}`;
+  const databaseLink = `${RoutesEnum.DATABASES}/${dbId}`;
   // keyword hightlight functional component
   const highlightKeyword = (text: string, keyword?: string) => {
     if (!keyword || !text?.toLowerCase().includes(keyword.toLowerCase())) {
