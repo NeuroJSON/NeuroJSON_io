@@ -3,7 +3,6 @@ import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import DescriptionIcon from "@mui/icons-material/Description";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
-// import FolderIcon from "@mui/icons-material/Folder";
 import HomeIcon from "@mui/icons-material/Home";
 import {
   Box,
@@ -27,12 +26,13 @@ import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect, useMemo, useState } from "react";
 // import ReactJson from "react-json-view";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   fetchDocumentDetails,
   fetchDbInfoByDatasetId,
 } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
+import { NeurojsonService } from "services/neurojson.service";
 import RoutesEnum from "types/routes.enum";
 
 interface ExternalDataLink {
@@ -54,6 +54,19 @@ interface InternalDataLink {
 const UpdatedDatasetDetailPage: React.FC = () => {
   const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
   const navigate = useNavigate();
+  // for revision
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rev = searchParams.get("rev") || undefined;
+
+  const handleSelectRevision = (newRev?: string | null) => {
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      if (newRev) p.set("rev", newRev);
+      else p.delete("rev");
+      return p;
+    });
+  };
+
   const dispatch = useAppDispatch();
   const {
     selectedDocument: datasetDocument,
@@ -257,10 +270,21 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     if (!dbName || !docId) return;
 
     (async () => {
-      await dispatch(fetchDocumentDetails({ dbName, docId })); // render tree ASAP
-      dispatch(fetchDbInfoByDatasetId({ dbName, docId })); // don't await
+      await dispatch(fetchDocumentDetails({ dbName, docId, rev })); // for dataset detail
+      dispatch(fetchDbInfoByDatasetId({ dbName, docId })); // for metadata panel (include modality)
     })();
-  }, [dbName, docId, dispatch]);
+  }, [dbName, docId, rev, dispatch]);
+  // for revs list storage
+  const [revsList, setRevsList] = React.useState<{ rev: string }[]>([]);
+
+  useEffect(() => {
+    const fromDoc = Array.isArray(datasetDocument?._revs_info)
+      ? (datasetDocument._revs_info as { rev: string }[])
+      : [];
+    if (fromDoc.length && revsList.length === 0) {
+      setRevsList(fromDoc);
+    }
+  }, [datasetDocument, revsList.length]);
 
   useEffect(() => {
     if (datasetDocument) {
@@ -840,6 +864,10 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               dbViewInfo={dbViewInfo}
               dbName={dbName}
               docId={docId}
+              // new props:
+              currentRev={rev} // reflect URL selection
+              onChangeRev={handleSelectRevision}
+              revsList={revsList}
             />
           </Box>
         </Box>

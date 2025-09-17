@@ -28,11 +28,22 @@ export const NeurojsonService = {
 
     return response.data;
   },
-  getDocumentById: async (dbName: string, documentId: string): Promise<any> => {
+  getDocumentById: async (
+    dbName: string,
+    documentId: string,
+    rev?: string
+  ): Promise<any> => {
     try {
-      const response = await api.get(
-        `${baseURL}/${dbName}/${documentId}?revs_info=true`
-      );
+      const url = `${baseURL}/${dbName}/${documentId}`;
+      // const response = await api.get(
+      //   `${baseURL}/${dbName}/${documentId}?revs_info=true`
+      // );
+      const response = await api.get(url, {
+        params: {
+          revs_info: true,
+          ...(rev ? { rev } : {}), // add ?rev=... only when provided
+        },
+      });
       return response.data;
     } catch (error) {
       console.error(

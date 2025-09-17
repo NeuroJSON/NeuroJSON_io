@@ -77,6 +77,9 @@ const SearchPage: React.FC = () => {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const upMd = useMediaQuery(theme.breakpoints.up("md"));
+
+  const placement = upMd ? "right" : "top";
 
   // for database card
   const keywordInput = String(formData?.keyword ?? "").trim();
@@ -589,14 +592,12 @@ const SearchPage: React.FC = () => {
                   <Typography variant="h6">Suggested databases</Typography>
 
                   <ClickTooltip
-                    placement="right"
-                    // enterTouchDelay={0}
-                    // leaveTouchDelay={300}
+                    placement={placement}
                     componentsProps={{
                       tooltip: {
                         sx: {
-                          bgcolor: "#fff", // solid white background
-                          color: Colors.darkPurple, // dark text
+                          bgcolor: "#fff",
+                          color: Colors.darkPurple,
                           border: `1px solid ${Colors.lightGray}`,
                           boxShadow: 3,
                           maxWidth: { sm: 200, md: 400 },
