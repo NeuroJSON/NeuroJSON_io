@@ -719,10 +719,8 @@ const SearchPage: React.FC = () => {
             )}
             {hasSearched && (
               <Box
-                mt={4}
                 sx={{
-                  borderLeft: `1px solid ${Colors.lightGray}`,
-                  pl: 4,
+                  mt: 2,
                   mb: 2,
                 }}
               >
