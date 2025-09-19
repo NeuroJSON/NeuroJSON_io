@@ -39,6 +39,20 @@ const DatasetPage: React.FC = () => {
   const totalPages = Math.ceil(limit / pageSize);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const formatSize = (sizeInBytes: number): string => {
+    if (sizeInBytes < 1024) {
+      return `${sizeInBytes} Bytes`;
+    } else if (sizeInBytes < 1024 * 1024) {
+      return `${(sizeInBytes / 1024).toFixed(1)} KB`;
+    } else if (sizeInBytes < 1024 * 1024 * 1024) {
+      return `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
+    } else if (sizeInBytes < 1024 * 1024 * 1024 * 1024) {
+      return `${(sizeInBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    } else {
+      return `${(sizeInBytes / (1024 * 1024 * 1024 * 1024)).toFixed(2)} TB`;
+    }
+  };
+
   useEffect(() => {
     if (dbName) {
       dispatch(fetchDbInfo(dbName.toLowerCase()));
@@ -326,11 +340,12 @@ const DatasetPage: React.FC = () => {
         <Grid container spacing={3}>
           {filteredData.map((doc: any, index: number) => {
             const datasetIndex = (currentPage - 1) * pageSize + index + 1;
+
             return (
               <Grid item xs={12} sm={6} key={doc.id}>
                 <Card
                   sx={{
-                    position: "relative", // ✅ allows absolute positioning of the number
+                    position: "relative", // allows absolute positioning of the number
                     backgroundColor: Colors.white,
                     boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                     height: "100%",

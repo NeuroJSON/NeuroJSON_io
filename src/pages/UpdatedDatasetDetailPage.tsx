@@ -3,7 +3,6 @@ import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import DescriptionIcon from "@mui/icons-material/Description";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
-// import FolderIcon from "@mui/icons-material/Folder";
 import HomeIcon from "@mui/icons-material/Home";
 import {
   Box,
@@ -20,18 +19,20 @@ import {
   makeLinkMap,
 } from "components/DatasetDetailPage/FileTree/utils";
 import LoadDatasetTabs from "components/DatasetDetailPage/LoadDatasetTabs";
+import MetaDataPanel from "components/DatasetDetailPage/MetaDataPanel";
 import ReadMoreText from "design/ReadMoreText";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect, useMemo, useState } from "react";
-import ReactJson from "react-json-view";
-import { useParams, useNavigate } from "react-router-dom";
+// import ReactJson from "react-json-view";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   fetchDocumentDetails,
   fetchDbInfoByDatasetId,
 } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
+import { NeurojsonService } from "services/neurojson.service";
 import RoutesEnum from "types/routes.enum";
 
 interface ExternalDataLink {
@@ -53,6 +54,19 @@ interface InternalDataLink {
 const UpdatedDatasetDetailPage: React.FC = () => {
   const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
   const navigate = useNavigate();
+  // for revision
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rev = searchParams.get("rev") || undefined;
+
+  const handleSelectRevision = (newRev?: string | null) => {
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      if (newRev) p.set("rev", newRev);
+      else p.delete("rev");
+      return p;
+    });
+  };
+
   const dispatch = useAppDispatch();
   const {
     selectedDocument: datasetDocument,
@@ -73,11 +87,16 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const [previewIndex, setPreviewIndex] = useState<number>(0);
   const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
 
-  // 1) detect subjects at the top level, return true or false
-  const hasTopLevelSubjects = useMemo(
-    () => Object.keys(datasetDocument || {}).some((k) => /^sub-/i.test(k)),
-    [datasetDocument]
-  );
+  //   useEffect(() => {
+  //     if (!datasetDocument) {
+  //       setJsonSize(0);
+  //       return;
+  //     }
+  //     const bytes = new TextEncoder().encode(
+  //       JSON.stringify(datasetDocument)
+  //     ).length;
+  //     setJsonSize(bytes);
+  //   }, [datasetDocument]);
 
   const linkMap = useMemo(() => makeLinkMap(externalLinks), [externalLinks]);
 
@@ -86,26 +105,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     [datasetDocument, linkMap]
   );
 
-  // “rest” JSON only when we actually have subjects
-  const rest = useMemo(() => {
-    if (!datasetDocument || !hasTopLevelSubjects) return {};
-    const r: any = {};
-    Object.keys(datasetDocument).forEach((k) => {
-      if (!/^sub-/i.test(k)) r[k] = (datasetDocument as any)[k];
-    });
-    return r;
-  }, [datasetDocument, hasTopLevelSubjects]);
-
-  // JSON panel should always render:
-  // - if we have subjects -> JSON show "rest" (everything except sub-*)
-  // - if we don't have subjects -> JSON show the whole document
-  const jsonPanelData = useMemo(
-    () => (hasTopLevelSubjects ? rest : datasetDocument || {}),
-    [hasTopLevelSubjects, rest, datasetDocument]
-  );
-
-  // 5) header title + counts also fall back
-  //   const treeTitle = hasTopLevelSubjects ? "Subjects" : "Files";
   const treeTitle = "Files";
   const filesCount = externalLinks.length;
   const totalBytes = useMemo(() => {
@@ -256,16 +255,36 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     return internalLinks;
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (dbName && docId) {
-        await dispatch(fetchDocumentDetails({ dbName, docId }));
-        await dispatch(fetchDbInfoByDatasetId({ dbName, docId }));
-      }
-    };
+  //   useEffect(() => {
+  //     const fetchData = async () => {
+  //       if (dbName && docId) {
+  //         await dispatch(fetchDocumentDetails({ dbName, docId }));
+  //         await dispatch(fetchDbInfoByDatasetId({ dbName, docId }));
+  //       }
+  //     };
 
-    fetchData();
-  }, [dbName, docId, dispatch]);
+  //     fetchData();
+  //   }, [dbName, docId, dispatch]);
+
+  useEffect(() => {
+    if (!dbName || !docId) return;
+
+    (async () => {
+      await dispatch(fetchDocumentDetails({ dbName, docId, rev })); // for dataset detail
+      dispatch(fetchDbInfoByDatasetId({ dbName, docId })); // for metadata panel (include modality)
+    })();
+  }, [dbName, docId, rev, dispatch]);
+  // for revs list storage
+  const [revsList, setRevsList] = React.useState<{ rev: string }[]>([]);
+
+  useEffect(() => {
+    const fromDoc = Array.isArray(datasetDocument?._revs_info)
+      ? (datasetDocument._revs_info as { rev: string }[])
+      : [];
+    if (fromDoc.length && revsList.length === 0) {
+      setRevsList(fromDoc);
+    }
+  }, [datasetDocument, revsList.length]);
 
   useEffect(() => {
     if (datasetDocument) {
@@ -278,6 +297,15 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         })
       );
 
+      const bytes = new Blob([JSON.stringify(datasetDocument)], {
+        type: "application/json",
+      });
+      setJsonSize(bytes.size);
+
+      //   const bytes = new TextEncoder().encode(
+      //     JSON.stringify(datasetDocument)
+      //   ).length;
+      //   setJsonSize(bytes);
       // Extract Internal Data & Assign `index`
       const internalData = extractInternalData(datasetDocument).map(
         (data, index) => ({
@@ -317,10 +345,10 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         }
       });
 
-      const blob = new Blob([JSON.stringify(datasetDocument, null, 2)], {
-        type: "application/json",
-      });
-      setJsonSize(blob.size);
+      //   const blob = new Blob([JSON.stringify(datasetDocument, null, 2)], {
+      //     type: "application/json",
+      //   });
+      //   setJsonSize(blob.size);
 
       //  Construct download script dynamically
       let script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"\n`;
@@ -402,18 +430,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       if (typeof window !== "undefined" && (window as any).__previewType) {
         return (window as any).__previewType === "2d";
       }
-      // if (window.__previewType) {
-      //   console.log("work~~~~~~~");
-      //   return window.__previewType === "2d";
-      // }
-      //   console.log("is 2d preview candidate !== 2d");
-      //   console.log("obj", obj);
-      // if (typeof obj === "string" && obj.includes("db=optics-at-martinos")) {
-      //   return false;
-      // }
-      // if (typeof obj === "string" && obj.endsWith(".jdb")) {
-      //   return true;
-      // }
+
       if (!obj || typeof obj !== "object") {
         return false;
       }
@@ -422,8 +439,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         return false;
       }
       const dim = obj._ArraySize_;
-      //   console.log("array.isarray(dim)", Array.isArray(dim));
-      //   console.log("dim.length", dim.length === 1 || dim.length === 2);
 
       return (
         Array.isArray(dim) &&
@@ -500,18 +515,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         typeof dataOrUrl === "string" ? extractFileName(dataOrUrl) : "";
       if (isPreviewableFile(fileName)) {
         (window as any).previewdataurl(dataOrUrl, idx);
-        // const is2D = is2DPreviewCandidate(dataOrUrl);
-        // const panel = document.getElementById("chartpanel");
-        // console.log("is2D", is2D);
-        // console.log("panel", panel);
-
-        // if (is2D) {
-        //   //   console.log("📊 2D data → rendering inline with dopreview()");
-        //   if (panel) panel.style.display = "block"; // Show it!
-        //   setPreviewOpen(false); // Don't open modal
-        // } else {
-        //   if (panel) panel.style.display = "none"; // Hide chart panel on 3D external
-        // }
       } else {
         console.warn("⚠️ Unsupported file format for preview:", dataOrUrl);
       }
@@ -856,137 +859,16 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               flexDirection: "column",
             }}
           >
-            <Box
-              sx={{
-                backgroundColor: Colors.white,
-                borderRadius: "8px",
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-                height: "100%",
-                minHeight: 0,
-              }}
-            >
-              <Box
-                sx={{
-                  flex: 1,
-                  minHeight: 0, // <-- for scroller
-                  overflowY: "auto", // <-- keep the scroller here
-                  p: 2,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 1,
-                }}
-              >
-                <Box>
-                  <Typography
-                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                  >
-                    Modalities
-                  </Typography>
-                  <Typography sx={{ color: "text.secondary" }}>
-                    {dbViewInfo?.rows?.[0]?.value?.modality?.join(", ") ??
-                      "N/A"}
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography
-                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                  >
-                    DOI
-                  </Typography>
-                  <Typography sx={{ color: "text.secondary" }}>
-                    {(() => {
-                      const doi =
-                        datasetDocument?.["dataset_description.json"]
-                          ?.DatasetDOI ||
-                        datasetDocument?.["dataset_description.json"]
-                          ?.ReferenceDOI;
-
-                      if (!doi) return "N/A";
-
-                      // Normalize into a clickable URL
-                      let url = doi;
-                      if (/^10\./.test(doi)) {
-                        url = `https://doi.org/${doi}`;
-                      } else if (/^doi:/.test(doi)) {
-                        url = `https://doi.org/${doi.replace(/^doi:/, "")}`;
-                      }
-
-                      return (
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            color: "inherit",
-                            textDecoration: "underline",
-                          }}
-                        >
-                          {url}
-                        </a>
-                      );
-                    })()}
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography
-                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                  >
-                    Subjects
-                  </Typography>
-                  <Typography sx={{ color: "text.secondary" }}>
-                    {datasetDocument?.["participants.tsv"]?.["participant_id"]
-                      ?.length ?? "N/A"}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography
-                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                  >
-                    License
-                  </Typography>
-                  <Typography sx={{ color: "text.secondary" }}>
-                    {datasetDocument?.["dataset_description.json"]?.License ??
-                      "N/A"}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography
-                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                  >
-                    BIDS Version
-                  </Typography>
-                  <Typography sx={{ color: "text.secondary" }}>
-                    {datasetDocument?.["dataset_description.json"]
-                      ?.BIDSVersion ?? "N/A"}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography
-                    sx={{ color: Colors.darkPurple, fontWeight: "600" }}
-                  >
-                    References and Links
-                  </Typography>
-                  <Typography sx={{ color: "text.secondary" }}>
-                    {Array.isArray(
-                      datasetDocument?.["dataset_description.json"]
-                        ?.ReferencesAndLinks
-                    )
-                      ? datasetDocument["dataset_description.json"]
-                          .ReferencesAndLinks.length > 0
-                        ? datasetDocument[
-                            "dataset_description.json"
-                          ].ReferencesAndLinks.join(", ")
-                        : "N/A"
-                      : datasetDocument?.["dataset_description.json"]
-                          ?.ReferencesAndLinks ?? "N/A"}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
+            <MetaDataPanel
+              datasetDocument={datasetDocument}
+              dbViewInfo={dbViewInfo}
+              dbName={dbName}
+              docId={docId}
+              // new props:
+              currentRev={rev} // reflect URL selection
+              onChangeRev={handleSelectRevision}
+              revsList={revsList}
+            />
           </Box>
         </Box>
 
@@ -1089,12 +971,15 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                         variant="contained"
                         size="small"
                         sx={{
-                          backgroundColor: "#1976d2",
+                          backgroundColor: Colors.purple,
                           flexShrink: 0,
                           minWidth: "70px",
                           fontSize: "0.7rem",
                           padding: "2px 6px",
                           lineHeight: 1,
+                          "&:hover": {
+                            backgroundColor: Colors.secondaryPurple,
+                          },
                         }}
                         onClick={() =>
                           handlePreview(link.data, link.index, true)
@@ -1114,7 +999,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           </Box>
           <Box
             sx={{
-              backgroundColor: "#eaeaea",
+              backgroundColor: Colors.lightBlue,
               padding: 2,
               borderRadius: "8px",
               flex: 1,
@@ -1199,11 +1084,14 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                             variant="contained"
                             size="small"
                             sx={{
-                              backgroundColor: "#1976d2",
+                              backgroundColor: Colors.purple,
                               minWidth: "70px",
                               fontSize: "0.7rem",
                               padding: "2px 6px",
                               lineHeight: 1,
+                              "&:hover": {
+                                backgroundColor: Colors.secondaryPurple,
+                              },
                             }}
                             onClick={() => window.open(link.url, "_blank")}
                           >
@@ -1214,10 +1102,16 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                               variant="outlined"
                               size="small"
                               sx={{
+                                color: Colors.purple,
+                                borderColor: Colors.purple,
                                 minWidth: "65px",
                                 fontSize: "0.7rem",
                                 padding: "2px 6px",
                                 lineHeight: 1,
+                                "&:hover": {
+                                  color: Colors.secondaryPurple,
+                                  borderColor: Colors.secondaryPurple,
+                                },
                               }}
                               onClick={() =>
                                 handlePreview(link.url, link.index, false)

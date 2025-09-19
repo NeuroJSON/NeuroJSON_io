@@ -1,5 +1,6 @@
 import { generateSchemaWithDatabaseEnum } from "../utils/SearchPageFunctions/searchformSchema";
 import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import {
   Typography,
   Container,
@@ -9,11 +10,15 @@ import {
   Pagination,
   Chip,
   Drawer,
+  Tooltip,
+  IconButton,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import Form from "@rjsf/mui";
 import validator from "@rjsf/validator-ajv8";
+import ClickTooltip from "components/SearchPage/ClickTooltip";
+import DatabaseCard from "components/SearchPage/DatabaseCard";
 import DatasetCard from "components/SearchPage/DatasetCard";
 import SubjectCard from "components/SearchPage/SubjectCard";
 import { Colors } from "design/theme";
@@ -29,6 +34,25 @@ import {
 import { RootState } from "redux/store";
 import { generateUiSchema } from "utils/SearchPageFunctions/generateUiSchema";
 import { modalityValueToEnumLabel } from "utils/SearchPageFunctions/modalityLabels";
+
+type RegistryItem = {
+  id: string;
+  name?: string;
+  fullname?: string;
+  datatype?: string[];
+  datasets?: number;
+  logo?: string;
+};
+
+const matchesKeyword = (item: RegistryItem, keyword: string) => {
+  if (!keyword) return false;
+  const needle = keyword.toLowerCase();
+  return (
+    item.name?.toLowerCase().includes(needle) ||
+    item.fullname?.toLowerCase().includes(needle) ||
+    item.datatype?.some((dt) => dt.toLowerCase().includes(needle))
+  );
+};
 
 const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -53,6 +77,32 @@ const SearchPage: React.FC = () => {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const upMd = useMediaQuery(theme.breakpoints.up("md"));
+
+  const placement = upMd ? "right" : "top";
+
+  // for database card
+  const keywordInput = String(formData?.keyword ?? "").trim();
+  const selectedDbId = String(formData?.database ?? "").trim();
+
+  const registryMatches: RegistryItem[] = React.useMemo(() => {
+    if (!Array.isArray(registry)) return [];
+    const list = registry as RegistryItem[];
+
+    const fromId =
+      selectedDbId && selectedDbId !== "any"
+        ? list.filter((r) => r.id === selectedDbId)
+        : [];
+
+    const fromKeyword = keywordInput
+      ? list.filter((r) => matchesKeyword(r, keywordInput))
+      : [];
+
+    // merge the db results of selectedDB and keywordInput --> de duplicates
+    const map = new Map<string, RegistryItem>();
+    [...fromId, ...fromKeyword].forEach((r) => map.set(r.id, r));
+    return Array.from(map.values()); // return matched registry
+  }, [registry, selectedDbId, keywordInput]);
 
   // to show the applied chips on the top of results
   const activeFilters = Object.entries(appliedFilters).filter(
@@ -248,6 +298,7 @@ const SearchPage: React.FC = () => {
       <Box
         sx={{
           display: "flex",
+          flexDirection: { sm: "column", md: "row" },
           justifyContent: "flex-start",
           mt: 2,
           gap: 2,
@@ -266,7 +317,7 @@ const SearchPage: React.FC = () => {
             },
           }}
         >
-          Submit
+          Search
         </Button>
         <Button
           variant="outlined"
@@ -296,15 +347,30 @@ const SearchPage: React.FC = () => {
     </>
   );
 
+  // check if has database/dataset matches
+  // const hasDbMatches = !!keywordInput && registryMatches.length > 0;
+  const hasDbMatches = registryMatches.length > 0;
+  const hasDatasetMatches = Array.isArray(results) && results.length > 0;
+  // when backend find nothing
+  const backendEmpty =
+    !Array.isArray(results) && (results as any)?.msg === "empty output";
+
+  // show red message only if nothing matched at all
+  const showNoResults =
+    hasSearched &&
+    !loading &&
+    !hasDbMatches &&
+    (!hasDatasetMatches || backendEmpty);
   return (
     <Container
+      maxWidth={false}
       style={{
         marginTop: "2rem",
         marginBottom: "2rem",
         backgroundColor: Colors.white,
         padding: "2rem",
         borderRadius: 4,
-        width: "100%",
+        width: "95%",
       }}
     >
       <Box // box for title and show filters button(mobile version)
@@ -327,7 +393,7 @@ const SearchPage: React.FC = () => {
             },
           }}
         >
-          Metadata Search
+          Search
         </Typography>
         {isMobile && !showMobileFilters && (
           <Button
@@ -363,7 +429,7 @@ const SearchPage: React.FC = () => {
               p: 3,
               borderRadius: 2,
               boxShadow: 1,
-              minWidth: "35%",
+              minWidth: "25%",
             }}
           >
             {renderFilterForm()}
@@ -371,7 +437,7 @@ const SearchPage: React.FC = () => {
         )}
 
         {/* before submit box */}
-        <Box>
+        {/* <Box>
           {!hasSearched && (
             <Typography
               variant="subtitle1"
@@ -382,11 +448,11 @@ const SearchPage: React.FC = () => {
                 color: Colors.darkPurple,
               }}
             >
-              Use the filters to search for datasets or subjects based on
-              metadata.
+              Use the filters and click submit to search for datasets or
+              subjects based on metadata.
             </Typography>
           )}
-        </Box>
+        </Box> */}
 
         {/* after submit box */}
         <Box
@@ -465,126 +531,332 @@ const SearchPage: React.FC = () => {
             </Box>
           )}
 
-          {/* results */}
-          {hasSearched && (
-            <Box mt={4}>
-              {loading ? (
-                <Box textAlign="center" my={4}>
-                  <CircularProgress />
-                  <Typography mt={2} color="text.secondary">
-                    Loading search results...
-                  </Typography>
-                </Box>
-              ) : Array.isArray(results) ? (
-                <>
-                  <Typography
-                    variant="h6"
-                    sx={{ borderBottom: "1px solid lightgray", mb: 2 }}
-                  >
-                    {results.length > 0
-                      ? `Showing ${results.length} ${
-                          isDataset ? "Datasets" : "Subjects"
-                        }`
-                      : `No matching ${
-                          isDataset ? "datasets" : "subjects"
-                        } found`}
-                  </Typography>
-                  {Array.isArray(results)
-                    ? results.length >= 50 && (
-                        <Box textAlign="center" mt={2}>
-                          <Button
-                            variant="outlined"
-                            onClick={handleLoadMore}
-                            sx={{
-                              color: Colors.purple,
-                              borderColor: Colors.purple,
-                              "&:hover": {
-                                transform: "scale(1.05)",
-                                borderColor: Colors.purple,
-                              },
-                            }}
-                          >
-                            Load Extra 50 Results
-                          </Button>
-                        </Box>
-                      )
-                    : null}
+          {/* {!hasSearched && (
+            <Typography
+              variant="subtitle1"
+              sx={{
+                flexWrap: "wrap",
+                fontWeight: 500,
+                fontSize: "large",
+                color: Colors.darkPurple,
+                mb: 2,
+                pt: 1,
+              }}
+            >
+              Use the filters and click submit to search for{" "}
+              <Box component="span" sx={{ color: Colors.darkOrange, fontWeight: 700 }}>
+                datasets
+              </Box>{" "}
+              and{" "}
+              <Box
+                component="span"
+                sx={{ color: Colors.darkOrange, fontWeight: 700 }}
+              >
+                subjects
+              </Box>{" "}
+              based on metadata.
+            </Typography>
+          )} */}
 
-                  <Box textAlign="center" mt={2} mb={2}>
-                    <Pagination
-                      count={Math.ceil(results.length / itemsPerPage)}
-                      page={page}
-                      onChange={handlePageChange}
-                      showFirstButton
-                      showLastButton
-                      siblingCount={2}
-                      sx={{
-                        "& .MuiPagination-ul": {
-                          justifyContent: "center",
-                        },
-                        "& .MuiPaginationItem-root": {
+          <Box
+            sx={{
+              // display: "grid",
+              // gridTemplateColumns: {
+              //   xs: "1fr",
+              //   md: hasDbMatches ? "1fr 2fr" : "1fr",
+              // },
+              // gap: 2,
+              // alignItems: "baseline",
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
+            {/* suggested databases */}
+            {registryMatches.length > 0 && (
+              <Box
+                sx={{
+                  mb: 3,
+                  pr: 2,
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                    mb: 1.5,
+                    mt: 1.5,
+                    borderBottom: "1px solid lightgray",
+                  }}
+                >
+                  <Typography variant="h6">Suggested databases</Typography>
+
+                  <ClickTooltip
+                    placement={placement}
+                    componentsProps={{
+                      tooltip: {
+                        sx: {
+                          bgcolor: "#fff",
                           color: Colors.darkPurple,
+                          border: `1px solid ${Colors.lightGray}`,
+                          boxShadow: 3,
+                          maxWidth: { sm: 200, md: 400 },
+                          p: 1.5,
+                          fontSize: "0.875rem",
+                          lineHeight: 1.5,
                         },
-                        "& .MuiPaginationItem-root.Mui-selected": {
-                          backgroundColor: Colors.purple,
-                          color: "white",
-                          fontWeight: "bold",
-                          "&:hover": {
-                            backgroundColor: Colors.secondaryPurple,
+                      },
+                      arrow: {
+                        sx: {
+                          color: "#fff", // make arrow match tooltip bg
+                          "&::before": {
+                            border: `1px solid ${Colors.lightGray}`, // subtle arrow border
                           },
                         },
-                      }}
+                      },
+                    }}
+                    title={
+                      <Typography variant="body2">
+                        Live preview based on your keyword or selected database.
+                        This list updates as you type or change the dropdown.
+                        It’s <strong>separate from the results</strong>—you’ll
+                        see datasets/subjects after you click <em>Search</em>.
+                      </Typography>
+                    }
+                  >
+                    <IconButton
+                      size="small"
+                      aria-label="Live preview info"
+                      sx={{ p: 0.25, color: Colors.purple }}
+                    >
+                      <InfoOutlinedIcon fontSize="small" />
+                    </IconButton>
+                  </ClickTooltip>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    gap: 1,
+                  }}
+                >
+                  {registryMatches.map((db) => (
+                    <DatabaseCard
+                      key={db.id}
+                      dbId={db.id}
+                      fullName={db.fullname ?? db.name}
+                      datasets={db.datasets}
+                      modalities={db.datatype}
+                      logo={db.logo}
+                      keyword={formData.keyword} // for keyword highlight
+                      onChipClick={handleChipClick}
                     />
-                  </Box>
+                  ))}
+                </Box>
+              </Box>
+            )}
 
-                  {results.length > 0 &&
-                    paginatedResults.length > 0 &&
-                    paginatedResults.map((item, idx) => {
-                      try {
-                        const parsedJson = JSON.parse(item.json);
-                        const globalIndex = (page - 1) * itemsPerPage + idx;
-
-                        const isDataset =
-                          parsedJson?.value?.subj &&
-                          Array.isArray(parsedJson.value.subj);
-
-                        return isDataset ? (
-                          <DatasetCard
-                            key={idx}
-                            index={globalIndex}
-                            dbname={item.dbname}
-                            dsname={item.dsname}
-                            parsedJson={parsedJson}
-                            onChipClick={handleChipClick}
-                            keyword={formData.keyword} // for keyword highlight
-                          />
-                        ) : (
-                          <SubjectCard
-                            key={idx}
-                            index={globalIndex}
-                            {...item}
-                            parsedJson={parsedJson}
-                            onChipClick={handleChipClick}
-                          />
-                        );
-                      } catch (e) {
-                        console.error(
-                          `Failed to parse JSON for item #${idx}`,
-                          e
-                        );
-                        return null;
-                      }
-                    })}
-                </>
-              ) : (
-                <Typography sx={{ color: Colors.error }}>
-                  {results?.msg === "empty output"
-                    ? "No results found based on your criteria. Please adjust the filters and try again."
-                    : "Something went wrong. Please try again later."}
+            {/* results */}
+            {!hasSearched && (
+              <Box sx={{ position: "relative", minHeight: 300 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    mb: 1.5,
+                    mt: 1.5,
+                    borderBottom: "1px solid lightgray",
+                  }}
+                >
+                  Search Results
                 </Typography>
-              )}
-            </Box>
-          )}
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    position: "relative",
+                    flexWrap: "wrap",
+                    fontWeight: 500,
+                    fontSize: "large",
+                    color: Colors.darkPurple,
+                    mb: 2,
+                    pt: 1,
+                  }}
+                >
+                  Use the filters and click search to get results for{" "}
+                  <Box
+                    component="span"
+                    sx={{ color: Colors.darkOrange, fontWeight: 700 }}
+                  >
+                    datasets
+                  </Box>{" "}
+                  and{" "}
+                  <Box
+                    component="span"
+                    sx={{ color: Colors.darkOrange, fontWeight: 700 }}
+                  >
+                    subjects
+                  </Box>{" "}
+                  based on metadata.
+                </Typography>
+                <Box
+                  component="img"
+                  src={`${process.env.PUBLIC_URL}/img//search_page/search.png`}
+                  alt="Search illustration"
+                  sx={{
+                    position: "absolute",
+                    top: "75%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: { xs: 150, md: 150 },
+                    pointerEvents: "none",
+                    userSelect: "none",
+                    mb: 4,
+                    pb: 2,
+                  }}
+                />
+              </Box>
+            )}
+            {hasSearched && (
+              <Box
+                sx={{
+                  mt: 2,
+                  mb: 2,
+                }}
+              >
+                {loading ? (
+                  <Box textAlign="center" my={4}>
+                    <CircularProgress />
+                    <Typography mt={2} color="text.secondary">
+                      Loading search results...
+                    </Typography>
+                  </Box>
+                ) : (
+                  <>
+                    {/* Only show header when there are dataset hits */}
+                    {hasDatasetMatches && (
+                      <Typography
+                        variant="h6"
+                        sx={{ borderBottom: "1px solid lightgray", mb: 2 }}
+                      >
+                        {`Showing ${results.length} ${
+                          isDataset ? "Datasets" : "Subjects"
+                        }`}
+                      </Typography>
+                    )}
+
+                    {/* pagination + cards (unchanged, but guard with hasDatasetMatches) */}
+                    {hasDatasetMatches && (
+                      <>
+                        {results.length >= 50 && (
+                          <Box textAlign="center" mt={2}>
+                            <Button
+                              variant="outlined"
+                              onClick={handleLoadMore}
+                              sx={{
+                                color: Colors.purple,
+                                borderColor: Colors.purple,
+                                "&:hover": {
+                                  transform: "scale(1.05)",
+                                  borderColor: Colors.purple,
+                                },
+                              }}
+                            >
+                              Load Extra 50 Results
+                            </Button>
+                          </Box>
+                        )}
+
+                        <Box textAlign="center" mt={2} mb={2}>
+                          <Pagination
+                            count={Math.ceil(results.length / itemsPerPage)}
+                            page={page}
+                            onChange={handlePageChange}
+                            showFirstButton
+                            showLastButton
+                            siblingCount={2}
+                            sx={{
+                              "& .MuiPagination-ul": {
+                                justifyContent: "center",
+                              },
+                              "& .MuiPaginationItem-root": {
+                                color: Colors.darkPurple,
+                              },
+                              "& .MuiPaginationItem-root.Mui-selected": {
+                                backgroundColor: Colors.purple,
+                                color: "white",
+                                fontWeight: "bold",
+                                "&:hover": {
+                                  backgroundColor: Colors.secondaryPurple,
+                                },
+                              },
+                            }}
+                          />
+                        </Box>
+
+                        {results.length > 0 &&
+                          paginatedResults.length > 0 &&
+                          paginatedResults.map((item, idx) => {
+                            try {
+                              const parsedJson = JSON.parse(item.json);
+                              const globalIndex =
+                                (page - 1) * itemsPerPage + idx;
+
+                              const isDataset =
+                                parsedJson?.value?.subj &&
+                                Array.isArray(parsedJson.value.subj);
+
+                              return isDataset ? (
+                                <DatasetCard
+                                  key={idx}
+                                  index={globalIndex}
+                                  dbname={item.dbname}
+                                  dsname={item.dsname}
+                                  parsedJson={parsedJson}
+                                  onChipClick={handleChipClick}
+                                  keyword={formData.keyword} // for keyword highlight
+                                />
+                              ) : (
+                                <SubjectCard
+                                  key={idx}
+                                  index={globalIndex}
+                                  {...item}
+                                  parsedJson={parsedJson}
+                                  onChipClick={handleChipClick}
+                                />
+                              );
+                            } catch (e) {
+                              console.error(
+                                `Failed to parse JSON for item #${idx}`,
+                                e
+                              );
+                              return null;
+                            }
+                          })}
+                      </>
+                    )}
+
+                    {/* Single place to show the red message */}
+                    {showNoResults && (
+                      <Typography sx={{ color: Colors.error }}>
+                        No results found based on your criteria. Please adjust
+                        the filters and try again.
+                      </Typography>
+                    )}
+
+                    {hasSearched &&
+                      !loading &&
+                      !Array.isArray(results) &&
+                      results?.msg !== "empty output" && (
+                        <Typography sx={{ color: Colors.error }}>
+                          Something went wrong. Please try again later.
+                        </Typography>
+                      )}
+                  </>
+                )}
+              </Box>
+            )}
+          </Box>
         </Box>
 
         {/* mobile version filters */}
