@@ -102,7 +102,18 @@ const DatabaseCard: React.FC<Props> = ({
   };
 
   return (
-    <Card sx={{ mb: 3, position: "relative" }}>
+    <Card
+      sx={{
+        mb: 3,
+        position: "relative",
+        transition: "all .2s ease",
+        borderStyle: "dashed",
+        borderColor: "divider",
+        backgroundColor: "#FCFCFF",
+        boxShadow: 0,
+        width: { xs: "350px", md: "200px" },
+      }}
+    >
       <CardContent>
         <Box
           sx={{
@@ -113,45 +124,44 @@ const DatabaseCard: React.FC<Props> = ({
             gap: 2,
           }}
         >
-          {/* Logo as Avatar */}
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            {logo && (
-              <Avatar
-                variant="square"
-                src={logo}
-                alt={fullName || "Database Logo"}
-                sx={{
-                  width: 60,
-                  height: 60,
-                  mb: 1,
-                  "& img": {
-                    objectFit: "contain", // show full image inside
-                  },
-                }}
-              />
-            )}
-          </Box>
-          {/* database card */}
           <Box>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 600,
-                color: Colors.darkPurple,
-                textDecoration: "none",
-                ":hover": { textDecoration: "underline" },
-              }}
-              component={Link}
-              to={databaseLink}
-              target="_blank"
-            >
-              Database:{" "}
-              {highlightKeyword(fullName || "Untitled Database", keyword)}
-            </Typography>
-            <Stack spacing={2} margin={1}>
+            <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                {logo && (
+                  <Avatar
+                    variant="square"
+                    src={logo}
+                    alt={fullName || "Database Logo"}
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      mb: 1,
+                      "& img": {
+                        objectFit: "contain", // show full image inside
+                      },
+                    }}
+                  />
+                )}
+              </Box>
+              <Typography
+                sx={{
+                  fontWeight: 600,
+                  color: Colors.darkPurple,
+                  textDecoration: "none",
+                  ":hover": { textDecoration: "underline" },
+                }}
+                component={Link}
+                to={databaseLink}
+                target="_blank"
+              >
+                {highlightKeyword(fullName || "Untitled Database", keyword)}
+              </Typography>
+            </Box>
+
+            <Stack spacing={0.5}>
               <Stack
                 direction="row"
-                spacing={1}
+                spacing={0.5}
                 flexWrap="wrap"
                 gap={1}
                 alignItems="center"
@@ -163,32 +173,6 @@ const DatabaseCard: React.FC<Props> = ({
                 {Array.isArray(modalities) && modalities.length > 0 ? (
                   modalities.map(renderDatatype)
                 ) : (
-                  // (
-                  //   modalities.map((mod, idx) => (
-                  //     <Chip
-                  //       key={idx}
-                  //       label={mod}
-                  //       variant="outlined"
-                  //       onClick={() => onChipClick("modality", mod)}
-                  //       sx={{
-                  //         "& .MuiChip-label": {
-                  //           paddingX: "6px",
-                  //           fontSize: "0.8rem",
-                  //         },
-                  //         height: "24px",
-                  //         color: Colors.darkPurple,
-                  //         border: `1px solid ${Colors.darkPurple}`,
-                  //         fontWeight: "bold",
-                  //         transition: "all 0.2s ease",
-                  //         "&:hover": {
-                  //           backgroundColor: `${Colors.purple} !important`,
-                  //           color: "white",
-                  //           borderColor: Colors.purple,
-                  //         },
-                  //       }}
-                  //     />
-                  //   ))
-                  // )
                   <Typography variant="body2" mt={1}>
                     N/A
                   </Typography>

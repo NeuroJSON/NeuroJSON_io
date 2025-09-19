@@ -69,14 +69,15 @@ export const loadAllDocuments = createAsyncThunk(
   }
 );
 
+// fetch dataset detail for dataset detail page
 export const fetchDocumentDetails = createAsyncThunk(
   "neurojson/fetchDocumentDetails",
   async (
-    { dbName, docId }: { dbName: string; docId: string },
+    { dbName, docId, rev }: { dbName: string; docId: string; rev?: string },
     { rejectWithValue }
   ) => {
     try {
-      const data = await NeurojsonService.getDocumentById(dbName, docId);
+      const data = await NeurojsonService.getDocumentById(dbName, docId, rev);
       return data;
     } catch (error: any) {
       return rejectWithValue("Failed to fetch document details.");
@@ -108,6 +109,7 @@ export const fetchMetadataSearchResults = createAsyncThunk(
   }
 );
 
+// fetch data for metadata panel in dataset detail page
 export const fetchDbInfoByDatasetId = createAsyncThunk(
   "neurojson/fetchDbInfoByDatasetId",
   async (

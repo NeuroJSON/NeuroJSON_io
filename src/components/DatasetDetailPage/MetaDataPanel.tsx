@@ -18,6 +18,10 @@ type Props = {
   datasetDocument: any;
   dbName: string | undefined;
   docId: string | undefined;
+  // NEW:
+  currentRev?: string; // from URL (?rev=...)
+  onChangeRev?: (rev?: string | null) => void; // to update URL
+  revsList?: { rev: string }[];
 };
 
 type RevInfo = { rev: string };
@@ -27,16 +31,37 @@ const MetaDataPanel: React.FC<Props> = ({
   datasetDocument,
   dbName,
   docId,
+  currentRev,
+  onChangeRev,
+  revsList = [], // default empty
 }) => {
-  const revs: RevInfo[] = useMemo(
-    () =>
-      Array.isArray(datasetDocument?.["_revs_info"])
-        ? (datasetDocument!["_revs_info"] as RevInfo[])
-        : [],
-    [datasetDocument]
-  );
-  const [revIdx, setRevIdx] = useState(0);
+  // const revs: RevInfo[] = useMemo(
+  //   () =>
+  //     Array.isArray(datasetDocument?.["_revs_info"])
+  //       ? (datasetDocument!["_revs_info"] as RevInfo[])
+  //       : [],
+  //   [datasetDocument]
+  // );
+  const revs = revsList;
+
+  // derive index from currentRev; fallback to 0 (latest)
+  const deriveIdx = React.useCallback((revList: RevInfo[], cur?: string) => {
+    if (!revList.length) return 0;
+    if (!cur) return 0;
+    const idx = revList.findIndex((r) => r.rev === cur);
+    return idx >= 0 ? idx : 0;
+  }, []);
+
+  const [revIdx, setRevIdx] = useState<number>(deriveIdx(revs, currentRev));
+
+  // keep local idx synced when URL rev or list changes
+  React.useEffect(() => {
+    setRevIdx(deriveIdx(revs, currentRev));
+  }, [revs, currentRev, deriveIdx]);
+
   const selected = revs[revIdx];
+  // const [revIdx, setRevIdx] = useState(0);
+  // const selected = revs[revIdx];
 
   return (
     <Box
@@ -191,7 +216,14 @@ const MetaDataPanel: React.FC<Props> = ({
                 labelId="rev-select-label"
                 label="Select revision"
                 value={revIdx}
-                onChange={(e) => setRevIdx(Number(e.target.value))}
+                onChange={(e) => {
+                  const idx = Number(e.target.value);
+                  setRevIdx(idx);
+                  const chosen = revs[idx]?.rev;
+                  // update URL -> parent will refetch with ?rev=chosen
+                  onChangeRev?.(chosen || null);
+                }}
+                // onChange={(e) => setRevIdx(Number(e.target.value))}
               >
                 {revs.map((r, idx) => {
                   const [verNum, hash] = r.rev.split("-", 2);
