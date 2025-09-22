@@ -71,6 +71,8 @@ const SearchPage: React.FC = () => {
 
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [showSubjectFilters, setShowSubjectFilters] = useState(false);
+  const [showDatasetFilters, setShowDatasetFilters] = useState(true); // for dataset-level filters
+
   const [results, setResults] = useState<
     any[] | { status: string; msg: string }
   >([]);
@@ -130,6 +132,8 @@ const SearchPage: React.FC = () => {
       setFormData(initial);
       setAppliedFilters(initial);
       setHasSearched(false); // set it to true if want to auto-run search
+      setShowSubjectFilters(true); // expand the subject-level section
+      setShowDatasetFilters(false); // collapse the dataset-level section
     }
   }, []);
 
@@ -184,8 +188,8 @@ const SearchPage: React.FC = () => {
 
   // form UI
   const uiSchema = useMemo(
-    () => generateUiSchema(formData, showSubjectFilters),
-    [formData, showSubjectFilters]
+    () => generateUiSchema(formData, showSubjectFilters, showDatasetFilters),
+    [formData, showSubjectFilters, showDatasetFilters]
   );
 
   // Create the "Subject-level Filters" button as a custom field
@@ -205,6 +209,22 @@ const SearchPage: React.FC = () => {
           }}
         >
           Subject-Level Filters
+        </Button>
+      </Box>
+    ),
+    datasetFiltersToggle: () => (
+      <Box sx={{ mt: 1, mb: 1 }}>
+        <Button
+          variant="outlined"
+          onClick={() => setShowDatasetFilters((prev) => !prev)}
+          sx={{
+            color: Colors.purple,
+            borderColor: Colors.purple,
+            "&:hover": { transform: "scale(1.05)", borderColor: Colors.purple },
+          }}
+          aria-expanded={showDatasetFilters}
+        >
+          Dataset-Level Filters
         </Button>
       </Box>
     ),
