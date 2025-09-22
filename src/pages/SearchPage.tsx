@@ -54,6 +54,10 @@ const matchesKeyword = (item: RegistryItem, keyword: string) => {
   );
 };
 
+const getPresetKey = () => {
+  return new URLSearchParams(window.location.search).get("preset");
+};
+
 const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const [hasSearched, setHasSearched] = useState(false);
@@ -114,6 +118,20 @@ const SearchPage: React.FC = () => {
       value !== "" &&
       value !== "any"
   );
+
+  useEffect(() => {
+    // If a #query=... already exists, existing effect will handle it.
+    if (window.location.hash.startsWith("#query=")) return;
+
+    const key = getPresetKey(); // "openneuro"
+    if (key === "openneuro") {
+      const initial = { database: "openneuro" };
+      // set initial form/filter state
+      setFormData(initial);
+      setAppliedFilters(initial);
+      setHasSearched(false); // set it to true if want to auto-run search
+    }
+  }, []);
 
   // parse query from url on page load
   useEffect(() => {
@@ -359,7 +377,7 @@ const SearchPage: React.FC = () => {
   const showNoResults =
     hasSearched &&
     !loading &&
-    !hasDbMatches &&
+    // !hasDbMatches &&
     (!hasDatasetMatches || backendEmpty);
   return (
     <Container
@@ -838,10 +856,23 @@ const SearchPage: React.FC = () => {
 
                     {/* Single place to show the red message */}
                     {showNoResults && (
-                      <Typography sx={{ color: Colors.error }}>
-                        No results found based on your criteria. Please adjust
-                        the filters and try again.
-                      </Typography>
+                      <Box sx={{ minHeight: 200 }}>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            mb: 1.5,
+                            mt: 1.5,
+                            borderBottom: "1px solid lightgray",
+                          }}
+                        >
+                          Search Results
+                        </Typography>
+
+                        <Typography sx={{ color: Colors.error }}>
+                          No datasets or subjects found. Please adjust the
+                          filters and try again.
+                        </Typography>
+                      </Box>
                     )}
 
                     {hasSearched &&

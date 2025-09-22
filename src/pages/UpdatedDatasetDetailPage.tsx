@@ -60,7 +60,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
 
   const handleSelectRevision = (newRev?: string | null) => {
     setSearchParams((prev) => {
-      const p = new URLSearchParams(prev);
+      const p = new URLSearchParams(prev); // copy of the query url
       if (newRev) p.set("rev", newRev);
       else p.delete("rev");
       return p;
