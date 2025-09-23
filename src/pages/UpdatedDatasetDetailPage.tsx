@@ -54,8 +54,16 @@ interface InternalDataLink {
 const UpdatedDatasetDetailPage: React.FC = () => {
   const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
   const navigate = useNavigate();
-  // for revision
   const [searchParams, setSearchParams] = useSearchParams();
+  // for subject highlight
+  const focusSubjRaw = searchParams.get("focusSubj") || undefined;
+  const focusSubj = !focusSubjRaw
+    ? undefined
+    : /^sub-/i.test(focusSubjRaw)
+    ? focusSubjRaw
+    : `sub-${focusSubjRaw.replace(/^0+/, "").padStart(2, "0")}`;
+  console.log("focusSubj", focusSubj);
+  // for revision
   const rev = searchParams.get("rev") || undefined;
 
   const handleSelectRevision = (newRev?: string | null) => {
@@ -835,6 +843,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                   onPreview={handlePreview} // pass the function down to FileTree
                   getInternalByPath={getInternalByPath}
                   getJsonByPath={getJsonByPath}
+                  highlightText={focusSubj} // for subject highlight
                 />
               </Box>
             </Box>
@@ -1156,7 +1165,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           }}
         ></Box>
 
-        {/* <DatasetFlashcards */}
+        {/* <api tabs */}
         <LoadDatasetTabs
           pagename={docId ?? ""}
           docname={datasetDocument?.Name || ""}
