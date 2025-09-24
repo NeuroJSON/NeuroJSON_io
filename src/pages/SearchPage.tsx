@@ -814,6 +814,7 @@ const SearchPage: React.FC = () => {
                           paginatedResults.length > 0 &&
                           paginatedResults.map((item, idx) => {
                             try {
+                              // console.log("item:", item);
                               const parsedJson = JSON.parse(item.json);
                               const globalIndex =
                                 (page - 1) * itemsPerPage + idx;

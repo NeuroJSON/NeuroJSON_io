@@ -8,7 +8,7 @@ import RoutesEnum from "types/routes.enum";
 interface SubjectCardProps {
   dbname: string;
   dsname: string;
-  age: string;
+  agemin: string;
   subj: string;
   parsedJson: {
     key: string[];
@@ -26,7 +26,7 @@ interface SubjectCardProps {
 const SubjectCard: React.FC<SubjectCardProps> = ({
   dbname,
   dsname,
-  age,
+  agemin,
   subj,
   parsedJson,
   index,
@@ -34,9 +34,6 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
 }) => {
   const { modalities, tasks, sessions, types } = parsedJson.value;
   const subjectLink = `${RoutesEnum.DATABASES}/${dbname}/${dsname}`;
-  // const subjectLink = `${
-  //   RoutesEnum.DATABASES
-  // }/${dbname}/${dsname}?focusSubj=${encodeURIComponent(subj)}`;
   const canonicalSubj = /^sub-/i.test(subj)
     ? subj
     : `sub-${String(subj)
@@ -55,8 +52,8 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
 
   // cover age string to readable format
   let ageDisplay = "N/A";
-  if (age) {
-    const ageNum = parseInt(age, 10) / 100;
+  if (agemin) {
+    const ageNum = parseInt(agemin, 10) / 100;
     if (Number.isInteger(ageNum)) {
       ageDisplay = `${ageNum} years`;
     } else {

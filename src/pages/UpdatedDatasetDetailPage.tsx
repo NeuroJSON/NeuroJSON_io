@@ -62,7 +62,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     : /^sub-/i.test(focusSubjRaw)
     ? focusSubjRaw
     : `sub-${focusSubjRaw.replace(/^0+/, "").padStart(2, "0")}`;
-  console.log("focusSubj", focusSubj);
+
   // for revision
   const rev = searchParams.get("rev") || undefined;
 
@@ -210,7 +210,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           obj.MeshNode?.hasOwnProperty("_ArrayZipData_") &&
           typeof obj.MeshNode["_ArrayZipData_"] === "string"
         ) {
-          console.log("path", path);
+          // console.log("path", path);
           internalLinks.push({
             name: "JMesh",
             data: obj,
@@ -297,7 +297,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   useEffect(() => {
     if (datasetDocument) {
       // Extract External Data & Assign `index`
-      console.log("datasetDocument", datasetDocument);
+      // console.log("datasetDocument", datasetDocument);
       const links = extractDataLinks(datasetDocument, "").map(
         (link, index) => ({
           ...link,
