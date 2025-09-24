@@ -170,6 +170,8 @@ const SearchPage: React.FC = () => {
         const requestData = { ...parsed, skip: 0, limit: 50 };
         setSkip(0);
         setHasSearched(true);
+        setShowSubjectFilters(true); // expand the subject-level section
+        setShowDatasetFilters(true); // expand the dataset-level section
         dispatch(fetchMetadataSearchResults(requestData)).then((res: any) => {
           if (res.payload) {
             setResults(res.payload);
