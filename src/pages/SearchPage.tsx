@@ -12,6 +12,7 @@ import {
   Drawer,
   Tooltip,
   IconButton,
+  Alert,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -54,9 +55,12 @@ const matchesKeyword = (item: RegistryItem, keyword: string) => {
   );
 };
 
-const getPresetKey = () => {
-  return new URLSearchParams(window.location.search).get("preset");
-};
+// const getDbnameKey = () => {
+//   return new URLSearchParams(window.location.search).get("dbname");
+// };
+const getDbnameFromURL = () =>
+  new URLSearchParams(window.location.search).get("dbname")?.trim() || "";
+// const [invalidDbNotice, setInvalidDbNotice] = useState<string | null>(null);
 
 const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -72,7 +76,7 @@ const SearchPage: React.FC = () => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [showSubjectFilters, setShowSubjectFilters] = useState(false);
   const [showDatasetFilters, setShowDatasetFilters] = useState(true); // for dataset-level filters
-
+  const [invalidDbNotice, setInvalidDbNotice] = useState<string | null>(null);
   const [results, setResults] = useState<
     any[] | { status: string; msg: string }
   >([]);
@@ -124,18 +128,31 @@ const SearchPage: React.FC = () => {
   useEffect(() => {
     // If a #query=... already exists, existing effect will handle it.
     if (window.location.hash.startsWith("#query=")) return;
+    if (!Array.isArray(registry) || registry.length === 0) return; // wait until registry is loaded
+    // const key = getDbnameKey(); // "openneuro"
+    const urlDb = getDbnameFromURL(); // e.g., "openneuro", "bfnirs", etc.
+    if (!urlDb) return;
+    // case-insensitive match against registry ids
+    const match = (registry as RegistryItem[]).find(
+      (r) => String(r.id).toLowerCase() === urlDb.toLowerCase()
+    );
+    // if (!match) return; // unknown dbname; do nothing
 
-    const key = getPresetKey(); // "openneuro"
-    if (key === "openneuro") {
-      const initial = { database: "openneuro" };
+    if (match) {
+      const initial = { database: match.id };
       // set initial form/filter state
       setFormData(initial);
       setAppliedFilters(initial);
       setHasSearched(false); // set it to true if want to auto-run search
       setShowSubjectFilters(true); // expand the subject-level section
       setShowDatasetFilters(false); // collapse the dataset-level section
+    } else {
+      setInvalidDbNotice(
+        `Database “${urlDb}” isn’t available. Showing all databases instead.`
+      );
+      return;
     }
-  }, []);
+  }, [registry]);
 
   // parse query from url on page load
   useEffect(() => {
@@ -474,24 +491,6 @@ const SearchPage: React.FC = () => {
           </Box>
         )}
 
-        {/* before submit box */}
-        {/* <Box>
-          {!hasSearched && (
-            <Typography
-              variant="subtitle1"
-              sx={{
-                flexWrap: "wrap",
-                fontWeight: 500,
-                fontSize: "large",
-                color: Colors.darkPurple,
-              }}
-            >
-              Use the filters and click submit to search for datasets or
-              subjects based on metadata.
-            </Typography>
-          )}
-        </Box> */}
-
         {/* after submit box */}
         <Box
           sx={{
@@ -569,47 +568,26 @@ const SearchPage: React.FC = () => {
             </Box>
           )}
 
-          {/* {!hasSearched && (
-            <Typography
-              variant="subtitle1"
-              sx={{
-                flexWrap: "wrap",
-                fontWeight: 500,
-                fontSize: "large",
-                color: Colors.darkPurple,
-                mb: 2,
-                pt: 1,
-              }}
-            >
-              Use the filters and click submit to search for{" "}
-              <Box component="span" sx={{ color: Colors.darkOrange, fontWeight: 700 }}>
-                datasets
-              </Box>{" "}
-              and{" "}
-              <Box
-                component="span"
-                sx={{ color: Colors.darkOrange, fontWeight: 700 }}
-              >
-                subjects
-              </Box>{" "}
-              based on metadata.
-            </Typography>
-          )} */}
-
           <Box
             sx={{
-              // display: "grid",
-              // gridTemplateColumns: {
-              //   xs: "1fr",
-              //   md: hasDbMatches ? "1fr 2fr" : "1fr",
-              // },
-              // gap: 2,
-              // alignItems: "baseline",
               display: "flex",
               flexDirection: "column",
               gap: 2,
             }}
           >
+            {/* if the dbname in the url is invalid */}
+            {invalidDbNotice && (
+              <Box mb={2}>
+                <Alert
+                  severity="warning"
+                  onClose={() => setInvalidDbNotice(null)}
+                  sx={{ border: `1px solid ${Colors.lightGray}` }}
+                >
+                  {invalidDbNotice}
+                </Alert>
+              </Box>
+            )}
+
             {/* suggested databases */}
             {registryMatches.length > 0 && (
               <Box
