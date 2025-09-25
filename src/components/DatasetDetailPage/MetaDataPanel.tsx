@@ -106,7 +106,7 @@ const MetaDataPanel: React.FC<Props> = ({
             Modalities
           </Typography>
 
-          {/* {(() => {
+          {(() => {
             const mods = Array.isArray(dbViewInfo?.rows?.[0]?.value?.modality)
               ? [...new Set(dbViewInfo.rows[0].value.modality as string[])]
               : [];
@@ -149,10 +149,10 @@ const MetaDataPanel: React.FC<Props> = ({
                 ))}
               </Box>
             );
-          })()} */}
-          <Typography sx={{ color: "text.secondary" }}>
+          })()}
+          {/* <Typography sx={{ color: "text.secondary" }}>
             {dbViewInfo?.rows?.[0]?.value?.modality?.join(", ") ?? "N/A"}
-          </Typography>
+          </Typography> */}
         </Box>
         <Box>
           <Typography sx={{ color: Colors.darkPurple, fontWeight: "600" }}>
