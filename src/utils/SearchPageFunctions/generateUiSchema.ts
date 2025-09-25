@@ -4,7 +4,8 @@ import { Colors } from "design/theme";
 // Controls the visibility of subject-level filters
 export const generateUiSchema = (
   formData: Record<string, any>,
-  showSubjectFilters: boolean
+  showSubjectFilters: boolean,
+  showDatasetFilters: boolean
 ) => {
   const activeStyle = {
     "ui:options": {
@@ -31,10 +32,58 @@ export const generateUiSchema = (
     },
   };
 
+  // collapsible sections (subject-level & dataset-level)
+  //  const subjectHiddenStyle = {
+  //   "ui:options": {
+  //     style: { display: showSubjectFilters ? "block" : "none" },
+  //   },
+  // };
+
+  const datasetHiddenStyle = {
+    "ui:options": {
+      style: { display: showDatasetFilters ? "block" : "none" },
+    },
+  };
+
   return {
-    keyword: formData["keyword"] ? activeStyle : {},
-    database:
-      formData["database"] && formData["database"] !== "any" ? activeStyle : {},
+    "ui:order": [
+      "dataset_filters_toggle", // button first
+      "database",
+      "keyword",
+      "subject_filters_toggle",
+      "modality",
+      "gender",
+      "age_min",
+      "age_max",
+      "sess_min",
+      "sess_max",
+      "task_min",
+      "task_max",
+      "run_min",
+      "run_max",
+      "task_name",
+      "type_name",
+      "session_name",
+      "run_name",
+      "limit",
+      "skip",
+      "*", // anything else not listed
+    ],
+    // keyword: formData["keyword"] ? activeStyle : {},
+    dataset_filters_toggle: { "ui:field": "datasetFiltersToggle" },
+    keyword: showDatasetFilters
+      ? formData["keyword"]
+        ? activeStyle
+        : {}
+      : datasetHiddenStyle,
+    // database:
+    //   formData["database"] && formData["database"] !== "any" ? activeStyle : {},
+    database: showDatasetFilters
+      ? formData["database"] && formData["database"] !== "any"
+        ? activeStyle
+        : {}
+      : datasetHiddenStyle,
+
     //   dataset: formData["dataset"] ? activeStyle : {},
     //   limit: formData["limit"] ? activeStyle : {},
     //   skip: formData["skip"] ? activeStyle : {},

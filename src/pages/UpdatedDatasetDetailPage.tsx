@@ -1,5 +1,6 @@
 import PreviewModal from "../components/PreviewModal";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DescriptionIcon from "@mui/icons-material/Description";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
@@ -12,6 +13,7 @@ import {
   Alert,
   Button,
   Collapse,
+  Snackbar,
 } from "@mui/material";
 import FileTree from "components/DatasetDetailPage/FileTree/FileTree";
 import {
@@ -54,13 +56,21 @@ interface InternalDataLink {
 const UpdatedDatasetDetailPage: React.FC = () => {
   const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
   const navigate = useNavigate();
-  // for revision
   const [searchParams, setSearchParams] = useSearchParams();
+  // for subject highlight
+  const focusSubjRaw = searchParams.get("focusSubj") || undefined;
+  const focusSubj = !focusSubjRaw
+    ? undefined
+    : /^sub-/i.test(focusSubjRaw)
+    ? focusSubjRaw
+    : `sub-${focusSubjRaw.replace(/^0+/, "").padStart(2, "0")}`;
+
+  // for revision
   const rev = searchParams.get("rev") || undefined;
 
   const handleSelectRevision = (newRev?: string | null) => {
     setSearchParams((prev) => {
-      const p = new URLSearchParams(prev);
+      const p = new URLSearchParams(prev); // copy of the query url
       if (newRev) p.set("rev", newRev);
       else p.delete("rev");
       return p;
@@ -85,20 +95,16 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const [isExternalExpanded, setIsExternalExpanded] = useState(true);
   const [jsonSize, setJsonSize] = useState<number>(0);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
+  const [copiedToast, setCopiedToast] = useState<{
+    open: boolean;
+    text: string;
+  }>({
+    open: false,
+    text: "",
+  });
   const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
 
-  //   useEffect(() => {
-  //     if (!datasetDocument) {
-  //       setJsonSize(0);
-  //       return;
-  //     }
-  //     const bytes = new TextEncoder().encode(
-  //       JSON.stringify(datasetDocument)
-  //     ).length;
-  //     setJsonSize(bytes);
-  //   }, [datasetDocument]);
-
-  const linkMap = useMemo(() => makeLinkMap(externalLinks), [externalLinks]);
+  const linkMap = useMemo(() => makeLinkMap(externalLinks), [externalLinks]); // => external Link Map
 
   const treeData = useMemo(
     () => buildTreeFromDoc(datasetDocument || {}, linkMap, ""),
@@ -202,7 +208,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           obj.MeshNode?.hasOwnProperty("_ArrayZipData_") &&
           typeof obj.MeshNode["_ArrayZipData_"] === "string"
         ) {
-          console.log("path", path);
+          // console.log("path", path);
           internalLinks.push({
             name: "JMesh",
             data: obj,
@@ -254,6 +260,32 @@ const UpdatedDatasetDetailPage: React.FC = () => {
 
     return internalLinks;
   };
+  // Build a shareable preview URL for a JSON path in this dataset
+  const buildPreviewUrl = (path: string) => {
+    const origin = window.location.origin;
+    const revPart = rev ? `rev=${encodeURIComponent(rev)}&` : "";
+    return `${origin}/db/${dbName}/${docId}?${revPart}preview=${encodeURIComponent(
+      path
+    )}`;
+  };
+
+  // Copy helper
+  const copyPreviewUrl = async (path: string) => {
+    const url = buildPreviewUrl(path);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedToast({ open: true, text: "Preview link copied" });
+    } catch {
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setCopiedToast({ open: true, text: "Preview link copied" });
+    }
+  };
 
   //   useEffect(() => {
   //     const fetchData = async () => {
@@ -289,7 +321,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   useEffect(() => {
     if (datasetDocument) {
       // Extract External Data & Assign `index`
-      console.log("datasetDocument", datasetDocument);
+      // console.log("datasetDocument", datasetDocument);
       const links = extractDataLinks(datasetDocument, "").map(
         (link, index) => ({
           ...link,
@@ -377,6 +409,13 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       setDownloadScriptSize(scriptBlob.size);
     }
   }, [datasetDocument, docId]);
+
+  // const externalMap = React.useMemo(() => {
+  //   const m = new Map<string, { url: string; index: number }>();
+  //   for (const it of externalLinks)
+  //     m.set(it.path, { url: it.url, index: it.index });
+  //   return m;
+  // }, [externalLinks]);
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewDataKey, setPreviewDataKey] = useState<any>(null);
@@ -554,6 +593,34 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     },
     [datasetDocument]
   );
+
+  useEffect(() => {
+    const p = searchParams.get("preview");
+    if (!p || !datasetDocument) return;
+
+    const previewPath = decodeURIComponent(p);
+
+    // Try internal data first
+    const internal = internalMap.get(previewPath);
+    if (internal) {
+      handlePreview(internal.data, internal.index, true);
+      return;
+    }
+
+    // Then try external data by JSON path
+    const external = linkMap.get(previewPath);
+    if (external) {
+      handlePreview(external.url, external.index, false);
+    }
+  }, [
+    datasetDocument,
+    internalLinks,
+    externalLinks,
+    searchParams,
+    internalMap,
+    // externalMap,
+    linkMap,
+  ]);
 
   const handleClosePreview = () => {
     setPreviewOpen(false);
@@ -835,6 +902,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                   onPreview={handlePreview} // pass the function down to FileTree
                   getInternalByPath={getInternalByPath}
                   getJsonByPath={getJsonByPath}
+                  highlightText={focusSubj} // for subject highlight
                 />
               </Box>
             </Box>
@@ -967,26 +1035,48 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                         {link.name}{" "}
                         {link.arraySize ? `[${link.arraySize.join("x")}]` : ""}
                       </Typography>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        sx={{
-                          backgroundColor: Colors.purple,
-                          flexShrink: 0,
-                          minWidth: "70px",
-                          fontSize: "0.7rem",
-                          padding: "2px 6px",
-                          lineHeight: 1,
-                          "&:hover": {
-                            backgroundColor: Colors.secondaryPurple,
-                          },
-                        }}
-                        onClick={() =>
-                          handlePreview(link.data, link.index, true)
-                        }
-                      >
-                        Preview
-                      </Button>
+                      <Box sx={{ display: "flex", flexShrink: 0, gap: 1 }}>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          sx={{
+                            backgroundColor: Colors.purple,
+                            flexShrink: 0,
+                            minWidth: "70px",
+                            fontSize: "0.7rem",
+                            padding: "2px 6px",
+                            lineHeight: 1,
+                            "&:hover": {
+                              backgroundColor: Colors.secondaryPurple,
+                            },
+                          }}
+                          onClick={() =>
+                            handlePreview(link.data, link.index, true)
+                          }
+                        >
+                          Preview
+                        </Button>
+                        {/* <Button
+                          variant="outlined"
+                          size="small"
+                          sx={{
+                            color: Colors.purple,
+                            borderColor: Colors.purple,
+                            minWidth: "90px",
+                            fontSize: "0.7rem",
+                            padding: "2px 6px",
+                            lineHeight: 1,
+                            "&:hover": {
+                              color: Colors.secondaryPurple,
+                              borderColor: Colors.secondaryPurple,
+                            },
+                          }}
+                          onClick={() => copyPreviewUrl(link.path)}
+                        >
+                          <ContentCopyIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                          Copy URL
+                        </Button> */}
+                      </Box>
                     </Box>
                   ))
                 ) : (
@@ -1120,6 +1210,28 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                               Preview
                             </Button>
                           )}
+                          {/* {isPreviewable && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              sx={{
+                                color: Colors.purple,
+                                borderColor: Colors.purple,
+                                minWidth: "90px",
+                                fontSize: "0.7rem",
+                                padding: "2px 6px",
+                                lineHeight: 1,
+                                "&:hover": {
+                                  color: Colors.secondaryPurple,
+                                  borderColor: Colors.secondaryPurple,
+                                },
+                              }}
+                              onClick={() => copyPreviewUrl(link.path)} // <-- use the JSON path
+                            >
+                              <ContentCopyIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                              Copy URL
+                            </Button>
+                          )} */}
                         </Box>
                       </Box>
                     );
@@ -1156,7 +1268,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           }}
         ></Box>
 
-        {/* <DatasetFlashcards */}
+        {/* <api tabs */}
         <LoadDatasetTabs
           pagename={docId ?? ""}
           docname={datasetDocument?.Name || ""}

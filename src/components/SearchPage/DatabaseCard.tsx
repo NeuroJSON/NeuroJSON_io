@@ -8,8 +8,13 @@ import {
   Avatar,
 } from "@mui/material";
 import { Colors } from "design/theme";
+import { useAppDispatch } from "hooks/useAppDispatch";
+import { useAppSelector } from "hooks/useAppSelector";
 import React from "react";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { fetchDbInfo } from "redux/neurojson/neurojson.action";
+import { RootState } from "redux/store";
 import RoutesEnum from "types/routes.enum";
 import { modalityValueToEnumLabel } from "utils/SearchPageFunctions/modalityLabels";
 
@@ -32,6 +37,14 @@ const DatabaseCard: React.FC<Props> = ({
   keyword,
   onChipClick,
 }) => {
+  const dispatch = useAppDispatch();
+  const dbInfo = useAppSelector((state: RootState) => state.neurojson.dbInfo);
+  console.log("dbInfo", dbInfo);
+  useEffect(() => {
+    if (dbId) {
+      dispatch(fetchDbInfo(dbId.toLowerCase()));
+    }
+  }, [dbId, dispatch]);
   const databaseLink = `${RoutesEnum.DATABASES}/${dbId}`;
   // keyword hightlight functional component
   const highlightKeyword = (text: string, keyword?: string) => {
@@ -182,6 +195,8 @@ const DatabaseCard: React.FC<Props> = ({
               <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
                 <Typography variant="body2" mt={1}>
                   <strong>Datasets:</strong> {datasets ?? "N/A"}
+                  {/* <strong>Datasets:</strong>{" "}
+                  {dbInfo?.doc_count != null ? dbInfo.doc_count - 1 : "N/A"} */}
                 </Typography>
               </Stack>
             </Stack>
