@@ -14,6 +14,7 @@ import React from "react";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { fetchDbInfo } from "redux/neurojson/neurojson.action";
+import { RootState } from "redux/store";
 import RoutesEnum from "types/routes.enum";
 import { modalityValueToEnumLabel } from "utils/SearchPageFunctions/modalityLabels";
 
@@ -37,9 +38,13 @@ const DatabaseCard: React.FC<Props> = ({
   onChipClick,
 }) => {
   const dispatch = useAppDispatch();
-  const { loading, error, data, limit } = useAppSelector(
-    (state) => state.neurojson
-  );
+  const dbInfo = useAppSelector((state: RootState) => state.neurojson.dbInfo);
+  console.log("dbInfo", dbInfo);
+  useEffect(() => {
+    if (dbId) {
+      dispatch(fetchDbInfo(dbId.toLowerCase()));
+    }
+  }, [dbId, dispatch]);
   const databaseLink = `${RoutesEnum.DATABASES}/${dbId}`;
   // keyword hightlight functional component
   const highlightKeyword = (text: string, keyword?: string) => {
@@ -49,12 +54,6 @@ const DatabaseCard: React.FC<Props> = ({
 
     const regex = new RegExp(`(${keyword})`, "gi"); // for case-insensitive and global
     const parts = text.split(regex);
-
-    useEffect(() => {
-      if (dbId) {
-        dispatch(fetchDbInfo(dbId.toLowerCase()));
-      }
-    }, [dbId, dispatch]);
 
     return (
       <>
@@ -195,8 +194,9 @@ const DatabaseCard: React.FC<Props> = ({
 
               <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
                 <Typography variant="body2" mt={1}>
-                  {/* <strong>Datasets:</strong> {datasets ?? "N/A"} */}
-                  <strong>Datasets:</strong> {limit ?? "N/A"}
+                  <strong>Datasets:</strong> {datasets ?? "N/A"}
+                  {/* <strong>Datasets:</strong>{" "}
+                  {dbInfo?.doc_count != null ? dbInfo.doc_count - 1 : "N/A"} */}
                 </Typography>
               </Stack>
             </Stack>
