@@ -12,6 +12,7 @@ import {
   Drawer,
   Tooltip,
   IconButton,
+  Alert,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -54,6 +55,13 @@ const matchesKeyword = (item: RegistryItem, keyword: string) => {
   );
 };
 
+// const getDbnameKey = () => {
+//   return new URLSearchParams(window.location.search).get("dbname");
+// };
+const getDbnameFromURL = () =>
+  new URLSearchParams(window.location.search).get("dbname")?.trim() || "";
+// const [invalidDbNotice, setInvalidDbNotice] = useState<string | null>(null);
+
 const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const [hasSearched, setHasSearched] = useState(false);
@@ -67,6 +75,8 @@ const SearchPage: React.FC = () => {
 
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [showSubjectFilters, setShowSubjectFilters] = useState(false);
+  const [showDatasetFilters, setShowDatasetFilters] = useState(true); // for dataset-level filters
+  const [invalidDbNotice, setInvalidDbNotice] = useState<string | null>(null);
   const [results, setResults] = useState<
     any[] | { status: string; msg: string }
   >([]);
@@ -115,6 +125,35 @@ const SearchPage: React.FC = () => {
       value !== "any"
   );
 
+  useEffect(() => {
+    // If a #query=... already exists, existing effect will handle it.
+    if (window.location.hash.startsWith("#query=")) return;
+    if (!Array.isArray(registry) || registry.length === 0) return; // wait until registry is loaded
+    // const key = getDbnameKey(); // "openneuro"
+    const urlDb = getDbnameFromURL(); // e.g., "openneuro", "bfnirs", etc.
+    if (!urlDb) return;
+    // case-insensitive match against registry ids
+    const match = (registry as RegistryItem[]).find(
+      (r) => String(r.id).toLowerCase() === urlDb.toLowerCase()
+    );
+    // if (!match) return; // unknown dbname; do nothing
+
+    if (match) {
+      const initial = { database: match.id };
+      // set initial form/filter state
+      setFormData(initial);
+      setAppliedFilters(initial);
+      setHasSearched(false); // set it to true if want to auto-run search
+      setShowSubjectFilters(true); // expand the subject-level section
+      setShowDatasetFilters(false); // collapse the dataset-level section
+    } else {
+      setInvalidDbNotice(
+        `Database “${urlDb}” isn’t available. Showing all databases instead.`
+      );
+      return;
+    }
+  }, [registry]);
+
   // parse query from url on page load
   useEffect(() => {
     const hash = window.location.hash;
@@ -131,6 +170,8 @@ const SearchPage: React.FC = () => {
         const requestData = { ...parsed, skip: 0, limit: 50 };
         setSkip(0);
         setHasSearched(true);
+        setShowSubjectFilters(true); // expand the subject-level section
+        setShowDatasetFilters(true); // expand the dataset-level section
         dispatch(fetchMetadataSearchResults(requestData)).then((res: any) => {
           if (res.payload) {
             setResults(res.payload);
@@ -166,8 +207,8 @@ const SearchPage: React.FC = () => {
 
   // form UI
   const uiSchema = useMemo(
-    () => generateUiSchema(formData, showSubjectFilters),
-    [formData, showSubjectFilters]
+    () => generateUiSchema(formData, showSubjectFilters, showDatasetFilters),
+    [formData, showSubjectFilters, showDatasetFilters]
   );
 
   // Create the "Subject-level Filters" button as a custom field
@@ -187,6 +228,22 @@ const SearchPage: React.FC = () => {
           }}
         >
           Subject-Level Filters
+        </Button>
+      </Box>
+    ),
+    datasetFiltersToggle: () => (
+      <Box sx={{ mt: 1, mb: 1 }}>
+        <Button
+          variant="outlined"
+          onClick={() => setShowDatasetFilters((prev) => !prev)}
+          sx={{
+            color: Colors.purple,
+            borderColor: Colors.purple,
+            "&:hover": { transform: "scale(1.05)", borderColor: Colors.purple },
+          }}
+          aria-expanded={showDatasetFilters}
+        >
+          Dataset-Level Filters
         </Button>
       </Box>
     ),
@@ -359,7 +416,7 @@ const SearchPage: React.FC = () => {
   const showNoResults =
     hasSearched &&
     !loading &&
-    !hasDbMatches &&
+    // !hasDbMatches &&
     (!hasDatasetMatches || backendEmpty);
   return (
     <Container
@@ -435,24 +492,6 @@ const SearchPage: React.FC = () => {
             {renderFilterForm()}
           </Box>
         )}
-
-        {/* before submit box */}
-        {/* <Box>
-          {!hasSearched && (
-            <Typography
-              variant="subtitle1"
-              sx={{
-                flexWrap: "wrap",
-                fontWeight: 500,
-                fontSize: "large",
-                color: Colors.darkPurple,
-              }}
-            >
-              Use the filters and click submit to search for datasets or
-              subjects based on metadata.
-            </Typography>
-          )}
-        </Box> */}
 
         {/* after submit box */}
         <Box
@@ -531,47 +570,26 @@ const SearchPage: React.FC = () => {
             </Box>
           )}
 
-          {/* {!hasSearched && (
-            <Typography
-              variant="subtitle1"
-              sx={{
-                flexWrap: "wrap",
-                fontWeight: 500,
-                fontSize: "large",
-                color: Colors.darkPurple,
-                mb: 2,
-                pt: 1,
-              }}
-            >
-              Use the filters and click submit to search for{" "}
-              <Box component="span" sx={{ color: Colors.darkOrange, fontWeight: 700 }}>
-                datasets
-              </Box>{" "}
-              and{" "}
-              <Box
-                component="span"
-                sx={{ color: Colors.darkOrange, fontWeight: 700 }}
-              >
-                subjects
-              </Box>{" "}
-              based on metadata.
-            </Typography>
-          )} */}
-
           <Box
             sx={{
-              // display: "grid",
-              // gridTemplateColumns: {
-              //   xs: "1fr",
-              //   md: hasDbMatches ? "1fr 2fr" : "1fr",
-              // },
-              // gap: 2,
-              // alignItems: "baseline",
               display: "flex",
               flexDirection: "column",
               gap: 2,
             }}
           >
+            {/* if the dbname in the url is invalid */}
+            {invalidDbNotice && (
+              <Box mb={2}>
+                <Alert
+                  severity="warning"
+                  onClose={() => setInvalidDbNotice(null)}
+                  sx={{ border: `1px solid ${Colors.lightGray}` }}
+                >
+                  {invalidDbNotice}
+                </Alert>
+              </Box>
+            )}
+
             {/* suggested databases */}
             {registryMatches.length > 0 && (
               <Box
@@ -798,6 +816,7 @@ const SearchPage: React.FC = () => {
                           paginatedResults.length > 0 &&
                           paginatedResults.map((item, idx) => {
                             try {
+                              // console.log("item:", item);
                               const parsedJson = JSON.parse(item.json);
                               const globalIndex =
                                 (page - 1) * itemsPerPage + idx;
@@ -838,10 +857,23 @@ const SearchPage: React.FC = () => {
 
                     {/* Single place to show the red message */}
                     {showNoResults && (
-                      <Typography sx={{ color: Colors.error }}>
-                        No results found based on your criteria. Please adjust
-                        the filters and try again.
-                      </Typography>
+                      <Box sx={{ minHeight: 200 }}>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            mb: 1.5,
+                            mt: 1.5,
+                            borderBottom: "1px solid lightgray",
+                          }}
+                        >
+                          Search Results
+                        </Typography>
+
+                        <Typography sx={{ color: Colors.error }}>
+                          No datasets or subjects found. Please adjust the
+                          filters and try again.
+                        </Typography>
+                      </Box>
                     )}
 
                     {hasSearched &&

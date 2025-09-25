@@ -4,6 +4,10 @@ export const baseSchema: JSONSchema7 = {
   title: "",
   type: "object",
   properties: {
+    dataset_filters_toggle: {
+      type: "null",
+      title: "Dataset Filters",
+    },
     keyword: {
       title: "Search keyword",
       type: "string",

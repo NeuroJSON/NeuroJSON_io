@@ -14,6 +14,7 @@ import { Box, Button, Collapse, Typography } from "@mui/material";
 import { Tooltip, IconButton } from "@mui/material";
 import { Colors } from "design/theme";
 import React, { useState } from "react";
+import { Color } from "three";
 
 // show more / show less button for long string
 const LeafString: React.FC<{ value: string }> = ({ value }) => {
@@ -80,11 +81,11 @@ const LeafString: React.FC<{ value: string }> = ({ value }) => {
 type Props = {
   node: TreeNode;
   level: number;
-
   // src is either an external URL(string) or the internal object
   onPreview: (src: string | any, index: number, isInternal?: boolean) => void;
   getInternalByPath: (path: string) => { data: any; index: number } | undefined;
   getJsonByPath?: (path: string) => any;
+  highlightText?: string;
 };
 
 // copy helper function
@@ -112,6 +113,7 @@ const FileTreeRow: React.FC<Props> = ({
   onPreview,
   getInternalByPath,
   getJsonByPath,
+  highlightText,
 }) => {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -119,6 +121,34 @@ const FileTreeRow: React.FC<Props> = ({
   // const internal = getInternalByPath ? getInternalByPath(node.path) : undefined;
   const internal = getInternalByPath(node.path);
   const externalUrl = node.link?.url;
+
+  const rowRef = React.useRef<HTMLDivElement | null>(null);
+  // Highlight only if this row is exactly the subject folder (e.g., "sub-04")
+  const isSubjectFolder =
+    node.kind === "folder" && /^sub-[A-Za-z0-9]+$/i.test(node.name);
+  const isExactHit =
+    !!highlightText &&
+    isSubjectFolder &&
+    node.name.toLowerCase() === highlightText.toLowerCase();
+
+  React.useEffect(() => {
+    if (isExactHit && rowRef.current) {
+      rowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      // subtle flash
+      // rowRef.current.animate(
+      //   [
+      //     { backgroundColor: `${Colors.yellow}`, offset: 0 }, // turn yellow
+      //     { backgroundColor: `${Colors.yellow}`, offset: 0.85 }, // stay yellow 85% of time
+      //     { backgroundColor: "transparent", offset: 1 }, // then fade out
+      //   ],
+      //   { duration: 8000, easing: "ease", fill: "forwards" }
+      // );
+    }
+  }, [isExactHit]);
+
+  const rowHighlightSx = isExactHit
+    ? { backgroundColor: `${Colors.yellow}`, borderRadius: 4 }
+    : {};
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation(); // prevent expand/ collapse from firing when click the copy button
@@ -136,6 +166,7 @@ const FileTreeRow: React.FC<Props> = ({
     return (
       <>
         <Box
+          ref={rowRef}
           sx={{
             display: "flex",
             alignItems: "flex-start",
@@ -143,6 +174,7 @@ const FileTreeRow: React.FC<Props> = ({
             py: 0.5,
             px: 1,
             cursor: "pointer",
+            ...rowHighlightSx,
             "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" },
           }}
           onClick={() => setOpen((o) => !o)}
@@ -252,6 +284,7 @@ const FileTreeRow: React.FC<Props> = ({
               onPreview={onPreview}
               getInternalByPath={getInternalByPath}
               getJsonByPath={getJsonByPath}
+              highlightText={highlightText} // for subject highlight
             />
           ))}
         </Collapse>
@@ -308,31 +341,6 @@ const FileTreeRow: React.FC<Props> = ({
                 : formatLeafValue(node.value)}
             </Typography>
           ))}
-
-        {/* {!node.link && node.value !== undefined && (
-          <Typography
-            title={
-              node.name === "_ArrayZipData_"
-                ? "[compressed data]"
-                : typeof node.value === "string"
-                ? node.value
-                : JSON.stringify(node.value)
-            }
-            sx={{
-              fontFamily: "monospace",
-              fontSize: "0.85rem",
-              color: "text.secondary",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              mt: 0.25,
-            }}
-          >
-            {node.name === "_ArrayZipData_"
-              ? "[compressed data]"
-              : formatLeafValue(node.value)}
-          </Typography>
-        )} */}
       </Box>
       {/* ALWAYS show copy for files, even when no external/internal */}
       <Box sx={{ alignSelf: "flex-start" }}>

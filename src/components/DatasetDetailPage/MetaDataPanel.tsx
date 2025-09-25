@@ -11,7 +11,9 @@ import {
   Tooltip,
 } from "@mui/material";
 import { Colors } from "design/theme";
+import pako from "pako";
 import React, { useMemo, useState } from "react";
+import { modalityValueToEnumLabel } from "utils/SearchPageFunctions/modalityLabels";
 
 type Props = {
   dbViewInfo: any;
@@ -63,6 +65,19 @@ const MetaDataPanel: React.FC<Props> = ({
   // const [revIdx, setRevIdx] = useState(0);
   // const selected = revs[revIdx];
 
+  // builds /search#query=<deflated-base64>
+  const buildSearchUrl = (query: Record<string, any>) => {
+    const deflated = pako.deflate(JSON.stringify(query));
+    const encoded = btoa(String.fromCharCode(...deflated));
+    return `${window.location.origin}/search#query=${encoded}`;
+  };
+
+  const openSearchForModality = (mod: string) => {
+    const normalized = modalityValueToEnumLabel[mod] || mod;
+    const url = buildSearchUrl({ modality: normalized });
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <Box
       sx={{
@@ -90,9 +105,54 @@ const MetaDataPanel: React.FC<Props> = ({
           <Typography sx={{ color: Colors.darkPurple, fontWeight: "600" }}>
             Modalities
           </Typography>
-          <Typography sx={{ color: "text.secondary" }}>
+
+          {(() => {
+            const mods = Array.isArray(dbViewInfo?.rows?.[0]?.value?.modality)
+              ? [...new Set(dbViewInfo.rows[0].value.modality as string[])]
+              : [];
+
+            if (mods.length === 0) {
+              return (
+                <Typography sx={{ color: "text.secondary" }}>N/A</Typography>
+              );
+            }
+
+            return (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 0.5 }}>
+                {mods.map((m) => (
+                  <Chip
+                    key={m}
+                    label={m}
+                    clickable
+                    onClick={() => openSearchForModality(m)}
+                    variant="outlined"
+                    sx={{
+                      "& .MuiChip-label": {
+                        paddingX: "7px",
+                        fontSize: "0.8rem",
+                      },
+                      height: "24px",
+                      color: Colors.white,
+                      border: `1px solid ${Colors.orange}`,
+                      fontWeight: "bold",
+                      transition: "all 0.2s ease",
+                      backgroundColor: `${Colors.orange} !important`,
+                      "&:hover": {
+                        backgroundColor: `${Colors.darkOrange} !important`,
+                        color: "white",
+                        borderColor: Colors.darkOrange,
+                        paddingX: "8px",
+                        fontSize: "1rem",
+                      },
+                    }}
+                  />
+                ))}
+              </Box>
+            );
+          })()}
+          {/* <Typography sx={{ color: "text.secondary" }}>
             {dbViewInfo?.rows?.[0]?.value?.modality?.join(", ") ?? "N/A"}
-          </Typography>
+          </Typography> */}
         </Box>
         <Box>
           <Typography sx={{ color: Colors.darkPurple, fontWeight: "600" }}>
