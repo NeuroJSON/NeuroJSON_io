@@ -123,12 +123,10 @@ const FileTreeRow: React.FC<Props> = ({
   const externalUrl = node.link?.url;
 
   const rowRef = React.useRef<HTMLDivElement | null>(null);
-  // Highlight only if this row is exactly the subject folder (e.g., "sub-04")
-  // const isSubjectFolder =
-  //   node.kind === "folder" && /^sub-[A-Za-z0-9]+$/i.test(node.name);
+  // Highlight only if this row is exactly the same as the focus highlightText
   const isExactHit =
-    !!highlightText &&
-    node.name.trim().toLowerCase() === highlightText.trim().toLowerCase();
+    node.name.trim().toLowerCase() ===
+    (highlightText ?? "").trim().toLowerCase();
 
   React.useEffect(() => {
     if (isExactHit && rowRef.current) {
