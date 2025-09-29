@@ -124,25 +124,15 @@ const FileTreeRow: React.FC<Props> = ({
 
   const rowRef = React.useRef<HTMLDivElement | null>(null);
   // Highlight only if this row is exactly the subject folder (e.g., "sub-04")
-  const isSubjectFolder =
-    node.kind === "folder" && /^sub-[A-Za-z0-9]+$/i.test(node.name);
+  // const isSubjectFolder =
+  //   node.kind === "folder" && /^sub-[A-Za-z0-9]+$/i.test(node.name);
   const isExactHit =
     !!highlightText &&
-    isSubjectFolder &&
-    node.name.toLowerCase() === highlightText.toLowerCase();
+    node.name.trim().toLowerCase() === highlightText.trim().toLowerCase();
 
   React.useEffect(() => {
     if (isExactHit && rowRef.current) {
       rowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-      // subtle flash
-      // rowRef.current.animate(
-      //   [
-      //     { backgroundColor: `${Colors.yellow}`, offset: 0 }, // turn yellow
-      //     { backgroundColor: `${Colors.yellow}`, offset: 0.85 }, // stay yellow 85% of time
-      //     { backgroundColor: "transparent", offset: 1 }, // then fade out
-      //   ],
-      //   { duration: 8000, easing: "ease", fill: "forwards" }
-      // );
     }
   }, [isExactHit]);
 
@@ -294,7 +284,15 @@ const FileTreeRow: React.FC<Props> = ({
   // if the node is a file
   return (
     <Box
-      sx={{ display: "flex", alignItems: "flex-start", gap: 1, py: 0.5, px: 1 }}
+      ref={rowRef}
+      sx={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 1,
+        py: 0.5,
+        px: 1,
+        ...rowHighlightSx,
+      }}
     >
       <Box sx={{ pl: level * 1.25, pt: "2px" }}>
         <InsertDriveFileIcon
