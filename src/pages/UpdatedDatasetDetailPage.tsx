@@ -13,7 +13,7 @@ import {
   Alert,
   Button,
   Collapse,
-  Snackbar,
+  Tooltip,
 } from "@mui/material";
 import FileTree from "components/DatasetDetailPage/FileTree/FileTree";
 import {
@@ -56,22 +56,6 @@ interface InternalDataLink {
 const UpdatedDatasetDetailPage: React.FC = () => {
   const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  // for highlight
-  const focus = searchParams.get("focus") || undefined;
-
-  // for revision
-  const rev = searchParams.get("rev") || undefined;
-
-  const handleSelectRevision = (newRev?: string | null) => {
-    setSearchParams((prev) => {
-      const p = new URLSearchParams(prev); // copy of the query url
-      if (newRev) p.set("rev", newRev);
-      else p.delete("rev");
-      return p;
-    });
-  };
-
   const dispatch = useAppDispatch();
   const {
     selectedDocument: datasetDocument,
@@ -79,6 +63,10 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     error,
     datasetViewInfo: dbViewInfo,
   } = useAppSelector(NeurojsonSelector);
+  // get params from url
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focus = searchParams.get("focus") || undefined; // get highlight from url
+  const rev = searchParams.get("rev") || undefined; // get revision from url
 
   const [externalLinks, setExternalLinks] = useState<ExternalDataLink[]>([]);
   const [internalLinks, setInternalLinks] = useState<InternalDataLink[]>([]);
@@ -90,6 +78,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const [isExternalExpanded, setIsExternalExpanded] = useState(true);
   const [jsonSize, setJsonSize] = useState<number>(0);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [copiedToast, setCopiedToast] = useState<{
     open: boolean;
     text: string;
@@ -98,6 +87,14 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     text: "",
   });
   const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
+  const handleSelectRevision = (newRev?: string | null) => {
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev); // copy of the query url
+      if (newRev) p.set("rev", newRev);
+      else p.delete("rev");
+      return p;
+    });
+  };
 
   const linkMap = useMemo(() => makeLinkMap(externalLinks), [externalLinks]); // => external Link Map
 
@@ -107,18 +104,17 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   );
 
   const treeTitle = "Files";
-  const filesCount = externalLinks.length;
-  const totalBytes = useMemo(() => {
-    let bytes = 0;
-    for (const l of externalLinks) {
-      const m = l.url.match(/size=(\d+)/);
-      if (m) bytes += parseInt(m[1], 10);
-    }
-    return bytes;
-  }, [externalLinks]);
+  // const filesCount = externalLinks.length;
+  // const totalBytes = useMemo(() => {
+  //   let bytes = 0;
+  //   for (const l of externalLinks) {
+  //     const m = l.url.match(/size=(\d+)/);
+  //     if (m) bytes += parseInt(m[1], 10);
+  //   }
+  //   return bytes;
+  // }, [externalLinks]);
 
   // add spinner
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const formatSize = (sizeInBytes: number): string => {
     if (sizeInBytes < 1024) {
@@ -159,7 +155,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             links.push({
               name: `${label} (${size}) [/${subpath}]`,
               size,
-              path: currentPath, // keep full JSON path for file placement
+              path: currentPath, // parent path (not include _DataLink_)
               url: correctedUrl,
               index: links.length,
             });
@@ -203,7 +199,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           obj.MeshNode?.hasOwnProperty("_ArrayZipData_") &&
           typeof obj.MeshNode["_ArrayZipData_"] === "string"
         ) {
-          // console.log("path", path);
           internalLinks.push({
             name: "JMesh",
             data: obj,
@@ -252,7 +247,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         });
       }
     }
-
     return internalLinks;
   };
   // Build a shareable preview URL for a JSON path in this dataset
@@ -442,14 +436,14 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     idx: number,
     isInternal: boolean = false
   ) => {
-    console.log(
-      "🟢 Preview button clicked for:",
-      dataOrUrl,
-      "Index:",
-      idx,
-      "Is Internal:",
-      isInternal
-    );
+    // console.log(
+    //   "🟢 Preview button clicked for:",
+    //   dataOrUrl,
+    //   "Index:",
+    //   idx,
+    //   "Is Internal:",
+    //   isInternal
+    // );
 
     // Clear any stale preview type from last run
     delete (window as any).__previewType;
@@ -588,7 +582,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     },
     [datasetDocument]
   );
-
+  // check if the url has preview param
   useEffect(() => {
     const p = searchParams.get("preview");
     if (!p || !datasetDocument) return;
@@ -613,8 +607,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     externalLinks,
     searchParams,
     internalMap,
-    // externalMap,
-    linkMap,
+    linkMap, // externalMap
   ]);
 
   const handleClosePreview = () => {
@@ -892,8 +885,8 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 <FileTree
                   title={treeTitle}
                   tree={treeData}
-                  filesCount={filesCount}
-                  totalBytes={totalBytes}
+                  // filesCount={filesCount}
+                  // totalBytes={totalBytes}
                   onPreview={handlePreview} // pass the function down to FileTree
                   getInternalByPath={getInternalByPath}
                   getJsonByPath={getJsonByPath}
@@ -1051,7 +1044,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                         >
                           Preview
                         </Button>
-                        {/* <Button
+                        <Button
                           variant="outlined"
                           size="small"
                           sx={{
@@ -1070,7 +1063,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                         >
                           <ContentCopyIcon sx={{ fontSize: 16, mr: 0.5 }} />
                           Copy URL
-                        </Button> */}
+                        </Button>
                       </Box>
                     </Box>
                   ))
@@ -1205,7 +1198,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                               Preview
                             </Button>
                           )}
-                          {/* {isPreviewable && (
+                          {isPreviewable && (
                             <Button
                               variant="outlined"
                               size="small"
@@ -1226,7 +1219,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                               <ContentCopyIcon sx={{ fontSize: 16, mr: 0.5 }} />
                               Copy URL
                             </Button>
-                          )} */}
+                          )}
                         </Box>
                       </Box>
                     );
@@ -1282,7 +1275,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           <CircularProgress color="inherit" />
         </Backdrop>
 
-        {/* Preview Modal Component - Add Here */}
+        {/* Preview Modal Component */}
         <PreviewModal
           isOpen={previewOpen}
           dataKey={previewDataKey}
