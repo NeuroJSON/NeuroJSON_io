@@ -1,4 +1,5 @@
 import PreviewModal from "../components/PreviewModal";
+import CheckIcon from "@mui/icons-material/Check";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DescriptionIcon from "@mui/icons-material/Description";
@@ -14,6 +15,7 @@ import {
   Button,
   Collapse,
   Tooltip,
+  IconButton,
 } from "@mui/material";
 import FileTree from "components/DatasetDetailPage/FileTree/FileTree";
 import {
@@ -26,7 +28,7 @@ import ReadMoreText from "design/ReadMoreText";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 // import ReactJson from "react-json-view";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -79,13 +81,16 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const [jsonSize, setJsonSize] = useState<number>(0);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [copiedToast, setCopiedToast] = useState<{
-    open: boolean;
-    text: string;
-  }>({
-    open: false,
-    text: "",
-  });
+  // const [copiedToast, setCopiedToast] = useState<{
+  //   open: boolean;
+  //   text: string;
+  // }>({
+  //   open: false,
+  //   text: "",
+  // });
+  // const [copiedUrlOpen, setCopiedUrlOpen] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const copyTimer = useRef<number | null>(null);
   const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
   const handleSelectRevision = (newRev?: string | null) => {
     setSearchParams((prev) => {
@@ -263,7 +268,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     const url = buildPreviewUrl(path);
     try {
       await navigator.clipboard.writeText(url);
-      setCopiedToast({ open: true, text: "Preview link copied" });
+      // setCopiedToast({ open: true, text: "Preview link copied" });
     } catch {
       // fallback
       const ta = document.createElement("textarea");
@@ -272,20 +277,31 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
-      setCopiedToast({ open: true, text: "Preview link copied" });
+      // setCopiedToast({ open: true, text: "Preview link copied" });
     }
   };
 
-  //   useEffect(() => {
-  //     const fetchData = async () => {
-  //       if (dbName && docId) {
-  //         await dispatch(fetchDocumentDetails({ dbName, docId }));
-  //         await dispatch(fetchDbInfoByDatasetId({ dbName, docId }));
-  //       }
-  //     };
+  // const handleUrlCopyClick = async (e: React.MouseEvent, path: string) => {
+  //   await copyPreviewUrl(path);
+  //   setCopiedUrlOpen(true);
+  //   setTimeout(() => setCopiedUrlOpen(false), 2500);
+  // };
 
-  //     fetchData();
-  //   }, [dbName, docId, dispatch]);
+  const handleUrlCopyClick = async (
+    e: React.MouseEvent<HTMLButtonElement>,
+    path: string
+  ) => {
+    await copyPreviewUrl(path);
+    setCopiedKey(path); // mark this button as "copied"
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+    copyTimer.current = window.setTimeout(() => setCopiedKey(null), 1500);
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!dbName || !docId) return;
@@ -990,83 +1006,109 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 }}
               >
                 {internalLinks.length > 0 ? (
-                  internalLinks.map((link, index) => (
-                    <Box
-                      key={index}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "6px 10px",
-                        backgroundColor: "white",
-                        borderRadius: "4px",
-                        border: "1px solid #ddd",
-                        mt: 1,
-                        height: "34px",
-                        minWidth: 0,
-                        fontSize: "0.85rem",
-                      }}
-                    >
-                      <Typography
+                  internalLinks.map((link, index) => {
+                    const key = link.path;
+                    return (
+                      <Box
+                        key={index}
                         sx={{
-                          flexGrow: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "6px 10px",
+                          backgroundColor: "white",
+                          borderRadius: "4px",
+                          border: "1px solid #ddd",
+                          mt: 1,
+                          height: "34px",
                           minWidth: 0,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          fontSize: "1rem",
-                          marginRight: "12px",
-                          maxWidth: "calc(100% - 160px)",
+                          fontSize: "0.85rem",
                         }}
-                        title={link.name}
                       >
-                        {link.name}{" "}
-                        {link.arraySize ? `[${link.arraySize.join("x")}]` : ""}
-                      </Typography>
-                      <Box sx={{ display: "flex", flexShrink: 0, gap: 1 }}>
-                        <Button
-                          variant="contained"
-                          size="small"
+                        <Typography
                           sx={{
-                            backgroundColor: Colors.purple,
-                            flexShrink: 0,
-                            minWidth: "70px",
-                            fontSize: "0.7rem",
-                            padding: "2px 6px",
-                            lineHeight: 1,
-                            "&:hover": {
-                              backgroundColor: Colors.secondaryPurple,
-                            },
+                            flexGrow: 1,
+                            minWidth: 0,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            fontSize: "1rem",
+                            marginRight: "12px",
+                            maxWidth: "calc(100% - 160px)",
                           }}
-                          onClick={() =>
-                            handlePreview(link.data, link.index, true)
-                          }
+                          title={link.name}
                         >
-                          Preview
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          sx={{
-                            color: Colors.purple,
-                            borderColor: Colors.purple,
-                            minWidth: "90px",
-                            fontSize: "0.7rem",
-                            padding: "2px 6px",
-                            lineHeight: 1,
-                            "&:hover": {
-                              color: Colors.secondaryPurple,
-                              borderColor: Colors.secondaryPurple,
-                            },
-                          }}
-                          onClick={() => copyPreviewUrl(link.path)}
-                        >
-                          <ContentCopyIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                          Copy URL
-                        </Button>
+                          {link.name}{" "}
+                          {link.arraySize
+                            ? `[${link.arraySize.join("x")}]`
+                            : ""}
+                        </Typography>
+                        <Box sx={{ display: "flex", flexShrink: 0, gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            sx={{
+                              backgroundColor: Colors.purple,
+                              flexShrink: 0,
+                              minWidth: "70px",
+                              fontSize: "0.7rem",
+                              padding: "2px 6px",
+                              lineHeight: 1,
+                              "&:hover": {
+                                backgroundColor: Colors.secondaryPurple,
+                              },
+                            }}
+                            onClick={() =>
+                              handlePreview(link.data, link.index, true)
+                            }
+                          >
+                            Preview
+                          </Button>
+                          {/* <Tooltip
+                          title="Copied!"
+                          open={copiedUrlOpen}
+                          disableHoverListener
+                        > */}
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            sx={{
+                              color: Colors.purple,
+                              borderColor: Colors.purple,
+                              minWidth: "90px",
+                              fontSize: "0.7rem",
+                              padding: "2px 6px",
+                              lineHeight: 1,
+                              "&:hover": {
+                                color: Colors.secondaryPurple,
+                                borderColor: Colors.secondaryPurple,
+                              },
+                            }}
+                            // onClick={() => copyPreviewUrl(link.path)}
+                            onClick={(e) => handleUrlCopyClick(e, key)}
+                            disabled={copiedKey === key}
+                          >
+                            {copiedKey === key ? (
+                              <>
+                                <CheckIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <ContentCopyIcon
+                                  sx={{ fontSize: 16, mr: 0.5 }}
+                                />
+                                Copy URL
+                              </>
+                            )}
+                            {/* <ContentCopyIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                            Copy URL */}
+                          </Button>
+                          {/* </Tooltip> */}
+                        </Box>
                       </Box>
-                    </Box>
-                  ))
+                    );
+                  })
                 ) : (
                   <Typography sx={{ fontStyle: "italic", mt: 1 }}>
                     No internal data found.
@@ -1120,6 +1162,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               >
                 {externalLinks.length > 0 ? (
                   externalLinks.map((link, index) => {
+                    const key = link.path;
                     const match = link.url.match(/file=([^&]+)/);
                     const fileName = match ? match[1] : "";
                     const isPreviewable =
@@ -1199,6 +1242,11 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                             </Button>
                           )}
                           {isPreviewable && (
+                            // <Tooltip
+                            //   title="Copied!"
+                            //   open={copiedUrlOpen}
+                            //   disableHoverListener
+                            // >
                             <Button
                               variant="outlined"
                               size="small"
@@ -1214,11 +1262,27 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                                   borderColor: Colors.secondaryPurple,
                                 },
                               }}
-                              onClick={() => copyPreviewUrl(link.path)} // <-- use the JSON path
+                              onClick={(e) => handleUrlCopyClick(e, key)}
+                              disabled={copiedKey === key}
+                              // onClick={() => copyPreviewUrl(link.path)} // <-- use the JSON path
                             >
-                              <ContentCopyIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                              Copy URL
+                              {copiedKey === key ? (
+                                <>
+                                  <CheckIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                                  Copied!
+                                </>
+                              ) : (
+                                <>
+                                  <ContentCopyIcon
+                                    sx={{ fontSize: 16, mr: 0.5 }}
+                                  />
+                                  Copy URL
+                                </>
+                              )}
+                              {/* <ContentCopyIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                              Copy URL */}
                             </Button>
+                            // </Tooltip>
                           )}
                         </Box>
                       </Box>
