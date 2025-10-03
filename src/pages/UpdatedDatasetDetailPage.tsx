@@ -1,4 +1,5 @@
 import PreviewModal from "../components/PreviewModal";
+import CheckIcon from "@mui/icons-material/Check";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DescriptionIcon from "@mui/icons-material/Description";
@@ -13,7 +14,8 @@ import {
   Alert,
   Button,
   Collapse,
-  Snackbar,
+  Tooltip,
+  IconButton,
 } from "@mui/material";
 import FileTree from "components/DatasetDetailPage/FileTree/FileTree";
 import {
@@ -26,7 +28,7 @@ import ReadMoreText from "design/ReadMoreText";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 // import ReactJson from "react-json-view";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -56,27 +58,6 @@ interface InternalDataLink {
 const UpdatedDatasetDetailPage: React.FC = () => {
   const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  // for subject highlight
-  const focusSubjRaw = searchParams.get("focusSubj") || undefined;
-  const focusSubj = !focusSubjRaw
-    ? undefined
-    : /^sub-/i.test(focusSubjRaw)
-    ? focusSubjRaw
-    : `sub-${focusSubjRaw.replace(/^0+/, "").padStart(2, "0")}`;
-
-  // for revision
-  const rev = searchParams.get("rev") || undefined;
-
-  const handleSelectRevision = (newRev?: string | null) => {
-    setSearchParams((prev) => {
-      const p = new URLSearchParams(prev); // copy of the query url
-      if (newRev) p.set("rev", newRev);
-      else p.delete("rev");
-      return p;
-    });
-  };
-
   const dispatch = useAppDispatch();
   const {
     selectedDocument: datasetDocument,
@@ -84,6 +65,10 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     error,
     datasetViewInfo: dbViewInfo,
   } = useAppSelector(NeurojsonSelector);
+  // get params from url
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focus = searchParams.get("focus") || undefined; // get highlight from url
+  const rev = searchParams.get("rev") || undefined; // get revision from url
 
   const [externalLinks, setExternalLinks] = useState<ExternalDataLink[]>([]);
   const [internalLinks, setInternalLinks] = useState<InternalDataLink[]>([]);
@@ -95,14 +80,26 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const [isExternalExpanded, setIsExternalExpanded] = useState(true);
   const [jsonSize, setJsonSize] = useState<number>(0);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
-  const [copiedToast, setCopiedToast] = useState<{
-    open: boolean;
-    text: string;
-  }>({
-    open: false,
-    text: "",
-  });
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  // const [copiedToast, setCopiedToast] = useState<{
+  //   open: boolean;
+  //   text: string;
+  // }>({
+  //   open: false,
+  //   text: "",
+  // });
+  // const [copiedUrlOpen, setCopiedUrlOpen] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const copyTimer = useRef<number | null>(null);
   const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
+  const handleSelectRevision = (newRev?: string | null) => {
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev); // copy of the query url
+      if (newRev) p.set("rev", newRev);
+      else p.delete("rev");
+      return p;
+    });
+  };
 
   const linkMap = useMemo(() => makeLinkMap(externalLinks), [externalLinks]); // => external Link Map
 
@@ -112,18 +109,17 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   );
 
   const treeTitle = "Files";
-  const filesCount = externalLinks.length;
-  const totalBytes = useMemo(() => {
-    let bytes = 0;
-    for (const l of externalLinks) {
-      const m = l.url.match(/size=(\d+)/);
-      if (m) bytes += parseInt(m[1], 10);
-    }
-    return bytes;
-  }, [externalLinks]);
+  // const filesCount = externalLinks.length;
+  // const totalBytes = useMemo(() => {
+  //   let bytes = 0;
+  //   for (const l of externalLinks) {
+  //     const m = l.url.match(/size=(\d+)/);
+  //     if (m) bytes += parseInt(m[1], 10);
+  //   }
+  //   return bytes;
+  // }, [externalLinks]);
 
   // add spinner
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const formatSize = (sizeInBytes: number): string => {
     if (sizeInBytes < 1024) {
@@ -164,7 +160,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             links.push({
               name: `${label} (${size}) [/${subpath}]`,
               size,
-              path: currentPath, // keep full JSON path for file placement
+              path: currentPath, // parent path (not include _DataLink_)
               url: correctedUrl,
               index: links.length,
             });
@@ -208,7 +204,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           obj.MeshNode?.hasOwnProperty("_ArrayZipData_") &&
           typeof obj.MeshNode["_ArrayZipData_"] === "string"
         ) {
-          // console.log("path", path);
           internalLinks.push({
             name: "JMesh",
             data: obj,
@@ -257,7 +252,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         });
       }
     }
-
     return internalLinks;
   };
   // Build a shareable preview URL for a JSON path in this dataset
@@ -274,7 +268,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     const url = buildPreviewUrl(path);
     try {
       await navigator.clipboard.writeText(url);
-      setCopiedToast({ open: true, text: "Preview link copied" });
+      // setCopiedToast({ open: true, text: "Preview link copied" });
     } catch {
       // fallback
       const ta = document.createElement("textarea");
@@ -283,20 +277,31 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
-      setCopiedToast({ open: true, text: "Preview link copied" });
+      // setCopiedToast({ open: true, text: "Preview link copied" });
     }
   };
 
-  //   useEffect(() => {
-  //     const fetchData = async () => {
-  //       if (dbName && docId) {
-  //         await dispatch(fetchDocumentDetails({ dbName, docId }));
-  //         await dispatch(fetchDbInfoByDatasetId({ dbName, docId }));
-  //       }
-  //     };
+  // const handleUrlCopyClick = async (e: React.MouseEvent, path: string) => {
+  //   await copyPreviewUrl(path);
+  //   setCopiedUrlOpen(true);
+  //   setTimeout(() => setCopiedUrlOpen(false), 2500);
+  // };
 
-  //     fetchData();
-  //   }, [dbName, docId, dispatch]);
+  const handleUrlCopyClick = async (
+    e: React.MouseEvent<HTMLButtonElement>,
+    path: string
+  ) => {
+    await copyPreviewUrl(path);
+    setCopiedKey(path); // mark this button as "copied"
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+    copyTimer.current = window.setTimeout(() => setCopiedKey(null), 1500);
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!dbName || !docId) return;
@@ -447,14 +452,14 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     idx: number,
     isInternal: boolean = false
   ) => {
-    console.log(
-      "🟢 Preview button clicked for:",
-      dataOrUrl,
-      "Index:",
-      idx,
-      "Is Internal:",
-      isInternal
-    );
+    // console.log(
+    //   "🟢 Preview button clicked for:",
+    //   dataOrUrl,
+    //   "Index:",
+    //   idx,
+    //   "Is Internal:",
+    //   isInternal
+    // );
 
     // Clear any stale preview type from last run
     delete (window as any).__previewType;
@@ -593,7 +598,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     },
     [datasetDocument]
   );
-
+  // check if the url has preview param
   useEffect(() => {
     const p = searchParams.get("preview");
     if (!p || !datasetDocument) return;
@@ -618,8 +623,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     externalLinks,
     searchParams,
     internalMap,
-    // externalMap,
-    linkMap,
+    linkMap, // externalMap
   ]);
 
   const handleClosePreview = () => {
@@ -897,12 +901,12 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 <FileTree
                   title={treeTitle}
                   tree={treeData}
-                  filesCount={filesCount}
-                  totalBytes={totalBytes}
+                  // filesCount={filesCount}
+                  // totalBytes={totalBytes}
                   onPreview={handlePreview} // pass the function down to FileTree
                   getInternalByPath={getInternalByPath}
                   getJsonByPath={getJsonByPath}
-                  highlightText={focusSubj} // for subject highlight
+                  highlightText={focus} // for highlight
                 />
               </Box>
             </Box>
@@ -1002,83 +1006,109 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 }}
               >
                 {internalLinks.length > 0 ? (
-                  internalLinks.map((link, index) => (
-                    <Box
-                      key={index}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "6px 10px",
-                        backgroundColor: "white",
-                        borderRadius: "4px",
-                        border: "1px solid #ddd",
-                        mt: 1,
-                        height: "34px",
-                        minWidth: 0,
-                        fontSize: "0.85rem",
-                      }}
-                    >
-                      <Typography
+                  internalLinks.map((link, index) => {
+                    const key = link.path;
+                    return (
+                      <Box
+                        key={index}
                         sx={{
-                          flexGrow: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "6px 10px",
+                          backgroundColor: "white",
+                          borderRadius: "4px",
+                          border: "1px solid #ddd",
+                          mt: 1,
+                          height: "34px",
                           minWidth: 0,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          fontSize: "1rem",
-                          marginRight: "12px",
-                          maxWidth: "calc(100% - 160px)",
+                          fontSize: "0.85rem",
                         }}
-                        title={link.name}
                       >
-                        {link.name}{" "}
-                        {link.arraySize ? `[${link.arraySize.join("x")}]` : ""}
-                      </Typography>
-                      <Box sx={{ display: "flex", flexShrink: 0, gap: 1 }}>
-                        <Button
-                          variant="contained"
-                          size="small"
+                        <Typography
                           sx={{
-                            backgroundColor: Colors.purple,
-                            flexShrink: 0,
-                            minWidth: "70px",
-                            fontSize: "0.7rem",
-                            padding: "2px 6px",
-                            lineHeight: 1,
-                            "&:hover": {
-                              backgroundColor: Colors.secondaryPurple,
-                            },
+                            flexGrow: 1,
+                            minWidth: 0,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            fontSize: "1rem",
+                            marginRight: "12px",
+                            maxWidth: "calc(100% - 160px)",
                           }}
-                          onClick={() =>
-                            handlePreview(link.data, link.index, true)
-                          }
+                          title={link.name}
                         >
-                          Preview
-                        </Button>
-                        {/* <Button
-                          variant="outlined"
-                          size="small"
-                          sx={{
-                            color: Colors.purple,
-                            borderColor: Colors.purple,
-                            minWidth: "90px",
-                            fontSize: "0.7rem",
-                            padding: "2px 6px",
-                            lineHeight: 1,
-                            "&:hover": {
-                              color: Colors.secondaryPurple,
-                              borderColor: Colors.secondaryPurple,
-                            },
-                          }}
-                          onClick={() => copyPreviewUrl(link.path)}
-                        >
-                          <ContentCopyIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                          Copy URL
-                        </Button> */}
+                          {link.name}{" "}
+                          {link.arraySize
+                            ? `[${link.arraySize.join("x")}]`
+                            : ""}
+                        </Typography>
+                        <Box sx={{ display: "flex", flexShrink: 0, gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            sx={{
+                              backgroundColor: Colors.purple,
+                              flexShrink: 0,
+                              minWidth: "70px",
+                              fontSize: "0.7rem",
+                              padding: "2px 6px",
+                              lineHeight: 1,
+                              "&:hover": {
+                                backgroundColor: Colors.secondaryPurple,
+                              },
+                            }}
+                            onClick={() =>
+                              handlePreview(link.data, link.index, true)
+                            }
+                          >
+                            Preview
+                          </Button>
+                          {/* <Tooltip
+                          title="Copied!"
+                          open={copiedUrlOpen}
+                          disableHoverListener
+                        > */}
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            sx={{
+                              color: Colors.purple,
+                              borderColor: Colors.purple,
+                              minWidth: "90px",
+                              fontSize: "0.7rem",
+                              padding: "2px 6px",
+                              lineHeight: 1,
+                              "&:hover": {
+                                color: Colors.secondaryPurple,
+                                borderColor: Colors.secondaryPurple,
+                              },
+                            }}
+                            // onClick={() => copyPreviewUrl(link.path)}
+                            onClick={(e) => handleUrlCopyClick(e, key)}
+                            disabled={copiedKey === key}
+                          >
+                            {copiedKey === key ? (
+                              <>
+                                <CheckIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <ContentCopyIcon
+                                  sx={{ fontSize: 16, mr: 0.5 }}
+                                />
+                                Copy URL
+                              </>
+                            )}
+                            {/* <ContentCopyIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                            Copy URL */}
+                          </Button>
+                          {/* </Tooltip> */}
+                        </Box>
                       </Box>
-                    </Box>
-                  ))
+                    );
+                  })
                 ) : (
                   <Typography sx={{ fontStyle: "italic", mt: 1 }}>
                     No internal data found.
@@ -1132,6 +1162,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               >
                 {externalLinks.length > 0 ? (
                   externalLinks.map((link, index) => {
+                    const key = link.path;
                     const match = link.url.match(/file=([^&]+)/);
                     const fileName = match ? match[1] : "";
                     const isPreviewable =
@@ -1210,7 +1241,12 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                               Preview
                             </Button>
                           )}
-                          {/* {isPreviewable && (
+                          {isPreviewable && (
+                            // <Tooltip
+                            //   title="Copied!"
+                            //   open={copiedUrlOpen}
+                            //   disableHoverListener
+                            // >
                             <Button
                               variant="outlined"
                               size="small"
@@ -1226,12 +1262,28 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                                   borderColor: Colors.secondaryPurple,
                                 },
                               }}
-                              onClick={() => copyPreviewUrl(link.path)} // <-- use the JSON path
+                              onClick={(e) => handleUrlCopyClick(e, key)}
+                              disabled={copiedKey === key}
+                              // onClick={() => copyPreviewUrl(link.path)} // <-- use the JSON path
                             >
-                              <ContentCopyIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                              Copy URL
+                              {copiedKey === key ? (
+                                <>
+                                  <CheckIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                                  Copied!
+                                </>
+                              ) : (
+                                <>
+                                  <ContentCopyIcon
+                                    sx={{ fontSize: 16, mr: 0.5 }}
+                                  />
+                                  Copy URL
+                                </>
+                              )}
+                              {/* <ContentCopyIcon sx={{ fontSize: 16, mr: 0.5 }} />
+                              Copy URL */}
                             </Button>
-                          )} */}
+                            // </Tooltip>
+                          )}
                         </Box>
                       </Box>
                     );
@@ -1287,7 +1339,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           <CircularProgress color="inherit" />
         </Backdrop>
 
-        {/* Preview Modal Component - Add Here */}
+        {/* Preview Modal Component */}
         <PreviewModal
           isOpen={previewOpen}
           dataKey={previewDataKey}
