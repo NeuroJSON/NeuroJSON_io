@@ -8,8 +8,8 @@ import React from "react";
 type Props = {
   title: string;
   tree: TreeNode[];
-  filesCount: number;
-  totalBytes: number;
+  // filesCount: number;
+  // totalBytes: number;
   // for preview in tree row
   onPreview: (src: string | any, index: number, isInternal?: boolean) => void;
   getInternalByPath: (path: string) => { data: any; index: number } | undefined;
@@ -17,19 +17,19 @@ type Props = {
   highlightText?: string;
 };
 
-const formatSize = (n: number) => {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 ** 2) return `${(n / 1024).toFixed(1)} KB`;
-  if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(2)} MB`;
-  if (n < 1024 ** 4) return `${(n / 1024 ** 3).toFixed(2)} GB`;
-  return `${(n / 1024 ** 4).toFixed(2)} TB`;
-};
+// const formatSize = (n: number) => {
+//   if (n < 1024) return `${n} B`;
+//   if (n < 1024 ** 2) return `${(n / 1024).toFixed(1)} KB`;
+//   if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(2)} MB`;
+//   if (n < 1024 ** 4) return `${(n / 1024 ** 3).toFixed(2)} GB`;
+//   return `${(n / 1024 ** 4).toFixed(2)} TB`;
+// };
 
 const FileTree: React.FC<Props> = ({
   title,
   tree,
-  filesCount,
-  totalBytes,
+  // filesCount,
+  // totalBytes,
   onPreview,
   getInternalByPath,
   getJsonByPath,

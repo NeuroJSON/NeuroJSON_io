@@ -34,12 +34,7 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
 }) => {
   const { modalities, tasks, sessions, types } = parsedJson.value;
   const subjectLink = `${RoutesEnum.DATABASES}/${dbname}/${dsname}`;
-  const canonicalSubj = /^sub-/i.test(subj)
-    ? subj
-    : `sub-${String(subj)
-        .replace(/^sub-/i, "")
-        .replace(/^0+/, "")
-        .padStart(2, "0")}`;
+  const formattedSubj = /^sub-/i.test(subj) ? subj : `sub-${String(subj)}`;
 
   // get the gender of subject
   const genderCode = parsedJson?.key?.[1];
@@ -91,7 +86,7 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
           }}
           component={Link}
           // to={subjectLink}
-          to={`${subjectLink}?focusSubj=${encodeURIComponent(canonicalSubj)}`}
+          to={`${subjectLink}?focus=${encodeURIComponent(formattedSubj)}`}
           // target="_blank"
         >
           <PersonOutlineIcon />

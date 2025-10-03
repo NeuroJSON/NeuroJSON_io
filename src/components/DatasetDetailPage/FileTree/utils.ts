@@ -87,8 +87,15 @@ export const buildTreeFromDoc = (
   if (Array.isArray(doc)) {
     doc.forEach((item, i) => {
       const path = `${curPath}/[${i}]`;
+      if (linkMap.has(path)) {
+        // console.log("PATH", path);
+        // console.log("has exact", linkMap.has(path));
+        // console.log("has _DataLink_", linkMap.has(`${path}/_DataLink_`));
+      } else {
+        // console.log("nothing matching in array docs");
+      }
+
       const linkHere = linkMap.get(path) || linkMap.get(`${path}/_DataLink_`);
-      // For primitive items, show "1: value" in the *name*
       const isPrimitive =
         item === null || ["string", "number", "boolean"].includes(typeof item);
       const label = isPrimitive ? `${i}: ${formatLeafValue(item)}` : String(i); // objects/arrays just show "1", "2", ...
@@ -97,7 +104,7 @@ export const buildTreeFromDoc = (
         out.push({
           kind: "folder",
           //   name: `[${i}]`,
-          name: label,
+          name: label, // For primitive items, show "1: value" in the name
           path,
           link: linkHere,
           children: buildTreeFromDoc(item, linkMap, path),
@@ -113,12 +120,21 @@ export const buildTreeFromDoc = (
         });
       }
     });
+    // console.log("out", out);
     return out;
   }
 
   Object.keys(doc).forEach((key) => {
     const val = doc[key];
     const path = `${curPath}/${key}`;
+    if (linkMap.has(path)) {
+      // console.log("PATH", path);
+      // console.log("has exact", linkMap.has(path));
+      // console.log("has _DataLink_", linkMap.has(`${path}/_DataLink_`));
+    } else {
+      // console.log("nothing match in object keys");
+    }
+
     const linkHere = linkMap.get(path) || linkMap.get(`${path}/_DataLink_`);
 
     if (val && typeof val === "object") {
