@@ -682,7 +682,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   return (
     <>
       <Box sx={{ padding: 4 }}>
-        <Button
+        {/* <Button
           variant="text"
           onClick={() => navigate(-1)}
           sx={{
@@ -696,7 +696,80 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           }}
         >
           Back
-        </Button>
+        </Button> */}
+
+        {/* Breadcrumb Navigation (Home → Database → Dataset) */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            marginBottom: 2,
+          }}
+        >
+          {/* Home Icon Button */}
+          <Button
+            onClick={() => navigate("/")}
+            sx={{
+              backgroundColor: "transparent",
+              padding: 0,
+              minWidth: "auto",
+              "&:hover": { backgroundColor: "transparent" },
+            }}
+          >
+            <HomeIcon
+              sx={{
+                color: Colors.white,
+                "&:hover": {
+                  transform: "scale(1.1)",
+                  backgroundColor: "transparent",
+                },
+              }}
+            />
+          </Button>
+
+          <Typography
+            variant="h5"
+            sx={{ marginX: 1, fontWeight: "bold", color: Colors.white }}
+          >
+            »
+          </Typography>
+
+          {/* Database Name (Clickable) */}
+          <Button
+            onClick={() => navigate(`${RoutesEnum.DATABASES}/${dbName}`)}
+            sx={{
+              textTransform: "none",
+              fontSize: "1.2rem",
+              fontWeight: "bold",
+              color: Colors.white,
+              "&:hover": {
+                transform: "scale(1.05)",
+                backgroundColor: "transparent",
+              },
+            }}
+          >
+            {dbName?.toLowerCase()}
+          </Button>
+
+          <Typography
+            variant="h5"
+            sx={{ marginX: 1, fontWeight: "bold", color: Colors.white }}
+          >
+            »
+          </Typography>
+
+          {/* Dataset Name (_id field) */}
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: "bold",
+              color: Colors.white,
+              fontSize: "1.2rem",
+            }}
+          >
+            {docId}
+          </Typography>
+        </Box>
 
         <Box
           sx={{
@@ -732,73 +805,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 : datasetDocument["dataset_description.json"].Authors}
             </Typography>
           )}
-
-          {/* Breadcrumb Navigation (Home → Database → Dataset) */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              marginBottom: 2,
-            }}
-          >
-            {/* Home Icon Button */}
-            <Button
-              onClick={() => navigate("/")}
-              sx={{
-                backgroundColor: "transparent",
-                padding: 0,
-                minWidth: "auto",
-                "&:hover": { backgroundColor: "transparent" },
-              }}
-            >
-              <HomeIcon
-                sx={{
-                  color: Colors.darkPurple,
-                  "&:hover": {
-                    transform: "scale(1.1)",
-                    backgroundColor: "transparent",
-                  },
-                }}
-              />
-            </Button>
-
-            <Typography variant="h5" sx={{ marginX: 1, fontWeight: "bold" }}>
-              »
-            </Typography>
-
-            {/* Database Name (Clickable) */}
-            <Button
-              onClick={() => navigate(`${RoutesEnum.DATABASES}/${dbName}`)}
-              sx={{
-                textTransform: "none",
-                fontSize: "1.2rem",
-                fontWeight: "bold",
-                color: Colors.darkPurple,
-                "&:hover": {
-                  transform: "scale(1.05)",
-                  backgroundColor: "transparent",
-                },
-              }}
-            >
-              {dbName?.toLowerCase()}
-            </Button>
-
-            <Typography variant="h5" sx={{ marginX: 1, fontWeight: "bold" }}>
-              »
-            </Typography>
-
-            {/* Dataset Name (_id field) */}
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: "bold",
-                color: Colors.darkPurple,
-                fontSize: "1.2rem",
-              }}
-            >
-              {docId}
-            </Typography>
-          </Box>
 
           {/* ai summary */}
           {aiSummary && <ReadMoreText text={aiSummary} />}
