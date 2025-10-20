@@ -966,8 +966,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 <FileTree
                   title={treeTitle}
                   tree={treeData}
-                  // filesCount={filesCount}
-                  // totalBytes={totalBytes}
                   onPreview={handlePreview} // pass the function down to FileTree
                   getInternalByPath={getInternalByPath}
                   getJsonByPath={getJsonByPath}

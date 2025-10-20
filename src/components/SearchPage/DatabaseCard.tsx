@@ -39,7 +39,7 @@ const DatabaseCard: React.FC<Props> = ({
 }) => {
   const dispatch = useAppDispatch();
   const dbInfo = useAppSelector((state: RootState) => state.neurojson.dbInfo);
-  console.log("dbInfo", dbInfo);
+  // console.log("dbInfo", dbInfo);
   useEffect(() => {
     if (dbId) {
       dispatch(fetchDbInfo(dbId.toLowerCase()));
