@@ -6,6 +6,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import HomeIcon from "@mui/icons-material/Home";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import {
   Box,
   Typography,
@@ -807,7 +808,65 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           )}
 
           {/* ai summary */}
-          {aiSummary && <ReadMoreText text={aiSummary} />}
+          {aiSummary && (
+            <>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  mb: 0.5,
+                  mt: 1,
+                  gap: 0.5,
+                }}
+              >
+                <Typography
+                  color={Colors.purple}
+                  sx={{ fontWeight: "bold", mb: 0.5, mt: 1 }}
+                >
+                  AI Summary
+                </Typography>
+                <Tooltip
+                  title={
+                    <Typography variant="body2" sx={{ color: Colors.darkGray }}>
+                      AI Summary is generated using an AI tool that identifies
+                      the related paper and extracts its key content to create a
+                      concise summary.
+                    </Typography>
+                  }
+                  arrow
+                  placement="right"
+                  slotProps={{
+                    tooltip: {
+                      sx: {
+                        bgcolor: Colors.white,
+                        border: `1px solid ${Colors.lightGray}`,
+                        boxShadow: 3,
+                        fontSize: "0.875rem",
+                      },
+                    },
+                    arrow: {
+                      sx: {
+                        color: Colors.white,
+                        "&::before": {
+                          border: `1px solid ${Colors.lightGray}`, // subtle arrow border
+                        },
+                      },
+                    },
+                  }}
+                >
+                  <InfoOutlinedIcon
+                    fontSize="small"
+                    sx={{
+                      color: Colors.purple,
+                      cursor: "pointer",
+                    }}
+                  />
+                </Tooltip>
+              </Box>
+
+              <ReadMoreText text={aiSummary} />
+            </>
+          )}
 
           <Box
             sx={{
