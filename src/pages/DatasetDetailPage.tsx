@@ -305,7 +305,7 @@ const DatasetDetailPage: React.FC = () => {
   useEffect(() => {
     if (datasetDocument) {
       // ✅ Extract External Data & Assign `index`
-      console.log("datasetDocument", datasetDocument);
+      // console.log("datasetDocument", datasetDocument);
       const links = extractDataLinks(datasetDocument, "").map(
         (link, index) => ({
           ...link,
