@@ -93,6 +93,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const copyTimer = useRef<number | null>(null);
   const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
+  const readme = datasetDocument?.["README"] ?? "";
   const handleSelectRevision = (newRev?: string | null) => {
     setSearchParams((prev) => {
       const p = new URLSearchParams(prev); // copy of the query url
@@ -808,7 +809,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           )}
 
           {/* ai summary */}
-          {aiSummary && (
+          {aiSummary ? (
             <>
               <Box
                 sx={{
@@ -866,6 +867,29 @@ const UpdatedDatasetDetailPage: React.FC = () => {
 
               <ReadMoreText text={aiSummary} />
             </>
+          ) : readme ? (
+            <>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  mb: 0.5,
+                  mt: 1,
+                  gap: 0.5,
+                }}
+              >
+                <Typography
+                  color={Colors.purple}
+                  sx={{ fontWeight: "bold", mb: 0.5, mt: 1 }}
+                >
+                  Summary
+                </Typography>
+              </Box>
+
+              <ReadMoreText text={readme} />
+            </>
+          ) : (
+            ""
           )}
 
           <Box
