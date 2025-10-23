@@ -6,6 +6,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import HomeIcon from "@mui/icons-material/Home";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import {
   Box,
   Typography,
@@ -92,6 +93,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const copyTimer = useRef<number | null>(null);
   const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
+  const readme = datasetDocument?.["README"] ?? "";
   const handleSelectRevision = (newRev?: string | null) => {
     setSearchParams((prev) => {
       const p = new URLSearchParams(prev); // copy of the query url
@@ -682,7 +684,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   return (
     <>
       <Box sx={{ padding: 4 }}>
-        <Button
+        {/* <Button
           variant="text"
           onClick={() => navigate(-1)}
           sx={{
@@ -696,7 +698,80 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           }}
         >
           Back
-        </Button>
+        </Button> */}
+
+        {/* Breadcrumb Navigation (Home → Database → Dataset) */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            marginBottom: 2,
+          }}
+        >
+          {/* Home Icon Button */}
+          <Button
+            onClick={() => navigate("/")}
+            sx={{
+              backgroundColor: "transparent",
+              padding: 0,
+              minWidth: "auto",
+              "&:hover": { backgroundColor: "transparent" },
+            }}
+          >
+            <HomeIcon
+              sx={{
+                color: Colors.white,
+                "&:hover": {
+                  transform: "scale(1.1)",
+                  backgroundColor: "transparent",
+                },
+              }}
+            />
+          </Button>
+
+          <Typography
+            variant="h5"
+            sx={{ marginX: 1, fontWeight: "bold", color: Colors.white }}
+          >
+            »
+          </Typography>
+
+          {/* Database Name (Clickable) */}
+          <Button
+            onClick={() => navigate(`${RoutesEnum.DATABASES}/${dbName}`)}
+            sx={{
+              textTransform: "none",
+              fontSize: "1.2rem",
+              fontWeight: "bold",
+              color: Colors.white,
+              "&:hover": {
+                transform: "scale(1.05)",
+                backgroundColor: "transparent",
+              },
+            }}
+          >
+            {dbName?.toLowerCase()}
+          </Button>
+
+          <Typography
+            variant="h5"
+            sx={{ marginX: 1, fontWeight: "bold", color: Colors.white }}
+          >
+            »
+          </Typography>
+
+          {/* Dataset Name (_id field) */}
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: "bold",
+              color: Colors.white,
+              fontSize: "1.2rem",
+            }}
+          >
+            {docId}
+          </Typography>
+        </Box>
 
         <Box
           sx={{
@@ -733,75 +808,89 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             </Typography>
           )}
 
-          {/* Breadcrumb Navigation (Home → Database → Dataset) */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              marginBottom: 2,
-            }}
-          >
-            {/* Home Icon Button */}
-            <Button
-              onClick={() => navigate("/")}
-              sx={{
-                backgroundColor: "transparent",
-                padding: 0,
-                minWidth: "auto",
-                "&:hover": { backgroundColor: "transparent" },
-              }}
-            >
-              <HomeIcon
-                sx={{
-                  color: Colors.darkPurple,
-                  "&:hover": {
-                    transform: "scale(1.1)",
-                    backgroundColor: "transparent",
-                  },
-                }}
-              />
-            </Button>
-
-            <Typography variant="h5" sx={{ marginX: 1, fontWeight: "bold" }}>
-              »
-            </Typography>
-
-            {/* Database Name (Clickable) */}
-            <Button
-              onClick={() => navigate(`${RoutesEnum.DATABASES}/${dbName}`)}
-              sx={{
-                textTransform: "none",
-                fontSize: "1.2rem",
-                fontWeight: "bold",
-                color: Colors.darkPurple,
-                "&:hover": {
-                  transform: "scale(1.05)",
-                  backgroundColor: "transparent",
-                },
-              }}
-            >
-              {dbName?.toLowerCase()}
-            </Button>
-
-            <Typography variant="h5" sx={{ marginX: 1, fontWeight: "bold" }}>
-              »
-            </Typography>
-
-            {/* Dataset Name (_id field) */}
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: "bold",
-                color: Colors.darkPurple,
-                fontSize: "1.2rem",
-              }}
-            >
-              {docId}
-            </Typography>
-          </Box>
-
           {/* ai summary */}
-          {aiSummary && <ReadMoreText text={aiSummary} />}
+          {aiSummary ? (
+            <>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  mb: 0.5,
+                  mt: 1,
+                  gap: 0.5,
+                }}
+              >
+                <Typography
+                  color={Colors.purple}
+                  sx={{ fontWeight: "bold", mb: 0.5, mt: 1 }}
+                >
+                  AI Summary
+                </Typography>
+                <Tooltip
+                  title={
+                    <Typography variant="body2" sx={{ color: Colors.darkGray }}>
+                      AI Summary is generated using an AI tool that identifies
+                      the related paper and extracts its key content to create a
+                      concise summary.
+                    </Typography>
+                  }
+                  arrow
+                  placement="right"
+                  slotProps={{
+                    tooltip: {
+                      sx: {
+                        bgcolor: Colors.white,
+                        border: `1px solid ${Colors.lightGray}`,
+                        boxShadow: 3,
+                        fontSize: "0.875rem",
+                      },
+                    },
+                    arrow: {
+                      sx: {
+                        color: Colors.white,
+                        "&::before": {
+                          border: `1px solid ${Colors.lightGray}`, // subtle arrow border
+                        },
+                      },
+                    },
+                  }}
+                >
+                  <InfoOutlinedIcon
+                    fontSize="small"
+                    sx={{
+                      color: Colors.purple,
+                      cursor: "pointer",
+                    }}
+                  />
+                </Tooltip>
+              </Box>
+
+              <ReadMoreText text={aiSummary} />
+            </>
+          ) : readme ? (
+            <>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  mb: 0.5,
+                  mt: 1,
+                  gap: 0.5,
+                }}
+              >
+                <Typography
+                  color={Colors.purple}
+                  sx={{ fontWeight: "bold", mb: 0.5, mt: 1 }}
+                >
+                  Summary
+                </Typography>
+              </Box>
+
+              <ReadMoreText text={readme} />
+            </>
+          ) : (
+            ""
+          )}
 
           <Box
             sx={{
@@ -901,8 +990,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 <FileTree
                   title={treeTitle}
                   tree={treeData}
-                  // filesCount={filesCount}
-                  // totalBytes={totalBytes}
                   onPreview={handlePreview} // pass the function down to FileTree
                   getInternalByPath={getInternalByPath}
                   getJsonByPath={getJsonByPath}

@@ -1,3 +1,4 @@
+import ParticipantsPreview from "./ParticipantsPreview";
 import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
 import {
   Box,
@@ -190,13 +191,23 @@ const MetaDataPanel: React.FC<Props> = ({
             })()}
           </Typography>
         </Box>
-        <Box>
-          <Typography sx={{ color: Colors.darkPurple, fontWeight: "600" }}>
-            Subjects
-          </Typography>
-          <Typography sx={{ color: "text.secondary" }}>
-            {dbViewInfo?.rows?.[0]?.value?.subj?.length ?? "N/A"}
-          </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            gap: 2,
+            alignItems: "flex-start",
+          }}
+        >
+          <Box>
+            <Typography sx={{ color: Colors.darkPurple, fontWeight: "600" }}>
+              Subjects
+            </Typography>
+            <Typography sx={{ color: "text.secondary" }}>
+              {dbViewInfo?.rows?.[0]?.value?.subj?.length ?? "N/A"}
+            </Typography>
+          </Box>
+          <ParticipantsPreview datasetDocument={datasetDocument} />
         </Box>
         <Box>
           <Typography sx={{ color: Colors.darkPurple, fontWeight: "600" }}>
