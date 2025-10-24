@@ -42,7 +42,12 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
 
   if (genderCode) {
     if (genderCode === "000F") genderDisplay = "Female";
-    else if (genderCode === "000M") genderDisplay = "Male";
+    else if (
+      genderCode === "000M" ||
+      genderCode === ",M,F" ||
+      genderCode === ",M,M"
+    )
+      genderDisplay = "Male";
   }
 
   // cover age string to readable format
