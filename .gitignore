@@ -4,3 +4,9 @@ node_modules
 package-lock.json
 
 build
+
+#backend
+backend/node_modules/
+backend/.env
+backend/*.sqlite
+!backend/package-lock.json
