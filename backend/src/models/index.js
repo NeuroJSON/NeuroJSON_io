@@ -178,3 +178,33 @@ ViewHistory.init(
 // Define Associations
 User.hasMany(DatasetLike, { foreignKey: "user_id", as: "likes" });
 DatasetLike.belongsTo(User, { foreignKey: "user_id" });
+
+User.hasMany(SavedDataset, { foreignKey: "user_id", as: "savedDatasets" });
+SavedDataset.belongsTo(User, { foreignKey: "user_id" });
+
+User.hasMany(Comment, { foreignKey: "user_id", as: "comments" });
+Comment.belongsTo(User, { foreignKey: "user_id" });
+
+User.hasMany(ViewHistory, { foreignKey: "user_id", as: "viewHistory" });
+ViewHistory.belongsTo(User, { foreignKey: "user_id" });
+
+Dataset.hasMany(DatasetLike, { foreignKey: "dataset_id", as: "likes" });
+DatasetLike.belongsTo(Dataset, { foreignKey: "dataset_id" });
+
+Dataset.hasMany(SavedDataset, { foreignKey: "dataset_id", as: "savedBy" });
+SavedDataset.belongsTo(Dataset, { foreignKey: "dataset_id" });
+
+Dataset.hasMany(Comment, { foreignKey: "dataset_id", as: "comments" });
+Comment.belongsTo(Dataset, { foreignKey: "dataset_id" });
+
+Dataset.hasMany(ViewHistory, { foreignKey: "dataset_id", as: "viewHistory" });
+ViewHistory.belongsTo(Dataset, { foreignKey: "dataset_id" });
+
+module.exports = {
+  User,
+  Dataset,
+  DatasetLike,
+  SavedDataset,
+  Comment,
+  ViewHistory,
+};
