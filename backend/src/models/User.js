@@ -7,10 +7,10 @@ class User extends Model {
     return bcrypt.compare(password, this.hashed_password);
   }
 
-  async hashPassword(password) {
-    const salt = await bcrypt.genSalt(10);
-    this.hashed_password = await bcrypt.hash(password, salt);
-  }
+  // async hashPassword(password) {
+  //   const salt = await bcrypt.genSalt(10);
+  //   this.hashed_password = await bcrypt.hash(password, salt);
+  // }
 }
 
 User.init(

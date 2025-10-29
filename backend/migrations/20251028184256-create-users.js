@@ -38,7 +38,7 @@ module.exports = {
       },
       hashed_password: {
         type: Sequelize.STRING(255),
-        allowNull: false,
+        allowNull: true,
       },
       email: {
         type: Sequelize.STRING(255),

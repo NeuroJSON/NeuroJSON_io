@@ -1,7 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const { connectDatabase } = require("./config/database");
+const { connectDatabase, sequelize } = require("./config/database");
+
 // const authRoutes = require('./routes/auth.routes');
 // const datasetRoutes = require('./routes/dataset.routes');
 
@@ -23,12 +24,43 @@ app.use(express.urlencoded({ extended: true }));
 // app.use('/api/datasets', datasetRoutes);
 
 // health check endpoint
-app.get("/api/health", (req, res) => {
-  res.status(200).json({
-    status: "OK",
-    message: "server is running",
-    environment: process.env.NODE_ENV || "development",
-  });
+// app.get("/api/health", (req, res) => {
+//   res.status(200).json({
+//     status: "OK",
+//     message: "server is running",
+//     environment: process.env.NODE_ENV || "development",
+//   });
+// });
+// In your routes or server.js
+
+app.get("/api/health", async (req, res) => {
+  try {
+    // Test database connection
+    await sequelize.authenticate();
+
+    // Optional: Count records in a table
+    const userCount = (await sequelize.models.User?.count()) || 0;
+
+    res.json({
+      status: "OK",
+      message: "server is running",
+      environment: process.env.NODE_ENV || "development",
+      database: {
+        connected: true,
+        dialect: sequelize.getDialect(),
+        userCount: userCount,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: "ERROR",
+      message: "Database connection failed",
+      database: {
+        connected: false,
+        error: error.message,
+      },
+    });
+  }
 });
 
 // 404 handler
