@@ -21,6 +21,16 @@ module.exports = {
         allowNull: true,
         unique: true,
       },
+      google_id: {
+        type: Sequelize.STRING(255),
+        allowNull: true,
+        unique: true,
+      },
+      github_id: {
+        type: Sequelize.STRING(255),
+        allowNull: true,
+        unique: true,
+      },
       username: {
         type: Sequelize.STRING(255),
         allowNull: false,
