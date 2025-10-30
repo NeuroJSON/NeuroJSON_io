@@ -113,4 +113,61 @@ const register = async (req, res) => {
   }
 };
 
-const login = async (req, res) => {};
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // validate required fields
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
+
+    // find user
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // check if user has a password(not OAuth-only user)
+    if (!user.hashed_password) {
+      // Could check which OAuth provider they used
+      let oauthProvider = "OAuth";
+      if (user.google_id) oauthProvider = "Google";
+      else if (user.github_id) oauthProvider = "GitHub";
+      else if (user.orcid_id) oauthProvider = "ORCID";
+
+      return res.status(400).json({
+        message: `This account uses ${oauthProvider} login. Please sign in with ${oauthProvider}.`,
+      });
+    }
+
+    // check password
+    const isPasswordValid = await user.comparePassword(password);
+
+    if (!isPasswordValid) {
+      console.warn(`Failed login attempt for email: ${email}`);
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // generate JWT token
+    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Error logging in", error: error.message });
+  }
+};
