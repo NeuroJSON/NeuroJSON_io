@@ -1,9 +1,11 @@
 const jwt = require("jsonwebtoken");
 const { User } = require("../models");
 const bcrypt = require("bcrypt");
+const { setTokenCookie } = require("../middleware/auth.middleware");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// register new user
 const register = async (req, res) => {
   try {
     const { username, email, password, orcid_id, google_id, github_id } =
@@ -78,13 +80,16 @@ const register = async (req, res) => {
     });
 
     // generate JWT token
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    // const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
+    //   expiresIn: "1h",
+    // });
+
+    //set suthentication cookie
+    setTokenCookie(res, user);
 
     res.status(201).json({
       message: "User registered successfully",
-      token,
+      // token,
       user: {
         id: user.id,
         username: user.username,
@@ -101,6 +106,7 @@ const register = async (req, res) => {
       });
     }
 
+    // handle sequelize unique constraint errors
     if (error.name === "SequelizeUniqueConstraintError") {
       return res.status(400).json({
         message: "Email or username already exists",
@@ -113,6 +119,7 @@ const register = async (req, res) => {
   }
 };
 
+// login user
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -124,7 +131,7 @@ const login = async (req, res) => {
       });
     }
 
-    // find user
+    // find user by email
     const user = await User.findOne({ where: { email } });
 
     if (!user) {
@@ -153,13 +160,16 @@ const login = async (req, res) => {
     }
 
     // generate JWT token
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    // const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
+    //   expiresIn: "1h",
+    // });
+
+    // set authentication cookie
+    setTokenCookie(res, user);
 
     res.status(200).json({
       message: "Login successful",
-      token,
+      // token,
       user: {
         id: user.id,
         username: user.username,
@@ -170,4 +180,84 @@ const login = async (req, res) => {
     console.error("Login error:", error);
     res.status(500).json({ message: "Error logging in", error: error.message });
   }
+};
+
+// get current authenticated user
+const getCurrentUser = async (req, res) => {
+  try {
+    // user already loaded by restoreUser middleware
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        message: "Not authenticated",
+      });
+    }
+
+    res.status(200).json({
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+      },
+    });
+  } catch (error) {
+    console.error("Get current user error:", error);
+    res.status(500).json({
+      message: "Error fetching user",
+      error: error.message,
+    });
+  }
+
+  // try {
+  //   const userId = req.userId;
+  //   const user = await User.findByPk(userId, {
+  //     attributes: [
+  //       "id",
+  //       "username",
+  //       "email",
+  //       "created_at",
+  //       "orcid_id",
+  //       "google_id",
+  //       "github_id",
+  //     ],
+  //   });
+  //   if (!user) {
+  //     return res.status(404).json({
+  //       message: "User not found",
+  //     });
+  //   }
+  //   res.status(200).json({ user });
+  // } catch (error) {
+  //   console.error("Get current user error:", error);
+  //   res
+  //     .status(500)
+  //     .json({ message: "Error fetching user", error: error.message });
+  // }
+};
+
+// logout user
+const logout = async (req, res) => {
+  try {
+    // clear the authentication cookie
+    res.clearCookie("token");
+    res.status(200).json({
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({
+      message: "Error logging out",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = {
+  register,
+  login,
+  getCurrentUser,
+  logout,
 };

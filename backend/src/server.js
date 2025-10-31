@@ -1,9 +1,11 @@
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
 const { connectDatabase, sequelize } = require("./config/database");
+const { restoreUser } = require("./middleware/auth.middleware");
 
-// const authRoutes = require('./routes/auth.routes');
+const authRoutes = require("./routes/auth.routes");
 // const datasetRoutes = require('./routes/dataset.routes');
 
 const app = express();
@@ -18,9 +20,13 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser()); // parse cookies
+
+// restore user on every request
+app.use(restoreUser);
 
 // Routes
-// app.use('/api/auth', authRoutes);
+app.use("/api/auth", authRoutes);
 // app.use('/api/datasets', datasetRoutes);
 
 // health check endpoint
