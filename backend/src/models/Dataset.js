@@ -11,11 +11,11 @@ Dataset.init(
       primaryKey: true,
     },
     couch_db: {
-      type: DataTypes.TEXT,
+      type: DataTypes.STRING(255),
       allowNull: false,
     },
     ds_id: {
-      type: DataTypes.TEXT,
+      type: DataTypes.STRING(255),
       allowNull: false,
     },
     views_count: {

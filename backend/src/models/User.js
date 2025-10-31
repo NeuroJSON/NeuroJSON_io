@@ -21,7 +21,17 @@ User.init(
       primaryKey: true,
     },
     orcid_id: {
-      type: DataTypes.TEXT,
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      unique: true,
+    },
+    google_id: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      unique: true,
+    },
+    github_id: {
+      type: DataTypes.STRING(255),
       allowNull: true,
       unique: true,
     },
@@ -32,10 +42,10 @@ User.init(
     },
     hashed_password: {
       type: DataTypes.STRING(255),
-      allowNull: false,
+      allowNull: true,
     },
     email: {
-      type: DataTypes.TEXT,
+      type: DataTypes.STRING(255),
       allowNull: false,
       unique: true,
       validate: {
