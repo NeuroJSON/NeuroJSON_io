@@ -119,3 +119,40 @@ const saveDataset = async (res, req) => {
       .json({ message: "Error saving dataset", error: error.message });
   }
 };
+
+// unsave a dataset
+const unsaveDataset = async (req, res) => {
+  try {
+    const user = req.user;
+    const { couch_db, ds_id } = req.body;
+
+    const dataset = await Dataset.findOne({
+      where: {
+        couch_db,
+        ds_id,
+      },
+    });
+
+    if (!dataset) {
+      return res.status(404).json({ message: "Dataset not found" });
+    }
+
+    const deleted = await SavedDataset.destroy({
+      where: {
+        user_id: user.id,
+        dataset_id: dataset.id,
+      },
+    });
+
+    if (deleted === 0) {
+      return res.status(404).json({ message: "Saved dataset not found" });
+    }
+
+    res.status(200).json({ message: "Dataset unsaved successfully" });
+  } catch (error) {
+    console.error("Unsave dataset error:", error);
+    res
+      .status(500)
+      .json({ message: "Error unsaving dataset", error: error.message });
+  }
+};
