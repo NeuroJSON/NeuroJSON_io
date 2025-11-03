@@ -239,3 +239,55 @@ const deleteComment = async (req, res) => {
     });
   }
 };
+
+// update a comment
+const updateComment = async (req, res) => {
+  try {
+    const user = req.user;
+    const { commentId } = req.params;
+    const { body } = req.body;
+    // validate - body is required
+    if (!body || body.trim() === "") {
+      return res.status(400).json({
+        message: "Comment body is required",
+      });
+    }
+
+    // find the comment
+    const comment = await Comment.findByPk(commentId);
+    if (!comment) {
+      return res.status(404).json({
+        message: "Comment not found",
+      });
+    }
+
+    // check if user is the owner of the comment
+    if (comment.user_id !== user.id) {
+      return res.status(403).json({
+        message: "You can only update your own comments",
+      });
+    }
+
+    // update the comment
+    comment.body = body;
+    await comment.save();
+
+    res.status(200).json({
+      message: "Comment updated successfully",
+      comment: {
+        id: comment.id,
+        body: comment.body,
+        user_id: comment.user_id,
+        dataset_id: comment.dataset_id,
+        created_at: comment.created_at,
+        updated_at: comment.updated_at,
+      },
+    });
+  } catch (error) {
+    console.error("Update comment error:", error);
+    res.status(500).json({
+      message: "Error updating comment",
+      error: error.message,
+    });
+  }
+};
