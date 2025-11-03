@@ -1,4 +1,3 @@
-const { dataURItoBlob } = require("@rjsf/utils");
 const {
   Dataset,
   DatasetLike,
@@ -154,5 +153,27 @@ const unsaveDataset = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error unsaving dataset", error: error.message });
+  }
+};
+
+// add a comment to a dataset
+const addComment = async (req, res) => {
+  try {
+    const user = req.user;
+    const { couch_db, ds_id, body } = req.body;
+
+    const dataset = await getOrCreateDataset(couch_db, ds_id);
+
+    const comment = await Comment.create({
+      user_id: user.id,
+      dataset_id: dataset.id,
+      body,
+    });
+    res.status(201).json({ message: "Comment added successfully", comment });
+  } catch (error) {
+    console.error("Add comment error:", error);
+    res
+      .status(500)
+      .json({ message: "Error adding comment", error: error.message });
   }
 };
