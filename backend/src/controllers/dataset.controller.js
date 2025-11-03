@@ -1,10 +1,10 @@
-const { data } = require("jquery");
 const {
   Dataset,
   DatasetLike,
   SavedDataset,
   Comment,
   ViewHistory,
+  SavedDataset,
 } = require("../models");
 const COUCHDB_BASE_URL =
   process.env.COUCHDB_BASE_URL || "https://neurojson.org/io";
@@ -120,6 +120,23 @@ const saveDataset = async (res, req) => {
   }
 };
 
+// get user's saved datasets
+const getUserSavedDatasets = async (req, res) => {
+    try {
+        const user = req.user;
+        const savedDataset = await SavedDataset.findAll({
+            where: {user_id: user.id},
+            include: [{model: Dataset, as : "Dataset"}],
+            order:[["created_at", "DESC"]]
+        });
+        res.status(200).json({savedDataset})
+
+    } catch(error) {
+        console.error('Get saved datasets error:', error);
+        res.status(500).json({ message: 'Error fetching saved datasets', error: error.message });
+    }
+}
+
 // unsave a dataset
 const unsaveDataset = async (req, res) => {
   try {
@@ -156,6 +173,8 @@ const unsaveDataset = async (req, res) => {
       .json({ message: "Error unsaving dataset", error: error.message });
   }
 };
+
+
 
 // add a comment to a dataset
 const addComment = async (req, res) => {
@@ -291,3 +310,42 @@ const updateComment = async (req, res) => {
     });
   }
 };
+
+// track view
+const trackView = async (req, res) => {
+  try {
+    const user = req.user;
+    const { couch_db, ds_id } = req.body;
+    const dataset = await getOrCreateDataset(couch_db, ds_id);
+    // Increment view count
+    dataset.views_count = (dataset.views_count || 0) + 1;
+    await dataset.save();
+
+    // track user view history
+    await ViewHistory.create({
+      user_id: user.id,
+      dataset_id: dataset.id,
+    });
+
+    res.status(200).json({ message: "View tracked successfully" });
+  } catch (error) {
+    console.error("Track view error:", error);
+    res.status(500).json({
+      message: "Error tracking view",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = {
+    likeDataset,
+    unlikeDataset,
+    saveDataset,
+    getUserSavedDatasets,
+    unsaveDataset,
+    addComment,
+    getComments,
+    deleteComment,
+    updateComment,
+    trackView,
+}
