@@ -1,3 +1,4 @@
+const { data } = require("jquery");
 const {
   Dataset,
   DatasetLike,
@@ -175,5 +176,33 @@ const addComment = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error adding comment", error: error.message });
+  }
+};
+
+// get comments for a dataset
+const getComments = async (req, res) => {
+  try {
+    const { couch_db, ds_id } = req.query;
+    const dataset = await Dataset.findOne({
+      where: {
+        couch_db,
+        ds_id,
+      },
+    });
+
+    if (!dataset) {
+      return res.status(200).json({ comments: [] });
+    }
+
+    const comments = await Comment.findAll({
+      where: { dataset_id: dataset.id },
+      order: [["created_at", "DESC"]],
+    });
+    res.status(200).json({ comments });
+  } catch (error) {
+    console.error("Get comments error:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching comments", error: error.message });
   }
 };
