@@ -206,3 +206,36 @@ const getComments = async (req, res) => {
       .json({ message: "Error fetching comments", error: error.message });
   }
 };
+
+// delete a comment
+const deleteComment = async (req, res) => {
+  try {
+    const user = req.user;
+    const { commentId } = req.params; // get comment id from url
+
+    const comment = await Comment.findByPk(commentId);
+    if (!comment) {
+      return res.status(404).json({
+        message: "Comment not found",
+      });
+    }
+
+    if (comment.user_id !== user.id) {
+      return res.status(403).json({
+        message: "You can only delete your own comments",
+      });
+    }
+
+    // delete the comment
+    await comment.destroy();
+    res.status(200).json({
+      message: "Comment deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete comment error:", error);
+    res.status(500).json({
+      message: "Error deleting comment",
+      error: error.message,
+    });
+  }
+};
