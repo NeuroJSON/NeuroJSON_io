@@ -4,7 +4,6 @@ const {
   SavedDataset,
   Comment,
   ViewHistory,
-  SavedDataset,
 } = require("../models");
 const COUCHDB_BASE_URL =
   process.env.COUCHDB_BASE_URL || "https://neurojson.org/io";
@@ -122,20 +121,21 @@ const saveDataset = async (res, req) => {
 
 // get user's saved datasets
 const getUserSavedDatasets = async (req, res) => {
-    try {
-        const user = req.user;
-        const savedDataset = await SavedDataset.findAll({
-            where: {user_id: user.id},
-            include: [{model: Dataset, as : "Dataset"}],
-            order:[["created_at", "DESC"]]
-        });
-        res.status(200).json({savedDataset})
-
-    } catch(error) {
-        console.error('Get saved datasets error:', error);
-        res.status(500).json({ message: 'Error fetching saved datasets', error: error.message });
-    }
-}
+  try {
+    const user = req.user;
+    const savedDataset = await SavedDataset.findAll({
+      where: { user_id: user.id },
+      include: [{ model: Dataset, as: "Dataset" }],
+      order: [["created_at", "DESC"]],
+    });
+    res.status(200).json({ savedDataset });
+  } catch (error) {
+    console.error("Get saved datasets error:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching saved datasets", error: error.message });
+  }
+};
 
 // unsave a dataset
 const unsaveDataset = async (req, res) => {
@@ -173,8 +173,6 @@ const unsaveDataset = async (req, res) => {
       .json({ message: "Error unsaving dataset", error: error.message });
   }
 };
-
-
 
 // add a comment to a dataset
 const addComment = async (req, res) => {
@@ -338,14 +336,14 @@ const trackView = async (req, res) => {
 };
 
 module.exports = {
-    likeDataset,
-    unlikeDataset,
-    saveDataset,
-    getUserSavedDatasets,
-    unsaveDataset,
-    addComment,
-    getComments,
-    deleteComment,
-    updateComment,
-    trackView,
-}
+  likeDataset,
+  unlikeDataset,
+  saveDataset,
+  getUserSavedDatasets,
+  unsaveDataset,
+  addComment,
+  getComments,
+  deleteComment,
+  updateComment,
+  trackView,
+};

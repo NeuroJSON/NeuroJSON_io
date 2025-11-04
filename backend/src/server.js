@@ -6,7 +6,7 @@ const { connectDatabase, sequelize } = require("./config/database");
 const { restoreUser } = require("./middleware/auth.middleware");
 
 const authRoutes = require("./routes/auth.routes");
-// const datasetRoutes = require('./routes/dataset.routes');
+const datasetRoutes = require("./routes/dataset.routes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,7 +27,7 @@ app.use(restoreUser);
 
 // Routes
 app.use("/api/auth", authRoutes);
-// app.use('/api/datasets', datasetRoutes);
+app.use("/api/datasets", datasetRoutes);
 
 // health check endpoint
 // app.get("/api/health", (req, res) => {
