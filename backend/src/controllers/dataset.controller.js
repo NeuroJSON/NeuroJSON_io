@@ -337,17 +337,54 @@ const trackView = async (req, res) => {
       });
     }
 
-    res
-      .status(200)
-      .json({
-        message: "View tracked successfully",
-        viewCount: dataset.views_count,
-        isNewView: !existingView,
-      });
+    res.status(200).json({
+      message: "View tracked successfully",
+      viewCount: dataset.views_count,
+      isNewView: !existingView,
+    });
   } catch (error) {
     console.error("Track view error:", error);
     res.status(500).json({
       message: "Error tracking view",
+      error: error.message,
+    });
+  }
+};
+
+// get user's recently viewed datasets
+const getRecentlyViewed = async (req, res) => {
+  try {
+    const user = req.user;
+    const limit = parseInt(req.query.limit) || 6;
+
+    const recentViews = await ViewHistory.findAll({
+      where: { user_id: user.id },
+      include: [
+        {
+          model: Dataset,
+          attributes: ["id", "couch_db", "ds_id", "views_count"],
+        },
+      ],
+      order: [["viewed_at", "DESC"]],
+      limit: limit,
+    });
+
+    // map to cleaner format
+    const datasets = recentViews.map((view) => ({
+      couch_db: view.Dataset.couch_db,
+      ds_id: view.Dataset.ds_id,
+      views_count: view.Dataset.views_count,
+      last_viewed: view.viewed_at,
+    }));
+
+    res.status(200).json({
+      recentlyViewed: datasets,
+      datasetsCount: datasets.length,
+    });
+  } catch (error) {
+    console.error("Get recently viewed error:", error);
+    res.status(500).json({
+      message: "Error fetching recently viewed datasets",
       error: error.message,
     });
   }
@@ -364,4 +401,5 @@ module.exports = {
   deleteComment,
   updateComment,
   trackView,
+  getRecentlyViewed,
 };

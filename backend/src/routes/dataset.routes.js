@@ -10,6 +10,7 @@ const {
   updateComment,
   trackView,
   getUserSavedDatasets,
+  getRecentlyViewed,
 } = require("../controllers/dataset.controller");
 
 const { restoreUser, requireAuth } = require("../middleware/auth.middleware");
@@ -36,5 +37,6 @@ router.delete("/comment/:commentId", requireAuth, deleteComment);
 
 // View tracking (require authentication)
 router.post("/view", requireAuth, trackView);
+router.get("/recently-viewed", requireAuth, getRecentlyViewed);
 
 module.exports = router;
