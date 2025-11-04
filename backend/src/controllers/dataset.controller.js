@@ -89,7 +89,7 @@ const unlikeDataset = async (req, res) => {
 };
 
 // save a dataset(bookmark)
-const saveDataset = async (res, req) => {
+const saveDataset = async (req, res) => {
   try {
     const user = req.user;
     const { couch_db, ds_id } = req.body;
@@ -319,13 +319,31 @@ const trackView = async (req, res) => {
     dataset.views_count = (dataset.views_count || 0) + 1;
     await dataset.save();
 
-    // track user view history
-    await ViewHistory.create({
-      user_id: user.id,
-      dataset_id: dataset.id,
+    // check if user has viewed this dataset before
+    const existingView = await ViewHistory.findOne({
+      where: {
+        user_id: user.id,
+        dataset_id: dataset.id,
+      },
     });
 
-    res.status(200).json({ message: "View tracked successfully" });
+    if (existingView) {
+      existingView.viewed_at = new Date();
+      await existingView.save();
+    } else {
+      await ViewHistory.create({
+        user_id: user.id,
+        dataset_id: dataset.id,
+      });
+    }
+
+    res
+      .status(200)
+      .json({
+        message: "View tracked successfully",
+        viewCount: dataset.views_count,
+        isNewView: !existingView,
+      });
   } catch (error) {
     console.error("Track view error:", error);
     res.status(500).json({
