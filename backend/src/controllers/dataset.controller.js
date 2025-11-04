@@ -390,6 +390,29 @@ const getRecentlyViewed = async (req, res) => {
   }
 };
 
+// get most viewd datasets
+const getMostViewed = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const topDatasets = await Dataset.findAll({
+      order: [["views_count", "DESC"]],
+      limit: limit,
+      attributes: ["id", "couch_db", "ds_id", "views_count"],
+    });
+
+    res.status(200).json({
+      mostViewed: topDatasets,
+      datasetsCount: topDatasets.length,
+    });
+  } catch (error) {
+    console.error("Get most viewed error:", error);
+    res.status(500).json({
+      message: "Error fetching most viewed datasets",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   likeDataset,
   unlikeDataset,
@@ -402,4 +425,5 @@ module.exports = {
   updateComment,
   trackView,
   getRecentlyViewed,
+  getMostViewed,
 };
