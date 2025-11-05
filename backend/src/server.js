@@ -30,15 +30,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/datasets", datasetRoutes);
 
 // health check endpoint
-// app.get("/api/health", (req, res) => {
-//   res.status(200).json({
-//     status: "OK",
-//     message: "server is running",
-//     environment: process.env.NODE_ENV || "development",
-//   });
-// });
-// In your routes or server.js
-
 app.get("/api/health", async (req, res) => {
   try {
     // Test database connection
