@@ -6,7 +6,7 @@ const {
   getDbInfo,
   getDbDatasets,
   searchAllDatabases,
-  searchDatabase,
+  //   searchDatabase,
 } = require("../controllers/couchdb.controller");
 
 const router = express.Router();
@@ -15,12 +15,12 @@ const router = express.Router();
 router.get("/", getDbList);
 router.get("/stats", getDbStats);
 
-// cross dbs search
-router.post("/search", searchAllDatabases);
+// cross-database search
+router.get("/search", searchAllDatabases);
 
 // Specific database routes
 router.get("/:dbName", getDbInfo);
 router.get("/:dbName/datasets", getDbDatasets);
-router.post("/:dbName/search", searchDatabase); // search within one db
+// router.post("/:dbName/search", searchDatabase); // search within one db
 
 module.exports = router;
