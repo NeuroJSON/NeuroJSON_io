@@ -1,7 +1,7 @@
 // request send to postgres
 const express = require("express");
 const {
-  //   likeDataset,
+  likeDataset,
   //   unlikeDataset,
   //   saveDataset,
   //   unsaveDataset,
@@ -17,10 +17,10 @@ const { restoreUser, requireAuth } = require("../middleware/auth.middleware");
 const router = express.Router();
 
 // // Apply restoreUser to all routes
-// router.use(restoreUser);
+router.use(restoreUser);
 
 // // Like/Unlike routes (require authentication)
-// router.post("/datasets/:dbName/:datasetId/like", requireAuth, likeDataset);
+router.post("/datasets/:dbName/:datasetId/like", requireAuth, likeDataset);
 // router.delete("/datasets/:dbName/:datasetId/like", requireAuth, unlikeDataset);
 
 // // Save/Unsave routes (require authentication)

@@ -202,6 +202,41 @@ const getDatasetDetail = async (req, res) => {
   }
 };
 
+// get dataset metadata
+const getDatasetMeta = async (req, res) => {
+  try {
+    const { dbName, datasetId } = req.params;
+    const response = await axios.get(
+      `${COUCHDB_BASE_URL}/${dbName}/_design/qq/_view/dbinfo`,
+      {
+        headers: {
+          Origin: "https://neurojson.io",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        params: {
+          key: JSON.stringify(datasetId),
+          // include_docs: true,
+        },
+      }
+    );
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.error(
+      `Error fetching dataset metadata ${req.params.datasetId}:`,
+      error.message
+    );
+    res.status(error.response?.status || 500).json({
+      message: "Error fetching dataset metadata",
+      error: error.message,
+    });
+  }
+};
+
+// search within a specific database
+// const searchDatabase = async(req, res) => {
+
+// }
+
 module.exports = {
   getDbList,
   getDbStats,
@@ -209,4 +244,5 @@ module.exports = {
   getDbDatasets,
   searchAllDatabases,
   getDatasetDetail,
+  getDatasetMeta,
 };

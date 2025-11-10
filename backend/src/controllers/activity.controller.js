@@ -29,8 +29,10 @@ const getOrCreateDataset = async (couch_db, ds_id) => {
 const likeDataset = async (req, res) => {
   try {
     const user = req.user;
-    const { couch_db, ds_id } = req.body;
-    const dataset = await getOrCreateDataset(couch_db, ds_id);
+    const { dbName, datasetId } = req.params;
+    // const { couch_db, ds_id } = req.body;
+    const dataset = await getOrCreateDataset(dbName, datasetId);
+    // const dataset = await getOrCreateDataset(couch_db, ds_id);
 
     // check if already liked
     const existingLike = await DatasetLike.findOne({
