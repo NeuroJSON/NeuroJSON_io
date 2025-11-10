@@ -9,7 +9,7 @@ const authRoutes = require("./routes/auth.routes");
 // const userRoutes = require("./routes/users.routes");
 // const activitiesRoutes = require("./routes/activities.routes");
 const dbsRoutes = require("./routes/dbs.routes");
-// const datasetsRoutes = require("./routes/datasets.routes");
+const datasetsRoutes = require("./routes/datasets.routes");
 // const datasetRoutes = require("./routes/dataset.routes");
 // const couchdbRoutes = require("./routes/couchdb.routes");
 
@@ -35,7 +35,7 @@ app.use("/api/v1/auth", authRoutes);
 // app.use("/api/v1/users", userRoutes);
 // app.use("/api/v1/activities", activitiesRoutes);
 app.use("/api/v1/dbs", dbsRoutes);
-// app.use("/api/v1/datasets", datasetsRoutes);
+app.use("/api/v1/datasets", datasetsRoutes);
 // app.use("/api/datasets", datasetRoutes);
 // app.use("/api/couchdb", couchdbRoutes);
 

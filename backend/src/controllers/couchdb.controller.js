@@ -165,10 +165,48 @@ const getDbDatasets = async (req, res) => {
   }
 };
 
+// get dataset detail
+const getDatasetDetail = async (req, res) => {
+  try {
+    const { dbName, datasetId } = req.params;
+    const { rev } = req.query;
+
+    const params = {
+      revs_info: true,
+    };
+
+    if (rev) {
+      params.rev = rev;
+    }
+
+    const response = await axios.get(
+      `${COUCHDB_BASE_URL}/${dbName}/${datasetId}`,
+      {
+        headers: {
+          Origin: "https://neurojson.io",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        params,
+      }
+    );
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.error(
+      `Error fetching dataset ${req.params.datasetId} from ${req.params.dbName}:`,
+      error.message
+    );
+    res.status(error.response?.status || 500).json({
+      message: "Error fetching dataset detail",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getDbList,
   getDbStats,
   getDbInfo,
   getDbDatasets,
   searchAllDatabases,
+  getDatasetDetail,
 };
