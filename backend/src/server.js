@@ -7,6 +7,7 @@ const { restoreUser } = require("./middleware/auth.middleware");
 
 const authRoutes = require("./routes/auth.routes");
 const datasetRoutes = require("./routes/dataset.routes");
+const couchdbRoutes = require("./routes/couchdb.routes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -28,6 +29,7 @@ app.use(restoreUser);
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/datasets", datasetRoutes);
+app.use("/api/couchdb", couchdbRoutes);
 
 // health check endpoint
 app.get("/api/health", async (req, res) => {
