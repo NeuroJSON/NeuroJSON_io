@@ -4,6 +4,7 @@ const {
   SavedDataset,
   Comment,
   ViewHistory,
+  User,
 } = require("../models");
 const COUCHDB_BASE_URL =
   process.env.COUCHDB_BASE_URL || "https://neurojson.org/io";
@@ -205,11 +206,11 @@ const addComment = async (req, res) => {
 // get comments for a dataset
 const getComments = async (req, res) => {
   try {
-    const { couch_db, ds_id } = req.query;
+    const { dbName, datasetId } = req.params;
     const dataset = await Dataset.findOne({
       where: {
-        couch_db,
-        ds_id,
+        couch_db: dbName,
+        ds_id: datasetId,
       },
     });
 
@@ -219,6 +220,12 @@ const getComments = async (req, res) => {
 
     const comments = await Comment.findAll({
       where: { dataset_id: dataset.id },
+      include: [
+        {
+          model: User,
+          attributes: ["id", "username"],
+        },
+      ],
       order: [["created_at", "DESC"]],
     });
     res.status(200).json({ comments });
