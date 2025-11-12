@@ -327,8 +327,8 @@ const deleteComment = async (req, res) => {
 const trackView = async (req, res) => {
   try {
     const user = req.user;
-    const { couch_db, ds_id } = req.body;
-    const dataset = await getOrCreateDataset(couch_db, ds_id);
+    const { dbName, datasetId } = req.params;
+    const dataset = await getOrCreateDataset(dbName, datasetId);
     // Increment view count
     dataset.views_count = (dataset.views_count || 0) + 1;
     await dataset.save();
