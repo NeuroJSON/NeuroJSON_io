@@ -178,15 +178,21 @@ const unsaveDataset = async (req, res) => {
 const addComment = async (req, res) => {
   try {
     const user = req.user;
-    const { couch_db, ds_id, body } = req.body;
+    const { dbName, datasetId } = req.params;
+    const { body } = req.body;
 
-    const dataset = await getOrCreateDataset(couch_db, ds_id);
+    if (!body || body.trim() === "") {
+      return res.status(400).json({ message: "Comment body is required" });
+    }
+
+    const dataset = await getOrCreateDataset(dbName, datasetId);
 
     const comment = await Comment.create({
       user_id: user.id,
       dataset_id: dataset.id,
       body,
     });
+
     res.status(201).json({ message: "Comment added successfully", comment });
   } catch (error) {
     console.error("Add comment error:", error);
