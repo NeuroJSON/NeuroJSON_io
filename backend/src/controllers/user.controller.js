@@ -82,18 +82,9 @@ const getUserRecentlyViewed = async (req, res) => {
       limit: limit,
     });
 
-    // map to cleaner format
-    // const datasets = recentViews.map((view) => ({
-    //   dbName: view.Dataset.couch_db,
-    //   datasetId: view.Dataset.ds_id,
-    //   views_count: view.Dataset.views_count,
-    //   last_viewed: view.viewed_at,
-    // }));
-
     res.status(200).json({
       recentViews,
       datasetsCount: recentViews.length,
-      //   recentlyViewed: datasets,
     });
   } catch (error) {
     console.error("Get recently viewed error:", error);

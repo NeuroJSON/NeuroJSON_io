@@ -295,38 +295,56 @@ const deleteComment = async (req, res) => {
   }
 };
 
-// track view
+// function1: increment view count
+const incrementViewCount = async (dbName, datasetId) => {
+  const dataset = await getOrCreateDataset(dbName, datasetId);
+  dataset.views_count = (dataset.views_count || 0) + 1;
+  await dataset.save();
+  return dataset;
+};
+
+// function2: add or update a viewed history
+const trackUserHistory = async (userId, datasetId) => {
+  const existingView = await ViewHistory.findOne({
+    where: {
+      user_id: userId,
+      dataset_id: datasetId,
+    },
+  });
+
+  if (existingView) {
+    existingView.viewed_at = new Date();
+    await existingView.save();
+    return { isNew: false };
+  } else {
+    // create new record
+    await ViewHistory.create({
+      user_id: userId,
+      dataset_id: datasetId,
+    });
+    return { isNew: true };
+  }
+};
+
+// combined function1+2
 const trackView = async (req, res) => {
   try {
     const user = req.user;
     const { dbName, datasetId } = req.params;
-    const dataset = await getOrCreateDataset(dbName, datasetId);
-    // Increment view count
-    dataset.views_count = (dataset.views_count || 0) + 1;
-    await dataset.save();
+    const dataset = await incrementViewCount(dbName, datasetId);
 
-    // check if user has viewed this dataset before
-    const existingView = await ViewHistory.findOne({
-      where: {
-        user_id: user.id,
-        dataset_id: dataset.id,
-      },
-    });
-
-    if (existingView) {
-      existingView.viewed_at = new Date();
-      await existingView.save();
-    } else {
-      await ViewHistory.create({
-        user_id: user.id,
-        dataset_id: dataset.id,
-      });
+    // track personal history
+    let historyResult = null;
+    if (user) {
+      historyResult = await trackUserHistory(user.id, dataset.id);
     }
 
     res.status(200).json({
       message: "View tracked successfully",
       viewCount: dataset.views_count,
-      isNewView: !existingView,
+      personalHistoryTracked: !!historyResult,
+      isNewView: historyResult?.isNew,
+      isAuthenticated: !!user,
     });
   } catch (error) {
     console.error("Track view error:", error);

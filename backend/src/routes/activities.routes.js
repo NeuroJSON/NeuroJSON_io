@@ -34,7 +34,7 @@ router.put("/comments/:commentId", requireAuth, updateComment);
 router.delete("/comments/:commentId", requireAuth, deleteComment);
 
 // View tracking
-router.post("/datasets/:dbName/:datasetId/views", requireAuth, trackView);
+router.post("/datasets/:dbName/:datasetId/views", trackView); // Public
 router.get("/datasets/most-viewed", getMostViewedDatasets); // Public
 
 module.exports = router;
