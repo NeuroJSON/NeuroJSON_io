@@ -141,12 +141,12 @@ const getUserSavedDatasets = async (req, res) => {
 const unsaveDataset = async (req, res) => {
   try {
     const user = req.user;
-    const { couch_db, ds_id } = req.body;
+    const { dbName, datasetId } = req.params;
 
     const dataset = await Dataset.findOne({
       where: {
-        couch_db,
-        ds_id,
+        couch_db: dbName,
+        ds_id: datasetId,
       },
     });
 
