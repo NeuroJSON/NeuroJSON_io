@@ -1,11 +1,11 @@
 // request send to postgres
 const express = require("express");
 const {
+  getUserLikedDatasets,
   getUserSavedDatasets,
-  //   getUserLikedDatasets,
-  //   getUserComments,
-  //   getUserRecentlyViewed,
-} = require("../controllers/dataset.controller");
+  getUserComments,
+  getUserRecentlyViewed,
+} = require("../controllers/user.controller");
 const { restoreUser, requireAuth } = require("../middleware/auth.middleware");
 
 const router = express.Router();
@@ -15,9 +15,9 @@ router.use(restoreUser);
 router.use(requireAuth);
 
 // User collections
+router.get("/me/liked-datasets", getUserLikedDatasets);
 router.get("/me/saved-datasets", getUserSavedDatasets);
-// router.get("/me/liked-datasets", getUserLikedDatasets);
-// router.get("/me/comments", getUserComments);
-// router.get("/me/recently-viewed", getUserRecentlyViewed);
+router.get("/me/comments", getUserComments);
+router.get("/me/recently-viewed", getUserRecentlyViewed);
 
 module.exports = router;

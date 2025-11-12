@@ -6,8 +6,6 @@ const {
   ViewHistory,
   User,
 } = require("../models");
-const COUCHDB_BASE_URL =
-  process.env.COUCHDB_BASE_URL || "https://neurojson.org/io";
 
 // get or create dataset in SQL database
 const getOrCreateDataset = async (couch_db, ds_id) => {
@@ -117,24 +115,6 @@ const saveDataset = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error saving dataset", error: error.message });
-  }
-};
-
-// get user's saved datasets
-const getUserSavedDatasets = async (req, res) => {
-  try {
-    const user = req.user;
-    const savedDataset = await SavedDataset.findAll({
-      where: { user_id: user.id },
-      include: [{ model: Dataset, as: "Dataset" }],
-      order: [["created_at", "DESC"]],
-    });
-    res.status(200).json({ savedDataset });
-  } catch (error) {
-    console.error("Get saved datasets error:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching saved datasets", error: error.message });
   }
 };
 
@@ -272,14 +252,6 @@ const updateComment = async (req, res) => {
     res.status(200).json({
       message: "Comment updated successfully",
       comment,
-      // comment: {
-      //   id: comment.id,
-      //   body: comment.body,
-      //   user_id: comment.user_id,
-      //   dataset_id: comment.dataset_id,
-      //   created_at: comment.created_at,
-      //   updated_at: comment.updated_at,
-      // },
     });
   } catch (error) {
     console.error("Update comment error:", error);
@@ -365,47 +337,8 @@ const trackView = async (req, res) => {
   }
 };
 
-// get user's recently viewed datasets
-const getRecentlyViewed = async (req, res) => {
-  try {
-    const user = req.user;
-    const limit = parseInt(req.query.limit) || 6;
-
-    const recentViews = await ViewHistory.findAll({
-      where: { user_id: user.id },
-      include: [
-        {
-          model: Dataset,
-          attributes: ["id", "couch_db", "ds_id", "views_count"],
-        },
-      ],
-      order: [["viewed_at", "DESC"]],
-      limit: limit,
-    });
-
-    // map to cleaner format
-    const datasets = recentViews.map((view) => ({
-      couch_db: view.Dataset.couch_db,
-      ds_id: view.Dataset.ds_id,
-      views_count: view.Dataset.views_count,
-      last_viewed: view.viewed_at,
-    }));
-
-    res.status(200).json({
-      recentlyViewed: datasets,
-      datasetsCount: datasets.length,
-    });
-  } catch (error) {
-    console.error("Get recently viewed error:", error);
-    res.status(500).json({
-      message: "Error fetching recently viewed datasets",
-      error: error.message,
-    });
-  }
-};
-
 // get most viewd datasets
-const getMostViewed = async (req, res) => {
+const getMostViewedDatasets = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
     const topDatasets = await Dataset.findAll({
@@ -431,13 +364,11 @@ module.exports = {
   likeDataset,
   unlikeDataset,
   saveDataset,
-  getUserSavedDatasets,
   unsaveDataset,
   addComment,
   getComments,
-  deleteComment,
   updateComment,
+  deleteComment,
   trackView,
-  getRecentlyViewed,
-  getMostViewed,
+  getMostViewedDatasets,
 };
