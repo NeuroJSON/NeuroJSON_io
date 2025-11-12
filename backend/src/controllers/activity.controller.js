@@ -294,7 +294,7 @@ const updateComment = async (req, res) => {
 const deleteComment = async (req, res) => {
   try {
     const user = req.user;
-    const { commentId } = req.params; // get comment id from url
+    const { commentId } = req.params;
 
     const comment = await Comment.findByPk(commentId);
     if (!comment) {
@@ -305,7 +305,7 @@ const deleteComment = async (req, res) => {
 
     if (comment.user_id !== user.id) {
       return res.status(403).json({
-        message: "You can only delete your own comments",
+        message: "Not authorized to delete this comment",
       });
     }
 
