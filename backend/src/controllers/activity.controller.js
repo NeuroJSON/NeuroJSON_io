@@ -92,9 +92,9 @@ const unlikeDataset = async (req, res) => {
 const saveDataset = async (req, res) => {
   try {
     const user = req.user;
-    const { couch_db, ds_id } = req.body;
+    const { dbName, datasetId } = req.params;
 
-    const dataset = await getOrCreateDataset(couch_db, ds_id);
+    const dataset = await getOrCreateDataset(dbName, datasetId);
     const existingSave = await SavedDataset.findOne({
       where: {
         user_id: user.id,
