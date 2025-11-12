@@ -30,9 +30,7 @@ const likeDataset = async (req, res) => {
   try {
     const user = req.user;
     const { dbName, datasetId } = req.params;
-    // const { couch_db, ds_id } = req.body;
     const dataset = await getOrCreateDataset(dbName, datasetId);
-    // const dataset = await getOrCreateDataset(couch_db, ds_id);
 
     // check if already liked
     const existingLike = await DatasetLike.findOne({
@@ -63,10 +61,10 @@ const likeDataset = async (req, res) => {
 const unlikeDataset = async (req, res) => {
   try {
     const user = req.user;
-    const { couch_db, ds_id } = req.body;
+    const { dbName, datasetId } = req.params;
 
     const dataset = await Dataset.findOne({
-      where: { couch_db, ds_id },
+      where: { couch_db: dbName, ds_id: datasetId },
     });
     if (!dataset) {
       return res.status(404).json({ message: "Dataset not found" });
