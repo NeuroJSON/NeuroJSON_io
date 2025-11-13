@@ -305,6 +305,9 @@ const incrementViewCount = async (dbName, datasetId) => {
 
 // function2: add or update a viewed history
 const trackUserHistory = async (userId, datasetId) => {
+  console.log("=== trackUserHistory called ===");
+  console.log("userId:", userId);
+  console.log("datasetId:", datasetId);
   const existingView = await ViewHistory.findOne({
     where: {
       user_id: userId,
@@ -312,17 +315,32 @@ const trackUserHistory = async (userId, datasetId) => {
     },
   });
 
+  console.log("existingView found:", !!existingView);
+
   if (existingView) {
+    console.log("OLD viewed_at:", existingView.viewed_at);
     existingView.viewed_at = new Date();
+    console.log("NEW viewed_at (before save):", existingView.viewed_at);
+    // Tell Sequelize this field changed
+    existingView.changed("viewed_at", true);
+    console.log("Changed fields:", existingView.changed());
     await existingView.save();
-    return { isNew: false };
+    console.log("After save, viewed_at:", existingView.viewed_at);
+
+    await existingView.reload();
+    console.log("After reload, viewed_at:", existingView.viewed_at);
+
+    return { isNew: false, viewed_at: existingView.viewed_at };
   } else {
     // create new record
-    await ViewHistory.create({
+    console.log("Creating new view record");
+    const newView = await ViewHistory.create({
       user_id: userId,
       dataset_id: datasetId,
+      viewed_at: new Date(),
     });
-    return { isNew: true };
+    console.log("Created view with viewed_at:", newView.viewed_at);
+    return { isNew: true, viewed_at: newView.viewed_at };
   }
 };
 
@@ -344,6 +362,7 @@ const trackView = async (req, res) => {
       viewCount: dataset.views_count,
       personalHistoryTracked: !!historyResult,
       isNewView: historyResult?.isNew,
+      viewed_at: historyResult?.viewed_at,
       isAuthenticated: !!user,
     });
   } catch (error) {

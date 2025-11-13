@@ -33,7 +33,6 @@ module.exports = {
       viewed_at: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
     });
 
@@ -41,6 +40,11 @@ module.exports = {
     await queryInterface.addIndex("view_history", ["user_id"]);
     await queryInterface.addIndex("view_history", ["dataset_id"]);
     await queryInterface.addIndex("view_history", ["viewed_at"]);
+    await queryInterface.addConstraint("view_history", {
+      fields: ["user_id", "dataset_id"],
+      type: "unique",
+      name: "unique_user_dataset_view",
+    });
   },
 
   async down(queryInterface, Sequelize) {
