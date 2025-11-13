@@ -162,17 +162,13 @@ ViewHistory.init(
     },
     viewed_at: {
       type: DataTypes.DATE,
-      // defaultValue: DataTypes.NOW,
     },
   },
   {
     sequelize,
     tableName: "view_history",
-    // timestamps: true,
     timestamps: false,
     underscored: true,
-    // createdAt: "viewed_at",
-    // updatedAt: false,
   }
 );
 
