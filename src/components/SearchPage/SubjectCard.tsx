@@ -8,7 +8,7 @@ import RoutesEnum from "types/routes.enum";
 interface SubjectCardProps {
   dbname: string;
   dsname: string;
-  agemin: string;
+  age: string;
   subj: string;
   parsedJson: {
     key: string[];
@@ -26,7 +26,7 @@ interface SubjectCardProps {
 const SubjectCard: React.FC<SubjectCardProps> = ({
   dbname,
   dsname,
-  agemin,
+  age,
   subj,
   parsedJson,
   index,
@@ -42,13 +42,18 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
 
   if (genderCode) {
     if (genderCode === "000F") genderDisplay = "Female";
-    else if (genderCode === "000M") genderDisplay = "Male";
+    else if (
+      genderCode === "000M" ||
+      genderCode === ",M,F" ||
+      genderCode === ",M,M"
+    )
+      genderDisplay = "Male";
   }
 
   // cover age string to readable format
   let ageDisplay = "N/A";
-  if (agemin) {
-    const ageNum = parseInt(agemin, 10) / 100;
+  if (age) {
+    const ageNum = parseInt(age, 10) / 100;
     if (Number.isInteger(ageNum)) {
       ageDisplay = `${ageNum} years`;
     } else {

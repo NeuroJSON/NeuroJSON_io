@@ -1,0 +1,397 @@
+const {
+  Dataset,
+  DatasetLike,
+  SavedDataset,
+  Comment,
+  ViewHistory,
+  User,
+} = require("../models");
+
+// get or create dataset in SQL database
+const getOrCreateDataset = async (couch_db, ds_id) => {
+  let dataset = await Dataset.findOne({
+    where: { couch_db, ds_id },
+  });
+
+  if (!dataset) {
+    dataset = await Dataset.create({
+      couch_db,
+      ds_id,
+      views_count: 0,
+    });
+  }
+
+  return dataset;
+};
+
+// like a dataset
+const likeDataset = async (req, res) => {
+  try {
+    const user = req.user;
+    const { dbName, datasetId } = req.params;
+    const dataset = await getOrCreateDataset(dbName, datasetId);
+
+    // check if already liked
+    const existingLike = await DatasetLike.findOne({
+      where: { user_id: user.id, dataset_id: dataset.id },
+    });
+
+    if (existingLike) {
+      return res.status(400).json({
+        message: "Dataset already liked",
+      });
+    }
+
+    await DatasetLike.create({
+      user_id: user.id,
+      dataset_id: dataset.id,
+    });
+
+    res.status(201).json({ message: "Dataset liked successfully" });
+  } catch (error) {
+    console.error("Like dataset error:", error);
+    res
+      .status(500)
+      .json({ message: "Error liking dataset", error: error.message });
+  }
+};
+
+// unlike a dataset
+const unlikeDataset = async (req, res) => {
+  try {
+    const user = req.user;
+    const { dbName, datasetId } = req.params;
+
+    const dataset = await Dataset.findOne({
+      where: { couch_db: dbName, ds_id: datasetId },
+    });
+    if (!dataset) {
+      return res.status(404).json({ message: "Dataset not found" });
+    }
+
+    const deleted = await DatasetLike.destroy({
+      where: { user_id: user.id, dataset_id: dataset.id },
+    });
+    if (deleted === 0) {
+      return res.status(404).json({ message: "Like not found" });
+    }
+
+    res.status(200).json({
+      message: "Dataset unliked successfully",
+    });
+  } catch (error) {
+    console.error("Unlike dataset error:", error);
+    res
+      .status(500)
+      .json({ message: "Error unliking dataset", error: error.message });
+  }
+};
+
+// save a dataset(bookmark)
+const saveDataset = async (req, res) => {
+  try {
+    const user = req.user;
+    const { dbName, datasetId } = req.params;
+
+    const dataset = await getOrCreateDataset(dbName, datasetId);
+    const existingSave = await SavedDataset.findOne({
+      where: {
+        user_id: user.id,
+        dataset_id: dataset.id,
+      },
+    });
+
+    if (existingSave) {
+      return res.status(400).json({ message: "Dataset already saved" });
+    }
+
+    await SavedDataset.create({
+      user_id: user.id,
+      dataset_id: dataset.id,
+    });
+    res.status(200).json({ message: "Dataset saved successfully" });
+  } catch (error) {
+    console.error("Save dataset error:", error);
+    res
+      .status(500)
+      .json({ message: "Error saving dataset", error: error.message });
+  }
+};
+
+// unsave a dataset
+const unsaveDataset = async (req, res) => {
+  try {
+    const user = req.user;
+    const { dbName, datasetId } = req.params;
+
+    const dataset = await Dataset.findOne({
+      where: {
+        couch_db: dbName,
+        ds_id: datasetId,
+      },
+    });
+
+    if (!dataset) {
+      return res.status(404).json({ message: "Dataset not found" });
+    }
+
+    const deleted = await SavedDataset.destroy({
+      where: {
+        user_id: user.id,
+        dataset_id: dataset.id,
+      },
+    });
+
+    if (deleted === 0) {
+      return res.status(404).json({ message: "Saved dataset not found" });
+    }
+
+    res.status(200).json({ message: "Dataset unsaved successfully" });
+  } catch (error) {
+    console.error("Unsave dataset error:", error);
+    res
+      .status(500)
+      .json({ message: "Error unsaving dataset", error: error.message });
+  }
+};
+
+// add a comment to a dataset
+const addComment = async (req, res) => {
+  try {
+    const user = req.user;
+    const { dbName, datasetId } = req.params;
+    const { body } = req.body;
+
+    if (!body || body.trim() === "") {
+      return res.status(400).json({ message: "Comment body is required" });
+    }
+
+    const dataset = await getOrCreateDataset(dbName, datasetId);
+
+    const comment = await Comment.create({
+      user_id: user.id,
+      dataset_id: dataset.id,
+      body,
+    });
+
+    res.status(201).json({ message: "Comment added successfully", comment });
+  } catch (error) {
+    console.error("Add comment error:", error);
+    res
+      .status(500)
+      .json({ message: "Error adding comment", error: error.message });
+  }
+};
+
+// get comments for a dataset
+const getComments = async (req, res) => {
+  try {
+    const { dbName, datasetId } = req.params;
+    const dataset = await Dataset.findOne({
+      where: {
+        couch_db: dbName,
+        ds_id: datasetId,
+      },
+    });
+
+    if (!dataset) {
+      return res.status(200).json({ comments: [] });
+    }
+
+    const comments = await Comment.findAll({
+      where: { dataset_id: dataset.id },
+      include: [
+        {
+          model: User,
+          attributes: ["id", "username"],
+        },
+      ],
+      order: [["created_at", "DESC"]],
+    });
+    res.status(200).json({ comments });
+  } catch (error) {
+    console.error("Get comments error:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching comments", error: error.message });
+  }
+};
+
+// update a comment
+const updateComment = async (req, res) => {
+  try {
+    const user = req.user;
+    const { commentId } = req.params;
+    const { body } = req.body;
+    // validate - body is required
+    if (!body || body.trim() === "") {
+      return res.status(400).json({
+        message: "Comment body is required",
+      });
+    }
+
+    // find the comment
+    const comment = await Comment.findByPk(commentId);
+    if (!comment) {
+      return res.status(404).json({
+        message: "Comment not found",
+      });
+    }
+
+    // check if user is the owner of the comment
+    if (comment.user_id !== user.id) {
+      return res.status(403).json({
+        message: "Not authorized to update this comment",
+      });
+    }
+
+    // update the comment
+    comment.body = body;
+    await comment.save();
+
+    res.status(200).json({
+      message: "Comment updated successfully",
+      comment,
+    });
+  } catch (error) {
+    console.error("Update comment error:", error);
+    res.status(500).json({
+      message: "Error updating comment",
+      error: error.message,
+    });
+  }
+};
+
+// delete a comment
+const deleteComment = async (req, res) => {
+  try {
+    const user = req.user;
+    const { commentId } = req.params;
+
+    const comment = await Comment.findByPk(commentId);
+    if (!comment) {
+      return res.status(404).json({
+        message: "Comment not found",
+      });
+    }
+
+    if (comment.user_id !== user.id) {
+      return res.status(403).json({
+        message: "Not authorized to delete this comment",
+      });
+    }
+
+    // delete the comment
+    await comment.destroy();
+    res.status(200).json({
+      message: "Comment deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete comment error:", error);
+    res.status(500).json({
+      message: "Error deleting comment",
+      error: error.message,
+    });
+  }
+};
+
+// function1: increment view count
+const incrementViewCount = async (dbName, datasetId) => {
+  const dataset = await getOrCreateDataset(dbName, datasetId);
+  dataset.views_count = (dataset.views_count || 0) + 1;
+  await dataset.save();
+  return dataset;
+};
+
+// function2: add or update a viewed history
+const trackUserHistory = async (userId, datasetId) => {
+  const existingView = await ViewHistory.findOne({
+    where: {
+      user_id: userId,
+      dataset_id: datasetId,
+    },
+  });
+
+  if (existingView) {
+    existingView.viewed_at = new Date();
+    // Tell Sequelize this field changed
+    existingView.changed("viewed_at", true);
+    await existingView.save();
+
+    return { isNew: false, viewed_at: existingView.viewed_at };
+  } else {
+    // create new record
+    const newView = await ViewHistory.create({
+      user_id: userId,
+      dataset_id: datasetId,
+      viewed_at: new Date(),
+    });
+    return { isNew: true, viewed_at: newView.viewed_at };
+  }
+};
+
+// combined function1+2
+const trackView = async (req, res) => {
+  try {
+    const user = req.user;
+    const { dbName, datasetId } = req.params;
+    const dataset = await incrementViewCount(dbName, datasetId);
+
+    // track personal history
+    let historyResult = null;
+    if (user) {
+      historyResult = await trackUserHistory(user.id, dataset.id);
+    }
+
+    res.status(200).json({
+      message: "View tracked successfully",
+      viewCount: dataset.views_count,
+      personalHistoryTracked: !!historyResult,
+      isNewView: historyResult?.isNew,
+      viewed_at: historyResult?.viewed_at,
+      isAuthenticated: !!user,
+    });
+  } catch (error) {
+    console.error("Track view error:", error);
+    res.status(500).json({
+      message: "Error tracking view",
+      error: error.message,
+    });
+  }
+};
+
+// get most viewd datasets
+const getMostViewedDatasets = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const topDatasets = await Dataset.findAll({
+      order: [["views_count", "DESC"]],
+      limit: limit,
+      attributes: ["id", "couch_db", "ds_id", "views_count"],
+    });
+
+    res.status(200).json({
+      mostViewed: topDatasets,
+      datasetsCount: topDatasets.length,
+    });
+  } catch (error) {
+    console.error("Get most viewed error:", error);
+    res.status(500).json({
+      message: "Error fetching most viewed datasets",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = {
+  likeDataset,
+  unlikeDataset,
+  saveDataset,
+  unsaveDataset,
+  addComment,
+  getComments,
+  updateComment,
+  deleteComment,
+  trackView,
+  getMostViewedDatasets,
+};
