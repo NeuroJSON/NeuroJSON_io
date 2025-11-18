@@ -1,4 +1,5 @@
 import { Toolbar, Grid, Button, Typography, Box, Tooltip } from "@mui/material";
+import UserButton from "components/User/UserButton";
 import { Colors } from "design/theme";
 import React from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -7,79 +8,104 @@ import RoutesEnum from "types/routes.enum";
 const NavItems: React.FC = () => {
   const navigate = useNavigate();
 
+  // for user test
+  const isLoggedIn = false;
+  const userName = "John Doe";
+  const handleLogout = () => {
+    // TODO: Implement your logout logic here
+    console.log("Logging out...");
+    // Example: dispatch(logout()) or authService.logout()
+  };
+
   return (
-    <Toolbar sx={{ marginTop: "0.5rem" }}>
-      <Grid
-        container
-        alignItems="center"
+    // <Toolbar sx={{ marginTop: "0.5rem" }}>
+    //   <Grid
+    //     container
+    //     alignItems="center"
+    //     sx={{
+    //       maxWidth: "100%",
+    //     }}
+    //   >
+    //     <Grid item xs={12} sm={12} md={5} lg={5}>
+    <Toolbar
+      sx={{
+        mt: "0.5rem",
+        display: "grid",
+        gridTemplateColumns: { xs: "auto 1fr auto", md: "auto 1fr auto" },
+        gridAutoRows: { xs: "auto auto", md: "auto" },
+        alignItems: "center",
+        columnGap: { xs: 1, md: 3 },
+        rowGap: { xs: 0.5, md: 0 },
+      }}
+    >
+      <Box
         sx={{
-          maxWidth: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          minWidth: 0,
+          gridColumn: "1",
+          gridRow: "1",
         }}
       >
-        <Grid item xs={12} sm={12} md={5} lg={5}>
-          <Box
+        <Box
+          component="img"
+          src={`${process.env.PUBLIC_URL}/img/logo_updated.png`}
+          alt="logo"
+          onClick={() => navigate("/")}
+          sx={{
+            height: { xs: 50, sm: 65, md: 80 },
+            width: "auto",
+            display: { xs: "block", sm: "block", md: "none" },
+          }}
+        ></Box>
+        <Button
+          disableRipple
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexDirection: "column",
+            backgroundColor: "transparent",
+            "&:hover": {
+              backgroundColor: "transparent",
+            },
+          }}
+          onClick={() => navigate("/")}
+        >
+          <Typography
+            variant="h1"
             sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 2, // space between image and text
+              color: Colors.yellow,
+              fontSize: {
+                xs: "1.6rem", // font size on mobile
+                sm: "2.1rem",
+                md: "2.5rem",
+              },
             }}
           >
-            <Box
-              component="img"
-              src={`${process.env.PUBLIC_URL}/img/logo_updated.png`}
-              alt="logo"
-              onClick={() => navigate("/")}
-              height="auto"
-              sx={{
-                height: "80px",
-                width: "auto",
-                display: { xs: "block", sm: "block", md: "none" },
-              }}
-            ></Box>
-            <Button
-              disableRipple
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexDirection: "column",
-                backgroundColor: "transparent",
-                "&:hover": {
-                  backgroundColor: "transparent",
-                },
-              }}
-              onClick={() => navigate("/")}
-            >
-              <Typography
-                variant="h1"
-                sx={{
-                  color: Colors.yellow,
-                  fontSize: {
-                    xs: "2.2rem", // font size on mobile
-                    sm: "2.5rem",
-                  },
-                }}
-              >
-                NeuroJSON.io
-              </Typography>
-              <Typography
-                variant="h2"
-                sx={{
-                  color: Colors.lightGray,
-                  fontSize: {
-                    xs: "1rem", // font size on mobile
-                    sm: "1.2rem",
-                  },
-                }}
-              >
-                Free Data Worth Sharing
-              </Typography>
-            </Button>
-          </Box>
-        </Grid>
+            NeuroJSON.io
+          </Typography>
+          <Typography
+            variant="h2"
+            sx={{
+              color: Colors.lightGray,
+              fontSize: {
+                xs: "0.85rem", // smaller subtitle on phones
+                sm: "1rem",
+                md: "1.2rem",
+              },
+            }}
+          >
+            Free Data Worth Sharing
+          </Typography>
+        </Button>
+        {/* </Box> */}
+      </Box>
+      {/* // </Grid> */}
 
-        {/* Navigation links*/}
-        <Grid item xs={12} md="auto">
+      {/* Navigation links*/}
+      {/* <Grid item xs={12} md="auto">
           <Grid
             container
             spacing={{ xs: 2, md: 5 }}
@@ -90,121 +116,155 @@ const NavItems: React.FC = () => {
               mb: { xs: 1 },
               rowGap: { xs: 1, sm: 2 },
             }}
-          >
-            {[
-              { text: "About", url: RoutesEnum.ABOUT },
-              { text: "Wiki", url: "https://neurojson.org/Wiki" },
-              { text: "Search", url: RoutesEnum.SEARCH },
-              { text: "Databases", url: RoutesEnum.DATABASES },
-              {
-                text: "V1",
-                url: "https://neurojson.io/v1",
-                tooltip: "Visit the previous version of website",
-              },
-            ].map(({ text, url, tooltip }) => (
-              <Grid item key={text}>
-                {tooltip ? (
-                  <Tooltip
-                    title={tooltip}
-                    arrow
-                    componentsProps={{
-                      tooltip: {
-                        sx: {
-                          bgcolor: Colors.lightGray,
-                          color: Colors.darkPurple,
-                        },
-                      },
-                      arrow: {
-                        sx: {
-                          color: Colors.lightGray,
-                        },
+          > */}
+      <Box
+        sx={{
+          display: "flex",
+          // gap: { xs: 2, md: 5 },
+          alignItems: "center",
+          justifyContent: "center",
+          flexWrap: "wrap",
+          columnGap: { xs: 2, md: 5 },
+          rowGap: { xs: 1, md: 0 },
+          width: "100%",
+          gridColumn: { xs: "1 / -1", md: "2" },
+          gridRow: { xs: "2", md: "1" },
+          textAlign: "center",
+        }}
+      >
+        {[
+          { text: "About", url: RoutesEnum.ABOUT },
+          { text: "Wiki", url: "https://neurojson.org/Wiki" },
+          { text: "Search", url: RoutesEnum.SEARCH },
+          { text: "Databases", url: RoutesEnum.DATABASES },
+          {
+            text: "V1",
+            url: "https://neurojson.io/v1",
+            tooltip: "Visit the previous version of website",
+          },
+        ].map(({ text, url, tooltip }) => (
+          <Grid item key={text}>
+            {tooltip ? (
+              <Tooltip
+                title={tooltip}
+                arrow
+                componentsProps={{
+                  tooltip: {
+                    sx: {
+                      bgcolor: Colors.lightGray,
+                      color: Colors.darkPurple,
+                    },
+                  },
+                  arrow: {
+                    sx: {
+                      color: Colors.lightGray,
+                    },
+                  },
+                }}
+              >
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: "none" }}
+                >
+                  <Typography
+                    align="center"
+                    fontWeight={600}
+                    lineHeight={"1.5rem"}
+                    letterSpacing={"0.05rem"}
+                    sx={{
+                      color: Colors.white,
+                      transition: "color 0.3s ease, transform 0.3s ease",
+                      textTransform: "uppercase",
+                      "&:hover": {
+                        transform: "scale(1.2)",
+                        cursor: "pointer",
                       },
                     }}
                   >
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ textDecoration: "none" }}
-                    >
-                      <Typography
-                        align="center"
-                        fontWeight={600}
-                        lineHeight={"1.5rem"}
-                        letterSpacing={"0.05rem"}
-                        sx={{
-                          color: Colors.white,
-                          transition: "color 0.3s ease, transform 0.3s ease",
-                          textTransform: "uppercase",
-                          "&:hover": {
-                            transform: "scale(1.2)",
-                            cursor: "pointer",
-                          },
-                        }}
-                      >
-                        {text}
-                      </Typography>
-                    </a>
-                  </Tooltip>
-                ) : url?.startsWith("https") ? (
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ textDecoration: "none" }}
-                  >
-                    <Typography
-                      align="center"
-                      fontWeight={600}
-                      lineHeight={"1.5rem"}
-                      letterSpacing={"0.05rem"}
-                      sx={{
-                        fontSize: {
-                          xs: "0.8rem", // font size on mobile
-                          sm: "1rem",
-                        },
-                        color: Colors.white,
-                        transition: "color 0.3s ease, transform 0.3s ease",
-                        textTransform: "uppercase",
-                        "&:hover": {
-                          transform: "scale(1.2)",
-                          cursor: "pointer",
-                        },
-                      }}
-                    >
-                      {text}
-                    </Typography>
-                  </a>
-                ) : (
-                  <Link to={url} style={{ textDecoration: "none" }}>
-                    <Typography
-                      align="center"
-                      fontWeight={600}
-                      lineHeight={"1.5rem"}
-                      letterSpacing={"0.05rem"}
-                      sx={{
-                        fontSize: {
-                          xs: "0.8rem", // font size on mobile
-                          sm: "1rem",
-                        },
-                        color: Colors.white,
-                        transition: "color 0.3s ease, transform 0.3s ease",
-                        textTransform: "uppercase",
-                        "&:hover": {
-                          transform: "scale(1.2)",
-                          cursor: "pointer",
-                        },
-                      }}
-                    >
-                      {text}
-                    </Typography>
-                  </Link>
-                )}
-              </Grid>
-            ))}
+                    {text}
+                  </Typography>
+                </a>
+              </Tooltip>
+            ) : url?.startsWith("https") ? (
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ textDecoration: "none" }}
+              >
+                <Typography
+                  align="center"
+                  fontWeight={600}
+                  lineHeight={"1.5rem"}
+                  letterSpacing={"0.05rem"}
+                  sx={{
+                    fontSize: {
+                      xs: "0.8rem", // font size on mobile
+                      sm: "1rem",
+                    },
+                    color: Colors.white,
+                    transition: "color 0.3s ease, transform 0.3s ease",
+                    textTransform: "uppercase",
+                    "&:hover": {
+                      transform: "scale(1.2)",
+                      cursor: "pointer",
+                    },
+                  }}
+                >
+                  {text}
+                </Typography>
+              </a>
+            ) : (
+              <Link to={url} style={{ textDecoration: "none" }}>
+                <Typography
+                  align="center"
+                  fontWeight={600}
+                  lineHeight={"1.5rem"}
+                  letterSpacing={"0.05rem"}
+                  sx={{
+                    fontSize: {
+                      xs: "0.8rem", // font size on mobile
+                      sm: "1rem",
+                    },
+                    color: Colors.white,
+                    transition: "color 0.3s ease, transform 0.3s ease",
+                    textTransform: "uppercase",
+                    "&:hover": {
+                      transform: "scale(1.2)",
+                      cursor: "pointer",
+                    },
+                  }}
+                >
+                  {text}
+                </Typography>
+              </Link>
+            )}
           </Grid>
-        </Grid>
-      </Grid>
+        ))}
+      </Box>
+
+      {/* User Button */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gridColumn: { xs: "3", md: "3" },
+          gridRow: { xs: "1", md: "1" },
+        }}
+      >
+        {/* <UserButton
+          isLoggedIn={isLoggedIn}
+          userName={userName}
+          onLogout={handleLogout}
+        /> */}
+      </Box>
+      {/* </Grid> */}
+      {/* </Grid> */}
+      {/* </Grid> */}
+      {/* </Grid> */}
     </Toolbar>
   );
 };
