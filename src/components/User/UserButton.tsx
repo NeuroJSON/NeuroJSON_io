@@ -23,12 +23,16 @@ interface UserButtonProps {
   isLoggedIn: boolean;
   userName?: string;
   onLogout?: () => void;
+  onOpenLogin: () => void;
+  onOpenSignup: () => void;
 }
 
 const UserButton: React.FC<UserButtonProps> = ({
   isLoggedIn,
   userName,
   onLogout,
+  onOpenLogin,
+  onOpenSignup,
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
@@ -40,6 +44,28 @@ const UserButton: React.FC<UserButtonProps> = ({
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleMenuItemClick = (path: string) => {
+    handleClose();
+    navigate(path);
+  };
+
+  const handleLogout = () => {
+    handleClose();
+    if (onLogout) {
+      onLogout();
+    }
+  };
+
+  const handleLogin = () => {
+    handleClose();
+    onOpenLogin();
+  };
+
+  const handleSignup = () => {
+    handleClose();
+    onOpenSignup();
   };
 
   return (
@@ -99,20 +125,14 @@ const UserButton: React.FC<UserButtonProps> = ({
       >
         {!isLoggedIn ? (
           <>
-            <MenuItem
-              key="login"
-              //   onClick={() => handleMenuItemClick(RoutesEnum.LOGIN)}
-            >
+            <MenuItem key="login" onClick={handleLogin}>
               {/* <ListItemIcon>
                 <Login sx={{ color: Colors.yellow }} />
               </ListItemIcon> */}
               <ListItemText>Sign In</ListItemText>
             </MenuItem>
 
-            <MenuItem
-              key="signup"
-              //   onClick={() => handleMenuItemClick(RoutesEnum.SIGNUP)}
-            >
+            <MenuItem key="signup" onClick={handleSignup}>
               {/* <ListItemIcon>
                 <PersonAdd sx={{ color: Colors.yellow }} />
               </ListItemIcon> */}
