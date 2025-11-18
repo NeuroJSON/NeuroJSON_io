@@ -3,7 +3,7 @@ import UserButton from "components/User/UserButton";
 import UserLogin from "components/User/UserLogin";
 import UserSignup from "components/User/UserSignup";
 import { Colors } from "design/theme";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import RoutesEnum from "types/routes.enum";
 
@@ -14,19 +14,30 @@ const NavItems: React.FC = () => {
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
 
-  // TODO: Replace with actual authentication state from your auth context/redux
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState("");
 
-  // for user test
-  // const isLoggedIn = false;
-  // const userName = "John Doe";
+  // Load user info from localStorage on component mount
+  useEffect(() => {
+    const savedUsername = localStorage.getItem("username");
+    const savedLoginStatus = localStorage.getItem("isLoggedIn");
 
-  const handleLoginSuccess = (name: string) => {
-    setUserName(name);
+    if (savedLoginStatus === "true" && savedUsername) {
+      setUserName(savedUsername);
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const handleLoginSuccess = (username: string) => {
+    setUserName(username);
     setIsLoggedIn(true);
-    // TODO: Store auth token in localStorage or context
-    // localStorage.setItem('authToken', token);
+
+    // Store user info in localStorage to persist across page refreshes
+    localStorage.setItem("username", username);
+    localStorage.setItem("isLoggedIn", "true");
+
+    // Cookie-based auth: The authentication cookie is automatically sent
+    // with subsequent requests, so no need to store tokens manually
   };
 
   const handleSignupSuccess = (name: string) => {
@@ -39,8 +50,16 @@ const NavItems: React.FC = () => {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setUserName("");
-    // TODO: Clear auth token
-    // localStorage.removeItem('authToken');
+
+    // Clear user info from localStorage
+    localStorage.removeItem("username");
+    localStorage.removeItem("isLoggedIn");
+
+    // Call backend logout endpoint to clear the cookie
+    fetch("http://localhost:5000/api/v1/auth/logout", {
+      method: "POST",
+      credentials: "include", // Send cookies with request
+    }).catch((err) => console.error("Logout error:", err));
     navigate("/");
   };
 

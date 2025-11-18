@@ -3,7 +3,8 @@ import {
   //   PersonAdd,
   Dashboard,
   Settings,
-  ManageAccounts, //   Logout,
+  ManageAccounts,
+  Logout,
 } from "@mui/icons-material";
 import {
   IconButton,
@@ -93,7 +94,7 @@ const UserButton: React.FC<UserButtonProps> = ({
         anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
         PaperProps={{
           sx: {
-            backgroundColor: Colors.lightBlue,
+            backgroundColor: Colors.white,
             color: Colors.darkPurple,
             minWidth: 200,
             mt: 1.5,
@@ -126,16 +127,12 @@ const UserButton: React.FC<UserButtonProps> = ({
         {!isLoggedIn ? (
           <>
             <MenuItem key="login" onClick={handleLogin}>
-              {/* <ListItemIcon>
-                <Login sx={{ color: Colors.yellow }} />
-              </ListItemIcon> */}
               <ListItemText>Sign In</ListItemText>
             </MenuItem>
-
+            <Divider
+              sx={{ my: 1, backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+            />
             <MenuItem key="signup" onClick={handleSignup}>
-              {/* <ListItemIcon>
-                <PersonAdd sx={{ color: Colors.yellow }} />
-              </ListItemIcon> */}
               <ListItemText>Create Account</ListItemText>
             </MenuItem>
           </>
@@ -186,26 +183,24 @@ const UserButton: React.FC<UserButtonProps> = ({
               <ListItemText>Settings</ListItemText>
             </MenuItem>
 
-            <MenuItem
-            // onClick={() => handleMenuItemClick(RoutesEnum.USER_MANAGEMENT)}
+            {/* <MenuItem
+            onClick={() => handleMenuItemClick(RoutesEnum.USER_MANAGEMENT)}
             >
               <ListItemIcon>
                 <ManageAccounts sx={{ color: Colors.darkPurple }} />
               </ListItemIcon>
               <ListItemText>User Management</ListItemText>
-            </MenuItem>
+            </MenuItem> */}
 
             <Divider
               sx={{ my: 1, backgroundColor: "rgba(255, 255, 255, 0.2)" }}
             />
 
-            <MenuItem
-            // onClick={handleLogout}
-            >
-              {/* <ListItemIcon>
-                <Logout sx={{ color: Colors.yellow }} />
-              </ListItemIcon> */}
+            <MenuItem onClick={handleLogout}>
               <ListItemText>Logout</ListItemText>
+              <ListItemIcon>
+                <Logout />
+              </ListItemIcon>
             </MenuItem>
           </>
         )}

@@ -39,19 +39,27 @@ const UserLogin: React.FC<UserLoginProps> = ({
     setLoading(true);
 
     try {
-      // TODO: Replace with your actual API call
-      // const response = await authService.login(email, password);
+      const response = await fetch("http://localhost:5000/api/v1/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Important for cookies
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+      const data = await response.json();
 
-      // Mock API call (remove this in production)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Mock successful login
-      if (email && password) {
-        onLoginSuccess("John Doe"); // Replace with actual user data from API
-        handleClose();
-      } else {
-        setError("Please enter both email and password");
+      if (!response.ok) {
+        // Handle error response from backend
+        throw new Error(data.message || "Login failed");
       }
+
+      // Successful login
+      onLoginSuccess(data.user.username || data.user.email);
+      handleClose();
     } catch (err) {
       setError("Invalid email or password. Please try again.");
     } finally {
