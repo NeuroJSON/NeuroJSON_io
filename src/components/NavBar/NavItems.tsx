@@ -3,57 +3,65 @@ import UserButton from "components/User/UserButton";
 import UserLogin from "components/User/UserLogin";
 import UserSignup from "components/User/UserSignup";
 import { Colors } from "design/theme";
+import { useAppDispatch } from "hooks/useAppDispatch";
+import { useAppSelector } from "hooks/useAppSelector";
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { loginUser, getCurrentUser } from "redux/auth/auth.action";
+import { AuthSelector } from "redux/auth/auth.selector";
+import { RootState } from "redux/store";
 import RoutesEnum from "types/routes.enum";
 
 const NavItems: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+
+  // get auth state from redux
+  // const auth = useAppSelector((state: RootState) => state.auth);
+  const auth = useAppSelector(AuthSelector);
+  const { isLoggedIn, user } = auth;
+  const userName = user?.username || "";
 
   // Modal state
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState("");
+  // const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // const [userName, setUserName] = useState("");
 
   // Load user info from localStorage on component mount
-  useEffect(() => {
-    const savedUsername = localStorage.getItem("username");
-    const savedLoginStatus = localStorage.getItem("isLoggedIn");
+  // useEffect(() => {
+  //   const savedUsername = localStorage.getItem("username");
+  //   const savedLoginStatus = localStorage.getItem("isLoggedIn");
 
-    if (savedLoginStatus === "true" && savedUsername) {
-      setUserName(savedUsername);
-      setIsLoggedIn(true);
-    }
-  }, []);
+  //   if (savedLoginStatus === "true" && savedUsername) {
+  //     setUserName(savedUsername);
+  //     setIsLoggedIn(true);
+  //   }
+  // }, []);
 
-  const handleLoginSuccess = (username: string) => {
-    setUserName(username);
-    setIsLoggedIn(true);
+  // const handleLoginSuccess = (username: string) => {
+  //   setUserName(username);
+  //   setIsLoggedIn(true);
 
-    // Store user info in localStorage to persist across page refreshes
-    localStorage.setItem("username", username);
-    localStorage.setItem("isLoggedIn", "true");
+  //   // Store user info in localStorage to persist across page refreshes
+  //   localStorage.setItem("username", username);
+  //   localStorage.setItem("isLoggedIn", "true");
 
-    // Cookie-based auth: The authentication cookie is automatically sent
-    // with subsequent requests, so no need to store tokens manually
-  };
+  //   // Cookie-based auth: The authentication cookie is automatically sent
+  //   // with subsequent requests, so no need to store tokens manually
+  // };
 
   const handleSignupSuccess = (name: string) => {
-    setUserName(name);
-    setIsLoggedIn(true);
+    // setUserName(name);
+    // setIsLoggedIn(true);
     // TODO: Store auth token in localStorage or context
     // localStorage.setItem('authToken', token);
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserName("");
-
-    // Clear user info from localStorage
-    localStorage.removeItem("username");
-    localStorage.removeItem("isLoggedIn");
+    // setIsLoggedIn(false);
+    // setUserName("");
 
     // Call backend logout endpoint to clear the cookie
     fetch("http://localhost:5000/api/v1/auth/logout", {
@@ -322,7 +330,7 @@ const NavItems: React.FC = () => {
           setLoginOpen(false);
           setSignupOpen(true);
         }}
-        onLoginSuccess={handleLoginSuccess}
+        // onLoginSuccess={handleLoginSuccess}
       />
       <UserSignup
         open={signupOpen}

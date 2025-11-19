@@ -12,59 +12,76 @@ import {
   Alert,
 } from "@mui/material";
 import { Colors } from "design/theme";
+import { useAppDispatch } from "hooks/useAppDispatch";
+import { useAppSelector } from "hooks/useAppSelector";
 import React, { useState } from "react";
+import { loginUser } from "redux/auth/auth.action";
+import { AuthSelector } from "redux/auth/auth.selector";
+import { clearError } from "redux/auth/auth.slice";
 
 interface UserLoginProps {
   open: boolean;
   onClose: () => void;
   onSwitchToSignup: () => void;
-  onLoginSuccess: (userName: string) => void;
+  //   onLoginSuccess: (userName: string) => void;
 }
 
 const UserLogin: React.FC<UserLoginProps> = ({
   open,
   onClose,
   onSwitchToSignup,
-  onLoginSuccess,
+  //   onLoginSuccess,
 }) => {
+  const dispatch = useAppDispatch();
+  const auth = useAppSelector(AuthSelector);
+  const { loading, error: reduxError } = auth;
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  //   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
-
-    try {
-      const response = await fetch("http://localhost:5000/api/v1/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Important for cookies
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Handle error response from backend
-        throw new Error(data.message || "Login failed");
-      }
-
-      // Successful login
-      onLoginSuccess(data.user.username || data.user.email);
+    dispatch(clearError());
+    // setLoading(true);
+    const result = await dispatch(loginUser({ email, password }));
+    if (loginUser.fulfilled.match(result)) {
+      // Success - close modal
       handleClose();
-    } catch (err) {
-      setError("Invalid email or password. Please try again.");
-    } finally {
-      setLoading(false);
+    } else {
+      // Error - show in password field
+      setError(reduxError || "Login failed. Please try again.");
     }
+    // try {
+    //   const response = await fetch("http://localhost:5000/api/v1/auth/login", {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //     },
+    //     credentials: "include", // Important for cookies
+    //     body: JSON.stringify({
+    //       email,
+    //       password,
+    //     }),
+    //   });
+    //   const data = await response.json();
+
+    //   if (!response.ok) {
+    //     // Handle error response from backend
+    //     throw new Error(data.message || "Login failed");
+    //   }
+
+    //   // Successful login
+    //   onLoginSuccess(data.user.username || data.user.email);
+    //   handleClose();
+    // } catch (err) {
+    //   setError("Invalid email or password. Please try again.");
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   const handleClose = () => {
@@ -72,6 +89,7 @@ const UserLogin: React.FC<UserLoginProps> = ({
     setPassword("");
     setError("");
     setShowPassword(false);
+    dispatch(clearError()); // add
     onClose();
   };
 
