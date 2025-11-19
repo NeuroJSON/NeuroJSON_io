@@ -12,23 +12,30 @@ import {
   Alert,
 } from "@mui/material";
 import { Colors } from "design/theme";
+import { useAppDispatch } from "hooks/useAppDispatch";
+import { useAppSelector } from "hooks/useAppSelector";
 import React, { useState } from "react";
+import { signupUser } from "redux/auth/auth.action";
+import { AuthSelector } from "redux/auth/auth.selector";
+import { clearError } from "redux/auth/auth.slice";
 
 interface UserSignupProps {
   open: boolean;
   onClose: () => void;
   onSwitchToLogin: () => void;
-  onSignupSuccess: (userName: string) => void;
 }
 
 const UserSignup: React.FC<UserSignupProps> = ({
   open,
   onClose,
   onSwitchToLogin,
-  onSignupSuccess,
 }) => {
+  const dispatch = useAppDispatch();
+  const auth = useAppSelector(AuthSelector);
+  const { loading, error: reduxError } = auth;
+
   const [formData, setFormData] = useState({
-    name: "",
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -36,7 +43,6 @@ const UserSignup: React.FC<UserSignupProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const handleChange =
     (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,7 +51,7 @@ const UserSignup: React.FC<UserSignupProps> = ({
 
   const validateForm = () => {
     if (
-      !formData.name ||
+      !formData.username ||
       !formData.email ||
       !formData.password ||
       !formData.confirmPassword
@@ -73,9 +79,32 @@ const UserSignup: React.FC<UserSignupProps> = ({
     return true;
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    dispatch(clearError());
+
+    if (!validateForm()) {
+      return;
+    }
+
+    const result = await dispatch(
+      signupUser({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+      })
+    );
+    if (signupUser.fulfilled.match(result)) {
+      handleClose();
+    } else {
+      setError(reduxError || "Signup failed. Please try again.");
+    }
+  };
+
   const handleClose = () => {
     setFormData({
-      name: "",
+      username: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -83,39 +112,13 @@ const UserSignup: React.FC<UserSignupProps> = ({
     setError("");
     setShowPassword(false);
     setShowConfirmPassword(false);
+    dispatch(clearError());
     onClose();
   };
 
   const handleSwitchToLogin = () => {
     handleClose();
     onSwitchToLogin();
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // TODO: Replace with your actual API call
-      // const response = await authService.signup(formData);
-
-      // Mock API call (remove this in production)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Mock successful signup
-      onSignupSuccess(formData.name);
-      handleClose();
-    } catch (error) {
-      setError("An error occurred during signup. Please try again.");
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -163,8 +166,8 @@ const UserSignup: React.FC<UserSignupProps> = ({
           <TextField
             fullWidth
             label="Username"
-            value={formData.name}
-            onChange={handleChange("name")}
+            value={formData.username}
+            onChange={handleChange("username")}
             required
             sx={{
               mb: 2,

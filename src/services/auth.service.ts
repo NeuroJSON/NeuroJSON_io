@@ -49,4 +49,22 @@ export const AuthService = {
       throw new Error("Logout failed");
     }
   },
+  signup: async (signupData: SignupData): Promise<AuthResponse> => {
+    const response = await fetch(`${API_URL}/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(signupData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Signup failed");
+    }
+
+    return data;
+  },
 };

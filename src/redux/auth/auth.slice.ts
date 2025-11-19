@@ -1,4 +1,9 @@
-import { loginUser, getCurrentUser, logoutUser } from "./auth.action";
+import {
+  loginUser,
+  getCurrentUser,
+  logoutUser,
+  signupUser,
+} from "./auth.action";
 import { IAuthState, User } from "./types/auth.interface";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
@@ -66,6 +71,21 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(logoutUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Signup
+      .addCase(signupUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(signupUser.fulfilled, (state, action: PayloadAction<User>) => {
+        state.loading = false;
+        state.isLoggedIn = true;
+        state.user = action.payload;
+        state.error = null;
+      })
+      .addCase(signupUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

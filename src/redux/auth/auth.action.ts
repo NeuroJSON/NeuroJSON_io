@@ -37,3 +37,16 @@ export const logoutUser = createAsyncThunk(
     }
   }
 );
+
+export const signupUser = createAsyncThunk(
+  "auth/register",
+  async (signupData: SignupData, { rejectWithValue }) => {
+    try {
+      console.log("signupdata", signupData);
+      const response = await AuthService.signup(signupData);
+      return response.user;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Signup failed");
+    }
+  }
+);

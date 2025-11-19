@@ -23,14 +23,12 @@ interface UserLoginProps {
   open: boolean;
   onClose: () => void;
   onSwitchToSignup: () => void;
-  //   onLoginSuccess: (userName: string) => void;
 }
 
 const UserLogin: React.FC<UserLoginProps> = ({
   open,
   onClose,
   onSwitchToSignup,
-  //   onLoginSuccess,
 }) => {
   const dispatch = useAppDispatch();
   const auth = useAppSelector(AuthSelector);
@@ -40,13 +38,11 @@ const UserLogin: React.FC<UserLoginProps> = ({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  //   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     dispatch(clearError());
-    // setLoading(true);
     const result = await dispatch(loginUser({ email, password }));
     if (loginUser.fulfilled.match(result)) {
       // Success - close modal
@@ -55,33 +51,6 @@ const UserLogin: React.FC<UserLoginProps> = ({
       // Error - show in password field
       setError(reduxError || "Login failed. Please try again.");
     }
-    // try {
-    //   const response = await fetch("http://localhost:5000/api/v1/auth/login", {
-    //     method: "POST",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //     },
-    //     credentials: "include", // Important for cookies
-    //     body: JSON.stringify({
-    //       email,
-    //       password,
-    //     }),
-    //   });
-    //   const data = await response.json();
-
-    //   if (!response.ok) {
-    //     // Handle error response from backend
-    //     throw new Error(data.message || "Login failed");
-    //   }
-
-    //   // Successful login
-    //   onLoginSuccess(data.user.username || data.user.email);
-    //   handleClose();
-    // } catch (err) {
-    //   setError("Invalid email or password. Please try again.");
-    // } finally {
-    //   setLoading(false);
-    // }
   };
 
   const handleClose = () => {
@@ -89,7 +58,7 @@ const UserLogin: React.FC<UserLoginProps> = ({
     setPassword("");
     setError("");
     setShowPassword(false);
-    dispatch(clearError()); // add
+    dispatch(clearError());
     onClose();
   };
 
