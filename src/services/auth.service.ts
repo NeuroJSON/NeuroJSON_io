@@ -38,4 +38,15 @@ export const AuthService = {
 
     return data.user;
   },
+
+  logout: async (): Promise<void> => {
+    const response = await fetch(`${API_URL}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error("Logout failed");
+    }
+  },
 };

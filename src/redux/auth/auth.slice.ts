@@ -1,4 +1,4 @@
-import { loginUser, getCurrentUser } from "./auth.action";
+import { loginUser, getCurrentUser, logoutUser } from "./auth.action";
 import { IAuthState, User } from "./types/auth.interface";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
@@ -52,6 +52,21 @@ const authSlice = createSlice({
         state.loading = false;
         state.isLoggedIn = false;
         state.user = null;
+        state.error = action.payload as string;
+      })
+      // Logout
+      .addCase(logoutUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.loading = false;
+        state.isLoggedIn = false;
+        state.user = null;
+        state.error = null;
+      })
+      .addCase(logoutUser.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload as string;
       });
   },

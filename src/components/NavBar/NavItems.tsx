@@ -7,7 +7,7 @@ import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { loginUser, getCurrentUser } from "redux/auth/auth.action";
+import { loginUser, getCurrentUser, logoutUser } from "redux/auth/auth.action";
 import { AuthSelector } from "redux/auth/auth.selector";
 import { RootState } from "redux/store";
 import RoutesEnum from "types/routes.enum";
@@ -60,15 +60,13 @@ const NavItems: React.FC = () => {
   };
 
   const handleLogout = () => {
-    // setIsLoggedIn(false);
-    // setUserName("");
-
-    // Call backend logout endpoint to clear the cookie
-    fetch("http://localhost:5000/api/v1/auth/logout", {
-      method: "POST",
-      credentials: "include", // Send cookies with request
-    }).catch((err) => console.error("Logout error:", err));
+    dispatch(logoutUser());
     navigate("/");
+    // Call backend logout endpoint to clear the cookie
+    // fetch("http://localhost:5000/api/v1/auth/logout", {
+    //   method: "POST",
+    //   credentials: "include", // Send cookies with request
+    // }).catch((err) => console.error("Logout error:", err));
   };
 
   return (

@@ -25,3 +25,15 @@ export const getCurrentUser = createAsyncThunk(
     }
   }
 );
+
+export const logoutUser = createAsyncThunk(
+  "auth/logout",
+  async (_, { rejectWithValue }) => {
+    try {
+      await AuthService.logout();
+      return null;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Logout failed");
+    }
+  }
+);
