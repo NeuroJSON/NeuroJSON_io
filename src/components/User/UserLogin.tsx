@@ -1,3 +1,4 @@
+import GoogleButton from "./GoogleButton";
 import { Close, Visibility, VisibilityOff } from "@mui/icons-material";
 import {
   Dialog,
@@ -39,6 +40,11 @@ const UserLogin: React.FC<UserLoginProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
+  const handleOAuthLogin = (provider: "google" | "orcid") => {
+    const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
+    window.location.href = `${apiUrl}/api/v1/auth/${provider}`;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -66,6 +72,7 @@ const UserLogin: React.FC<UserLoginProps> = ({
     handleClose();
     onSwitchToSignup();
   };
+
   return (
     <Dialog
       open={open}
@@ -186,6 +193,18 @@ const UserLogin: React.FC<UserLoginProps> = ({
           >
             {loading ? "Sign In..." : "Sign In"}
           </Button>
+          <Box sx={{ mb: 3 }}>
+            <GoogleButton
+              variant="signin"
+              onClick={() => handleOAuthLogin("google")}
+              disabled={loading}
+            />
+            {/* <OAuthButton
+    provider="orcid"
+    onClick={() => handleOAuthLogin("orcid")}
+    disabled={loading}
+  /> */}
+          </Box>
           <Box sx={{ textAlign: "center" }}>
             <Typography variant="body2" color={Colors.primary.light}>
               Don't have an account?{" "}
