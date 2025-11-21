@@ -1,7 +1,8 @@
 // backend/config/passport.config.js
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const { User } = require("../models");
+// const { User } = require("../models");
+const User = require("../src/models/User");
 
 // Google OAuth Strategy
 passport.use(

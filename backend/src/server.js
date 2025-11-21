@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
+const passport = require("../config/passport.config");
 const { connectDatabase, sequelize } = require("./config/database");
 const { restoreUser } = require("./middleware/auth.middleware");
 
@@ -24,6 +25,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); // parse cookies
+app.use(passport.initialize());
 
 // restore user on every request
 app.use(restoreUser);
