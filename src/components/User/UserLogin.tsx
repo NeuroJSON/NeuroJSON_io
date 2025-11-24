@@ -195,7 +195,7 @@ const UserLogin: React.FC<UserLoginProps> = ({
           </Button>
           <Box sx={{ mb: 3 }}>
             <GoogleButton
-              variant="signin"
+              //   variant="signin"
               onClick={() => handleOAuthLogin("google")}
               disabled={loading}
             />

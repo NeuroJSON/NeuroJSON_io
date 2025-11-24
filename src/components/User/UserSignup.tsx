@@ -305,7 +305,7 @@ const UserSignup: React.FC<UserSignupProps> = ({
           </Button>
           <Box sx={{ mb: 3 }}>
             <GoogleButton
-              variant="signup"
+              //   variant="signup"
               onClick={() => handleOAuthSignup("google")}
               disabled={loading}
             />

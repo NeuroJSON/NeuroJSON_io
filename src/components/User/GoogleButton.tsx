@@ -1,47 +1,57 @@
-import { Box } from "@mui/material";
+import { Box, Button } from "@mui/material";
+import { Colors } from "design/theme";
 import React from "react";
 
-interface OAuthButtonProps {
+interface GoogleButtonProps {
   onClick: () => void;
   disabled?: boolean;
-  variant?: "signin" | "signup";
+  //   variant?: "signin" | "signup";
 }
 
-const GoogleButton: React.FC<OAuthButtonProps> = ({
+const GoogleButton: React.FC<GoogleButtonProps> = ({
   onClick,
   disabled = false,
-  variant = "signin",
+  //   variant = "signin",
 }) => {
-  const imageSrc =
-    variant === "signin"
-      ? "/img/user/web_light_sq_SI@2x.png"
-      : "/img/user/web_light_sq_SU@2x.png";
-
   return (
-    <Box
-      component="img"
-      src={imageSrc}
-      alt={variant === "signin" ? "Sign in with Google" : "Sign up with Google"}
-      onClick={disabled ? undefined : onClick}
+    <Button
+      fullWidth
+      onClick={onClick}
+      disabled={disabled}
       sx={{
-        width: "100%",
-        height: "48px",
-        objectFit: "contain",
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.5 : 1,
-        transition: "opacity 0.2s, transform 0.1s",
-        "&:hover": {
-          opacity: disabled ? 0.5 : 0.9,
-          transform: disabled ? "none" : "translateY(-1px)",
-        },
-        "&:active": {
-          transform: disabled ? "none" : "translateY(0)",
-        },
+        backgroundColor: Colors.white,
+        color: Colors.darkPurple,
+        fontWeight: 600,
+        py: 1.5,
         mb: 1.5,
-        borderRadius: "4px",
-        display: "block",
+        border: "1px solid #dadce0",
+        textTransform: "none",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 1.5,
+        "&:hover": {
+          backgroundColor: "#f5f5f5",
+        },
+        "&:disabled": {
+          backgroundColor: Colors.lightGray,
+          color: Colors.white,
+          opacity: 0.5,
+        },
       }}
-    />
+    >
+      {/* Google Logo */}
+      <Box
+        component="img"
+        src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+        alt="Google"
+        sx={{
+          width: "20px", // logo size
+          height: "20px",
+        }}
+      />
+      Continue with Google
+    </Button>
   );
 };
 
