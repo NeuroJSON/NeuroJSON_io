@@ -1,12 +1,13 @@
 import {
-  AccountCircle, //   Login,
-  //   PersonAdd,
+  AccountCircle,
   Dashboard,
   Settings,
   ManageAccounts,
   Logout,
 } from "@mui/icons-material";
 import {
+  Box,
+  Typography,
   IconButton,
   Menu,
   MenuItem,
@@ -141,25 +142,35 @@ const UserButton: React.FC<UserButtonProps> = ({
           <>
             {userName && (
               <>
-                <MenuItem
-                  key="username"
-                  disabled
+                <Box
                   sx={{
-                    opacity: "1 !important",
-                    cursor: "default !important",
-                    "&:hover": {
-                      backgroundColor: "transparent !important",
-                    },
+                    px: 2.5,
+                    py: 2,
+                    color: Colors.purple,
                   }}
                 >
-                  <ListItemText
-                    primary={userName}
-                    primaryTypographyProps={{
-                      fontWeight: 600,
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontSize: "1rem",
+                      opacity: 0.9,
+                      display: "block",
+                      mb: 0.5,
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Welcome,
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontSize: "1rem",
                       color: Colors.purple,
                     }}
-                  />
-                </MenuItem>
+                  >
+                    {userName}
+                  </Typography>
+                </Box>
                 <Divider
                   sx={{ my: 1, backgroundColor: "rgba(255, 255, 255, 0.2)" }}
                 />
