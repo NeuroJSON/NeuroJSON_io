@@ -25,15 +25,21 @@ const GoogleButton: React.FC<OAuthButtonProps> = ({
       onClick={disabled ? undefined : onClick}
       sx={{
         width: "100%",
-        maxWidth: "382px",
-        height: "auto",
+        height: "48px",
+        objectFit: "contain",
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1,
-        transition: "opacity 0.2s",
+        transition: "opacity 0.2s, transform 0.1s",
         "&:hover": {
           opacity: disabled ? 0.5 : 0.9,
+          transform: disabled ? "none" : "translateY(-1px)",
+        },
+        "&:active": {
+          transform: disabled ? "none" : "translateY(0)",
         },
         mb: 1.5,
+        borderRadius: "4px",
+        display: "block",
       }}
     />
   );

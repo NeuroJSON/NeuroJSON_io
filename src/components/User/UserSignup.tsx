@@ -1,3 +1,4 @@
+import GoogleButton from "./GoogleButton";
 import { Close, Visibility, VisibilityOff } from "@mui/icons-material";
 import {
   Dialog,
@@ -43,6 +44,11 @@ const UserSignup: React.FC<UserSignupProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
+
+  const handleOAuthSignup = (provider: "google" | "orcid") => {
+    const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
+    window.location.href = `${apiUrl}/api/v1/auth/${provider}`;
+  };
 
   const handleChange =
     (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -297,6 +303,18 @@ const UserSignup: React.FC<UserSignupProps> = ({
           >
             {loading ? "Creating Account..." : "Create Account"}
           </Button>
+          <Box sx={{ mb: 3 }}>
+            <GoogleButton
+              variant="signup"
+              onClick={() => handleOAuthSignup("google")}
+              disabled={loading}
+            />
+            {/* <OAuthButton
+    provider="orcid"
+    onClick={() => handleOAuthSignup("orcid")}
+    disabled={loading}
+  /> */}
+          </Box>
           <Box sx={{ textAlign: "center" }}>
             <Typography variant="body2" color={Colors.primary.light}>
               Already have an account?{" "}
