@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const { User } = require("../models");
 const bcrypt = require("bcrypt");
 const { setTokenCookie } = require("../middleware/auth.middleware");
+const emailService = require("../../services/email.service");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -77,12 +78,38 @@ const register = async (req, res) => {
       orcid_id: orcid_id || null,
       google_id: google_id || null,
       github_id: github_id || null,
+      email_verified: isOAuthSignup ? true : false, // OAuth users auto-verified
     });
 
     // generate JWT token
     // const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
     //   expiresIn: "1h",
     // });
+
+    // NEW: For traditional signup, send verification email
+    if (!isOAuthSignup) {
+      const verificationToken = user.generateVerificationToken();
+      await user.save();
+
+      try {
+        await emailService.sendVerificationEmail(user, verificationToken);
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+        // Don't fail registration if email fails
+      }
+
+      return res.status(201).json({
+        message:
+          "Registration successful! Please check your email to verify your account.",
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          email_verified: user.email_verified,
+        },
+        requiresVerification: true,
+      });
+    }
 
     //set suthentication cookie
     setTokenCookie(res, user);
@@ -163,6 +190,15 @@ const login = async (req, res) => {
     // const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
     //   expiresIn: "1h",
     // });
+    // NEW: Check if email is verified
+    if (!user.email_verified) {
+      return res.status(403).json({
+        message:
+          "Please verify your email before logging in. Check your inbox for the verification link.",
+        requiresVerification: true,
+        email: user.email,
+      });
+    }
 
     // set authentication cookie
     setTokenCookie(res, user);
@@ -174,6 +210,7 @@ const login = async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
+        email_verified: user.email_verified,
       },
     });
   } catch (error) {
@@ -199,6 +236,7 @@ const getCurrentUser = async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
+        email_verified: user.email_verified, // NEW
         created_at: user.created_at,
         updated_at: user.updated_at,
       },
@@ -255,9 +293,55 @@ const logout = async (req, res) => {
   }
 };
 
+// Resend verification email
+const resendVerificationEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        message: "Email is required",
+      });
+    }
+
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      // Don't reveal if email exists
+      return res.status(200).json({
+        message:
+          "If this email exists and is unverified, a verification email has been sent.",
+      });
+    }
+
+    if (user.email_verified) {
+      return res.status(400).json({
+        message: "This email is already verified",
+      });
+    }
+
+    // Generate new token
+    const verificationToken = user.generateVerificationToken();
+    await user.save();
+
+    await emailService.sendVerificationEmail(user, verificationToken);
+
+    res.status(200).json({
+      message: "Verification email sent. Please check your inbox.",
+    });
+  } catch (error) {
+    console.error("Resend verification error:", error);
+    res.status(500).json({
+      message: "Error sending verification email",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getCurrentUser,
   logout,
+  resendVerificationEmail, // NEW
 };

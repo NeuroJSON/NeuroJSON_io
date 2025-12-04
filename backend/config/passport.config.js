@@ -50,6 +50,7 @@ passport.use(
           email: email,
           google_id: googleId,
           hashed_password: null, // OAuth users don't have passwords
+          email_verified: true,
         });
 
         return done(null, user);
@@ -118,6 +119,7 @@ const OAuth2Strategy = require("passport-oauth2");
 //           email: email,
 //           orcid_id: orcidId,
 //           hashed_password: null,
+//           email_verified: true,
 //         });
 
 //         return done(null, user);

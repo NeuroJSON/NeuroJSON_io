@@ -29,13 +29,11 @@ function AuthHandler() {
   // Handle browser back/forward navigation
   useEffect(() => {
     const handlePopState = () => {
-      console.log("🔄 Browser navigation detected");
       dispatch(getCurrentUser());
 
       // If user navigated back to an OAuth callback URL, redirect to home
       const searchParams = new URLSearchParams(window.location.search);
       if (searchParams.get("auth")) {
-        console.log("⚠️ Back to OAuth URL - redirecting to home");
         navigate("/", { replace: true });
       }
     };
@@ -47,12 +45,11 @@ function AuthHandler() {
     };
   }, [dispatch, navigate]);
 
-  // 🔁 Re-check auth when page is restored from back-forward cache (bfcache)
+  // Re-check auth when page is restored from back-forward cache (bfcache)
   useEffect(() => {
     const handlePageShow = (event: PageTransitionEvent) => {
       // event.persisted === true when coming from bfcache
       if (event.persisted) {
-        console.log("🔁 Page restored from bfcache - revalidating auth");
         dispatch(getCurrentUser());
       }
     };
@@ -71,12 +68,10 @@ function AuthHandler() {
       hasProcessedOAuthRef.current = true; // Mark as processed
 
       if (authStatus === "success") {
-        console.log("✅ OAuth success - fetching user");
         dispatch(getCurrentUser());
       } else if (authStatus === "error") {
         const errorMessage =
           searchParams.get("message") || "Authentication failed";
-        console.error("❌ OAuth error:", errorMessage);
       }
 
       // Clean up URL - this removes it from history

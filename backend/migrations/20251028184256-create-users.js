@@ -45,6 +45,20 @@ module.exports = {
         allowNull: false,
         unique: true,
       },
+      email_verified: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+      },
+      verification_token: {
+        type: Sequelize.STRING(255),
+        allowNull: true,
+        unique: true,
+      },
+      verification_token_expires: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
       created_at: {
         type: Sequelize.DATE,
         allowNull: false,
