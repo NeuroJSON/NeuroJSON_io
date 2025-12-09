@@ -10,6 +10,7 @@ const verifyEmail = async (req, res) => {
     if (!token) {
       return res.status(400).json({
         message: "Verification token is required",
+        expired: false,
       });
     }
 
@@ -26,6 +27,7 @@ const verifyEmail = async (req, res) => {
     if (!user) {
       return res.status(400).json({
         message: "Invalid or expired verification token",
+        expired: false,
       });
     }
 
@@ -33,6 +35,7 @@ const verifyEmail = async (req, res) => {
     if (user.email_verified) {
       return res.status(400).json({
         message: "Email is already verified",
+        expired: false,
       });
     }
 
@@ -40,6 +43,7 @@ const verifyEmail = async (req, res) => {
     if (!user.isVerificationTokenValid(token)) {
       return res.status(400).json({
         message: "Verification token has expired. Please request a new one.",
+        expired: true,
       });
     }
     // Actually verify the email and clear token
@@ -71,6 +75,7 @@ const verifyEmail = async (req, res) => {
     res.status(500).json({
       message: "Error verifying email",
       error: error.message,
+      expired: false,
     });
   }
 };
