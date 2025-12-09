@@ -6,7 +6,9 @@ const {
   login,
   getCurrentUser,
   logout,
+  resendVerificationEmail,
 } = require("../controllers/auth.controller");
+const { verifyEmail } = require("../controllers/verification.controller");
 const {
   googleAuth,
   googleCallback,
@@ -17,10 +19,15 @@ const { requireAuth } = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
+// traditional authentication routes
 router.post("/register", register);
 router.post("/login", login);
 router.get("/me", requireAuth, getCurrentUser);
 router.post("/logout", requireAuth, logout);
+
+// email verification routes
+router.get("/verify-email", verifyEmail);
+router.post("resend-verification", resendVerificationEmail);
 
 // Google OAuth routes
 router.get(
