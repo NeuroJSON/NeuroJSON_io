@@ -77,7 +77,12 @@ class EmailService {
     };
 
     try {
-      await this.transporter.sendMail(mailOptions);
+      const info = await this.transporter.sendMail(mailOptions);
+      //Log preview URL in development
+      if (process.env.NODE_ENV !== "production") {
+        console.log("📧 Welcome email sent!");
+        console.log("Preview URL:", nodemailer.getTestMessageUrl(info));
+      }
       return { success: true };
     } catch (error) {
       console.error("Welcome email error:", error);

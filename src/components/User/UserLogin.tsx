@@ -16,9 +16,10 @@ import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { loginUser } from "redux/auth/auth.action";
 import { AuthSelector } from "redux/auth/auth.selector";
-import { clearError } from "redux/auth/auth.slice";
+import { clearError, isLoginErrorResponse } from "redux/auth/auth.slice";
 
 interface UserLoginProps {
   open: boolean;
@@ -32,6 +33,7 @@ const UserLogin: React.FC<UserLoginProps> = ({
   onSwitchToSignup,
 }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate(); // add
   const auth = useAppSelector(AuthSelector);
   const { loading, error: reduxError } = auth;
 
@@ -39,6 +41,7 @@ const UserLogin: React.FC<UserLoginProps> = ({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [unverifiedEmail, setUnverifiedEmail] = useState(""); // add
 
   const handleOAuthLogin = (provider: "google" | "orcid") => {
     const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
@@ -48,21 +51,43 @@ const UserLogin: React.FC<UserLoginProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setUnverifiedEmail(""); // add
     dispatch(clearError());
     const result = await dispatch(loginUser({ email, password }));
     if (loginUser.fulfilled.match(result)) {
       // Success - close modal
       handleClose();
     } else {
-      // Error - show in password field
-      setError(reduxError || "Login failed. Please try again.");
+      // ✅ NEW: Check if it's the unverified email error
+      const errorPayload = result.payload;
+
+      if (isLoginErrorResponse(errorPayload)) {
+        // Email not verified error
+        setError(errorPayload.message);
+        setUnverifiedEmail(errorPayload.email);
+      } else {
+        // Other errors (wrong password, etc.)
+        setError(
+          typeof errorPayload === "string"
+            ? errorPayload
+            : "Login failed. Please try again."
+        );
+      }
+      // setError(reduxError || "Login failed. Please try again.");
     }
+  };
+
+  // ✅ NEW: Handle resend verification
+  const handleResendVerification = () => {
+    handleClose();
+    navigate(`/resend-verification?email=${unverifiedEmail}`);
   };
 
   const handleClose = () => {
     setEmail("");
     setPassword("");
     setError("");
+    setUnverifiedEmail(""); // add
     setShowPassword(false);
     dispatch(clearError());
     onClose();
@@ -113,6 +138,27 @@ const UserLogin: React.FC<UserLoginProps> = ({
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
+              {/* ✅ NEW: Show "Resend Email" button only for unverified email error */}
+              {unverifiedEmail && (
+                <Box sx={{ mt: 1 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={handleResendVerification}
+                    fullWidth
+                    sx={{
+                      borderColor: Colors.purple,
+                      color: Colors.purple,
+                      "&:hover": {
+                        borderColor: Colors.secondaryPurple,
+                        backgroundColor: "rgba(102, 126, 234, 0.1)",
+                      },
+                    }}
+                  >
+                    Resend Verification Email
+                  </Button>
+                </Box>
+              )}
             </Alert>
           )}
           <TextField

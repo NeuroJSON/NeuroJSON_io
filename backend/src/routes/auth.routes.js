@@ -27,7 +27,7 @@ router.post("/logout", requireAuth, logout);
 
 // email verification routes
 router.get("/verify-email", verifyEmail);
-router.post("resend-verification", resendVerificationEmail);
+router.post("/resend-verification", resendVerificationEmail);
 
 // Google OAuth routes
 router.get(

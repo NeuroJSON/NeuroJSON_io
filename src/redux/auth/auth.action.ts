@@ -7,8 +7,13 @@ export const loginUser = createAsyncThunk(
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
       const response = await AuthService.login(credentials);
-      return response.user;
+      // return response.user;
+      return response;
     } catch (error: any) {
+      // Check if error has LoginErrorResponse data
+      if (error.data && error.data.requiresVerification) {
+        return rejectWithValue(error.data);
+      }
       return rejectWithValue(error.message || "Login failed");
     }
   }
@@ -44,7 +49,7 @@ export const signupUser = createAsyncThunk(
     try {
       console.log("signupdata", signupData);
       const response = await AuthService.signup(signupData);
-      return response.user;
+      return response;
     } catch (error: any) {
       return rejectWithValue(error.message || "Signup failed");
     }

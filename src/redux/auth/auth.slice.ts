@@ -4,8 +4,24 @@ import {
   logoutUser,
   signupUser,
 } from "./auth.action";
-import { IAuthState, User } from "./types/auth.interface";
+import {
+  IAuthState,
+  User,
+  LoginResponse,
+  SignupResponse,
+  LoginErrorResponse,
+} from "./types/auth.interface";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+
+// ✅ ADD: Type guard function
+export function isLoginErrorResponse(error: any): error is LoginErrorResponse {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "requiresVerification" in error &&
+    "message" in error
+  );
+}
 
 const initialState: IAuthState = {
   user: null,
@@ -29,15 +45,28 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(loginUser.fulfilled, (state, action: PayloadAction<User>) => {
-        state.loading = false;
-        state.isLoggedIn = true;
-        state.user = action.payload;
-        state.error = null;
-      })
+      .addCase(
+        loginUser.fulfilled,
+        (state, action: PayloadAction<LoginResponse>) => {
+          state.loading = false;
+          state.isLoggedIn = true;
+          state.user = action.payload.user;
+          state.error = null;
+        }
+      )
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        // state.error = action.payload as string;
+        const errorPayload = action.payload;
+
+        // Check if it's LoginErrorResponse (email not verified)
+        if (isLoginErrorResponse(errorPayload)) {
+          // TypeScript now knows errorPayload is LoginErrorResponse
+          state.error = errorPayload.message;
+          // state.unverifiedEmail = errorPayload.email;  // if you add this to state
+        } else {
+          state.error = errorPayload as string;
+        }
       })
       // Get Current User
       .addCase(getCurrentUser.pending, (state) => {
@@ -79,12 +108,23 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(signupUser.fulfilled, (state, action: PayloadAction<User>) => {
-        state.loading = false;
-        state.isLoggedIn = true;
-        state.user = action.payload;
-        state.error = null;
-      })
+      .addCase(
+        signupUser.fulfilled,
+        (state, action: PayloadAction<SignupResponse>) => {
+          state.loading = false;
+
+          // state.isLoggedIn = true;
+          // state.user = action.payload;
+          if (action.payload.requiresVerification) {
+            state.isLoggedIn = false;
+            state.user = null;
+          } else {
+            state.isLoggedIn = true;
+            state.user = action.payload.user;
+          }
+          state.error = null;
+        }
+      )
       .addCase(signupUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;

@@ -45,6 +45,10 @@ const UserSignup: React.FC<UserSignupProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
 
+  // add
+  const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
   const handleOAuthSignup = (provider: "google" | "orcid") => {
     const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
     window.location.href = `${apiUrl}/api/v1/auth/${provider}`;
@@ -88,6 +92,7 @@ const UserSignup: React.FC<UserSignupProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess(false);
     dispatch(clearError());
 
     if (!validateForm()) {
@@ -102,9 +107,36 @@ const UserSignup: React.FC<UserSignupProps> = ({
       })
     );
     if (signupUser.fulfilled.match(result)) {
-      handleClose();
+      // handleClose();
+      if (result.payload.requiresVerification) {
+        // Traditional signup - show verification message
+        setSuccess(true);
+        setSuccessMessage(
+          result.payload.message ||
+            "Registration successful! Please check your email to verify your account."
+        );
+
+        // Clear form
+        setFormData({
+          username: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+        });
+
+        // Auto-close after 5 seconds
+        setTimeout(() => {
+          handleClose();
+        }, 5000);
+      } else {
+        // OAuth signup - user is logged in, close immediately
+        handleClose();
+      }
     } else {
-      setError(reduxError || "Signup failed. Please try again.");
+      // setError(reduxError || "Signup failed. Please try again.");
+      setError(
+        (result.payload as string) || "Signup failed. Please try again."
+      );
     }
   };
 
@@ -116,6 +148,8 @@ const UserSignup: React.FC<UserSignupProps> = ({
       confirmPassword: "",
     });
     setError("");
+    setSuccess(false); // ← NEW
+    setSuccessMessage(""); // ← NEW
     setShowPassword(false);
     setShowConfirmPassword(false);
     dispatch(clearError());
@@ -164,6 +198,12 @@ const UserSignup: React.FC<UserSignupProps> = ({
       </DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+          {/* NEW: Success alert */}
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {successMessage}
+            </Alert>
+          )}
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -175,6 +215,7 @@ const UserSignup: React.FC<UserSignupProps> = ({
             value={formData.username}
             onChange={handleChange("username")}
             required
+            disabled={loading || success} // ← NEW: Disable if success
             sx={{
               mb: 2,
               "& .MuiOutlinedInput-root": {
@@ -197,6 +238,7 @@ const UserSignup: React.FC<UserSignupProps> = ({
             value={formData.email}
             onChange={handleChange("email")}
             required
+            disabled={loading || success} // ← NEW: Disable if success
             sx={{
               mb: 2,
               "& .MuiOutlinedInput-root": {
@@ -219,6 +261,7 @@ const UserSignup: React.FC<UserSignupProps> = ({
             value={formData.password}
             onChange={handleChange("password")}
             required
+            disabled={loading || success} // ← NEW: Disable if success
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -253,6 +296,7 @@ const UserSignup: React.FC<UserSignupProps> = ({
             value={formData.confirmPassword}
             onChange={handleChange("confirmPassword")}
             required
+            disabled={loading || success} // ← NEW: Disable if success
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -284,7 +328,8 @@ const UserSignup: React.FC<UserSignupProps> = ({
             type="submit"
             fullWidth
             variant="contained"
-            disabled={loading}
+            // disabled={loading}
+            disabled={loading || success} // ← NEW: Disable if success
             sx={{
               backgroundColor: Colors.purple,
               color: Colors.white,

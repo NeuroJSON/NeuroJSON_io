@@ -5,9 +5,11 @@ import DatabasePage from "pages/DatabasePage";
 import DatasetDetailPage from "pages/DatasetDetailPage";
 import DatasetPage from "pages/DatasetPage";
 import Home from "pages/Home";
+import ResendVerification from "pages/ResendVerification";
 import SearchPage from "pages/SearchPage";
 import UpdatedDatasetDetailPage from "pages/UpdatedDatasetDetailPage";
 import NewDatasetPage from "pages/UpdatedDatasetPage";
+import VerifyEmail from "pages/VerifyEmail";
 import React from "react";
 import { Navigate, Route, Routes as RouterRoutes } from "react-router-dom";
 import RoutesEnum from "types/routes.enum";
@@ -42,6 +44,10 @@ const Routes = () => (
 
         {/* About Page */}
         <Route path={RoutesEnum.ABOUT} element={<AboutPage />} />
+
+        {/* Email Verification Routes */}
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/resend-verification" element={<ResendVerification />} />
       </Route>
     </RouterRoutes>
   </>

@@ -1,10 +1,7 @@
-const jwt = require("jsonwebtoken");
 const { User } = require("../models");
 const bcrypt = require("bcrypt");
 const { setTokenCookie } = require("../middleware/auth.middleware");
 const emailService = require("../../services/email.service");
-
-const JWT_SECRET = process.env.JWT_SECRET;
 
 // register new user
 const register = async (req, res) => {
@@ -81,12 +78,7 @@ const register = async (req, res) => {
       email_verified: isOAuthSignup ? true : false, // OAuth users auto-verified
     });
 
-    // generate JWT token
-    // const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
-    //   expiresIn: "1h",
-    // });
-
-    // NEW: For traditional signup, send verification email
+    // For traditional signup, send verification email
     if (!isOAuthSignup) {
       const verificationToken = user.generateVerificationToken();
       await user.save();
@@ -111,16 +103,16 @@ const register = async (req, res) => {
       });
     }
 
-    //set suthentication cookie
+    // OAuth signup: set authentication cookie
     setTokenCookie(res, user);
 
     res.status(201).json({
       message: "User registered successfully",
-      // token,
       user: {
         id: user.id,
         username: user.username,
         email: user.email,
+        email_verified: user.email_verified,
       },
     });
   } catch (error) {

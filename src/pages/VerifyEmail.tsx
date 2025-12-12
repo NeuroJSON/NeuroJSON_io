@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getCurrentUser } from "redux/auth/auth.action";
 
@@ -25,7 +25,14 @@ const VerifyEmail: React.FC = () => {
   const [message, setMessage] = useState("");
   const [isExpired, setIsExpired] = useState(false);
 
+  //add
+  const hasVerified = useRef(false);
+
   useEffect(() => {
+    // prevent duplicate verification attempts
+    if (hasVerified.current) {
+      return;
+    }
     const verifyEmail = async () => {
       const token = searchParams.get("token");
       if (!token) {
@@ -33,6 +40,9 @@ const VerifyEmail: React.FC = () => {
         setMessage("No verification token provided");
         return;
       }
+      //mark as processing
+      hasVerified.current = true;
+
       try {
         const response = await fetch(
           `${
