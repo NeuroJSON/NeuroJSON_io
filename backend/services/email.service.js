@@ -157,10 +157,12 @@ class EmailService {
             <p>Your email has been verified successfully! Welcome to the NeuroJSON.io community.</p>
             <p>You can now:</p>
             <ul>
-              <li>Browse and search neuroscience datasets</li>
-              <li>Upload and share your own data</li>
-              <li>Save and like datasets</li>
-              <li>Comment and collaborate</li>
+              <li>Browse and search neuroimaging datasets</li>
+              <li>Preview data in-browser without downloading</li>
+              <li>Download datasets via UI or REST API</li>
+              <li>Save and like your favorite datasets</li>
+              <li>Comment on datasets and share feedback</li>
+              <li>Share search results or datasets with shareable links</li>
             </ul>
             <div style="text-align: center;">
               <a href="${
