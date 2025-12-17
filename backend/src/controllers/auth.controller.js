@@ -6,8 +6,18 @@ const emailService = require("../../services/email.service");
 // register new user
 const register = async (req, res) => {
   try {
-    const { username, email, password, orcid_id, google_id, github_id } =
-      req.body;
+    const {
+      username,
+      email,
+      password,
+      orcid_id,
+      google_id,
+      github_id,
+      firstName,
+      lastName,
+      company,
+      interests,
+    } = req.body;
 
     // check if OAuth or traditional signup
     const isOAuthSignup = orcid_id || google_id || github_id;
@@ -16,6 +26,13 @@ const register = async (req, res) => {
     if (!username || !email) {
       return res.status(400).json({
         message: "Username and email are required",
+      });
+    }
+
+    // NEW: Validate profile fields for traditional signup
+    if (!isOAuthSignup && (!firstName || !lastName || !company)) {
+      return res.status(400).json({
+        message: "First name, last name, and company/institution are required",
       });
     }
 
@@ -76,6 +93,10 @@ const register = async (req, res) => {
       google_id: google_id || null,
       github_id: github_id || null,
       email_verified: isOAuthSignup ? true : false, // OAuth users auto-verified
+      first_name: firstName || "", // NEW
+      last_name: lastName || "", // NEW
+      company: company || "", // NEW
+      interests: interests || null, // NEW
     });
 
     // For traditional signup, send verification email
@@ -98,6 +119,10 @@ const register = async (req, res) => {
           username: user.username,
           email: user.email,
           email_verified: user.email_verified,
+          firstName: user.first_name, // NEW
+          lastName: user.last_name, // NEW
+          company: user.company, // NEW
+          interests: user.interests, // NEW
         },
         requiresVerification: true,
       });
@@ -113,6 +138,10 @@ const register = async (req, res) => {
         username: user.username,
         email: user.email,
         email_verified: user.email_verified,
+        firstName: user.first_name, // NEW
+        lastName: user.last_name, // NEW
+        company: user.company, // NEW
+        interests: user.interests, // NEW
       },
     });
   } catch (error) {
@@ -178,10 +207,6 @@ const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // generate JWT token
-    // const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
-    //   expiresIn: "1h",
-    // });
     // NEW: Check if email is verified
     if (!user.email_verified) {
       return res.status(403).json({
@@ -228,7 +253,11 @@ const getCurrentUser = async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        email_verified: user.email_verified, // NEW
+        email_verified: user.email_verified,
+        firstName: user.first_name, // NEW
+        lastName: user.last_name, // NEW
+        company: user.company, // NEW
+        interests: user.interests, // NEW
         created_at: user.created_at,
         updated_at: user.updated_at,
       },
@@ -330,10 +359,92 @@ const resendVerificationEmail = async (req, res) => {
   }
 };
 
+// NEW: Complete profile for OAuth users
+const completeProfile = async (req, res) => {
+  try {
+    const { token, firstName, lastName, company, interests } = req.body;
+
+    // Validate token
+    const jwt = require("jsonwebtoken");
+    const JWT_SECRET = process.env.JWT_SECRET;
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+      if (decoded.purpose !== "profile_completion") {
+        return res.status(401).json({ message: "Invalid token" });
+      }
+    } catch (error) {
+      return res.status(401).json({
+        message: "Token expired or invalid. Please sign in again.",
+      });
+    }
+
+    // Validate input
+    if (!firstName || !lastName || !company) {
+      return res.status(400).json({
+        message: "First name, last name, and company/institution are required",
+      });
+    }
+
+    // Validate field lengths
+    if (firstName.trim().length < 1 || firstName.trim().length > 255) {
+      return res
+        .status(400)
+        .json({ message: "First name must be between 1 and 255 characters" });
+    }
+    if (lastName.trim().length < 1 || lastName.trim().length > 255) {
+      return res
+        .status(400)
+        .json({ message: "Last name must be between 1 and 255 characters" });
+    }
+    if (company.trim().length < 1 || company.trim().length > 255) {
+      return res
+        .status(400)
+        .json({
+          message: "Company/institution must be between 1 and 255 characters",
+        });
+    }
+
+    // Find and update user
+    const user = await User.findByPk(decoded.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update profile
+    user.first_name = firstName.trim();
+    user.last_name = lastName.trim();
+    user.company = company.trim();
+    user.interests = interests ? interests.trim() : null;
+    await user.save();
+
+    // Now set the actual login cookie
+    setTokenCookie(res, user);
+
+    res.json({
+      message: "Profile completed successfully",
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        company: user.company,
+        interests: user.interests,
+      },
+    });
+  } catch (error) {
+    console.error("Complete profile error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   register,
   login,
   getCurrentUser,
   logout,
-  resendVerificationEmail, // NEW
+  resendVerificationEmail,
+  completeProfile, // New
 };
