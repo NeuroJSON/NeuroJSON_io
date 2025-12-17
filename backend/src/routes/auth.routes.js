@@ -7,6 +7,8 @@ const {
   getCurrentUser,
   logout,
   resendVerificationEmail,
+  completeProfile,
+  changePassword,
 } = require("../controllers/auth.controller");
 const { verifyEmail } = require("../controllers/verification.controller");
 const {

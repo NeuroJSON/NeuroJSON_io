@@ -399,11 +399,9 @@ const completeProfile = async (req, res) => {
         .json({ message: "Last name must be between 1 and 255 characters" });
     }
     if (company.trim().length < 1 || company.trim().length > 255) {
-      return res
-        .status(400)
-        .json({
-          message: "Company/institution must be between 1 and 255 characters",
-        });
+      return res.status(400).json({
+        message: "Company/institution must be between 1 and 255 characters",
+      });
     }
 
     // Find and update user
@@ -440,6 +438,58 @@ const completeProfile = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = req.user;
+
+    // Validation
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        message: "Current password and new password are required",
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        message: "New password must be at least 8 characters long",
+      });
+    }
+
+    // Check if user has a password (OAuth users don't)
+    if (!user.hashed_password) {
+      return res.status(400).json({
+        message:
+          "Cannot change password for OAuth accounts. Please use your OAuth provider.",
+      });
+    }
+
+    // Verify current password
+    const isValid = await user.comparePassword(currentPassword);
+    if (!isValid) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    // Check if new password is same as current
+    const isSameAsOld = await user.comparePassword(newPassword);
+    if (isSameAsOld) {
+      return res.status(400).json({
+        message: "New password must be different from current password",
+      });
+    }
+
+    // Hash and save new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.hashed_password = hashedPassword;
+    await user.save();
+
+    res.json({ message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Password change error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -447,4 +497,5 @@ module.exports = {
   logout,
   resendVerificationEmail,
   completeProfile, // New
+  changePassword, // New
 };
