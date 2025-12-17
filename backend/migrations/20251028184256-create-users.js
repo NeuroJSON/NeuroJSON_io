@@ -59,6 +59,32 @@ module.exports = {
         type: Sequelize.DATE,
         allowNull: true,
       },
+      // NEW FIELDS FOR PASSWORD RESET
+      reset_password_token: {
+        type: Sequelize.STRING(255),
+        allowNull: true,
+        unique: true,
+      },
+      reset_password_expires: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+      first_name: {
+        type: Sequelize.STRING(255),
+        allowNull: false,
+      },
+      last_name: {
+        type: Sequelize.STRING(255),
+        allowNull: false,
+      },
+      company: {
+        type: Sequelize.STRING(255),
+        allowNull: false,
+      },
+      interests: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
       created_at: {
         type: Sequelize.DATE,
         allowNull: false,
