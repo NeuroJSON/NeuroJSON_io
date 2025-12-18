@@ -1,5 +1,6 @@
 const { User } = require("../models");
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
 const { setTokenCookie } = require("../middleware/auth.middleware");
 const emailService = require("../../services/email.service");
 
@@ -527,6 +528,58 @@ const forgotPassword = async (req, res) => {
   }
 };
 
+const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.query;
+    const { password } = req.body;
+
+    // Validation
+    if (!token) {
+      return res.status(400).json({ message: "Token is required" });
+    }
+
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters long",
+      });
+    }
+
+    // Hash the token to match what's stored in database
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    // Find user with this hashed token and non-expired timestamp
+    const user = await User.findOne({
+      where: {
+        reset_password_token: hashedToken,
+        reset_password_expires: { [Op.gt]: new Date() },
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid or expired password reset token",
+      });
+    }
+
+    // Update password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.hashed_password = hashedPassword;
+    user.clearResetPasswordToken();
+    await user.save();
+
+    res.json({
+      message: "Password has been reset successfully. You can now log in.",
+    });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -536,4 +589,5 @@ module.exports = {
   completeProfile, // New
   changePassword, // New
   forgotPassword, // New
+  resetPassword, // New
 };
