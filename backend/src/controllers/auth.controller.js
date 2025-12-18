@@ -490,6 +490,43 @@ const changePassword = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ where: { email } });
+
+    const successMessage =
+      "If an account with that email exists, a password reset link has been sent.";
+
+    if (!user || !user.hashed_password) {
+      return res.json({ message: successMessage });
+    }
+
+    const resetToken = user.generateResetPasswordToken();
+    await user.save();
+
+    const resetUrl = `${
+      process.env.FRONTEND_URL || "http://localhost:3000"
+    }/reset-password?token=${resetToken}`;
+
+    await emailService.sendPasswordResetEmail(
+      user.email,
+      resetUrl,
+      user.first_name
+    );
+
+    res.json({ message: successMessage });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -498,4 +535,5 @@ module.exports = {
   resendVerificationEmail,
   completeProfile, // New
   changePassword, // New
+  forgotPassword, // New
 };
