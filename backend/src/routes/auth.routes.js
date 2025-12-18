@@ -9,6 +9,8 @@ const {
   resendVerificationEmail,
   completeProfile,
   changePassword,
+  forgotPassword,
+  resetPassword,
 } = require("../controllers/auth.controller");
 const { verifyEmail } = require("../controllers/verification.controller");
 const {
@@ -30,6 +32,14 @@ router.post("/logout", requireAuth, logout);
 // email verification routes
 router.get("/verify-email", verifyEmail);
 router.post("/resend-verification", resendVerificationEmail);
+
+// NEW: Password management routes
+router.post("/change-password", requireAuth, changePassword);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
+
+// NEW: OAuth profile completion route
+router.post("/complete-profile", completeProfile);
 
 // Google OAuth routes
 router.get(
