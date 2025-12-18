@@ -78,6 +78,11 @@ class User extends Model {
     this.reset_password_expires = null;
   }
 
+  // NEW: Check if profile needs completion
+  needsProfileCompletion() {
+    return !this.first_name || !this.last_name || !this.company;
+  }
+
   // Get full name
   getFullName() {
     return `${this.first_name} ${this.last_name}`;
