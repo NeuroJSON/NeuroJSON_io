@@ -22,6 +22,10 @@ passport.use(
         const googleId = profile.id;
         const username = profile.displayName || email.split("@")[0];
 
+        // NEW: Extract name from Google profile
+        const firstName = profile.name?.givenName || "";
+        const lastName = profile.name?.familyName || "";
+
         // Check if user already exists with this Google ID
         let user = await User.findOne({
           where: { google_id: googleId },
@@ -40,6 +44,9 @@ passport.use(
         if (user) {
           // User exists with email but no Google ID - link the accounts
           user.google_id = googleId;
+          // NEW: Update profile fields if they were empty
+          if (!user.first_name && firstName) user.first_name = firstName;
+          if (!user.last_name && lastName) user.last_name = lastName;
           await user.save();
           return done(null, user);
         }
@@ -51,6 +58,10 @@ passport.use(
           google_id: googleId,
           hashed_password: null, // OAuth users don't have passwords
           email_verified: true,
+          // Set from Google profile, or empty string if not available
+          first_name: firstName || "",
+          last_name: lastName || "",
+          company: "", // Always empty for new OAuth users - must be completed
         });
 
         return done(null, user);
