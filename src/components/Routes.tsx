@@ -1,4 +1,5 @@
 import ScrollToTop from "./ScrollToTop";
+import CompleteProfile from "./User/CompleteProfile";
 import FullScreen from "design/Layouts/FullScreen";
 import AboutPage from "pages/AboutPage";
 import DatabasePage from "pages/DatabasePage";
@@ -48,6 +49,8 @@ const Routes = () => (
         {/* Email Verification Routes */}
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/resend-verification" element={<ResendVerification />} />
+
+        <Route path="/complete-profile" element={<CompleteProfile />} />
       </Route>
     </RouterRoutes>
   </>
