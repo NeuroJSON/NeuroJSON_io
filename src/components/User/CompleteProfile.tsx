@@ -72,8 +72,11 @@ const CompleteProfile: React.FC = () => {
       );
 
       // Profile completed successfully, redirect to home
-      navigate("/?auth=success");
-      window.location.reload(); // Reload to update auth state
+      // navigate("/?auth=success");
+      // window.location.reload(); // Reload to update auth state
+      // Use PUBLIC_URL to get the correct base path
+      const baseUrl = process.env.PUBLIC_URL || "";
+      window.location.href = `${baseUrl}/?auth=success`;
     } catch (err: unknown) {
       //   setError(err.response?.data?.message || 'Failed to complete profile');
       if (axios.isAxiosError(err)) {
