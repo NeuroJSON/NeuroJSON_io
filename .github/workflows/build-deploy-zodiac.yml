@@ -35,7 +35,7 @@ jobs:
           echo "Building for /dev/${{ env.BRANCH_NAME }}/"
           # PUBLIC_URL="/dev/${{ env.BRANCH_NAME }}/" yarn build
           export PUBLIC_URL="/dev/${{ env.BRANCH_NAME }}/"
-          export REACT_APP_API_URL="/dev/${{ env.BRANCH_NAME }}"
+          export REACT_APP_API_URL="/dev/${{ env.BRANCH_NAME }}/api/v1"
           yarn build
 
       - name: Copy JS libraries (jdata, bjdata etc.)

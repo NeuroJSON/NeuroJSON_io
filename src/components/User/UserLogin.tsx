@@ -44,8 +44,9 @@ const UserLogin: React.FC<UserLoginProps> = ({
   const [unverifiedEmail, setUnverifiedEmail] = useState(""); // add
 
   const handleOAuthLogin = (provider: "google" | "orcid") => {
-    const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
-    window.location.href = `${apiUrl}/api/v1/auth/${provider}`;
+    const apiUrl =
+      process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
+    window.location.href = `${apiUrl}/auth/${provider}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

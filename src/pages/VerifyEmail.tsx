@@ -46,8 +46,8 @@ const VerifyEmail: React.FC = () => {
       try {
         const response = await fetch(
           `${
-            process.env.REACT_APP_API_URL || "http://localhost:5000"
-          }/api/v1/auth/verify-email?token=${token}`,
+            process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1"
+          }/auth/verify-email?token=${token}`,
           {
             method: "GET",
             credentials: "include",

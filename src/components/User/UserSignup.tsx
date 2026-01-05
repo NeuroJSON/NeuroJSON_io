@@ -50,8 +50,9 @@ const UserSignup: React.FC<UserSignupProps> = ({
   const [successMessage, setSuccessMessage] = useState("");
 
   const handleOAuthSignup = (provider: "google" | "orcid") => {
-    const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
-    window.location.href = `${apiUrl}/api/v1/auth/${provider}`;
+    const apiUrl =
+      process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
+    window.location.href = `${apiUrl}/auth/${provider}`;
   };
 
   const handleChange =

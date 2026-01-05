@@ -63,8 +63,8 @@ const CompleteProfile: React.FC = () => {
     try {
       await axios.post(
         `${
-          process.env.REACT_APP_API_URL || "http://localhost:5000"
-        }/api/v1/auth/complete-profile`,
+          process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1"
+        }/auth/complete-profile`,
         {
           token,
           ...formData,
