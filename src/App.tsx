@@ -76,7 +76,8 @@ function AuthHandler() {
 
       // Clean up URL - this removes it from history
       // window.history.replaceState({}, "", window.location.pathname);
-      navigate(window.location.pathname, { replace: true });
+      // navigate(window.location.pathname, { replace: true });
+      navigate(location.pathname, { replace: true });
     }
   }, [location.search, dispatch, navigate]);
 
