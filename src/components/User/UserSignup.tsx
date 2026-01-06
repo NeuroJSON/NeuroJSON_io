@@ -119,7 +119,6 @@ const UserSignup: React.FC<UserSignupProps> = ({
       })
     );
     if (signupUser.fulfilled.match(result)) {
-      // handleClose();
       if (result.payload.requiresVerification) {
         // Traditional signup - show verification message
         setSuccess(true);
@@ -219,17 +218,6 @@ const UserSignup: React.FC<UserSignupProps> = ({
       </DialogTitle>
       <DialogContent>
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-          {/* NEW: Success alert */}
-          {success && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {successMessage}
-            </Alert>
-          )}
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
           <TextField
             fullWidth
             label="Username"
@@ -441,6 +429,18 @@ const UserSignup: React.FC<UserSignupProps> = ({
               },
             }}
           />
+
+          {/* Success / error alert */}
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {successMessage}
+            </Alert>
+          )}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
           <Button
             type="submit"
             fullWidth

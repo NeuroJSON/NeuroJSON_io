@@ -47,7 +47,6 @@ export const signupUser = createAsyncThunk(
   "auth/register",
   async (signupData: SignupData, { rejectWithValue }) => {
     try {
-      console.log("signupdata", signupData);
       const response = await AuthService.signup(signupData);
       return response;
     } catch (error: any) {
