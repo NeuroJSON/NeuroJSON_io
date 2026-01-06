@@ -3,6 +3,10 @@ export interface User {
   username: string;
   email: string;
   email_verified: boolean;
+  firstName?: string;
+  lastName?: string;
+  company?: string;
+  interests?: string;
   created_at?: string; //  (optional)
   updated_at?: string; //  (optional)
   google_id?: string; //  (optional, for OAuth)
@@ -19,6 +23,10 @@ export interface SignupData {
   username: string;
   email: string;
   password: string;
+  firstName: string; // ← NEW
+  lastName: string; // ← NEW
+  company: string; // ← NEW
+  interests?: string; // ← NEW
 }
 
 // export interface AuthResponse {
