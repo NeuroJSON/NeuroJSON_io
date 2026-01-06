@@ -38,6 +38,10 @@ const UserSignup: React.FC<UserSignupProps> = ({
   const [formData, setFormData] = useState({
     username: "",
     email: "",
+    firstName: "", // ← NEW
+    lastName: "", // ← NEW
+    company: "", // ← NEW
+    interests: "", // ← NEW (optional)
     password: "",
     confirmPassword: "",
   });
@@ -64,6 +68,9 @@ const UserSignup: React.FC<UserSignupProps> = ({
     if (
       !formData.username ||
       !formData.email ||
+      !formData.firstName || // ← NEW
+      !formData.lastName || // ← NEW
+      !formData.company || // ← NEW
       !formData.password ||
       !formData.confirmPassword
     ) {
@@ -105,6 +112,10 @@ const UserSignup: React.FC<UserSignupProps> = ({
         username: formData.username,
         email: formData.email,
         password: formData.password,
+        firstName: formData.firstName, // ← NEW
+        lastName: formData.lastName, // ← NEW
+        company: formData.company, // ← NEW
+        interests: formData.interests, // ← NEW
       })
     );
     if (signupUser.fulfilled.match(result)) {
@@ -121,6 +132,10 @@ const UserSignup: React.FC<UserSignupProps> = ({
         setFormData({
           username: "",
           email: "",
+          firstName: "", // ← NEW
+          lastName: "", // ← NEW
+          company: "", // ← NEW
+          interests: "", // ← NEW
           password: "",
           confirmPassword: "",
         });
@@ -145,6 +160,10 @@ const UserSignup: React.FC<UserSignupProps> = ({
     setFormData({
       username: "",
       email: "",
+      firstName: "", // ← NEW
+      lastName: "", // ← NEW
+      company: "", // ← NEW
+      interests: "", // ← NEW
       password: "",
       confirmPassword: "",
     });
@@ -173,6 +192,7 @@ const UserSignup: React.FC<UserSignupProps> = ({
           backgroundColor: Colors.white,
           color: Colors.darkPurple,
           borderRadius: 2,
+          maxHeight: "90vh", // Allow scrolling if content is too tall
         },
       }}
     >
@@ -240,6 +260,102 @@ const UserSignup: React.FC<UserSignupProps> = ({
             onChange={handleChange("email")}
             required
             disabled={loading || success} // ← NEW: Disable if success
+            sx={{
+              mb: 2,
+              "& .MuiOutlinedInput-root": {
+                color: Colors.darkPurple,
+                "& fieldset": { borderColor: Colors.primary.light },
+                "&:hover fieldset": { borderColor: Colors.purple },
+                "&.Mui-focused fieldset": { borderColor: Colors.purple },
+              },
+              "& .MuiInputLabel-root": {
+                color: Colors.primary.light,
+                "&.Mui-focused": { color: Colors.purple },
+              },
+            }}
+          />
+
+          {/* First Name - NEW */}
+          <TextField
+            fullWidth
+            label="First Name"
+            value={formData.firstName}
+            onChange={handleChange("firstName")}
+            required
+            disabled={loading || success}
+            sx={{
+              mb: 2,
+              "& .MuiOutlinedInput-root": {
+                color: Colors.darkPurple,
+                "& fieldset": { borderColor: Colors.primary.light },
+                "&:hover fieldset": { borderColor: Colors.purple },
+                "&.Mui-focused fieldset": { borderColor: Colors.purple },
+              },
+              "& .MuiInputLabel-root": {
+                color: Colors.primary.light,
+                "&.Mui-focused": { color: Colors.purple },
+              },
+            }}
+          />
+
+          {/* Last Name - NEW */}
+          <TextField
+            fullWidth
+            label="Last Name"
+            value={formData.lastName}
+            onChange={handleChange("lastName")}
+            required
+            disabled={loading || success}
+            sx={{
+              mb: 2,
+              "& .MuiOutlinedInput-root": {
+                color: Colors.darkPurple,
+                "& fieldset": { borderColor: Colors.primary.light },
+                "&:hover fieldset": { borderColor: Colors.purple },
+                "&.Mui-focused fieldset": { borderColor: Colors.purple },
+              },
+              "& .MuiInputLabel-root": {
+                color: Colors.primary.light,
+                "&.Mui-focused": { color: Colors.purple },
+              },
+            }}
+          />
+
+          {/* Institute - NEW */}
+          <TextField
+            fullWidth
+            label="Company/Institute"
+            value={formData.company}
+            onChange={handleChange("company")}
+            required
+            disabled={loading || success}
+            helperText="Your university, research institution, or company"
+            sx={{
+              mb: 2,
+              "& .MuiOutlinedInput-root": {
+                color: Colors.darkPurple,
+                "& fieldset": { borderColor: Colors.primary.light },
+                "&:hover fieldset": { borderColor: Colors.purple },
+                "&.Mui-focused fieldset": { borderColor: Colors.purple },
+              },
+              "& .MuiInputLabel-root": {
+                color: Colors.primary.light,
+                "&.Mui-focused": { color: Colors.purple },
+              },
+            }}
+          />
+
+          {/* Research Interests - NEW (Optional) */}
+          <TextField
+            fullWidth
+            label="Research Interests (Optional)"
+            value={formData.interests}
+            onChange={handleChange("interests")}
+            disabled={loading || success}
+            multiline
+            rows={2}
+            placeholder="e.g., fMRI, EEG, fNIRS, Neuroimaging"
+            helperText="What areas of neuroscience research are you interested in?"
             sx={{
               mb: 2,
               "& .MuiOutlinedInput-root": {
