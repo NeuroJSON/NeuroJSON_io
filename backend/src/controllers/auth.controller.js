@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const { setTokenCookie } = require("../middleware/auth.middleware");
 const emailService = require("../../services/email.service");
+const { Op } = require("sequelize");
 
 // register new user
 const register = async (req, res) => {
