@@ -4,6 +4,8 @@ import {
   logoutUser,
   signupUser,
   changePassword,
+  forgotPassword,
+  resetPassword,
 } from "./auth.action";
 import {
   IAuthState,
@@ -11,6 +13,8 @@ import {
   LoginResponse,
   SignupResponse,
   LoginErrorResponse,
+  ForgotPasswordResponse,
+  ResetPasswordResponse,
 } from "./types/auth.interface";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
@@ -141,6 +145,34 @@ const authSlice = createSlice({
         // Password changed successfully - no state update needed
       })
       .addCase(changePassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Forgot Password
+      .addCase(forgotPassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(forgotPassword.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null;
+        // Success - no state update needed
+      })
+      .addCase(forgotPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Reset Password
+      .addCase(resetPassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(resetPassword.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null;
+        // Success - no state update needed
+      })
+      .addCase(resetPassword.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

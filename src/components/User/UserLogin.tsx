@@ -204,7 +204,8 @@ const UserLogin: React.FC<UserLoginProps> = ({
               ),
             }}
             sx={{
-              mb: 3,
+              // mb: 3,
+              mb: 1,
               "& .MuiOutlinedInput-root": {
                 color: Colors.darkPurple,
                 "& fieldset": { borderColor: Colors.primary.light },
@@ -217,6 +218,28 @@ const UserLogin: React.FC<UserLoginProps> = ({
               },
             }}
           />
+
+          {/* FORGOT PASSWORD LINK */}
+          <Box sx={{ textAlign: "right", mb: 3 }}>
+            <Typography
+              component="span"
+              sx={{
+                color: Colors.purple,
+                cursor: "pointer",
+                fontSize: "0.875rem",
+                "&:hover": {
+                  textDecoration: "underline",
+                  color: Colors.secondaryPurple,
+                },
+              }}
+              onClick={() => {
+                handleClose(); // Close the modal
+                navigate("/forgot-password"); // Navigate to forgot password page
+              }}
+            >
+              Forgot Password?
+            </Typography>
+          </Box>
           <Button
             type="submit"
             fullWidth

@@ -1,5 +1,7 @@
 import ScrollToTop from "./ScrollToTop";
 import CompleteProfile from "./User/CompleteProfile";
+import ForgotPassword from "./User/ForgotPassword";
+import ResetPassword from "./User/ResetPassword";
 import UserDashboard from "./User/UserDashboard";
 import FullScreen from "design/Layouts/FullScreen";
 import AboutPage from "pages/AboutPage";
@@ -52,6 +54,10 @@ const Routes = () => (
         <Route path="/resend-verification" element={<ResendVerification />} />
 
         <Route path="/complete-profile" element={<CompleteProfile />} />
+
+        {/* forgot and reset password page */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Dashboard Page */}
         <Route path={RoutesEnum.DASHBOARD} element={<UserDashboard />} />

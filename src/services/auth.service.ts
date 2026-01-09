@@ -6,6 +6,10 @@ import {
   SignupData,
   User,
   ChangePasswordData,
+  ForgotPasswordData,
+  ForgotPasswordResponse,
+  ResetPasswordData,
+  ResetPasswordResponse,
 } from "redux/auth/types/auth.interface";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
@@ -98,5 +102,49 @@ export const AuthService = {
     }
 
     return data.message;
+  },
+  forgotPassword: async (
+    data: ForgotPasswordData
+  ): Promise<ForgotPasswordResponse> => {
+    const response = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(data),
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      throw new Error(responseData.message || "Failed to send reset email");
+    }
+
+    return responseData;
+  },
+
+  resetPassword: async (
+    data: ResetPasswordData
+  ): Promise<ResetPasswordResponse> => {
+    const response = await fetch(
+      `${API_URL}/auth/reset-password?token=${data.token}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ password: data.password }),
+      }
+    );
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      throw new Error(responseData.message || "Failed to reset password");
+    }
+
+    return responseData;
   },
 };

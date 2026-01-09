@@ -58,3 +58,20 @@ export interface ChangePasswordData {
   currentPassword: string;
   newPassword: string;
 }
+
+export interface ForgotPasswordData {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
+export interface ResetPasswordData {
+  token: string;
+  password: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+}

@@ -15,18 +15,6 @@ import { useAppDispatch } from "hooks/useAppDispatch";
 import React, { useState } from "react";
 import { changePassword } from "redux/auth/auth.action";
 
-// interface User {
-//   id: number;
-//   username: string;
-//   email: string;
-//   firstName?: string;
-//   lastName?: string;
-//   company?: string;
-//   interests?: string;
-//   email_verified: boolean;
-//   isOAuthUser: boolean;
-// }
-
 interface SecurityTabProps {
   user: User;
 }
@@ -49,8 +37,6 @@ const SecurityTab: React.FC<SecurityTabProps> = ({ user }) => {
   const [validationErrors, setValidationErrors] = useState<{
     [key: string]: string;
   }>({});
-  console.log("current user", user);
-  console.log("user.isOAuthUser value:", user.isOAuthUser);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

@@ -2,6 +2,8 @@ import {
   LoginCredentials,
   SignupData,
   ChangePasswordData,
+  ForgotPasswordData,
+  ResetPasswordData,
 } from "./types/auth.interface";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { AuthService } from "services/auth.service";
@@ -67,6 +69,30 @@ export const changePassword = createAsyncThunk(
       return message;
     } catch (error: any) {
       return rejectWithValue(error.message || "Failed to change password");
+    }
+  }
+);
+
+export const forgotPassword = createAsyncThunk(
+  "auth/forgotPassword",
+  async (data: ForgotPasswordData, { rejectWithValue }) => {
+    try {
+      const response = await AuthService.forgotPassword(data);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to send reset email");
+    }
+  }
+);
+
+export const resetPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async (data: ResetPasswordData, { rejectWithValue }) => {
+    try {
+      const response = await AuthService.resetPassword(data);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to reset password");
     }
   }
 );
