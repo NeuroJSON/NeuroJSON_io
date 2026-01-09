@@ -1,4 +1,8 @@
-import { LoginCredentials, SignupData } from "./types/auth.interface";
+import {
+  LoginCredentials,
+  SignupData,
+  ChangePasswordData,
+} from "./types/auth.interface";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { AuthService } from "services/auth.service";
 
@@ -51,6 +55,18 @@ export const signupUser = createAsyncThunk(
       return response;
     } catch (error: any) {
       return rejectWithValue(error.message || "Signup failed");
+    }
+  }
+);
+
+export const changePassword = createAsyncThunk(
+  "auth/changePassword",
+  async (passwordData: ChangePasswordData, { rejectWithValue }) => {
+    try {
+      const message = await AuthService.changePassword(passwordData);
+      return message;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to change password");
     }
   }
 );

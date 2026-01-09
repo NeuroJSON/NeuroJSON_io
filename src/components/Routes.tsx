@@ -1,5 +1,6 @@
 import ScrollToTop from "./ScrollToTop";
 import CompleteProfile from "./User/CompleteProfile";
+import UserDashboard from "./User/UserDashboard";
 import FullScreen from "design/Layouts/FullScreen";
 import AboutPage from "pages/AboutPage";
 import DatabasePage from "pages/DatabasePage";
@@ -51,6 +52,9 @@ const Routes = () => (
         <Route path="/resend-verification" element={<ResendVerification />} />
 
         <Route path="/complete-profile" element={<CompleteProfile />} />
+
+        {/* Dashboard Page */}
+        <Route path={RoutesEnum.DASHBOARD} element={<UserDashboard />} />
       </Route>
     </RouterRoutes>
   </>

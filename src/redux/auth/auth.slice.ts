@@ -3,6 +3,7 @@ import {
   getCurrentUser,
   logoutUser,
   signupUser,
+  changePassword,
 } from "./auth.action";
 import {
   IAuthState,
@@ -13,7 +14,7 @@ import {
 } from "./types/auth.interface";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-// ✅ ADD: Type guard function
+// Type guard function
 export function isLoginErrorResponse(error: any): error is LoginErrorResponse {
   return (
     typeof error === "object" &&
@@ -126,6 +127,20 @@ const authSlice = createSlice({
         }
       )
       .addCase(signupUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Change Password
+      .addCase(changePassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(changePassword.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null;
+        // Password changed successfully - no state update needed
+      })
+      .addCase(changePassword.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

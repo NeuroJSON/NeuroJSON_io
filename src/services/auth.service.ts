@@ -1,11 +1,11 @@
 import {
-  // AuthResponse,
-  SignupResponse, // ← Changed from AuthResponse
-  LoginResponse, // ← Added
-  LoginErrorResponse, // ← Added
+  SignupResponse,
+  LoginResponse,
+  LoginErrorResponse,
   LoginCredentials,
   SignupData,
   User,
+  ChangePasswordData,
 } from "redux/auth/types/auth.interface";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
@@ -80,5 +80,23 @@ export const AuthService = {
     }
 
     return data;
+  },
+  changePassword: async (passwordData: ChangePasswordData): Promise<string> => {
+    const response = await fetch(`${API_URL}/auth/change-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(passwordData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to change password");
+    }
+
+    return data.message;
   },
 };

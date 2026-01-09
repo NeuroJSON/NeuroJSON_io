@@ -176,9 +176,7 @@ const UserButton: React.FC<UserButtonProps> = ({
                 />
               </>
             )}
-            <MenuItem
-            // onClick={() => handleMenuItemClick(RoutesEnum.DASHBOARD)}
-            >
+            <MenuItem onClick={() => handleMenuItemClick(RoutesEnum.DASHBOARD)}>
               <ListItemIcon>
                 <Dashboard sx={{ color: Colors.darkPurple }} />
               </ListItemIcon>

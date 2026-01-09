@@ -7,6 +7,7 @@ export interface User {
   lastName?: string;
   company?: string;
   interests?: string;
+  isOAuthUser?: boolean;
   created_at?: string; //  (optional)
   updated_at?: string; //  (optional)
   google_id?: string; //  (optional, for OAuth)
@@ -28,12 +29,6 @@ export interface SignupData {
   company: string; // ← NEW
   interests?: string; // ← NEW
 }
-
-// export interface AuthResponse {
-//   message: string;
-//   user: User;
-//   requiresVerification?: boolean;
-// }
 
 export interface SignupResponse {
   message: string;
@@ -57,4 +52,9 @@ export interface IAuthState {
   isLoggedIn: boolean;
   loading: boolean;
   error: string | null;
+}
+
+export interface ChangePasswordData {
+  currentPassword: string;
+  newPassword: string;
 }

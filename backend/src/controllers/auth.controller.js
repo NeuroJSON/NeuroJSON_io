@@ -256,10 +256,11 @@ const getCurrentUser = async (req, res) => {
         username: user.username,
         email: user.email,
         email_verified: user.email_verified,
-        firstName: user.first_name, // NEW
-        lastName: user.last_name, // NEW
-        company: user.company, // NEW
-        interests: user.interests, // NEW
+        firstName: user.first_name,
+        lastName: user.last_name,
+        company: user.company,
+        interests: user.interests,
+        isOAuthUser: !!(user.google_id || user.orcid_id || user.github_id), // new
         created_at: user.created_at,
         updated_at: user.updated_at,
       },
@@ -271,32 +272,6 @@ const getCurrentUser = async (req, res) => {
       error: error.message,
     });
   }
-
-  // try {
-  //   const userId = req.userId;
-  //   const user = await User.findByPk(userId, {
-  //     attributes: [
-  //       "id",
-  //       "username",
-  //       "email",
-  //       "created_at",
-  //       "orcid_id",
-  //       "google_id",
-  //       "github_id",
-  //     ],
-  //   });
-  //   if (!user) {
-  //     return res.status(404).json({
-  //       message: "User not found",
-  //     });
-  //   }
-  //   res.status(200).json({ user });
-  // } catch (error) {
-  //   console.error("Get current user error:", error);
-  //   res
-  //     .status(500)
-  //     .json({ message: "Error fetching user", error: error.message });
-  // }
 };
 
 // logout user
@@ -587,8 +562,8 @@ module.exports = {
   getCurrentUser,
   logout,
   resendVerificationEmail,
-  completeProfile, // New
-  changePassword, // New
+  completeProfile,
+  changePassword,
   forgotPassword, // New
-  resetPassword, // New
+  resetPassword,
 };
