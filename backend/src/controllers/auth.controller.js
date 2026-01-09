@@ -418,7 +418,7 @@ const completeProfile = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const user = req.user;
+    // const user = req.user;
 
     // Validation
     if (!currentPassword || !newPassword) {
@@ -430,6 +430,15 @@ const changePassword = async (req, res) => {
     if (newPassword.length < 8) {
       return res.status(400).json({
         message: "New password must be at least 8 characters long",
+      });
+    }
+
+    // REFETCH user with hashed_password field
+    // req.user only has basic info, we need to load the password field
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
       });
     }
 

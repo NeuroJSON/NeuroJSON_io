@@ -49,6 +49,8 @@ const SecurityTab: React.FC<SecurityTabProps> = ({ user }) => {
   const [validationErrors, setValidationErrors] = useState<{
     [key: string]: string;
   }>({});
+  console.log("current user", user);
+  console.log("user.isOAuthUser value:", user.isOAuthUser);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -131,7 +133,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({ user }) => {
   };
 
   // If OAuth user, show different message
-  if (user.isOAuthUser) {
+  if (user.isOAuthUser === true) {
     return (
       <Box>
         <Typography variant="h6" gutterBottom>

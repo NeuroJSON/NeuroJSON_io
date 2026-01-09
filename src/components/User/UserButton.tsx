@@ -183,14 +183,14 @@ const UserButton: React.FC<UserButtonProps> = ({
               <ListItemText>Dashboard</ListItemText>
             </MenuItem>
 
-            <MenuItem
-            // onClick={() => handleMenuItemClick(RoutesEnum.SETTINGS)}
+            {/* <MenuItem
+             onClick={() => handleMenuItemClick(RoutesEnum.SETTINGS)}
             >
               <ListItemIcon>
                 <Settings sx={{ color: Colors.darkPurple }} />
               </ListItemIcon>
               <ListItemText>Settings</ListItemText>
-            </MenuItem>
+            </MenuItem> */}
 
             {/* <MenuItem
             onClick={() => handleMenuItemClick(RoutesEnum.USER_MANAGEMENT)}
