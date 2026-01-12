@@ -8,6 +8,7 @@ import {
   Alert,
   Link as MuiLink,
 } from "@mui/material";
+import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useState } from "react";
@@ -74,7 +75,19 @@ const ForgotPassword: React.FC = () => {
             onChange={(e) => setEmail(e.target.value)}
             required
             disabled={loading || success}
-            sx={{ mb: 3 }}
+            sx={{
+              mb: 3,
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: Colors.purple,
+              },
+              "& .MuiInputBase-input": {
+                caretColor: Colors.purple,
+              },
+            }}
             placeholder="your.email@example.com"
           />
 
@@ -82,15 +95,34 @@ const ForgotPassword: React.FC = () => {
             fullWidth
             variant="contained"
             type="submit"
+            sx={{
+              backgroundColor: Colors.purple,
+              "&:hover": {
+                backgroundColor: Colors.secondaryPurple,
+              },
+              mb: 2,
+              py: 1.5,
+            }}
             disabled={loading || success}
-            sx={{ mb: 2, py: 1.5 }}
           >
             {loading ? "Sending..." : "Send Reset Link"}
           </Button>
 
           <Box sx={{ textAlign: "center" }}>
-            <MuiLink component={Link} to="/" variant="body2">
-              ← Back to Login
+            <MuiLink
+              component={Link}
+              to="/"
+              variant="body2"
+              sx={{
+                color: Colors.green,
+                textDecoration: "none",
+                "&:hover": {
+                  color: Colors.darkGreen,
+                  textDecoration: "underline",
+                },
+              }}
+            >
+              ← Back to Home
             </MuiLink>
           </Box>
         </Box>

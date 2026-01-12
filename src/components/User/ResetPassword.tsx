@@ -11,6 +11,7 @@ import {
   IconButton,
   CircularProgress,
 } from "@mui/material";
+import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useState, useEffect } from "react";
@@ -126,7 +127,19 @@ const ResetPassword: React.FC = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={loading}
-              sx={{ mb: 2 }}
+              sx={{
+                mb: 2,
+                "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                  {
+                    borderColor: Colors.purple,
+                  },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: Colors.purple,
+                },
+                "& .MuiInputBase-input": {
+                  caretColor: Colors.purple,
+                },
+              }}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -151,7 +164,19 @@ const ResetPassword: React.FC = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               disabled={loading}
-              sx={{ mb: 3 }}
+              sx={{
+                mb: 3,
+                "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                  {
+                    borderColor: Colors.purple,
+                  },
+                "& .MuiInputLabel-root.Mui-focused": {
+                  color: Colors.purple,
+                },
+                "& .MuiInputBase-input": {
+                  caretColor: Colors.purple,
+                },
+              }}
               error={confirmPassword.length > 0 && password !== confirmPassword}
               helperText={
                 confirmPassword.length > 0 && password !== confirmPassword
@@ -165,7 +190,13 @@ const ResetPassword: React.FC = () => {
               variant="contained"
               type="submit"
               disabled={loading}
-              sx={{ py: 1.5 }}
+              sx={{
+                py: 1.5,
+                backgroundColor: Colors.purple,
+                "&:hover": {
+                  backgroundColor: Colors.secondaryPurple,
+                },
+              }}
             >
               {loading ? (
                 <>
@@ -184,7 +215,15 @@ const ResetPassword: React.FC = () => {
             <Button
               variant="outlined"
               onClick={() => navigate("/?login=true")}
-              sx={{ py: 1.5 }}
+              sx={{
+                py: 1.5,
+                color: Colors.purple,
+                borderColor: Colors.purple,
+                "&:hover": {
+                  borderColor: Colors.secondaryPurple,
+                  color: Colors.secondaryPurple,
+                },
+              }}
             >
               Go to Login Now
             </Button>

@@ -11,6 +11,7 @@ import {
   IconButton,
   CircularProgress,
 } from "@mui/material";
+import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import React, { useState } from "react";
 import { changePassword } from "redux/auth/auth.action";
@@ -166,7 +167,19 @@ const SecurityTab: React.FC<SecurityTabProps> = ({ user }) => {
             onChange={handleChange}
             error={!!validationErrors.currentPassword}
             helperText={validationErrors.currentPassword}
-            sx={{ mb: 2 }}
+            sx={{
+              mb: 2,
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: Colors.purple,
+              },
+              "& .MuiInputBase-input": {
+                caretColor: Colors.purple,
+              },
+            }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -194,7 +207,19 @@ const SecurityTab: React.FC<SecurityTabProps> = ({ user }) => {
               validationErrors.newPassword ||
               "Must be at least 8 characters long"
             }
-            sx={{ mb: 2 }}
+            sx={{
+              mb: 2,
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: Colors.purple,
+              },
+              "& .MuiInputBase-input": {
+                caretColor: Colors.purple,
+              },
+            }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -219,7 +244,19 @@ const SecurityTab: React.FC<SecurityTabProps> = ({ user }) => {
             onChange={handleChange}
             error={!!validationErrors.confirmPassword}
             helperText={validationErrors.confirmPassword}
-            sx={{ mb: 3 }}
+            sx={{
+              mb: 3,
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: Colors.purple,
+              },
+              "& .MuiInputBase-input": {
+                caretColor: Colors.purple,
+              },
+            }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -238,6 +275,12 @@ const SecurityTab: React.FC<SecurityTabProps> = ({ user }) => {
             type="submit"
             variant="contained"
             fullWidth
+            sx={{
+              backgroundColor: Colors.purple,
+              "&:hover": {
+                backgroundColor: Colors.secondaryPurple,
+              },
+            }}
             disabled={loading}
             startIcon={loading && <CircularProgress size={20} />}
           >

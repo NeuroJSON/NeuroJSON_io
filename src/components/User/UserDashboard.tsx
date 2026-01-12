@@ -10,6 +10,7 @@ import {
   Typography,
   Avatar,
 } from "@mui/material";
+import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useState } from "react";
 import { AuthSelector } from "redux/auth/auth.selector";
@@ -47,7 +48,9 @@ const UserDashboard: React.FC = () => {
   if (!user) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Typography>Please log in to access your dashboard.</Typography>
+        <Typography sx={{ color: Colors.white }}>
+          Please log in to access your dashboard.
+        </Typography>
       </Container>
     );
   }
@@ -61,7 +64,7 @@ const UserDashboard: React.FC = () => {
             sx={{
               width: 80,
               height: 80,
-              bgcolor: "primary.main",
+              bgcolor: Colors.purple,
               fontSize: "2rem",
             }}
           >
@@ -76,11 +79,11 @@ const UserDashboard: React.FC = () => {
             </Typography>
 
             <Typography variant="body1" color="text.secondary">
-              Email: {user.email}
+              {user.email}
             </Typography>
             {user.company && (
               <Typography variant="body2" color="text.secondary">
-                Institution / Company: {user.company}
+                {user.company}
               </Typography>
             )}
           </Box>
@@ -93,7 +96,19 @@ const UserDashboard: React.FC = () => {
           value={tabValue}
           onChange={handleTabChange}
           aria-label="dashboard tabs"
-          sx={{ borderBottom: 1, borderColor: "divider" }}
+          sx={{
+            borderBottom: 1,
+            borderColor: "divider",
+            "& .MuiTab-root": {
+              color: "text.secondary", // unselected
+            },
+            "& .MuiTab-root.Mui-selected": {
+              color: Colors.darkGreen, // selected text + icon
+            },
+            "& .MuiTabs-indicator": {
+              backgroundColor: Colors.darkGreen, // control the bottom line
+            },
+          }}
         >
           <Tab
             icon={<AccountCircle />}
