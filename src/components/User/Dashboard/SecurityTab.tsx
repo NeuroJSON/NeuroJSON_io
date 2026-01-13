@@ -38,6 +38,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({ user }) => {
   const [validationErrors, setValidationErrors] = useState<{
     [key: string]: string;
   }>({});
+  const isOAuthOnly = user.isOAuthUser && !user.hasPassword;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -120,7 +121,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({ user }) => {
   };
 
   // If OAuth user, show different message
-  if (user.isOAuthUser === true) {
+  if (isOAuthOnly) {
     return (
       <Box>
         <Typography variant="h6" gutterBottom>

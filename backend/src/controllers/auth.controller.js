@@ -224,12 +224,18 @@ const login = async (req, res) => {
 
     res.status(200).json({
       message: "Login successful",
-      // token,
       user: {
         id: user.id,
         username: user.username,
         email: user.email,
         email_verified: user.email_verified,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        company: user.company,
+        interests: user.interests,
+        isOAuthUser: !!(user.google_id || user.orcid_id || user.github_id),
+        created_at: user.created_at,
+        updated_at: user.updated_at,
       },
     });
   } catch (error) {
@@ -260,7 +266,8 @@ const getCurrentUser = async (req, res) => {
         lastName: user.last_name,
         company: user.company,
         interests: user.interests,
-        isOAuthUser: !!(user.google_id || user.orcid_id || user.github_id), // new
+        isOAuthUser: !!(user.google_id || user.orcid_id || user.github_id),
+        hasPassword: !!user.hashed_password, // new add
         created_at: user.created_at,
         updated_at: user.updated_at,
       },

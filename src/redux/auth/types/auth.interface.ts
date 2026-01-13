@@ -8,6 +8,7 @@ export interface User {
   company?: string;
   interests?: string;
   isOAuthUser?: boolean;
+  hasPassword?: boolean;
   created_at?: string; //  (optional)
   updated_at?: string; //  (optional)
   google_id?: string; //  (optional, for OAuth)
