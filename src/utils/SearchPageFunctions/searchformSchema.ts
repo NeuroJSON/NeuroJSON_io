@@ -50,6 +50,10 @@ export const baseSchema: JSONSchema7 = {
         "motion (motion)",
         "behavdata",
         "hpi",
+        "Electrophysiology (ephys)", // Add
+        "Atlas (atlas)", // Add
+        // "NIfTI (nifti)",
+        // "Mesh (mesh)",
         "any",
       ],
       default: "any",

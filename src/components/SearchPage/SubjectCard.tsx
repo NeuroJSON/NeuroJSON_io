@@ -225,7 +225,8 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
           </Stack>
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
             <Typography variant="body2" mt={1}>
-              <strong>Sessions:</strong> {sessions?.length}
+              <strong>Sessions:</strong>{" "}
+              {sessions?.length === 0 ? 1 : sessions?.length}
             </Typography>
           </Stack>
         </Stack>
