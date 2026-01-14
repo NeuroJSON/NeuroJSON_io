@@ -244,6 +244,7 @@ const login = async (req, res) => {
         company: user.company,
         interests: user.interests,
         isOAuthUser: !!(user.google_id || user.orcid_id || user.github_id),
+        hasPassword: !!user.hashed_password, // add
         created_at: user.created_at,
         updated_at: user.updated_at,
       },
