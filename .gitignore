@@ -1,4 +1,7 @@
 .env
+.env.local
+.env.*.local
+.env.production
 node_modules
 .DS_Store
 package-lock.json
@@ -8,5 +11,8 @@ build
 #backend
 backend/node_modules/
 backend/.env
+backend/.env.local
+backend/.env.*.local
 backend/*.sqlite
+backend/*.db
 !backend/package-lock.json

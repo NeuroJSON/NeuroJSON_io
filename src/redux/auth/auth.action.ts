@@ -1,0 +1,98 @@
+import {
+  LoginCredentials,
+  SignupData,
+  ChangePasswordData,
+  ForgotPasswordData,
+  ResetPasswordData,
+} from "./types/auth.interface";
+import { createAsyncThunk } from "@reduxjs/toolkit";
+import { AuthService } from "services/auth.service";
+
+export const loginUser = createAsyncThunk(
+  "auth/login",
+  async (credentials: LoginCredentials, { rejectWithValue }) => {
+    try {
+      const response = await AuthService.login(credentials);
+      // return response.user;
+      return response;
+    } catch (error: any) {
+      // Check if error has LoginErrorResponse data
+      if (error.data && error.data.requiresVerification) {
+        return rejectWithValue(error.data);
+      }
+      return rejectWithValue(error.message || "Login failed");
+    }
+  }
+);
+
+export const getCurrentUser = createAsyncThunk(
+  "auth/getCurrentUser",
+  async (_, { rejectWithValue }) => {
+    try {
+      const user = await AuthService.getCurrentUser();
+      return user;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to fetch user");
+    }
+  }
+);
+
+export const logoutUser = createAsyncThunk(
+  "auth/logout",
+  async (_, { rejectWithValue }) => {
+    try {
+      await AuthService.logout();
+      return null;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Logout failed");
+    }
+  }
+);
+
+export const signupUser = createAsyncThunk(
+  "auth/register",
+  async (signupData: SignupData, { rejectWithValue }) => {
+    try {
+      const response = await AuthService.signup(signupData);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Signup failed");
+    }
+  }
+);
+
+export const changePassword = createAsyncThunk(
+  "auth/changePassword",
+  async (passwordData: ChangePasswordData, { rejectWithValue }) => {
+    try {
+      const message = await AuthService.changePassword(passwordData);
+      return message;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to change password");
+    }
+  }
+);
+
+export const forgotPassword = createAsyncThunk(
+  "auth/forgotPassword",
+  async (data: ForgotPasswordData, { rejectWithValue }) => {
+    try {
+      const response = await AuthService.forgotPassword(data);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to send reset email");
+    }
+  }
+);
+
+export const resetPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async (data: ResetPasswordData, { rejectWithValue }) => {
+    try {
+      const response = await AuthService.resetPassword(data);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to reset password");
+    }
+  }
+);

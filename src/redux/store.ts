@@ -1,11 +1,21 @@
-import { configureStore, combineReducers, createAction, Action } from "@reduxjs/toolkit";
+import authReducer from "./auth/auth.slice";
 import neurojsonReducer from "./neurojson/neurojson.slice";
+import {
+  configureStore,
+  combineReducers,
+  createAction,
+  Action,
+} from "@reduxjs/toolkit";
 
 const appReducer = combineReducers({
   neurojson: neurojsonReducer, // Add other slices here as needed
+  auth: authReducer,
 });
 
-export const rootReducer = (state: ReturnType<typeof appReducer> | undefined, action: Action<string>) => {
+export const rootReducer = (
+  state: ReturnType<typeof appReducer> | undefined,
+  action: Action<string>
+) => {
   if (action.type === "RESET_STATE") {
     // Reset the Redux state when the RESET_STATE action is dispatched
     return appReducer(undefined, action);

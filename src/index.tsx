@@ -1,15 +1,36 @@
+import App from "./App";
+import theme from "./design/theme";
+import store from "./redux/store";
+// add
+import * as preview from "./utils/preview.js";
+import {
+  previewdataurl,
+  previewdata,
+  dopreview,
+  drawpreview,
+  update,
+  initcanvas,
+  createStats,
+  setControlAngles,
+  setcrosssectionsizes,
+} from "./utils/preview.js";
+import { CssBaseline } from "@mui/material";
+import { ThemeProvider } from "@mui/material/styles";
+// import axios from "axios";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
 import { Provider } from "react-redux";
-import store from "./redux/store";
-import { ThemeProvider } from "@mui/material/styles";
-import { CssBaseline } from "@mui/material";
-import theme from "./design/theme";
-import * as preview from "./utils/preview.js";
 
-import { previewdataurl, previewdata, dopreview, drawpreview, update, initcanvas, createStats, setControlAngles, setcrosssectionsizes } from "./utils/preview.js";
+// ----- new ------
+// Configure axios base URL from environment variable
+// axios.defaults.baseURL =
+//   process.env.REACT_APP_API_URL || "http://localhost:5000";
+// axios.defaults.withCredentials = true; // Important for cookies!
 
+// Log for debugging (optional)
+// console.log("🚀 Environment:", process.env.NODE_ENV);
+// console.log("🚀 API URL:", process.env.REACT_APP_API_URL);
+// ------ end------
 // Get the root element
 const rootElement = document.getElementById("root") as HTMLElement;
 

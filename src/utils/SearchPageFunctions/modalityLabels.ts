@@ -15,4 +15,8 @@ export const modalityValueToEnumLabel: Record<string, string> = {
   nirs: "fNIRS (nirs)",
   fnirs: "fNIRS (nirs)",
   motion: "motion (motion)",
+  ephys: "Electrophysiology (ephys)", // Add
+  atlas: "Atlas (atlas)", // Add
+  // nifti: "NIfTI (nifti)",
+  // mesh: "Mesh (mesh)",
 };
