@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const { setTokenCookie } = require("../middleware/auth.middleware");
 const emailService = require("../../services/email.service");
 const { Op } = require("sequelize");
+const { validatePassword } = require("../utils/passwordValidator");
 
 // register new user
 const register = async (req, res) => {
@@ -52,10 +53,19 @@ const register = async (req, res) => {
       });
     }
 
-    if (password && password.length < 8) {
-      return res.status(400).json({
-        message: "Password must be at least 8 characters long",
-      });
+    // if (password && password.length < 8) {
+    //   return res.status(400).json({
+    //     message: "Password must be at least 8 characters long",
+    //   });
+    // }
+    // password validate
+    if (password) {
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        return res.status(400).json({
+          message: passwordValidation.message,
+        });
+      }
     }
 
     // check if email already exists
@@ -434,9 +444,15 @@ const changePassword = async (req, res) => {
       });
     }
 
-    if (newPassword.length < 8) {
+    // if (newPassword.length < 8) {
+    //   return res.status(400).json({
+    //     message: "New password must be at least 8 characters long",
+    //   });
+    // }
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
       return res.status(400).json({
-        message: "New password must be at least 8 characters long",
+        message: passwordValidation.message,
       });
     }
 
@@ -534,9 +550,15 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Password is required" });
     }
 
-    if (password.length < 8) {
+    // if (password.length < 8) {
+    //   return res.status(400).json({
+    //     message: "Password must be at least 8 characters long",
+    //   });
+    // }
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
       return res.status(400).json({
-        message: "Password must be at least 8 characters long",
+        message: passwordValidation.message,
       });
     }
 
