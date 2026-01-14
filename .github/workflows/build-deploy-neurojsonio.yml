@@ -24,7 +24,10 @@ jobs:
       - name: Build React App for production
         run: |
           echo "Building for production at root /"
-          PUBLIC_URL="/" yarn build
+          # PUBLIC_URL="/" yarn build
+          export PUBLIC_URL="/"
+          export REACT_APP_API_URL="/api/v1"
+          yarn build
 
       - name: Copy JS libraries
         run: |

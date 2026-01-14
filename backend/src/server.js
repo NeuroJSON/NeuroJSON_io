@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
+const passport = require("../config/passport.config");
 const { connectDatabase, sequelize } = require("./config/database");
 const { restoreUser } = require("./middleware/auth.middleware");
 
@@ -15,15 +16,25 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+// app.use(
+//   cors({
+//     origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+//     credentials: true,
+//   })
+// );
+const isProd = process.env.NODE_ENV === "production";
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    origin: isProd ? true : process.env.CORS_ORIGIN || "http://localhost:3000",
     credentials: true,
   })
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); // parse cookies
+app.use(passport.initialize());
 
 // restore user on every request
 app.use(restoreUser);

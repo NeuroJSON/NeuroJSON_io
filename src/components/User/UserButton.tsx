@@ -1,11 +1,13 @@
 import {
-  AccountCircle, //   Login,
-  //   PersonAdd,
+  AccountCircle,
   Dashboard,
   Settings,
-  ManageAccounts, //   Logout,
+  ManageAccounts,
+  Logout,
 } from "@mui/icons-material";
 import {
+  Box,
+  Typography,
   IconButton,
   Menu,
   MenuItem,
@@ -23,12 +25,16 @@ interface UserButtonProps {
   isLoggedIn: boolean;
   userName?: string;
   onLogout?: () => void;
+  onOpenLogin: () => void;
+  onOpenSignup: () => void;
 }
 
 const UserButton: React.FC<UserButtonProps> = ({
   isLoggedIn,
   userName,
   onLogout,
+  onOpenLogin,
+  onOpenSignup,
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
@@ -40,6 +46,28 @@ const UserButton: React.FC<UserButtonProps> = ({
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleMenuItemClick = (path: string) => {
+    handleClose();
+    navigate(path);
+  };
+
+  const handleLogout = () => {
+    handleClose();
+    if (onLogout) {
+      onLogout();
+    }
+  };
+
+  const handleLogin = () => {
+    handleClose();
+    onOpenLogin();
+  };
+
+  const handleSignup = () => {
+    handleClose();
+    onOpenSignup();
   };
 
   return (
@@ -67,7 +95,7 @@ const UserButton: React.FC<UserButtonProps> = ({
         anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
         PaperProps={{
           sx: {
-            backgroundColor: Colors.lightBlue,
+            backgroundColor: Colors.white,
             color: Colors.darkPurple,
             minWidth: 200,
             mt: 1.5,
@@ -99,23 +127,13 @@ const UserButton: React.FC<UserButtonProps> = ({
       >
         {!isLoggedIn ? (
           <>
-            <MenuItem
-              key="login"
-              //   onClick={() => handleMenuItemClick(RoutesEnum.LOGIN)}
-            >
-              {/* <ListItemIcon>
-                <Login sx={{ color: Colors.yellow }} />
-              </ListItemIcon> */}
+            <MenuItem key="login" onClick={handleLogin}>
               <ListItemText>Sign In</ListItemText>
             </MenuItem>
-
-            <MenuItem
-              key="signup"
-              //   onClick={() => handleMenuItemClick(RoutesEnum.SIGNUP)}
-            >
-              {/* <ListItemIcon>
-                <PersonAdd sx={{ color: Colors.yellow }} />
-              </ListItemIcon> */}
+            <Divider
+              sx={{ my: 1, backgroundColor: "rgba(255, 255, 255, 0.2)" }}
+            />
+            <MenuItem key="signup" onClick={handleSignup}>
               <ListItemText>Create Account</ListItemText>
             </MenuItem>
           </>
@@ -124,68 +142,74 @@ const UserButton: React.FC<UserButtonProps> = ({
           <>
             {userName && (
               <>
-                <MenuItem
-                  key="username"
-                  disabled
+                <Box
                   sx={{
-                    opacity: "1 !important",
-                    cursor: "default !important",
-                    "&:hover": {
-                      backgroundColor: "transparent !important",
-                    },
+                    px: 2.5,
+                    py: 2,
+                    color: Colors.purple,
                   }}
                 >
-                  <ListItemText
-                    primary={userName}
-                    primaryTypographyProps={{
-                      fontWeight: 600,
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontSize: "1rem",
+                      opacity: 0.9,
+                      display: "block",
+                      mb: 0.5,
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    Welcome,
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontSize: "1rem",
                       color: Colors.purple,
                     }}
-                  />
-                </MenuItem>
+                  >
+                    {userName}
+                  </Typography>
+                </Box>
                 <Divider
                   sx={{ my: 1, backgroundColor: "rgba(255, 255, 255, 0.2)" }}
                 />
               </>
             )}
-            <MenuItem
-            // onClick={() => handleMenuItemClick(RoutesEnum.DASHBOARD)}
-            >
+            <MenuItem onClick={() => handleMenuItemClick(RoutesEnum.DASHBOARD)}>
               <ListItemIcon>
                 <Dashboard sx={{ color: Colors.darkPurple }} />
               </ListItemIcon>
               <ListItemText>Dashboard</ListItemText>
             </MenuItem>
 
-            <MenuItem
-            // onClick={() => handleMenuItemClick(RoutesEnum.SETTINGS)}
+            {/* <MenuItem
+             onClick={() => handleMenuItemClick(RoutesEnum.SETTINGS)}
             >
               <ListItemIcon>
                 <Settings sx={{ color: Colors.darkPurple }} />
               </ListItemIcon>
               <ListItemText>Settings</ListItemText>
-            </MenuItem>
+            </MenuItem> */}
 
-            <MenuItem
-            // onClick={() => handleMenuItemClick(RoutesEnum.USER_MANAGEMENT)}
+            {/* <MenuItem
+            onClick={() => handleMenuItemClick(RoutesEnum.USER_MANAGEMENT)}
             >
               <ListItemIcon>
                 <ManageAccounts sx={{ color: Colors.darkPurple }} />
               </ListItemIcon>
               <ListItemText>User Management</ListItemText>
-            </MenuItem>
+            </MenuItem> */}
 
             <Divider
               sx={{ my: 1, backgroundColor: "rgba(255, 255, 255, 0.2)" }}
             />
 
-            <MenuItem
-            // onClick={handleLogout}
-            >
-              {/* <ListItemIcon>
-                <Logout sx={{ color: Colors.yellow }} />
-              </ListItemIcon> */}
+            <MenuItem onClick={handleLogout}>
               <ListItemText>Logout</ListItemText>
+              <ListItemIcon>
+                <Logout />
+              </ListItemIcon>
             </MenuItem>
           </>
         )}
