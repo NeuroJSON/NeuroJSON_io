@@ -1,4 +1,5 @@
 import { User } from "../../../redux/auth/types/auth.interface";
+import PasswordStrengthIndicator from "../PasswordStrengthIndicator";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import {
   Box,
@@ -15,6 +16,7 @@ import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import React, { useState } from "react";
 import { changePassword } from "redux/auth/auth.action";
+import { validatePassword } from "utils/passwordValidator";
 
 interface SecurityTabProps {
   user: User;
@@ -72,10 +74,19 @@ const SecurityTab: React.FC<SecurityTabProps> = ({ user }) => {
       errors.currentPassword = "Current password is required";
     }
 
+    // if (!formData.newPassword) {
+    //   errors.newPassword = "New password is required";
+    // } else if (formData.newPassword.length < 8) {
+    //   errors.newPassword = "Password must be at least 8 characters long";
+    // }
     if (!formData.newPassword) {
       errors.newPassword = "New password is required";
-    } else if (formData.newPassword.length < 8) {
-      errors.newPassword = "Password must be at least 8 characters long";
+    } else {
+      // password validator
+      const passwordValidation = validatePassword(formData.newPassword);
+      if (!passwordValidation.isValid) {
+        errors.newPassword = passwordValidation.message;
+      }
     }
 
     if (!formData.confirmPassword) {
@@ -204,10 +215,7 @@ const SecurityTab: React.FC<SecurityTabProps> = ({ user }) => {
             value={formData.newPassword}
             onChange={handleChange}
             error={!!validationErrors.newPassword}
-            helperText={
-              validationErrors.newPassword ||
-              "Must be at least 8 characters long"
-            }
+            // helperText={validationErrors.newPassword}
             sx={{
               mb: 2,
               "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
@@ -234,6 +242,13 @@ const SecurityTab: React.FC<SecurityTabProps> = ({ user }) => {
               ),
             }}
           />
+
+          {/* ADD PASSWORD STRENGTH INDICATOR */}
+          {formData.newPassword && (
+            <Box sx={{ mb: 2 }}>
+              <PasswordStrengthIndicator password={formData.newPassword} />
+            </Box>
+          )}
 
           {/* Confirm Password */}
           <TextField

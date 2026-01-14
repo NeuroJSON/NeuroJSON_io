@@ -1,3 +1,4 @@
+import PasswordStrengthIndicator from "./PasswordStrengthIndicator";
 import { Visibility, VisibilityOff, CheckCircle } from "@mui/icons-material";
 import {
   Container,
@@ -17,6 +18,7 @@ import { useAppSelector } from "hooks/useAppSelector";
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { resetPassword } from "redux/auth/auth.action";
+import { validatePassword } from "utils/passwordValidator";
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -55,8 +57,13 @@ const ResetPassword: React.FC = () => {
     setError("");
 
     // Validation
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters long");
+    // if (password.length < 8) {
+    //   setError("Password must be at least 8 characters long");
+    //   return;
+    // }
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.message);
       return;
     }
 
@@ -153,8 +160,14 @@ const ResetPassword: React.FC = () => {
                   </InputAdornment>
                 ),
               }}
-              helperText="Must be at least 8 characters"
             />
+
+            {/* PASSWORD STRENGTH INDICATOR */}
+            {password && (
+              <Box sx={{ mb: 2 }}>
+                <PasswordStrengthIndicator password={password} />
+              </Box>
+            )}
 
             <TextField
               fullWidth

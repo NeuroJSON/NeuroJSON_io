@@ -1,4 +1,5 @@
 import GoogleButton from "./GoogleButton";
+import PasswordStrengthIndicator from "./PasswordStrengthIndicator";
 import { Close, Visibility, VisibilityOff } from "@mui/icons-material";
 import {
   Dialog,
@@ -19,6 +20,10 @@ import React, { useState } from "react";
 import { signupUser } from "redux/auth/auth.action";
 import { AuthSelector } from "redux/auth/auth.selector";
 import { clearError } from "redux/auth/auth.slice";
+// for password validate
+import { validatePassword } from "utils/passwordValidator";
+
+// password validate
 
 interface UserSignupProps {
   open: boolean;
@@ -68,9 +73,9 @@ const UserSignup: React.FC<UserSignupProps> = ({
     if (
       !formData.username ||
       !formData.email ||
-      !formData.firstName || // ← NEW
-      !formData.lastName || // ← NEW
-      !formData.company || // ← NEW
+      !formData.firstName ||
+      !formData.lastName ||
+      !formData.company ||
       !formData.password ||
       !formData.confirmPassword
     ) {
@@ -78,8 +83,13 @@ const UserSignup: React.FC<UserSignupProps> = ({
       return false;
     }
 
-    if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters long");
+    // if (formData.password.length < 8) {
+    //   setError("Password must be at least 8 characters long");
+    //   return false;
+    // }
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.message);
       return false;
     }
 
@@ -394,6 +404,10 @@ const UserSignup: React.FC<UserSignupProps> = ({
               },
             }}
           />
+          {/*password validate */}
+          {formData.password && (
+            <PasswordStrengthIndicator password={formData.password} />
+          )}
           <TextField
             fullWidth
             label="Confirm Password"
@@ -416,6 +430,7 @@ const UserSignup: React.FC<UserSignupProps> = ({
               ),
             }}
             sx={{
+              mt: 2,
               mb: 2,
               "& .MuiOutlinedInput-root": {
                 color: Colors.darkPurple,
