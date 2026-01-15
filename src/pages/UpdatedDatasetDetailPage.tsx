@@ -914,7 +914,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 "&:hover": { backgroundColor: Colors.secondaryPurple },
               }}
             >
-              Download Matadata ({formatSize(jsonSize)})
+              Download Metadata ({formatSize(jsonSize)})
             </Button>
 
             <Button
