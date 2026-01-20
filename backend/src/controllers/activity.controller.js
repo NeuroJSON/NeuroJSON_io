@@ -360,7 +360,7 @@ const trackView = async (req, res) => {
   }
 };
 
-// get most viewd datasets
+// get most viewed datasets
 const getMostViewedDatasets = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;

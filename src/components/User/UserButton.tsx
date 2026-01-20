@@ -138,7 +138,7 @@ const UserButton: React.FC<UserButtonProps> = ({
             </MenuItem>
           </>
         ) : (
-          // menu for lonin user
+          // menu for login user
           <>
             {userName && (
               <>
