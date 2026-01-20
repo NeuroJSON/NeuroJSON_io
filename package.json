@@ -61,6 +61,7 @@
     "@types/pako": "^2.0.3",
     "@typescript-eslint/eslint-plugin": "^5.31.0",
     "@typescript-eslint/parser": "^5.31.0",
+    "cspell": "7",
     "eslint": "^8.21.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-config-react-app": "^7.0.1",
@@ -76,7 +77,8 @@
     "build": "craco build || react-scripts build",
     "test": "craco test || react-scripts test",
     "eject": "craco eject || react-scripts eject",
-    "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --ext .js,.jsx,.ts,.tsx"
+    "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --ext .js,.jsx,.ts,.tsx",
+    "spellcheck": "cspell ."
   },
   "browserslist": {
     "production": [

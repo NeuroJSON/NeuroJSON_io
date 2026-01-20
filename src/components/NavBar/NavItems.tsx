@@ -1,4 +1,14 @@
-import { Toolbar, Grid, Button, Typography, Box, Tooltip } from "@mui/material";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import {
+  Toolbar,
+  Grid,
+  Button,
+  Typography,
+  Box,
+  Tooltip,
+  Menu,
+  MenuItem,
+} from "@mui/material";
 import UserButton from "components/User/UserButton";
 import UserLogin from "components/User/UserLogin";
 import UserSignup from "components/User/UserSignup";
@@ -24,21 +34,66 @@ const NavItems: React.FC = () => {
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
 
+  // Resources dropdown state
+  const [resourcesAnchor, setResourcesAnchor] = useState<null | HTMLElement>(
+    null
+  );
+  const resourcesOpen = Boolean(resourcesAnchor);
+
   const handleLogout = () => {
     dispatch(logoutUser());
     navigate("/");
   };
 
+  const handleResourcesClick = (event: React.MouseEvent<HTMLElement>) => {
+    setResourcesAnchor(event.currentTarget);
+  };
+
+  const handleResourcesClose = () => {
+    setResourcesAnchor(null);
+  };
+
+  const resourcesMenu = [
+    {
+      category: "Converter",
+      items: [
+        {
+          text: "neuroj for Python",
+          url: "https://neurojson.org/Page/python-jdata",
+        },
+        { text: "neuroj for shell", url: "https://neurojson.org/Page/neuroj" },
+      ],
+    },
+    {
+      category: "MATLAB/Octave",
+      items: [
+        { text: "jsonlab", url: "" },
+        { text: "jdict", url: "" },
+        { text: "jnifty", url: "" },
+        { text: "jsnirfy", url: "" },
+      ],
+    },
+    {
+      category: "Python",
+      items: [
+        { text: "jdata", url: "https://neurojson.org/Page/python-jdata" },
+        { text: "bjdata", url: "https://neurojson.org/Page/python-bjdata" },
+      ],
+    },
+    {
+      category: "Format Specifications",
+      items: [
+        { text: "JData", url: "" },
+        { text: "BJData", url: "" },
+        { text: "JNIfTI", url: "" },
+        { text: "JSNIRF", url: "" },
+        { text: "JMesh", url: "" },
+        { text: "JGIFTI", url: "" },
+      ],
+    },
+  ];
+
   return (
-    // <Toolbar sx={{ marginTop: "0.5rem" }}>
-    //   <Grid
-    //     container
-    //     alignItems="center"
-    //     sx={{
-    //       maxWidth: "100%",
-    //     }}
-    //   >
-    //     <Grid item xs={12} sm={12} md={5} lg={5}>
     <>
       <Toolbar
         sx={{
@@ -145,7 +200,7 @@ const NavItems: React.FC = () => {
             textAlign: "center",
           }}
         >
-          {[
+          {/* {[
             { text: "About", url: RoutesEnum.ABOUT },
             { text: "Wiki", url: "https://neurojson.org/Wiki" },
             { text: "Search", url: RoutesEnum.SEARCH },
@@ -255,7 +310,113 @@ const NavItems: React.FC = () => {
                 </Link>
               )}
             </Grid>
+          ))} */}
+
+          {[
+            { text: "About", url: RoutesEnum.ABOUT },
+            { text: "Wiki", url: "https://neurojson.org/Wiki" },
+            { text: "Search", url: RoutesEnum.SEARCH },
+            { text: "Databases", url: RoutesEnum.DATABASES },
+          ].map(({ text, url }) => (
+            <Grid item key={text}>
+              {url?.startsWith("https") ? (
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: "none" }}
+                >
+                  <Typography
+                    align="center"
+                    fontWeight={600}
+                    lineHeight={"1.5rem"}
+                    letterSpacing={"0.05rem"}
+                    sx={{
+                      fontSize: {
+                        xs: "0.8rem",
+                        sm: "1rem",
+                      },
+                      color: Colors.white,
+                      transition: "color 0.3s ease, transform 0.3s ease",
+                      textTransform: "uppercase",
+                      "&:hover": {
+                        transform: "scale(1.2)",
+                        cursor: "pointer",
+                      },
+                    }}
+                  >
+                    {text}
+                  </Typography>
+                </a>
+              ) : (
+                <Link to={url} style={{ textDecoration: "none" }}>
+                  <Typography
+                    align="center"
+                    fontWeight={600}
+                    lineHeight={"1.5rem"}
+                    letterSpacing={"0.05rem"}
+                    sx={{
+                      fontSize: {
+                        xs: "0.8rem",
+                        sm: "1rem",
+                      },
+                      color: Colors.white,
+                      transition: "color 0.3s ease, transform 0.3s ease",
+                      textTransform: "uppercase",
+                      "&:hover": {
+                        transform: "scale(1.2)",
+                        cursor: "pointer",
+                      },
+                    }}
+                  >
+                    {text}
+                  </Typography>
+                </Link>
+              )}
+            </Grid>
           ))}
+
+          {/* Resources Dropdown */}
+          <Grid item>
+            <Box
+              onClick={handleResourcesClick}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 0.5,
+                cursor: "pointer",
+              }}
+            >
+              <Typography
+                align="center"
+                fontWeight={600}
+                lineHeight={"1.5rem"}
+                letterSpacing={"0.05rem"}
+                sx={{
+                  fontSize: {
+                    xs: "0.8rem",
+                    sm: "1rem",
+                  },
+                  color: Colors.white,
+                  transition: "color 0.3s ease, transform 0.3s ease",
+                  textTransform: "uppercase",
+                  "&:hover": {
+                    transform: "scale(1.2)",
+                  },
+                }}
+              >
+                Resources
+              </Typography>
+              <KeyboardArrowDownIcon
+                sx={{
+                  color: Colors.white,
+                  fontSize: "1.2rem",
+                  transition: "transform 0.3s ease",
+                  transform: resourcesOpen ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              />
+            </Box>
+          </Grid>
         </Box>
 
         {/* User Button */}
@@ -281,6 +442,73 @@ const NavItems: React.FC = () => {
         {/* </Grid> */}
         {/* </Grid> */}
       </Toolbar>
+
+      {/* Resources Dropdown Menu */}
+      <Menu
+        anchorEl={resourcesAnchor}
+        open={resourcesOpen}
+        onClose={handleResourcesClose}
+        PaperProps={{
+          sx: {
+            bgcolor: Colors.darkPurple,
+            color: Colors.white,
+            minWidth: "280px",
+            maxHeight: "500px",
+            mt: 1,
+          },
+        }}
+      >
+        {resourcesMenu.map((section, sectionIndex) => (
+          <Box key={section.category}>
+            {sectionIndex > 0 && (
+              <Box
+                sx={{
+                  borderTop: `1px solid ${Colors.lightGray}40`,
+                  mx: 1,
+                  my: 0.5,
+                }}
+              />
+            )}
+            <MenuItem
+              disabled
+              sx={{
+                color: Colors.green,
+                fontWeight: 700,
+                fontSize: "0.85rem",
+                opacity: "1 !important",
+                "&.Mui-disabled": {
+                  opacity: 1,
+                },
+              }}
+            >
+              {section.category}
+            </MenuItem>
+            {section.items.map((item) => (
+              <MenuItem
+                key={item.text}
+                onClick={() => {
+                  if (item.url) {
+                    window.open(item.url, "_blank");
+                    handleResourcesClose();
+                  }
+                }}
+                sx={{
+                  pl: 3,
+                  fontSize: "0.9rem",
+                  color: item.url ? Colors.white : Colors.lightGray,
+                  cursor: item.url ? "pointer" : "default",
+                  "&:hover": {
+                    bgcolor: item.url ? Colors.purpleGrey : "transparent",
+                    color: item.url ? Colors.darkPurple : Colors.lightGray,
+                  },
+                }}
+              >
+                {item.text}
+              </MenuItem>
+            ))}
+          </Box>
+        ))}
+      </Menu>
       <UserLogin
         open={loginOpen}
         onClose={() => setLoginOpen(false)}

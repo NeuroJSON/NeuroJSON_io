@@ -144,7 +144,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
             </Typography>
             <ModalitiesFilter
               onFilter={onModalitiesFilter}
-              homeSeletedModalities={homeSelectedModalities}
+              homeSelectedModalities={homeSelectedModalities}
             />
           </Box>
         </Box>

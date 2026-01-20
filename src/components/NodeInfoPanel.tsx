@@ -41,7 +41,7 @@ const formatSize = (bytes?: number): string => {
 };
 
 // convert the date format
-const dateCoverter = (date?: string): string => {
+const dateConverter = (date?: string): string => {
   if (date === undefined) return "N/A";
   const newDate = new Date(Number(date) * 1000);
   const result = new Intl.DateTimeFormat("en-US", {
@@ -189,7 +189,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
 
               <Grid item xs={12}>
                 <Typography sx={{ color: Colors.green, fontWeight: "Bold" }}>
-                  NeuroJSON-Cuated Datasets
+                  NeuroJSON-Curated Datasets
                 </Typography>
                 {dbInfo ? (
                   <Typography sx={{ color: Colors.lightGray }}>
@@ -245,7 +245,7 @@ const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({
                         Database Creation Time
                       </Typography>
                       <Typography>
-                        {dateCoverter(dbInfo.instance_start_time)}
+                        {dateConverter(dbInfo.instance_start_time)}
                       </Typography>
                     </Grid>
                     <Grid item xs={12}>
