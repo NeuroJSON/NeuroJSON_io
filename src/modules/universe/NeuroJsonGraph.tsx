@@ -23,7 +23,7 @@ export interface NodeObject {
 
 // Define the datatype to color mapping
 export const DATA_TYPE_COLORS: Record<string, [number, number, number]> = {
-  mri: [160, 138, 233], // soft laender
+  mri: [160, 138, 233],
   anat: [160, 138, 233],
   fmri: [152, 202, 32], // bright lime green
   func: [152, 202, 32],

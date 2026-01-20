@@ -11,22 +11,22 @@ import React, { useEffect, useState } from "react";
 
 interface ModalitiesFilterProps {
   onFilter: (selectedModalities: string[]) => void;
-  homeSeletedModalities: string[]; // add prop to receive parent state
+  homeSelectedModalities: string[]; // add prop to receive parent state
 }
 
 const modalitiesList = ["mri", "pet", "meg", "eeg", "ieeg", "dwi", "fnirs"];
 
 const ModalitiesFilter: React.FC<ModalitiesFilterProps> = ({
   onFilter,
-  homeSeletedModalities,
+  homeSelectedModalities,
 }) => {
   const [selectedModalities, setSelectedModalities] = useState<string[]>(
-    homeSeletedModalities
+    homeSelectedModalities
   );
 
   useEffect(() => {
-    setSelectedModalities(homeSeletedModalities);
-  }, [homeSeletedModalities]);
+    setSelectedModalities(homeSelectedModalities);
+  }, [homeSelectedModalities]);
 
   const handleModalityChange = (modality: string) => {
     const updatedModalities = selectedModalities.includes(modality)
@@ -36,7 +36,7 @@ const ModalitiesFilter: React.FC<ModalitiesFilterProps> = ({
     onFilter(updatedModalities);
   };
 
-  // reset function to clear all selected checkedboxes
+  // reset function to clear all selected checkboxes
   const handleReset = () => {
     setSelectedModalities([]); // clear the local state
     onFilter([]); // notify parent that selection is reset

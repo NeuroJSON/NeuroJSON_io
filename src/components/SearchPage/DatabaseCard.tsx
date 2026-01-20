@@ -46,7 +46,7 @@ const DatabaseCard: React.FC<Props> = ({
     }
   }, [dbId, dispatch]);
   const databaseLink = `${RoutesEnum.DATABASES}/${dbId}`;
-  // keyword hightlight functional component
+  // keyword highlight functional component
   const highlightKeyword = (text: string, keyword?: string) => {
     if (!keyword || !text?.toLowerCase().includes(keyword.toLowerCase())) {
       return text;

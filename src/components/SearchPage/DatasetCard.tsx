@@ -122,7 +122,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
     [parsedJson.value, keyword, visibleHasKeyword]
   );
 
-  // keyword hightlight functional component (only for visible fields)
+  // keyword highlight functional component (only for visible fields)
   const highlightKeyword = (text: string, keyword?: string) => {
     if (!keyword || !text?.toLowerCase().includes(keyword.toLowerCase())) {
       return text;
