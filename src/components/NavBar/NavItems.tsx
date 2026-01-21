@@ -67,10 +67,12 @@ const NavItems: React.FC = () => {
     {
       category: "MATLAB/Octave",
       items: [
-        { text: "jsonlab", url: "" },
-        { text: "jdict", url: "" },
-        { text: "jnifty", url: "" },
-        { text: "jsnirfy", url: "" },
+        { text: "jsonlab", url: "https://neurojson.org/Page/jsonlab" },
+        { text: "jdict", url: "https://neurojson.org/Page/jdict" },
+        { text: "jnifty", url: "https://neurojson.org/Page/jnifty" },
+        { text: "jsnirfy", url: "https://neurojson.org/Page/jsnirfy" },
+        { text: "zmat", url: "https://neurojson.org/Page/zmat" },
+        { text: "easyh5", url: "https://neurojson.org/Page/easyh5" },
       ],
     },
     {
@@ -83,12 +85,12 @@ const NavItems: React.FC = () => {
     {
       category: "Format Specifications",
       items: [
-        { text: "JData", url: "" },
-        { text: "BJData", url: "" },
-        { text: "JNIfTI", url: "" },
-        { text: "JSNIRF", url: "" },
-        { text: "JMesh", url: "" },
-        { text: "JGIFTI", url: "" },
+        { text: "JData", url: "https://neurojson.org/Page/JData_Format" },
+        { text: "BJData", url: "https://neurojson.org/Page/BJData_Format" },
+        { text: "JNIfTI", url: "https://neurojson.org/Page/JNIfTI_Format" },
+        { text: "JSNIRF", url: "https://neurojson.org/Page/JSNIRF_Format" },
+        { text: "JMesh", url: "https://neurojson.org/Page/JMesh_Format" },
+        { text: "JGIFTI", url: "https://github.com/NeuroJSON/jgifti" },
       ],
     },
   ];
