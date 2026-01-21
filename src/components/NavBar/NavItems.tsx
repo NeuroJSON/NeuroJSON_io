@@ -59,7 +59,7 @@ const NavItems: React.FC = () => {
       items: [
         {
           text: "neuroj for Python",
-          url: "https://neurojson.org/Page/python-jdata",
+          url: "https://neurojson.org/Page/python-jdata#neuroj",
         },
         { text: "neuroj for shell", url: "https://neurojson.org/Page/neuroj" },
       ],
@@ -69,10 +69,10 @@ const NavItems: React.FC = () => {
       items: [
         { text: "jsonlab", url: "https://neurojson.org/Page/jsonlab" },
         { text: "jdict", url: "https://neurojson.org/Page/jdict" },
-        { text: "jnifty", url: "https://neurojson.org/Page/jnifty" },
-        { text: "jsnirfy", url: "https://neurojson.org/Page/jsnirfy" },
-        { text: "zmat", url: "https://neurojson.org/Page/zmat" },
-        { text: "easyh5", url: "https://neurojson.org/Page/easyh5" },
+        // { text: "jnifty", url: "https://neurojson.org/Page/jnifty" },
+        // { text: "jsnirfy", url: "https://neurojson.org/Page/jsnirfy" },
+        // { text: "zmat", url: "https://neurojson.org/Page/zmat" },
+        // { text: "easyh5", url: "https://neurojson.org/Page/easyh5" },
       ],
     },
     {
