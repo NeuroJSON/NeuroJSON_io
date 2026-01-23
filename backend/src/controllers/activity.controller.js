@@ -383,6 +383,49 @@ const getMostViewedDatasets = async (req, res) => {
   }
 };
 
+// get dataset statistics (views count and likes count)
+const getDatasetStats = async (req, res) => {
+  try {
+    const { dbName, datasetId } = req.params;
+
+    const dataset = await Dataset.findOne({
+      where: { couch_db: dbName, ds_id: datasetId },
+      attributes: ["id", "couch_db", "ds_id", "views_count"],
+    });
+
+    if (!dataset) {
+      return res.status(200).json({
+        viewsCount: 0,
+        likesCount: 0,
+        dataset: null,
+      });
+    }
+
+    // Count how many users liked this dataset
+    const likesCount = await DatasetLike.count({
+      where: { dataset_id: dataset.id },
+    });
+
+    res.status(200).json({
+      viewsCount: dataset.views_count,
+      likesCount: likesCount,
+      dataset: {
+        id: dataset.id,
+        couch_db: dataset.couch_db,
+        ds_id: dataset.ds_id,
+        views_count: dataset.views_count,
+        likes_count: likesCount,
+      },
+    });
+  } catch (error) {
+    console.error("Get dataset stats error:", error);
+    res.status(500).json({
+      message: "Error fetching dataset statistics",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   likeDataset,
   unlikeDataset,
@@ -394,4 +437,5 @@ module.exports = {
   deleteComment,
   trackView,
   getMostViewedDatasets,
+  getDatasetStats,
 };

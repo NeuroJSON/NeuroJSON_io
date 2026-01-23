@@ -11,6 +11,7 @@ const {
   deleteComment,
   trackView,
   getMostViewedDatasets,
+  getDatasetStats,
 } = require("../controllers/activity.controller");
 const { restoreUser, requireAuth } = require("../middleware/auth.middleware");
 
@@ -36,5 +37,8 @@ router.delete("/comments/:commentId", requireAuth, deleteComment);
 // View tracking
 router.post("/datasets/:dbName/:datasetId/views", trackView); // Public
 router.get("/datasets/most-viewed", getMostViewedDatasets); // Public
+
+// Dataset statistics (views count, likes count)
+router.get("/datasets/:dbName/:datasetId/stats", getDatasetStats); // Public
 
 module.exports = router;
