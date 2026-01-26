@@ -11,6 +11,7 @@ import {
   UnsaveResponse,
   GetDatasetStatsResponse,
   GetMostViewedDatasetsResponse,
+  CheckUserActivityResponse,
 } from "../redux/activities/types/activities.interface";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
@@ -236,6 +237,27 @@ export const ActivitiesService = {
 
     if (!response.ok) {
       throw new Error(data.message || "Failed to fetch most viewed datasets");
+    }
+
+    return data;
+  },
+  // check user liked or saved a dataset already or not
+  checkUserActivity: async (
+    dbName: string,
+    datasetId: string
+  ): Promise<CheckUserActivityResponse> => {
+    const response = await fetch(
+      `${API_URL}/activities/datasets/${dbName}/${datasetId}/user-activity`,
+      {
+        method: "GET",
+        credentials: "include",
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to check user activity");
     }
 
     return data;

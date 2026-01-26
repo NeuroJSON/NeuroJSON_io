@@ -7,6 +7,7 @@ import {
   GetCommentsPayload,
   GetDatasetStatsPayload,
   GetMostViewedDatasetsPayload,
+  CheckUserActivityPayload,
 } from "./types/activities.interface";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { ActivitiesService } from "services/activities.service";
@@ -172,6 +173,26 @@ export const getMostViewedDatasets = createAsyncThunk(
       return rejectWithValue(
         error.message || "Failed to fetch most viewed datasets"
       );
+    }
+  }
+);
+
+export const checkUserActivity = createAsyncThunk(
+  "activities/checkUserActivity",
+  async (payload: CheckUserActivityPayload, { rejectWithValue }) => {
+    try {
+      const response = await ActivitiesService.checkUserActivity(
+        payload.dbName,
+        payload.datasetId
+      );
+      return {
+        dbName: payload.dbName,
+        datasetId: payload.datasetId,
+        isLiked: response.isLiked,
+        isSaved: response.isSaved,
+      };
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to check user activity");
     }
   }
 );

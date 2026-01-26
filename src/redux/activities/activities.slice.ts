@@ -9,6 +9,7 @@ import {
   deleteComment,
   getDatasetStats,
   getMostViewedDatasets,
+  checkUserActivity,
 } from "./activities.action";
 import { ActivitiesState } from "./types/activities.interface";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
@@ -259,6 +260,32 @@ const activitiesSlice = createSlice({
       })
       .addCase(getMostViewedDatasets.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Check User Activity
+      .addCase(checkUserActivity.pending, (state, action) => {
+        const { dbName, datasetId } = action.meta.arg;
+        const key = getDatasetKey(dbName, datasetId);
+        const status = getOrInitStatus(state, key);
+        status.isLoadingLike = true;
+        status.isLoadingSave = true;
+        state.error = null;
+      })
+      .addCase(checkUserActivity.fulfilled, (state, action) => {
+        const { dbName, datasetId, isLiked, isSaved } = action.payload;
+        const key = getDatasetKey(dbName, datasetId);
+        const status = getOrInitStatus(state, key);
+        status.isLiked = isLiked;
+        status.isSaved = isSaved;
+        status.isLoadingLike = false;
+        status.isLoadingSave = false;
+      })
+      .addCase(checkUserActivity.rejected, (state, action) => {
+        const { dbName, datasetId } = action.meta.arg;
+        const key = getDatasetKey(dbName, datasetId);
+        const status = getOrInitStatus(state, key);
+        status.isLoadingLike = false;
+        status.isLoadingSave = false;
         state.error = action.payload as string;
       });
   },

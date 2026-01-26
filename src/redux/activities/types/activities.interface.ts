@@ -159,3 +159,14 @@ export interface GetMostViewedDatasetsResponse {
   mostViewed: MostViewedDataset[];
   datasetsCount: number;
 }
+
+// Add
+export interface CheckUserActivityPayload {
+  dbName: string;
+  datasetId: string;
+}
+
+export interface CheckUserActivityResponse {
+  isLiked: boolean;
+  isSaved: boolean;
+}
