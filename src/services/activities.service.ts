@@ -10,6 +10,7 @@ import {
   SaveResponse,
   UnsaveResponse,
   GetDatasetStatsResponse,
+  GetMostViewedDatasetsResponse,
 } from "../redux/activities/types/activities.interface";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
@@ -214,6 +215,27 @@ export const ActivitiesService = {
 
     if (!response.ok) {
       throw new Error(data.message || "Failed to fetch dataset statistics");
+    }
+
+    return data;
+  },
+
+  // Get most viewed datasets
+  getMostViewedDatasets: async (
+    limit: number = 10
+  ): Promise<GetMostViewedDatasetsResponse> => {
+    const response = await fetch(
+      `${API_URL}/activities/datasets/most-viewed?limit=${limit}`,
+      {
+        method: "GET",
+        credentials: "include",
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to fetch most viewed datasets");
     }
 
     return data;

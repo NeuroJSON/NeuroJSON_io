@@ -62,6 +62,7 @@ export interface DatasetActivityStatus {
 export interface ActivitiesState {
   // Key format: "dbName:datasetId"
   datasetActivities: Record<string, DatasetActivityStatus>;
+  mostViewedDatasets: MostViewedDataset[];
   error: string | null;
   loading: boolean;
 }
@@ -100,6 +101,10 @@ export interface GetCommentsPayload {
 export interface GetDatasetStatsPayload {
   dbName: string;
   datasetId: string;
+}
+
+export interface GetMostViewedDatasetsPayload {
+  limit?: number;
 }
 
 // API Response interfaces
@@ -141,4 +146,16 @@ export interface GetDatasetStatsResponse {
   viewsCount: number;
   likesCount: number;
   dataset: Dataset | null;
+}
+
+export interface MostViewedDataset {
+  id: number;
+  couch_db: string;
+  ds_id: string;
+  views_count: number;
+}
+
+export interface GetMostViewedDatasetsResponse {
+  mostViewed: MostViewedDataset[];
+  datasetsCount: number;
 }
