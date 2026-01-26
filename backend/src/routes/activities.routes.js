@@ -12,6 +12,7 @@ const {
   trackView,
   getMostViewedDatasets,
   getDatasetStats,
+  checkUserActivity,
 } = require("../controllers/activity.controller");
 const { restoreUser, requireAuth } = require("../middleware/auth.middleware");
 
@@ -40,5 +41,6 @@ router.get("/datasets/most-viewed", getMostViewedDatasets); // Public
 
 // Dataset statistics (views count, likes count)
 router.get("/datasets/:dbName/:datasetId/stats", getDatasetStats); // Public
-
+// Check user activity (isLiked or isSaved)
+router.get("/datasets/:dbName/:datasetId/user-activity", checkUserActivity);
 module.exports = router;

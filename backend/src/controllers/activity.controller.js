@@ -426,6 +426,56 @@ const getDatasetStats = async (req, res) => {
   }
 };
 
+// check user activity
+const checkUserActivity = async (req, res) => {
+  try {
+    const user = req.user;
+    const { dbName, datasetId } = req.params;
+
+    // If user is not authenticated, return false for both
+    if (!user) {
+      return res.status(200).json({
+        isLiked: false,
+        isSaved: false,
+      });
+    }
+
+    // Find dataset
+    const dataset = await Dataset.findOne({
+      where: { couch_db: dbName, ds_id: datasetId },
+    });
+
+    // If dataset doesn't exist yet, user hasn't liked or saved it
+    if (!dataset) {
+      return res.status(200).json({
+        isLiked: false,
+        isSaved: false,
+      });
+    }
+
+    // Check if user has liked this dataset
+    const like = await DatasetLike.findOne({
+      where: { user_id: user.id, dataset_id: dataset.id },
+    });
+
+    // Check if user has saved this dataset
+    const save = await SavedDataset.findOne({
+      where: { user_id: user.id, dataset_id: dataset.id },
+    });
+
+    res.status(200).json({
+      isLiked: !!like,
+      isSaved: !!save,
+    });
+  } catch (error) {
+    console.error("Check user activity error:", error);
+    res.status(500).json({
+      message: "Error checking user activity",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   likeDataset,
   unlikeDataset,
@@ -438,4 +488,5 @@ module.exports = {
   trackView,
   getMostViewedDatasets,
   getDatasetStats,
+  checkUserActivity,
 };
