@@ -1,8 +1,8 @@
-'use strict';
+"use strict";
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
+  async up(queryInterface, Sequelize) {
     await queryInterface.createTable("collection_datasets", {
       id: {
         type: Sequelize.INTEGER,
@@ -37,7 +37,7 @@ module.exports = {
       },
     });
 
-    / Add indexes
+    // Add indexes
     await queryInterface.addIndex("collection_datasets", ["collection_id"], {
       name: "collection_datasets_collection_id_idx",
     });
@@ -46,14 +46,17 @@ module.exports = {
       name: "collection_datasets_dataset_id_idx",
     });
 
-    await queryInterface.addIndex("collection_datasets", ["collection_id", "dataset_id"], {
-      unique: true,
-      name: "collection_datasets_unique",
-    });
-
+    await queryInterface.addIndex(
+      "collection_datasets",
+      ["collection_id", "dataset_id"],
+      {
+        unique: true,
+        name: "collection_datasets_unique",
+      }
+    );
   },
 
-  async down (queryInterface, Sequelize) {
+  async down(queryInterface, Sequelize) {
     await queryInterface.dropTable("collection_datasets");
-  }
+  },
 };
