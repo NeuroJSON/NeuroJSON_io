@@ -18,6 +18,8 @@ import {
   Tooltip,
   IconButton,
 } from "@mui/material";
+// add
+import DatasetActions from "components/DatasetDetailPage/DatasetAction";
 import FileTree from "components/DatasetDetailPage/FileTree/FileTree";
 import {
   buildTreeFromDoc,
@@ -32,6 +34,23 @@ import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect, useMemo, useState, useRef } from "react";
 // import ReactJson from "react-json-view";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  likeDataset,
+  unlikeDataset,
+  saveDataset,
+  unsaveDataset,
+  getDatasetStats,
+  checkUserActivity,
+} from "redux/activities/activities.action";
+import {
+  selectIsDatasetLiked,
+  selectIsDatasetSaved,
+  selectDatasetLikesCount,
+  selectDatasetViewsCount,
+  selectIsLikeLoading,
+  selectIsSaveLoading,
+} from "redux/activities/activities.selector";
+import { AuthSelector } from "redux/auth/auth.selector";
 import {
   fetchDocumentDetails,
   fetchDbInfoByDatasetId,
@@ -66,6 +85,75 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     error,
     datasetViewInfo: dbViewInfo,
   } = useAppSelector(NeurojsonSelector);
+  // user activities
+  // ✅ Add auth state
+  const { isLoggedIn: isAuthenticated } = useAppSelector(AuthSelector);
+
+  // ✅ Add activities state - with safe defaults
+  const isLiked = useAppSelector((state) =>
+    dbName && docId ? selectIsDatasetLiked(state, dbName, docId) : false
+  );
+  const isSaved = useAppSelector((state) =>
+    dbName && docId ? selectIsDatasetSaved(state, dbName, docId) : false
+  );
+  const likesCount = useAppSelector((state) =>
+    dbName && docId ? selectDatasetLikesCount(state, dbName, docId) : 0
+  );
+  const viewsCount = useAppSelector((state) =>
+    dbName && docId ? selectDatasetViewsCount(state, dbName, docId) : 0
+  );
+  const isLikeLoading = useAppSelector((state) =>
+    dbName && docId ? selectIsLikeLoading(state, dbName, docId) : false
+  );
+  const isSaveLoading = useAppSelector((state) =>
+    dbName && docId ? selectIsSaveLoading(state, dbName, docId) : false
+  );
+
+  // Handle like/unlike
+  const handleLikeToggle = async () => {
+    if (!dbName || !docId) return;
+
+    try {
+      if (isLiked) {
+        await dispatch(unlikeDataset({ dbName, datasetId: docId })).unwrap();
+      } else {
+        await dispatch(likeDataset({ dbName, datasetId: docId })).unwrap();
+      }
+      // Refresh stats after like/unlike
+      dispatch(getDatasetStats({ dbName, datasetId: docId }));
+    } catch (error) {
+      console.error("Error toggling like:", error);
+    }
+  };
+
+  // Handle save/unsave
+  const handleSaveToggle = async () => {
+    if (!dbName || !docId) return;
+
+    try {
+      if (isSaved) {
+        await dispatch(unsaveDataset({ dbName, datasetId: docId })).unwrap();
+      } else {
+        await dispatch(saveDataset({ dbName, datasetId: docId })).unwrap();
+      }
+    } catch (error) {
+      console.error("Error toggling save:", error);
+    }
+  };
+
+  // ✅ Add this useEffect to load user activity status and stats
+  useEffect(() => {
+    if (!dbName || !docId) return;
+
+    // Fetch stats (views count, likes count)
+    dispatch(getDatasetStats({ dbName, datasetId: docId }));
+
+    // Check if user has liked/saved this dataset (only if authenticated)
+    if (isAuthenticated) {
+      dispatch(checkUserActivity({ dbName, datasetId: docId }));
+    }
+  }, [dbName, docId, isAuthenticated, dispatch]);
+
   // get params from url
   const [searchParams, setSearchParams] = useSearchParams();
   const focus = searchParams.get("focus") || undefined; // get highlight from url
@@ -807,7 +895,18 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 : datasetDocument["dataset_description.json"].Authors}
             </Typography>
           )}
-
+          {/* user actions component */}
+          <DatasetActions
+            isLiked={isLiked}
+            isSaved={isSaved}
+            likesCount={likesCount}
+            viewsCount={viewsCount}
+            isLikeLoading={isLikeLoading}
+            isSaveLoading={isSaveLoading}
+            isAuthenticated={isAuthenticated}
+            onLikeToggle={handleLikeToggle}
+            onSaveToggle={handleSaveToggle}
+          />
           {/* ai summary */}
           {aiSummary ? (
             <>
