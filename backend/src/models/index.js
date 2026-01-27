@@ -218,6 +218,12 @@ Dataset.belongsToMany(Collection, {
   as: "collections",
 });
 
+CollectionDataset.belongsTo(Collection, { foreignKey: "collection_id" });
+Collection.hasMany(CollectionDataset, { foreignKey: "collection_id" });
+
+CollectionDataset.belongsTo(Dataset, { foreignKey: "dataset_id" });
+Dataset.hasMany(CollectionDataset, { foreignKey: "dataset_id" });
+
 // NEW: Project Associations
 User.hasMany(Project, { foreignKey: "user_id", as: "projects" });
 Project.belongsTo(User, { foreignKey: "user_id" });
