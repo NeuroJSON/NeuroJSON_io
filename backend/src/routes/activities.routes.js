@@ -13,6 +13,8 @@ const {
   getMostViewedDatasets,
   getDatasetStats,
   checkUserActivity,
+  getUserLikedDatasets,
+  getUserSavedDatasets,
 } = require("../controllers/activity.controller");
 const { restoreUser, requireAuth } = require("../middleware/auth.middleware");
 

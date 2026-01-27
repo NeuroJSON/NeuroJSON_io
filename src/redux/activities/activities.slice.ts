@@ -10,6 +10,8 @@ import {
   getDatasetStats,
   getMostViewedDatasets,
   checkUserActivity,
+  getUserLikedDatasets,
+  getUserSavedDatasets,
 } from "./activities.action";
 import { ActivitiesState } from "./types/activities.interface";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
@@ -40,6 +42,8 @@ const getOrInitStatus = (state: ActivitiesState, key: string) => {
 const initialState: ActivitiesState = {
   datasetActivities: {},
   mostViewedDatasets: [],
+  userSavedDatasets: [],
+  userLikedDatasets: [],
   error: null,
   loading: false,
 };
@@ -286,6 +290,33 @@ const activitiesSlice = createSlice({
         const status = getOrInitStatus(state, key);
         status.isLoadingLike = false;
         status.isLoadingSave = false;
+        state.error = action.payload as string;
+      })
+      // Get User Saved Datasets
+      .addCase(getUserSavedDatasets.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getUserSavedDatasets.fulfilled, (state, action) => {
+        state.userSavedDatasets = action.payload;
+        state.loading = false;
+      })
+      .addCase(getUserSavedDatasets.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Get User Liked Datasets
+      .addCase(getUserLikedDatasets.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getUserLikedDatasets.fulfilled, (state, action) => {
+        state.userLikedDatasets = action.payload;
+        state.loading = false;
+      })
+      .addCase(getUserLikedDatasets.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload as string;
       });
   },

@@ -12,6 +12,8 @@ import {
   GetDatasetStatsResponse,
   GetMostViewedDatasetsResponse,
   CheckUserActivityResponse,
+  GetUserSavedDatasetsResponse,
+  GetUserLikedDatasetsResponse,
 } from "../redux/activities/types/activities.interface";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
@@ -258,6 +260,44 @@ export const ActivitiesService = {
 
     if (!response.ok) {
       throw new Error(data.message || "Failed to check user activity");
+    }
+
+    return data;
+  },
+
+  // Get current user's saved datasets
+  getUserSavedDatasets: async (): Promise<GetUserSavedDatasetsResponse> => {
+    const response = await fetch(
+      `${API_URL}/activities/users/me/saved-datasets`,
+      {
+        method: "GET",
+        credentials: "include",
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to fetch saved datasets");
+    }
+
+    return data;
+  },
+
+  // Get current user's liked datasets
+  getUserLikedDatasets: async (): Promise<GetUserLikedDatasetsResponse> => {
+    const response = await fetch(
+      `${API_URL}/activities/users/me/liked-datasets`,
+      {
+        method: "GET",
+        credentials: "include",
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to fetch liked datasets");
     }
 
     return data;

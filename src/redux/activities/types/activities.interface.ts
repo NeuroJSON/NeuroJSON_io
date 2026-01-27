@@ -58,11 +58,13 @@ export interface DatasetActivityStatus {
   isLoadingStats: boolean;
 }
 
-// Redux state
+// Redux state (for initial state and update)
 export interface ActivitiesState {
   // Key format: "dbName:datasetId"
   datasetActivities: Record<string, DatasetActivityStatus>;
   mostViewedDatasets: MostViewedDataset[];
+  userSavedDatasets: UserSavedDataset[];
+  userLikedDatasets: UserLikedDataset[];
   error: string | null;
   loading: boolean;
 }
@@ -169,4 +171,30 @@ export interface CheckUserActivityPayload {
 export interface CheckUserActivityResponse {
   isLiked: boolean;
   isSaved: boolean;
+}
+
+export interface UserSavedDataset {
+  id: number;
+  couch_db: string;
+  ds_id: string;
+  views_count: number;
+  saved_at: string;
+}
+
+export interface UserLikedDataset {
+  id: number;
+  couch_db: string;
+  ds_id: string;
+  views_count: number;
+  liked_at: string;
+}
+
+export interface GetUserSavedDatasetsResponse {
+  savedDatasets: UserSavedDataset[];
+  count: number;
+}
+
+export interface GetUserLikedDatasetsResponse {
+  likedDatasets: UserLikedDataset[];
+  count: number;
 }

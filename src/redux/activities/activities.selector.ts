@@ -111,6 +111,16 @@ export const selectMostViewedDatasets = (state: RootState) => {
   return state.activities.mostViewedDatasets;
 };
 
+// Get user's saved datasets
+export const selectUserSavedDatasets = (state: RootState) => {
+  return state.activities.userSavedDatasets;
+};
+
+// Get user's liked datasets
+export const selectUserLikedDatasets = (state: RootState) => {
+  return state.activities.userLikedDatasets;
+};
+
 // Get error
 export const selectActivitiesError = (state: RootState): string | null => {
   return state.activities.error;

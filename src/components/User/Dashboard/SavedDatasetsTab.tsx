@@ -17,10 +17,12 @@ import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-// You'll need to create these actions
-// import { getUserSavedDatasets } from "redux/activities/activities.action";
-// import { selectUserSavedDatasets } from "redux/activities/activities.selector";
+import { getUserSavedDatasets } from "redux/activities/activities.action";
+import {
+  selectUserSavedDatasets,
+  selectActivitiesLoading,
+  selectActivitiesError,
+} from "redux/activities/activities.selector";
 
 interface SavedDatasetsTabProps {
   userId: number;
@@ -30,28 +32,14 @@ const SavedDatasetsTab: React.FC<SavedDatasetsTabProps> = ({ userId }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  // Temporary mock data - replace with actual Redux selector
-  const savedDatasets = [
-    {
-      id: 1,
-      couch_db: "openneuro",
-      ds_id: "ds000001",
-      saved_at: "2024-01-15T10:30:00Z",
-    },
-    {
-      id: 2,
-      couch_db: "openneuro",
-      ds_id: "ds000002",
-      saved_at: "2024-01-20T14:20:00Z",
-    },
-  ];
-  const loading = false;
-  const error = null;
+  // Get real data from Redux
+  const savedDatasets = useAppSelector(selectUserSavedDatasets);
+  const loading = useAppSelector(selectActivitiesLoading);
+  const error = useAppSelector(selectActivitiesError);
 
   useEffect(() => {
-    // Fetch user's saved datasets
-    // dispatch(getUserSavedDatasets(userId));
-  }, [userId, dispatch]);
+    dispatch(getUserSavedDatasets());
+  }, [dispatch]);
 
   const handleViewDataset = (dbName: string, datasetId: string) => {
     navigate(`/db/${dbName}/${datasetId}`);

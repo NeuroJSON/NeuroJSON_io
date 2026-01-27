@@ -196,3 +196,29 @@ export const checkUserActivity = createAsyncThunk(
     }
   }
 );
+
+// Get user's saved datasets
+export const getUserSavedDatasets = createAsyncThunk(
+  "activities/getUserSavedDatasets",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await ActivitiesService.getUserSavedDatasets();
+      return response.savedDatasets;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to fetch saved datasets");
+    }
+  }
+);
+
+// Get user's liked datasets
+export const getUserLikedDatasets = createAsyncThunk(
+  "activities/getUserLikedDatasets",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await ActivitiesService.getUserLikedDatasets();
+      return response.likedDatasets;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to fetch liked datasets");
+    }
+  }
+);

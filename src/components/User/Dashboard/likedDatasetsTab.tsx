@@ -17,10 +17,12 @@ import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-// You'll need to create these actions
-// import { getUserLikedDatasets } from "redux/activities/activities.action";
-// import { selectUserLikedDatasets } from "redux/activities/activities.selector";
+import { getUserLikedDatasets } from "redux/activities/activities.action";
+import {
+  selectUserLikedDatasets,
+  selectActivitiesLoading,
+  selectActivitiesError,
+} from "redux/activities/activities.selector";
 
 interface LikedDatasetsTabProps {
   userId: number;
@@ -30,28 +32,14 @@ const LikedDatasetsTab: React.FC<LikedDatasetsTabProps> = ({ userId }) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  // Temporary mock data - replace with actual Redux selector
-  const likedDatasets = [
-    {
-      id: 1,
-      couch_db: "openneuro",
-      ds_id: "ds000001",
-      liked_at: "2024-01-10T08:15:00Z",
-    },
-    {
-      id: 2,
-      couch_db: "openneuro",
-      ds_id: "ds000003",
-      liked_at: "2024-01-18T16:45:00Z",
-    },
-  ];
-  const loading = false;
-  const error = null;
+  // Get real data from Redux
+  const likedDatasets = useAppSelector(selectUserLikedDatasets);
+  const loading = useAppSelector(selectActivitiesLoading);
+  const error = useAppSelector(selectActivitiesError);
 
   useEffect(() => {
-    // Fetch user's liked datasets
-    // dispatch(getUserLikedDatasets(userId));
-  }, [userId, dispatch]);
+    dispatch(getUserLikedDatasets());
+  }, [dispatch]);
 
   const handleViewDataset = (dbName: string, datasetId: string) => {
     navigate(`/db/${dbName}/${datasetId}`);
