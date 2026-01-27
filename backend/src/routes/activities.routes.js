@@ -43,4 +43,9 @@ router.get("/datasets/most-viewed", getMostViewedDatasets); // Public
 router.get("/datasets/:dbName/:datasetId/stats", getDatasetStats); // Public
 // Check user activity (isLiked or isSaved)
 router.get("/datasets/:dbName/:datasetId/user-activity", checkUserActivity);
+
+// User's collections
+router.get("/users/me/saved-datasets", requireAuth, getUserSavedDatasets);
+router.get("/users/me/liked-datasets", requireAuth, getUserLikedDatasets);
+
 module.exports = router;

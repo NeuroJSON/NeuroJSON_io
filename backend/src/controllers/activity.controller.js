@@ -476,6 +476,84 @@ const checkUserActivity = async (req, res) => {
   }
 };
 
+// Get user's saved datasets
+const getUserSavedDatasets = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const savedDatasets = await SavedDataset.findAll({
+      where: { user_id: userId },
+      include: [
+        {
+          model: Dataset,
+          attributes: ["id", "couch_db", "ds_id", "views_count"],
+        },
+      ],
+      order: [["created_at", "DESC"]], // Most recently saved first
+      attributes: ["id", "created_at"],
+    });
+
+    // Transform the data for frontend
+    const datasets = savedDatasets.map((saved) => ({
+      id: saved.Dataset.id,
+      couch_db: saved.Dataset.couch_db,
+      ds_id: saved.Dataset.ds_id,
+      views_count: saved.Dataset.views_count,
+      saved_at: saved.created_at,
+    }));
+
+    res.status(200).json({
+      savedDatasets: datasets,
+      count: datasets.length,
+    });
+  } catch (error) {
+    console.error("Get saved datasets error:", error);
+    res.status(500).json({
+      message: "Error fetching saved datasets",
+      error: error.message,
+    });
+  }
+};
+
+// Get user's liked datasets
+const getUserLikedDatasets = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const likedDatasets = await DatasetLike.findAll({
+      where: { user_id: userId },
+      include: [
+        {
+          model: Dataset,
+          attributes: ["id", "couch_db", "ds_id", "views_count"],
+        },
+      ],
+      order: [["created_at", "DESC"]], // Most recently liked first
+      attributes: ["id", "created_at"],
+    });
+
+    // Transform the data for frontend
+    const datasets = likedDatasets.map((like) => ({
+      id: like.Dataset.id,
+      couch_db: like.Dataset.couch_db,
+      ds_id: like.Dataset.ds_id,
+      views_count: like.Dataset.views_count,
+      liked_at: like.created_at,
+    }));
+
+    res.status(200).json({
+      likedDatasets: datasets,
+      count: datasets.length,
+    });
+  } catch (error) {
+    console.error("Get liked datasets error:", error);
+    res.status(500).json({
+      message: "Error fetching liked datasets",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   likeDataset,
   unlikeDataset,
@@ -489,4 +567,6 @@ module.exports = {
   getMostViewedDatasets,
   getDatasetStats,
   checkUserActivity,
+  getUserSavedDatasets,
+  getUserLikedDatasets,
 };
