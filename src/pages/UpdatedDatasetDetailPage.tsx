@@ -18,7 +18,6 @@ import {
   Tooltip,
   IconButton,
 } from "@mui/material";
-// add
 import DatasetActions from "components/DatasetDetailPage/DatasetAction";
 import FileTree from "components/DatasetDetailPage/FileTree/FileTree";
 import {
@@ -32,7 +31,6 @@ import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect, useMemo, useState, useRef } from "react";
-// import ReactJson from "react-json-view";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   likeDataset,
@@ -52,11 +50,25 @@ import {
 } from "redux/activities/activities.selector";
 import { AuthSelector } from "redux/auth/auth.selector";
 import {
+  getUserCollections,
+  createCollection,
+  addDatasetToCollection,
+  removeDatasetFromCollection,
+  getDatasetCollections,
+} from "redux/collections/collections.action";
+import {
+  selectUserCollections,
+  selectDatasetCollections,
+  selectIsCreatingCollection,
+  selectIsAddingToCollection,
+  selectCollectionsLoading,
+} from "redux/collections/collections.selector";
+import {
   fetchDocumentDetails,
   fetchDbInfoByDatasetId,
 } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
-import { NeurojsonService } from "services/neurojson.service";
+// import { NeurojsonService } from "services/neurojson.service";
 import RoutesEnum from "types/routes.enum";
 
 interface ExternalDataLink {
@@ -85,11 +97,17 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     error,
     datasetViewInfo: dbViewInfo,
   } = useAppSelector(NeurojsonSelector);
-  // user activities
-  // ✅ Add auth state
+  // user auth state
   const { isLoggedIn: isAuthenticated } = useAppSelector(AuthSelector);
 
-  // ✅ Add activities state - with safe defaults
+  // Collections state
+  const userCollections = useAppSelector(selectUserCollections);
+  const datasetCollections = useAppSelector(selectDatasetCollections);
+  const isCreatingCollection = useAppSelector(selectIsCreatingCollection);
+  const isAddingToCollection = useAppSelector(selectIsAddingToCollection);
+  const isLoadingCollections = useAppSelector(selectCollectionsLoading);
+
+  // activities state - with safe defaults
   const isLiked = useAppSelector((state) =>
     dbName && docId ? selectIsDatasetLiked(state, dbName, docId) : false
   );
@@ -127,21 +145,21 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   };
 
   // Handle save/unsave
-  const handleSaveToggle = async () => {
-    if (!dbName || !docId) return;
+  // const handleSaveToggle = async () => {
+  //   if (!dbName || !docId) return;
 
-    try {
-      if (isSaved) {
-        await dispatch(unsaveDataset({ dbName, datasetId: docId })).unwrap();
-      } else {
-        await dispatch(saveDataset({ dbName, datasetId: docId })).unwrap();
-      }
-    } catch (error) {
-      console.error("Error toggling save:", error);
-    }
-  };
+  //   try {
+  //     if (isSaved) {
+  //       await dispatch(unsaveDataset({ dbName, datasetId: docId })).unwrap();
+  //     } else {
+  //       await dispatch(saveDataset({ dbName, datasetId: docId })).unwrap();
+  //     }
+  //   } catch (error) {
+  //     console.error("Error toggling save:", error);
+  //   }
+  // };
 
-  // ✅ Add this useEffect to load user activity status and stats
+  // useEffect to load user activity status and stats
   useEffect(() => {
     if (!dbName || !docId) return;
 
@@ -151,8 +169,94 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     // Check if user has liked/saved this dataset (only if authenticated)
     if (isAuthenticated) {
       dispatch(checkUserActivity({ dbName, datasetId: docId }));
+      // Load user's collections
+      dispatch(getUserCollections());
+
+      // Check which collections contain this dataset
+      dispatch(getDatasetCollections({ dbName, datasetId: docId }));
     }
   }, [dbName, docId, isAuthenticated, dispatch]);
+
+  // Merge user collections with dataset collections to show checkmark
+  const collectionsForMenu = userCollections.map((collection) => ({
+    id: collection.id,
+    name: collection.name,
+    isInCollection: datasetCollections.some((dc) => dc.id === collection.id), // if true --> has checkmark
+  }));
+
+  // Check if dataset is in any collection
+  const isInAnyCollection = datasetCollections.length > 0;
+
+  const handleCreateCollection = async (name: string, description?: string) => {
+    if (!dbName || !docId) return;
+
+    try {
+      const newCollection = await dispatch(
+        createCollection({ name, description })
+      ).unwrap();
+
+      // After creating, add this dataset to the new collection
+      await dispatch(
+        addDatasetToCollection({
+          collectionId: newCollection.id,
+          dbName,
+          datasetId: docId,
+        })
+      ).unwrap();
+
+      // Refetch collections
+      dispatch(getUserCollections());
+      dispatch(getDatasetCollections({ dbName, datasetId: docId }));
+    } catch (error) {
+      console.error("Error creating collection:", error);
+    }
+  };
+
+  const handleAddToCollection = async (collectionId: number) => {
+    if (!dbName || !docId) return;
+
+    try {
+      await dispatch(
+        addDatasetToCollection({
+          collectionId,
+          dbName,
+          datasetId: docId,
+        })
+      ).unwrap();
+
+      // Refetch to update menu
+      dispatch(getDatasetCollections({ dbName, datasetId: docId }));
+    } catch (error) {
+      console.error("Error adding to collection:", error);
+    }
+  };
+
+  // const handleRemoveFromCollection = async (collectionId: number) => {
+  //   if (!dbName || !docId) return;
+
+  //   try {
+  //     // Find the dataset's database ID from the collections
+  //     const collection = datasetCollections.find((c) => c.id === collectionId);
+  //     if (!collection || !collection.datasets) return;
+
+  //     const dataset = collection.datasets.find(
+  //       (ds) => ds.couch_db === dbName && ds.ds_id === docId
+  //     );
+  //     if (!dataset) return;
+
+  //     await dispatch(
+  //       removeDatasetFromCollection({
+  //         collectionId,
+  //         datasetId: dataset.id,
+  //       })
+  //     ).unwrap();
+
+  //     // Refetch to update menu
+  //     dispatch(getDatasetCollections({ dbName, datasetId: docId }));
+  //   } catch (error) {
+  //     console.error("Error removing from collection:", error);
+  //   }
+  // };
 
   // get params from url
   const [searchParams, setSearchParams] = useSearchParams();
@@ -170,14 +274,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const [jsonSize, setJsonSize] = useState<number>(0);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  // const [copiedToast, setCopiedToast] = useState<{
-  //   open: boolean;
-  //   text: string;
-  // }>({
-  //   open: false,
-  //   text: "",
-  // });
-  // const [copiedUrlOpen, setCopiedUrlOpen] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const copyTimer = useRef<number | null>(null);
   const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
@@ -199,17 +295,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   );
 
   const treeTitle = "Files";
-  // const filesCount = externalLinks.length;
-  // const totalBytes = useMemo(() => {
-  //   let bytes = 0;
-  //   for (const l of externalLinks) {
-  //     const m = l.url.match(/size=(\d+)/);
-  //     if (m) bytes += parseInt(m[1], 10);
-  //   }
-  //   return bytes;
-  // }, [externalLinks]);
-
-  // add spinner
 
   const formatSize = (sizeInBytes: number): string => {
     if (sizeInBytes < 1024) {
@@ -370,12 +455,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       // setCopiedToast({ open: true, text: "Preview link copied" });
     }
   };
-
-  // const handleUrlCopyClick = async (e: React.MouseEvent, path: string) => {
-  //   await copyPreviewUrl(path);
-  //   setCopiedUrlOpen(true);
-  //   setTimeout(() => setCopiedUrlOpen(false), 2500);
-  // };
 
   const handleUrlCopyClick = async (
     e: React.MouseEvent<HTMLButtonElement>,
@@ -772,22 +851,6 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   return (
     <>
       <Box sx={{ padding: 4 }}>
-        {/* <Button
-          variant="text"
-          onClick={() => navigate(-1)}
-          sx={{
-            marginBottom: 2,
-            color: Colors.white,
-            "&:hover": {
-              transform: "scale(1.05)",
-              backgroundColor: "transparent",
-              textDecoration: "underline",
-            },
-          }}
-        >
-          Back
-        </Button> */}
-
         {/* Breadcrumb Navigation (Home → Database → Dataset) */}
         <Box
           sx={{
@@ -898,14 +961,24 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           {/* user actions component */}
           <DatasetActions
             isLiked={isLiked}
-            isSaved={isSaved}
+            isSaved={isInAnyCollection}
             likesCount={likesCount}
             viewsCount={viewsCount}
             isLikeLoading={isLikeLoading}
             isSaveLoading={isSaveLoading}
             isAuthenticated={isAuthenticated}
             onLikeToggle={handleLikeToggle}
-            onSaveToggle={handleSaveToggle}
+            // onSaveToggle={handleSaveToggle}
+
+            collections={collectionsForMenu}
+            onCreateCollection={handleCreateCollection}
+            onAddToCollection={handleAddToCollection}
+            // onRemoveFromCollection={handleRemoveFromCollection}
+            isLoadingCollections={
+              isLoadingCollections ||
+              isCreatingCollection ||
+              isAddingToCollection
+            }
           />
           {/* ai summary */}
           {aiSummary ? (
