@@ -37,6 +37,7 @@ export const Colors = {
   blue: "#1976d2",
   lightBlue: "#e8f0fe",
   pink: "#FF69B4",
+  rose: "#EC4899",
   purpleGrey: "#99aff0",
   primary,
   secondary,

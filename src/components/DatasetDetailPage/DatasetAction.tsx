@@ -1,5 +1,5 @@
 import AddIcon from "@mui/icons-material/Add";
-import BookmarkIcon from "@mui/icons-material/Bookmark";
+import BookmarkAddedIcon from "@mui/icons-material/BookmarkAdded";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import CheckIcon from "@mui/icons-material/Check";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -21,7 +21,6 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Tooltip,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import React, { useState } from "react";
@@ -35,12 +34,9 @@ interface DatasetActionsProps {
   isSaveLoading: boolean;
   isAuthenticated: boolean;
   onLikeToggle: () => void;
-  // onSaveToggle: () => void;
-  // New collection props
   collections: Array<{ id: number; name: string; isInCollection: boolean }>;
   onCreateCollection: (name: string, description?: string) => void;
   onAddToCollection: (collectionId: number) => void;
-  // onRemoveFromCollection: (collectionId: number) => void;
   isLoadingCollections: boolean;
 }
 
@@ -53,12 +49,9 @@ const DatasetActions: React.FC<DatasetActionsProps> = ({
   isSaveLoading,
   isAuthenticated,
   onLikeToggle,
-  // onSaveToggle,
-  // Collections props
   collections,
   onCreateCollection,
   onAddToCollection,
-  // onRemoveFromCollection,
   isLoadingCollections,
 }) => {
   const [showLoginAlert, setShowLoginAlert] = useState(false);
@@ -76,6 +69,104 @@ const DatasetActions: React.FC<DatasetActionsProps> = ({
   const handleUnauthenticatedClick = () => {
     setShowLoginAlert(true);
   };
+
+  // Add early return for non-authenticated users
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            mt: 2,
+            mb: 2,
+          }}
+        >
+          {/* Read-only Like Button */}
+          <Button
+            startIcon={<FavoriteBorderIcon />}
+            onClick={handleUnauthenticatedClick}
+            sx={{
+              color: Colors.rose,
+              backgroundColor: "transparent",
+              border: "none",
+              minWidth: "auto",
+              padding: "8px 16px",
+              transition: "transform .2s ease",
+              "&:hover": {
+                backgroundColor: "transparent",
+                border: "none",
+                transform: "scale(1.05)",
+              },
+            }}
+          >
+            {likesCount > 0 && `${likesCount}`}
+          </Button>
+
+          {/* Read-only Save Button */}
+          <Button
+            startIcon={<BookmarkBorderIcon />}
+            onClick={handleUnauthenticatedClick}
+            sx={{
+              color: Colors.darkGreen,
+              backgroundColor: "transparent",
+              border: "none",
+              minWidth: "auto",
+              padding: "8px 16px",
+              transition: "transform .2s ease",
+              "&:hover": {
+                backgroundColor: "transparent",
+                border: "none",
+                transform: "scale(1.05)",
+              },
+            }}
+          >
+            Save
+          </Button>
+
+          {/* Views Count */}
+          {viewsCount > 0 && (
+            <Typography
+              sx={{
+                color: Colors.textSecondary,
+                fontSize: "0.9rem",
+                ml: 1,
+              }}
+            >
+              {viewsCount} {viewsCount === 1 ? "view" : "views"}
+            </Typography>
+          )}
+        </Box>
+
+        {/* Login Alert for non-authenticated users */}
+        <Snackbar
+          open={showLoginAlert}
+          autoHideDuration={4000}
+          onClose={() => setShowLoginAlert(false)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setShowLoginAlert(false)}
+            severity="info"
+            sx={{
+              backgroundColor: Colors.black,
+              color: Colors.green,
+              border: `1px solid ${Colors.black}`,
+              width: "100%",
+
+              // icon color
+              "& .MuiAlert-icon": {
+                color: Colors.rose,
+              },
+            }}
+          >
+            Please log in to like or save datasets
+          </Alert>
+        </Snackbar>
+      </>
+    );
+  }
 
   // Handle save button click - open menu instead of toggle
   const handleSaveClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -150,91 +241,61 @@ const DatasetActions: React.FC<DatasetActionsProps> = ({
       >
         {/* Like Button */}
         <Button
-          variant={isLiked ? "contained" : "outlined"}
           startIcon={
             isLikeLoading ? (
-              <CircularProgress size={20} />
+              <CircularProgress size={20} sx={{ color: Colors.purple }} />
             ) : isLiked ? (
-              <FavoriteIcon />
+              <FavoriteIcon sx={{ color: Colors.rose }} />
             ) : (
-              <FavoriteBorderIcon />
+              <FavoriteBorderIcon sx={{ color: Colors.rose }} />
             )
           }
           onClick={isAuthenticated ? onLikeToggle : handleUnauthenticatedClick}
           disabled={isLikeLoading}
           sx={{
-            color: isLiked ? Colors.white : Colors.purple,
-            backgroundColor: isLiked ? Colors.purple : "transparent",
-            borderColor: Colors.purple,
+            color: Colors.rose,
+            backgroundColor: "transparent",
+            border: "none",
+            minWidth: "auto",
+            padding: "8px 16px",
+            transition: "transform .2s ease",
             "&:hover": {
-              backgroundColor: isLiked
-                ? Colors.secondaryPurple
-                : "rgba(128, 90, 213, 0.1)",
-              borderColor: Colors.secondaryPurple,
+              backgroundColor: "transparent",
+              border: "none",
+              transform: "scale(1.1)",
             },
             "&:disabled": {
               opacity: 0.6,
             },
           }}
         >
-          {isLiked ? "Liked" : "Like"} {likesCount > 0 && `(${likesCount})`}
+          {likesCount > 0 && `${likesCount}`}
         </Button>
-
-        {/* Save Button */}
-        {/* <Button
-          variant={isSaved ? "contained" : "outlined"}
-          startIcon={
-            isSaveLoading ? (
-              <CircularProgress size={20} />
-            ) : isSaved ? (
-              <BookmarkIcon />
-            ) : (
-              <BookmarkBorderIcon />
-            )
-          }
-          onClick={isAuthenticated ? onSaveToggle : handleUnauthenticatedClick}
-          disabled={isSaveLoading}
-          sx={{
-            color: isSaved ? Colors.white : Colors.purple,
-            backgroundColor: isSaved ? Colors.purple : "transparent",
-            borderColor: Colors.purple,
-            "&:hover": {
-              backgroundColor: isSaved
-                ? Colors.secondaryPurple
-                : "rgba(128, 90, 213, 0.1)",
-              borderColor: Colors.secondaryPurple,
-            },
-            "&:disabled": {
-              opacity: 0.6,
-            },
-          }}
-        >
-          {isSaved ? "Saved" : "Save"}
-        </Button> */}
 
         {/* Save Button - Now opens menu */}
         <Button
-          variant={isSaved ? "contained" : "outlined"}
           startIcon={
             isSaveLoading || isLoadingCollections ? (
-              <CircularProgress size={20} />
+              <CircularProgress size={20} sx={{ color: Colors.purple }} />
             ) : isSaved ? (
-              <BookmarkIcon />
+              <BookmarkAddedIcon sx={{ color: Colors.darkGreen }} />
             ) : (
-              <BookmarkBorderIcon />
+              <BookmarkBorderIcon sx={{ color: Colors.darkGreen }} />
             )
           }
           onClick={handleSaveClick}
           disabled={isSaveLoading || isLoadingCollections}
           sx={{
-            color: isSaved ? Colors.white : Colors.purple,
-            backgroundColor: isSaved ? Colors.purple : "transparent",
-            borderColor: Colors.purple,
+            color: Colors.darkGreen,
+            backgroundColor: "transparent",
+            border: "none",
+            minWidth: "auto",
+            padding: "8px 16px",
+            transition: "transform .2s ease",
             "&:hover": {
-              backgroundColor: isSaved
-                ? Colors.secondaryPurple
-                : "rgba(128, 90, 213, 0.1)",
-              borderColor: Colors.secondaryPurple,
+              backgroundColor: "transparent",
+              border: "none",
+              transform: "scale(1.1)",
             },
             "&:disabled": {
               opacity: 0.6,
@@ -352,7 +413,9 @@ const DatasetActions: React.FC<DatasetActionsProps> = ({
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Create New Collection</DialogTitle>
+        <DialogTitle sx={{ color: Colors.darkPurple }}>
+          Create New Collection
+        </DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -363,7 +426,26 @@ const DatasetActions: React.FC<DatasetActionsProps> = ({
             variant="outlined"
             value={newCollectionName}
             onChange={(e) => setNewCollectionName(e.target.value)}
-            sx={{ mb: 2, mt: 1 }}
+            sx={{
+              mb: 2,
+              mt: 1,
+              // focused label color
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: Colors.purple,
+              },
+
+              // focused outline color
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+
+              // optional: hover outline color
+              "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+            }}
           />
           <TextField
             margin="dense"
@@ -375,10 +457,36 @@ const DatasetActions: React.FC<DatasetActionsProps> = ({
             rows={3}
             value={newCollectionDescription}
             onChange={(e) => setNewCollectionDescription(e.target.value)}
+            sx={{
+              // focused label color
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: Colors.purple,
+              },
+
+              // focused outline color
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+
+              // optional: hover outline color
+              "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+            }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCreateCancel}>Cancel</Button>
+          <Button
+            onClick={handleCreateCancel}
+            sx={{
+              color: Colors.purple,
+              "&:hover": { backgroundColor: "rgba(128, 90, 213, 0.08)" }, // optional
+            }}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleCreateSubmit}
             variant="contained"
@@ -394,7 +502,7 @@ const DatasetActions: React.FC<DatasetActionsProps> = ({
       </Dialog>
 
       {/* Login Alert */}
-      <Snackbar
+      {/* <Snackbar
         open={showLoginAlert}
         autoHideDuration={4000}
         onClose={() => setShowLoginAlert(false)}
@@ -407,7 +515,7 @@ const DatasetActions: React.FC<DatasetActionsProps> = ({
         >
           Please log in to like or save datasets
         </Alert>
-      </Snackbar>
+      </Snackbar> */}
     </>
   );
 };
