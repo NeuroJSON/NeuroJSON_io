@@ -1,3 +1,4 @@
+import CollectionsTab from "./Dashboard/CollectionsTab";
 import ProfileTab from "./Dashboard/ProfileTab";
 import SavedDatasetsTab from "./Dashboard/SavedDatasetsTab";
 import SecurityTab from "./Dashboard/SecurityTab";
@@ -134,7 +135,7 @@ const UserDashboard: React.FC = () => {
           />
           <Tab
             icon={<Bookmark />}
-            label="Saved"
+            label="Collections"
             id="dashboard-tab-2"
             aria-controls="dashboard-tabpanel-2"
           />
@@ -159,7 +160,7 @@ const UserDashboard: React.FC = () => {
           <SecurityTab user={user} />
         </TabPanel>
         <TabPanel value={tabValue} index={2}>
-          <SavedDatasetsTab userId={user.id} />
+          <CollectionsTab userId={user.id} />
         </TabPanel>
         <TabPanel value={tabValue} index={3}>
           <LikedDatasetsTab userId={user.id} />

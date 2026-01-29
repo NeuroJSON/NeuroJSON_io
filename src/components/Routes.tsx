@@ -1,13 +1,12 @@
 import ScrollToTop from "./ScrollToTop";
 import CompleteProfile from "./User/CompleteProfile";
+import CollectionDetailPage from "./User/Dashboard/CollectionDetailPage";
 import ForgotPassword from "./User/ForgotPassword";
 import ResetPassword from "./User/ResetPassword";
 import UserDashboard from "./User/UserDashboard";
 import FullScreen from "design/Layouts/FullScreen";
 import AboutPage from "pages/AboutPage";
 import DatabasePage from "pages/DatabasePage";
-import DatasetDetailPage from "pages/DatasetDetailPage";
-import DatasetPage from "pages/DatasetPage";
 import Home from "pages/Home";
 import ResendVerification from "pages/ResendVerification";
 import SearchPage from "pages/SearchPage";
@@ -61,6 +60,12 @@ const Routes = () => (
 
         {/* Dashboard Page */}
         <Route path={RoutesEnum.DASHBOARD} element={<UserDashboard />} />
+
+        {/* Collection detail page */}
+        <Route
+          path="/collections/:collectionId"
+          element={<CollectionDetailPage />}
+        />
       </Route>
     </RouterRoutes>
   </>
