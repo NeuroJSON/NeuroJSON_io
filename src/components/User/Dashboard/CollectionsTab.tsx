@@ -296,7 +296,9 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Create New Collection</DialogTitle>
+        <DialogTitle sx={{ color: Colors.darkPurple }}>
+          Create New Collection
+        </DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -307,7 +309,26 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
             variant="outlined"
             value={newCollectionName}
             onChange={(e) => setNewCollectionName(e.target.value)}
-            sx={{ mb: 2, mt: 1 }}
+            sx={{
+              mb: 2,
+              mt: 1,
+              // focused label color
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: Colors.purple,
+              },
+
+              // focused outline color
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+
+              // optional: hover outline color
+              "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+            }}
           />
           <TextField
             margin="dense"
@@ -319,10 +340,36 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
             rows={3}
             value={newCollectionDescription}
             onChange={(e) => setNewCollectionDescription(e.target.value)}
+            sx={{
+              // focused label color
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: Colors.purple,
+              },
+
+              // focused outline color
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+
+              // optional: hover outline color
+              "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+            }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCreateClose}>Cancel</Button>
+          <Button
+            onClick={handleCreateClose}
+            sx={{
+              color: Colors.purple,
+              "&:hover": { backgroundColor: "rgba(128, 90, 213, 0.08)" }, // optional
+            }}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleCreateSubmit}
             variant="contained"
@@ -339,7 +386,9 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
-        <DialogTitle>Delete Collection?</DialogTitle>
+        <DialogTitle sx={{ color: Colors.darkPurple }}>
+          Delete Collection?
+        </DialogTitle>
         <DialogContent>
           <Typography>
             Are you sure you want to delete "{collectionToDelete?.name}"?
@@ -349,7 +398,15 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDeleteCancel}>Cancel</Button>
+          <Button
+            onClick={handleDeleteCancel}
+            sx={{
+              color: Colors.purple,
+              "&:hover": { backgroundColor: "rgba(128, 90, 213, 0.08)" }, // optional
+            }}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleDeleteConfirm}
             variant="contained"
