@@ -215,10 +215,6 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
           variant="contained"
           startIcon={<Add />}
           onClick={handleCreateOpen}
-          //   sx={{
-          //     backgroundColor: Colors.purple,
-          //     "&:hover": { backgroundColor: Colors.secondaryPurple },
-          //   }}
           sx={{
             background: `linear-gradient(
               135deg,
@@ -460,8 +456,17 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
             variant="contained"
             disabled={!newCollectionName.trim() || isCreating}
             sx={{
-              backgroundColor: Colors.purple,
-              "&:hover": { backgroundColor: Colors.secondaryPurple },
+              background: `linear-gradient(135deg, ${Colors.rose} 0%, ${Colors.purple} 100%)`,
+              color: "#fff",
+              "&:hover": {
+                background: `linear-gradient(135deg, ${Colors.purple} 0%, ${Colors.rose} 100%)`,
+              },
+              "&.Mui-disabled": {
+                background: "linear-gradient(135deg, #e0e0e0 0%, #cfcfcf 100%)",
+                color: "#9e9e9e",
+                cursor: "not-allowed",
+                boxShadow: "none",
+              },
             }}
           >
             {isCreating ? <CircularProgress size={20} /> : "Create"}
@@ -668,6 +673,12 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
               color: "#fff",
               "&:hover": {
                 background: `linear-gradient(135deg, ${Colors.purple} 0%, ${Colors.rose} 100%)`,
+              },
+              "&.Mui-disabled": {
+                background: "linear-gradient(135deg, #e0e0e0 0%, #cfcfcf 100%)",
+                color: "#9e9e9e",
+                cursor: "not-allowed",
+                boxShadow: "none",
               },
             }}
           >
