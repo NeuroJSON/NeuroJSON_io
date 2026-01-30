@@ -6,6 +6,7 @@ import {
   changePassword,
   forgotPassword,
   resetPassword,
+  updateProfile,
 } from "./auth.action";
 import {
   IAuthState,
@@ -173,6 +174,18 @@ const authSlice = createSlice({
         // Success - no state update needed
       })
       .addCase(resetPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(updateProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.loading = false;
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
