@@ -76,3 +76,15 @@ export interface ResetPasswordData {
 export interface ResetPasswordResponse {
   message: string;
 }
+
+export interface UpdateProfileData {
+  firstName: string;
+  lastName: string;
+  company: string;
+  interests?: string;
+}
+
+export interface UpdateProfileResponse {
+  message: string;
+  user: User;
+}
