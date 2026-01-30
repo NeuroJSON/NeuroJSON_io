@@ -1,4 +1,4 @@
-import { Folder, Visibility, Add, Delete } from "@mui/icons-material";
+import { Folder, Visibility, Add, Delete, Edit } from "@mui/icons-material";
 import {
   Box,
   Typography,
@@ -17,6 +17,8 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
@@ -27,6 +29,7 @@ import {
   getUserCollections,
   createCollection,
   deleteCollection,
+  updateCollection,
 } from "redux/collections/collections.action";
 import {
   selectUserCollections,
@@ -55,6 +58,14 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
   const [collectionToDelete, setCollectionToDelete] = useState<{
     id: number;
     name: string;
+  } | null>(null);
+  // edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingCollection, setEditingCollection] = useState<{
+    id: number;
+    name: string;
+    description: string;
+    is_public: boolean;
   } | null>(null);
 
   useEffect(() => {
@@ -119,6 +130,46 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
     setCollectionToDelete(null);
   };
 
+  // Open edit dialog
+  const handleEditClick = (collection: any) => {
+    setEditingCollection({
+      id: collection.id,
+      name: collection.name,
+      description: collection.description || "",
+      is_public: collection.is_public || false,
+    });
+    setEditDialogOpen(true);
+  };
+
+  // Submit edit
+  const handleEditSubmit = async () => {
+    if (!editingCollection || !editingCollection.name.trim()) return;
+
+    try {
+      await dispatch(
+        updateCollection({
+          collectionId: editingCollection.id,
+          name: editingCollection.name.trim(),
+          description: editingCollection.description.trim() || undefined,
+          is_public: editingCollection.is_public,
+        })
+      ).unwrap();
+
+      // Refetch collections
+      dispatch(getUserCollections());
+
+      handleEditClose();
+    } catch (error) {
+      console.error("Error updating collection:", error);
+    }
+  };
+
+  // Close edit dialog
+  const handleEditClose = () => {
+    setEditDialogOpen(false);
+    setEditingCollection(null);
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -164,9 +215,27 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
           variant="contained"
           startIcon={<Add />}
           onClick={handleCreateOpen}
+          //   sx={{
+          //     backgroundColor: Colors.purple,
+          //     "&:hover": { backgroundColor: Colors.secondaryPurple },
+          //   }}
           sx={{
-            backgroundColor: Colors.purple,
-            "&:hover": { backgroundColor: Colors.secondaryPurple },
+            background: `linear-gradient(
+              135deg,
+              ${Colors.purple} 0%,
+              ${Colors.secondaryPurple} 100%
+            )`,
+            color: "#fff",
+            textTransform: "none",
+
+            // keep gradient on hover
+            "&:hover": {
+              background: `linear-gradient(
+                135deg,
+                ${Colors.secondaryPurple} 0%,
+                ${Colors.purple} 100%
+              )`,
+            },
           }}
         >
           New Collection
@@ -217,7 +286,9 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
                     <ListItemText
                       primary={
                         <Box display="flex" alignItems="center" gap={1}>
-                          <Folder sx={{ color: Colors.purple, fontSize: 20 }} />
+                          <Folder
+                            sx={{ color: Colors.darkGreen, fontSize: 20 }}
+                          />
                           <Typography variant="subtitle1" fontWeight="medium">
                             {collection.name}
                           </Typography>
@@ -251,6 +322,20 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
                     />
                   </Box>
                   <Box display="flex" gap={1}>
+                    {/* Edit button */}
+                    <IconButton
+                      size="small"
+                      onClick={() => handleEditClick(collection)}
+                      sx={{
+                        color: Colors.purple,
+                        "&:hover": {
+                          backgroundColor: "rgba(128, 90, 213, 0.1)",
+                        },
+                      }}
+                    >
+                      <Edit fontSize="small" />
+                    </IconButton>
+                    {/* view button */}
                     <Button
                       variant="outlined"
                       size="small"
@@ -273,7 +358,7 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
                         handleDeleteClick(collection.id, collection.name)
                       }
                       sx={{
-                        color: "error.main",
+                        color: Colors.rose,
                         "&:hover": {
                           backgroundColor: "rgba(211, 47, 47, 0.1)",
                         },
@@ -410,10 +495,183 @@ const CollectionsTab: React.FC<CollectionsTabProps> = ({ userId }) => {
           <Button
             onClick={handleDeleteConfirm}
             variant="contained"
-            color="error"
             disabled={loading}
+            sx={{
+              background: `linear-gradient(
+                  135deg,
+                  ${Colors.rose} 0%,
+                  ${Colors.purple} 100%
+                )`,
+              color: "#fff",
+              textTransform: "none",
+
+              // keep gradient on hover
+              "&:hover": {
+                background: `linear-gradient(
+                    135deg,
+                    ${Colors.purple} 0%,
+                    ${Colors.rose} 100%
+                  )`,
+              },
+            }}
           >
             {loading ? <CircularProgress size={20} /> : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Edit Collection Dialog */}
+      <Dialog
+        open={editDialogOpen}
+        onClose={handleEditClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ color: Colors.darkPurple }}>
+          Edit Collection
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Collection Name"
+            fullWidth
+            variant="outlined"
+            value={editingCollection?.name || ""}
+            onChange={(e) =>
+              setEditingCollection(
+                editingCollection
+                  ? { ...editingCollection, name: e.target.value }
+                  : null
+              )
+            }
+            sx={{
+              mb: 2,
+              mt: 1,
+              // focused label color
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: Colors.purple,
+              },
+              // focused outline color
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+              // optional: hover outline color
+              "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+            }}
+          />
+          <TextField
+            margin="dense"
+            label="Description (optional)"
+            fullWidth
+            variant="outlined"
+            multiline
+            rows={3}
+            value={editingCollection?.description || ""}
+            onChange={(e) =>
+              setEditingCollection(
+                editingCollection
+                  ? { ...editingCollection, description: e.target.value }
+                  : null
+              )
+            }
+            sx={{
+              mb: 2,
+              // focused label color
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: Colors.purple,
+              },
+
+              // focused outline color
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+
+              // optional: hover outline color
+              "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+            }}
+          />
+          {/* <Box display="flex" alignItems="center" gap={1}>
+            <input
+              type="checkbox"
+              id="is_public"
+              checked={editingCollection?.is_public || false}
+              onChange={(e) =>
+                setEditingCollection(
+                  editingCollection
+                    ? { ...editingCollection, is_public: e.target.checked }
+                    : null
+                )
+              }
+              style={{ width: 18, height: 18, cursor: "pointer" }}
+            />
+            <label
+              htmlFor="is_public"
+              style={{ cursor: "pointer", fontSize: "0.875rem" }}
+            >
+              Make this collection public
+            </label>
+          </Box> */}
+          {/* ✅ Replace HTML checkbox with Material-UI Checkbox */}
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={editingCollection?.is_public || false}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setEditingCollection(
+                    editingCollection
+                      ? { ...editingCollection, is_public: e.target.checked }
+                      : null
+                  )
+                }
+                sx={{
+                  color: Colors.purple,
+                  "&.Mui-checked": {
+                    color: Colors.purple,
+                  },
+                }}
+              />
+            }
+            label="Make this collection public"
+          />
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mt: 1, display: "block" }}
+          >
+            Public collections can be viewed by others (feature coming soon)
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleEditClose}
+            sx={{
+              color: Colors.purple,
+              "&:hover": { backgroundColor: "rgba(128, 90, 213, 0.08)" },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleEditSubmit}
+            variant="contained"
+            disabled={!editingCollection?.name.trim() || loading}
+            sx={{
+              background: `linear-gradient(135deg, ${Colors.rose} 0%, ${Colors.purple} 100%)`,
+              color: "#fff",
+              "&:hover": {
+                background: `linear-gradient(135deg, ${Colors.purple} 0%, ${Colors.rose} 100%)`,
+              },
+            }}
+          >
+            {loading ? <CircularProgress size={20} /> : "Save Changes"}
           </Button>
         </DialogActions>
       </Dialog>

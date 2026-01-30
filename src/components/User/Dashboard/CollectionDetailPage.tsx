@@ -79,13 +79,13 @@ const CollectionDetailPage: React.FC = () => {
     navigate(`/db/${dbName}/${datasetId}`);
   };
 
-  // ✅ Open delete confirmation
+  // Open delete confirmation
   const handleDeleteClick = (datasetId: number, datasetName: string) => {
     setDatasetToDelete({ id: datasetId, name: datasetName });
     setDeleteDialogOpen(true);
   };
 
-  // ✅ Confirm delete
+  // Confirm delete
   const handleDeleteConfirm = async () => {
     if (!collectionId || !datasetToDelete) return;
 
@@ -108,7 +108,7 @@ const CollectionDetailPage: React.FC = () => {
     }
   };
 
-  // ✅ Cancel delete
+  // Cancel delete
   const handleDeleteCancel = () => {
     setDeleteDialogOpen(false);
     setDatasetToDelete(null);
@@ -299,7 +299,7 @@ const CollectionDetailPage: React.FC = () => {
                         handleDeleteClick(dataset.id, dataset.ds_id)
                       }
                       sx={{
-                        color: "error.main",
+                        color: Colors.rose,
                         "&:hover": {
                           backgroundColor: "rgba(211, 47, 47, 0.1)",
                         },
@@ -328,12 +328,37 @@ const CollectionDetailPage: React.FC = () => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDeleteCancel}>Cancel</Button>
+          <Button
+            onClick={handleDeleteCancel}
+            sx={{
+              color: Colors.purple,
+              "&:hover": { backgroundColor: "rgba(128, 90, 213, 0.08)" },
+            }}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleDeleteConfirm}
             variant="contained"
-            color="error"
             disabled={loading}
+            sx={{
+              background: `linear-gradient(
+                              135deg,
+                              ${Colors.rose} 0%,
+                              ${Colors.purple} 100%
+                            )`,
+              color: "#fff",
+              textTransform: "none",
+
+              // keep gradient on hover
+              "&:hover": {
+                background: `linear-gradient(
+                                135deg,
+                                ${Colors.purple} 0%,
+                                ${Colors.rose} 100%
+                              )`,
+              },
+            }}
           >
             {loading ? <CircularProgress size={20} /> : "Remove"}
           </Button>
