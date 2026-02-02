@@ -102,10 +102,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
 
   return (
     <Box>
-      {/* <Typography variant="h6" gutterBottom>
-        Profile Information
-      </Typography> */}
-      {/* ✅ ADD: Header with Edit Button */}
+      {/* Header with Edit Button */}
       <Box
         display="flex"
         justifyContent="space-between"
@@ -171,14 +168,14 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
         )}
       </Box>
 
-      {/* ✅ ADD: Success Message */}
+      {/* Success Message */}
       {successMessage && (
         <Alert severity="success" sx={{ mb: 2 }}>
           {successMessage}
         </Alert>
       )}
 
-      {/* ✅ ADD: Error Message */}
+      {/* Error Message */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
@@ -229,15 +226,6 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
           </Grid>
 
           {/* First Name */}
-          {/* {user.firstName && (
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" color="text.secondary">
-                First Name
-              </Typography>
-              <Typography variant="body1">{user.firstName}</Typography>
-            </Grid>
-          )} */}
-
           <Grid item xs={12} sm={6}>
             <Typography variant="caption" color="text.secondary">
               First Name
@@ -264,14 +252,6 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
             )}
           </Grid>
           {/* Last Name */}
-          {/* {user.lastName && (
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" color="text.secondary">
-                Last Name
-              </Typography>
-              <Typography variant="body1">{user.lastName}</Typography>
-            </Grid>
-          )} */}
           <Grid item xs={12} sm={6}>
             <Typography variant="caption" color="text.secondary">
               Last Name
@@ -299,19 +279,6 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
           </Grid>
 
           {/* Company */}
-          {/* {user.company && (
-            <Grid item xs={12}>
-              <Box display="flex" alignItems="center" gap={1}>
-                <Business color="action" />
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Company/Institution
-                  </Typography>
-                  <Typography variant="body1">{user.company}</Typography>
-                </Box>
-              </Box>
-            </Grid>
-          )} */}
           <Grid item xs={12}>
             <Box display="flex" alignItems="center" gap={1}>
               <Business color="action" />
@@ -344,17 +311,6 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
           </Grid>
 
           {/* Interests */}
-          {/* {user.interests && (
-            <Grid item xs={12}>
-              <Typography variant="caption" color="text.secondary" gutterBottom>
-                Research Interests
-              </Typography>
-              <Typography variant="body1" sx={{ whiteSpace: "pre-wrap" }}>
-                {user.interests}
-              </Typography>
-            </Grid>
-          )} */}
-
           <Grid item xs={12}>
             <Typography variant="caption" color="text.secondary" gutterBottom>
               Research Interests
