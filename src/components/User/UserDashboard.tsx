@@ -1,5 +1,6 @@
 import CollectionsTab from "./Dashboard/CollectionsTab";
 import ProfileTab from "./Dashboard/ProfileTab";
+import ProjectsTab from "./Dashboard/ProjectsTab";
 import SavedDatasetsTab from "./Dashboard/SavedDatasetsTab";
 import SecurityTab from "./Dashboard/SecurityTab";
 import LikedDatasetsTab from "./Dashboard/likedDatasetsTab";
@@ -9,6 +10,7 @@ import {
   Settings,
   Bookmark,
   Favorite,
+  FolderOpen,
 } from "@mui/icons-material";
 import {
   Box,
@@ -146,6 +148,12 @@ const UserDashboard: React.FC = () => {
             aria-controls="dashboard-tabpanel-3"
           />
           <Tab
+            icon={<FolderOpen />}
+            label="Projects"
+            id="dashboard-tab-3"
+            aria-controls="dashboard-tabpanel-3"
+          />
+          <Tab
             icon={<Settings />}
             label="Settings"
             id="dashboard-tab-2"
@@ -164,6 +172,9 @@ const UserDashboard: React.FC = () => {
         </TabPanel>
         <TabPanel value={tabValue} index={3}>
           <LikedDatasetsTab userId={user.id} />
+        </TabPanel>
+        <TabPanel value={tabValue} index={4}>
+          <ProjectsTab userId={user.id} />
         </TabPanel>
       </Paper>
     </Container>
