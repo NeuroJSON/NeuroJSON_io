@@ -78,11 +78,11 @@ const getUserProjects = async (req, res) => {
 const getProject = async (req, res) => {
   try {
     const user = req.user;
-    const { id } = req.params;
+    const { projectId } = req.params;
 
     const project = await Project.findOne({
       where: {
-        id: id,
+        id: projectId,
         user_id: user.id,
       },
     });
@@ -107,12 +107,12 @@ const getProject = async (req, res) => {
 const updateProject = async (req, res) => {
   try {
     const user = req.user;
-    const { id } = req.params;
+    const { projectId } = req.params;
     const { name, description, extractor_state } = req.body;
 
     const project = await Project.findOne({
       where: {
-        id: id,
+        id: projectId,
         user_id: user.id,
       },
     });
@@ -128,7 +128,7 @@ const updateProject = async (req, res) => {
     if (description !== undefined) project.description = description;
     if (extractor_state !== undefined) {
       project.extractor_state = extractor_state;
-      // Mark as changed for JSON field
+      // Mark as changed for JSON field - tells Sequelize to UPDATE this field
       project.changed("extractor_state", true);
     }
 
@@ -150,11 +150,11 @@ const updateProject = async (req, res) => {
 const deleteProject = async (req, res) => {
   try {
     const user = req.user;
-    const { id } = req.params;
+    const { projectId } = req.params;
 
     const project = await Project.findOne({
       where: {
-        id: id,
+        id: projectId,
         user_id: user.id,
       },
     });
