@@ -17,15 +17,15 @@ router.use(restoreUser);
 router.get("/me/projects", requireAuth, getUserProjects);
 
 // Create new project
-router.post("/projects", requireAuth, createProject);
+router.post("/", requireAuth, createProject);
 
 // Get specific project
-router.get("/projects/:projectId", requireAuth, getProject);
+router.get("/:projectId", requireAuth, getProject);
 
 // Update project
-router.put("/projects/:projectId", requireAuth, updateProject);
+router.put("/:projectId", requireAuth, updateProject);
 
 // Delete project
-router.delete("/projects/:projectId", requireAuth, deleteProject);
+router.delete("/:projectId", requireAuth, deleteProject);
 
 module.exports = router;
