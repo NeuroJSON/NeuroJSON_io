@@ -2,6 +2,7 @@ import activitiesReducer from "./activities/activities.slice";
 import authReducer from "./auth/auth.slice";
 import collectionsReducer from "./collections/collections.slice";
 import neurojsonReducer from "./neurojson/neurojson.slice";
+import projectsReducer from "./projects/projects.slice";
 import {
   configureStore,
   combineReducers,
@@ -14,6 +15,7 @@ const appReducer = combineReducers({
   auth: authReducer,
   activities: activitiesReducer,
   collections: collectionsReducer,
+  projects: projectsReducer,
 });
 
 export const rootReducer = (
