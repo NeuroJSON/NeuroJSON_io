@@ -1,6 +1,7 @@
 import ScrollToTop from "./ScrollToTop";
 import CompleteProfile from "./User/CompleteProfile";
 import CollectionDetailPage from "./User/Dashboard/CollectionDetailPage";
+import DatasetOrganizer from "./User/Dashboard/DatasetOrganizer";
 import ForgotPassword from "./User/ForgotPassword";
 import ResetPassword from "./User/ResetPassword";
 import UserDashboard from "./User/UserDashboard";
@@ -61,11 +62,12 @@ const Routes = () => (
         {/* Dashboard Page */}
         <Route path={RoutesEnum.DASHBOARD} element={<UserDashboard />} />
 
-        {/* Collection detail page */}
+        {/* pages redirect from user dashboard */}
         <Route
           path="/collections/:collectionId"
           element={<CollectionDetailPage />}
         />
+        <Route path="/projects/:projectId" element={<DatasetOrganizer />} />
       </Route>
     </RouterRoutes>
   </>

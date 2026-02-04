@@ -1,0 +1,489 @@
+import {
+  Folder,
+  InsertDriveFile,
+  ExpandMore,
+  ChevronRight,
+  Delete,
+  NoteAdd,
+  Edit,
+  Description,
+} from "@mui/icons-material";
+import {
+  Box,
+  Typography,
+  IconButton,
+  Paper,
+  Button,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from "@mui/material";
+import { Colors } from "design/theme";
+import React, { useState } from "react";
+import { FileItem } from "redux/projects/types/projects.interface";
+
+interface FileTreeProps {
+  files: FileItem[];
+  setFiles: React.Dispatch<React.SetStateAction<FileItem[]>>;
+  selectedIds: Set<string>;
+  setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  expandedIds: Set<string>;
+  setExpandedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+}
+
+const FileTree: React.FC<FileTreeProps> = ({
+  files,
+  setFiles,
+  selectedIds,
+  setSelectedIds,
+  expandedIds,
+  setExpandedIds,
+}) => {
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState("");
+
+  const handleToggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Delete ${selectedIds.size} selected item(s)?`)) return;
+
+    // Collect all descendants
+    const toDelete = new Set(selectedIds);
+    const collectDescendants = (parentId: string) => {
+      files.forEach((file) => {
+        if (file.parentId === parentId) {
+          toDelete.add(file.id);
+          collectDescendants(file.id);
+        }
+      });
+    };
+
+    selectedIds.forEach((id) => collectDescendants(id));
+
+    // Remove files
+    setFiles((prev) => prev.filter((f) => !toDelete.has(f.id)));
+    setSelectedIds(new Set());
+  };
+
+  const handleAddNote = (id: string) => {
+    const file = files.find((f) => f.id === id);
+    setEditingNoteId(id);
+    setNoteText(file?.note || "");
+    setNoteDialogOpen(true);
+  };
+
+  const handleSaveNote = () => {
+    if (!editingNoteId) return;
+
+    setFiles((prev) =>
+      prev.map((f) => (f.id === editingNoteId ? { ...f, note: noteText } : f))
+    );
+
+    setNoteDialogOpen(false);
+    setEditingNoteId(null);
+    setNoteText("");
+  };
+
+  const renderFileIcon = (file: FileItem) => {
+    if (file.type === "folder" || file.type === "zip") {
+      return <Folder sx={{ color: Colors.darkGreen, fontSize: 20 }} />;
+    }
+
+    // Color based on file type
+    const colorMap: Record<string, string> = {
+      text: "#22c55e",
+      nifti: "#f472b6",
+      hdf5: "#fb923c",
+      neurojsonText: Colors.purple,
+      neurojsonBinary: Colors.secondaryPurple,
+      office: "#38bdf8",
+      meta: Colors.yellow,
+    };
+
+    const color = colorMap[file.fileType || "other"] || "#9ca3af";
+    return <InsertDriveFile sx={{ color, fontSize: 20 }} />;
+  };
+
+  // one item in the tree
+  const renderTreeItem = (file: FileItem, depth: number = 0) => {
+    const children = files.filter((f) => f.parentId === file.id);
+    const hasChildren = children.length > 0;
+
+    // Check if file has content or children to show expand button
+    const hasContent =
+      file.content !== undefined &&
+      file.content !== null &&
+      file.content !== "";
+    const canExpand = hasChildren || hasContent;
+
+    const isExpanded = expandedIds.has(file.id);
+    const isSelected = selectedIds.has(file.id);
+
+    return (
+      <Box key={file.id}>
+        {/* File Row */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+            py: 0.5,
+            px: 1,
+            pl: depth * 2 + 1,
+            cursor: "pointer",
+            backgroundColor: isSelected
+              ? "rgba(128, 90, 213, 0.1)"
+              : "transparent",
+            "&:hover": {
+              backgroundColor: "rgba(128, 90, 213, 0.05)",
+            },
+          }}
+          onClick={() => handleToggleSelect(file.id)}
+        >
+          {/* Expand/Collapse Icon */}
+          {canExpand ? (
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleExpand(file.id);
+              }}
+              sx={{ p: 0.25 }}
+            >
+              {isExpanded ? (
+                <ExpandMore sx={{ fontSize: 18 }} />
+              ) : (
+                <ChevronRight sx={{ fontSize: 18 }} />
+              )}
+            </IconButton>
+          ) : (
+            <Box sx={{ width: 24 }} />
+          )}
+
+          {/* File Icon */}
+          {renderFileIcon(file)}
+
+          {/* File Name */}
+          <Typography
+            variant="body2"
+            sx={{
+              flex: 1,
+              fontSize: "0.875rem",
+              wordBreak: "break-word",
+            }}
+          >
+            {file.name}
+          </Typography>
+
+          {/* Note Icon */}
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAddNote(file.id);
+            }}
+            sx={{
+              p: 0.25,
+              color: file.note ? Colors.darkGreen : "text.secondary",
+            }}
+            title={file.note ? "Edit note" : "Add note"}
+          >
+            {file.note ? (
+              <Edit sx={{ fontSize: 16 }} />
+            ) : (
+              <NoteAdd sx={{ fontSize: 16 }} />
+            )}
+          </IconButton>
+        </Box>
+
+        {/* Show Note Preview */}
+        {file.note && isExpanded && (
+          <Box
+            sx={{
+              ml: depth * 2 + 4,
+              mr: 1,
+              my: 0.5,
+              p: 1,
+              backgroundColor: "rgba(251, 191, 36, 0.1)",
+              borderLeft: "2px solid #fbbf24",
+              borderRadius: 1,
+            }}
+          >
+            <Typography variant="caption" sx={{ color: "#92400e" }}>
+              Note: {file.note}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Show Content Preview */}
+        {hasContent && isExpanded && (
+          <Box
+            sx={{
+              ml: depth * 2 + 4,
+              mr: 1,
+              my: 0.5,
+              p: 1,
+              backgroundColor: "rgba(34, 197, 94, 0.05)",
+              borderLeft: "2px solid #22c55e",
+              borderRadius: 1,
+              fontFamily: "monospace",
+              fontSize: "0.75rem",
+              maxHeight: "200px",
+              overflow: "auto",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-all",
+            }}
+          >
+            {file.content}
+          </Box>
+        )}
+
+        {/* Children */}
+        {hasChildren && isExpanded && (
+          <Box>{children.map((child) => renderTreeItem(child, depth + 1))}</Box>
+        )}
+      </Box>
+    );
+  };
+
+  const rootFiles = files.filter((f) => f.parentId === null);
+
+  if (files.length === 0) {
+    return (
+      <Paper
+        sx={{
+          width: 420,
+          borderLeft: 1,
+          borderColor: "divider",
+          display: "flex",
+          flexDirection: "column",
+          p: 3,
+        }}
+      >
+        <Typography variant="body2" color="text.secondary" textAlign="center">
+          No files yet. Drop files to get started.
+        </Typography>
+      </Paper>
+    );
+  }
+
+  return (
+    <>
+      <Paper
+        sx={{
+          width: 420,
+          borderLeft: 1,
+          borderColor: "divider",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        {/* Header */}
+        <Box
+          sx={{
+            p: 2,
+            borderBottom: 1,
+            borderColor: "divider",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Box>
+            <Typography variant="subtitle2" fontWeight="600">
+              Virtual File System
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {files.length} item{files.length !== 1 ? "s" : ""}
+            </Typography>
+          </Box>
+
+          {selectedIds.size > 0 && (
+            <Button
+              size="small"
+              startIcon={<Delete />}
+              onClick={handleDeleteSelected}
+              sx={{
+                color: Colors.rose,
+                "&:hover": {
+                  backgroundColor: "rgba(211, 47, 47, 0.1)",
+                },
+              }}
+            >
+              Delete ({selectedIds.size})
+            </Button>
+          )}
+        </Box>
+
+        {/* File Tree */}
+        <Box sx={{ flex: 1, overflow: "auto", p: 1 }}>
+          {rootFiles.map((file) => renderTreeItem(file))}
+        </Box>
+
+        {/* Footer Legend */}
+        <Box
+          sx={{
+            p: 1.5,
+            borderTop: 1,
+            borderColor: "divider",
+            backgroundColor: "background.default",
+          }}
+        >
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: "#22c55e",
+                }}
+              />
+              <Typography variant="caption">Text</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: "#f472b6",
+                }}
+              />
+              <Typography variant="caption">NIfTI</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: "#fb923c",
+                }}
+              />
+              <Typography variant="caption">HDF5</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: Colors.purple,
+                }}
+              />
+              <Typography variant="caption">NeuroJSON</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: "#38bdf8",
+                }}
+              />
+              <Typography variant="caption">Office</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: Colors.yellow,
+                }}
+              />
+              <Typography variant="caption">User Meta</Typography>
+            </Box>
+          </Box>
+        </Box>
+      </Paper>
+
+      {/* Note Editor Dialog */}
+      <Dialog
+        open={noteDialogOpen}
+        onClose={() => setNoteDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ color: Colors.darkPurple }}>
+          {editingNoteId && files.find((f) => f.id === editingNoteId)
+            ? `Note for: ${files.find((f) => f.id === editingNoteId)?.name}`
+            : "Add Note"}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            multiline
+            rows={4}
+            fullWidth
+            variant="outlined"
+            placeholder="Enter your note here..."
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            sx={{
+              mt: 1,
+              "& .MuiInputLabel-root.Mui-focused": {
+                color: Colors.purple,
+              },
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setNoteDialogOpen(false)}
+            sx={{ color: Colors.purple }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveNote}
+            variant="contained"
+            sx={{
+              background: `linear-gradient(135deg, ${Colors.rose} 0%, ${Colors.purple} 100%)`,
+              "&:hover": {
+                background: `linear-gradient(135deg, ${Colors.purple} 0%, ${Colors.rose} 100%)`,
+              },
+            }}
+          >
+            Save Note
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
+export default FileTree;
