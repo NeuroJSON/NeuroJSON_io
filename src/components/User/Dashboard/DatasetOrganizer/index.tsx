@@ -38,7 +38,26 @@ const DatasetOrganizer: React.FC = () => {
   const [showLLMPanel, setShowLLMPanel] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isRestoringState = useRef(false);
+  // Helper to mark as changed
+  const markAsChanged = () => {
+    setHasUnsavedChanges(true);
+  };
+
+  // Wrapper functions that mark as changed
+  const updateFiles = (updater: React.SetStateAction<FileItem[]>) => {
+    setFiles(updater);
+    markAsChanged();
+  };
+
+  const updateSelectedIds = (updater: React.SetStateAction<Set<string>>) => {
+    setSelectedIds(updater);
+    markAsChanged();
+  };
+
+  const updateExpandedIds = (updater: React.SetStateAction<Set<string>>) => {
+    setExpandedIds(updater);
+    markAsChanged();
+  };
 
   // Load project on mount
   useEffect(() => {
@@ -50,27 +69,13 @@ const DatasetOrganizer: React.FC = () => {
   // Restore state from project when loaded
   useEffect(() => {
     if (currentProject && currentProject.extractor_state) {
-      isRestoringState.current = true; // add
       const state = currentProject.extractor_state;
       setFiles(state.files || []);
       setSelectedIds(new Set(state.selectedIds || []));
       setExpandedIds(new Set(state.expandedIds || []));
       setHasUnsavedChanges(false);
-
-      setTimeout(() => {
-        isRestoringState.current = false;
-      }, 0);
     }
   }, [currentProject]);
-
-  // Track changes
-  useEffect(() => {
-    if (currentProject && !isRestoringState.current) {
-      console.log("before set has UnsavedChanges", hasUnsavedChanges);
-      setHasUnsavedChanges(true);
-      console.log("after it turns true", hasUnsavedChanges);
-    }
-  }, [files, selectedIds, expandedIds, currentProject]);
 
   const handleSave = async () => {
     if (!currentProject) return;
@@ -248,11 +253,9 @@ const DatasetOrganizer: React.FC = () => {
             sx={{
               backgroundColor: Colors.darkGreen,
               color: Colors.lightGray,
-              //   transition: "transform .2s ease",
               "&:hover": {
                 backgroundColor: Colors.darkGreen,
                 border: "none",
-                // transform: "scale(1.1)",
               },
             }}
           >
@@ -298,7 +301,7 @@ const DatasetOrganizer: React.FC = () => {
         <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
           <DropZone
             files={files}
-            setFiles={setFiles}
+            setFiles={updateFiles} // Pass wrapper
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
             expandedIds={expandedIds}
@@ -309,11 +312,11 @@ const DatasetOrganizer: React.FC = () => {
         {/* Right: File Tree */}
         <FileTree
           files={files}
-          setFiles={setFiles}
           selectedIds={selectedIds}
-          setSelectedIds={setSelectedIds}
           expandedIds={expandedIds}
-          setExpandedIds={setExpandedIds}
+          setFiles={updateFiles} // Pass wrapper instead
+          setSelectedIds={updateSelectedIds} // Pass wrapper
+          setExpandedIds={updateExpandedIds} // Pass wrapper
         />
       </Box>
 
