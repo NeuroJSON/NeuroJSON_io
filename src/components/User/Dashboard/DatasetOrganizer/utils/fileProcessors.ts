@@ -86,12 +86,10 @@ export const processFile = async (file: File): Promise<FileItem> => {
       entry.content = text.slice(0, 5000);
       entry.contentType = "text";
     } else if (fileType === "office" && ext === "pdf") {
-      // ✅ EXTRACT PDF - This was missing!
-      console.log("Processing PDF file...");
+      // Extract PDF
       const buffer = await file.arrayBuffer();
       entry.content = await extractPDFContent(buffer);
       entry.contentType = "office";
-      console.log("PDF processed successfully");
     } else if (fileType === "office" && ext === "docx") {
       // DOCX placeholder
       entry.content = `DOCX file: ${file.name}\nSize: ${(
@@ -115,22 +113,6 @@ export const processFile = async (file: File): Promise<FileItem> => {
     console.error("File processing error:", e);
     entry.content = `Error reading file: ${e.message}`;
   }
-
-  //   if (fileType === "text") {
-  //     try {
-  //       const text = await file.text();
-  //       entry.content = text.slice(0, 5000); // First 5000 chars
-  //       entry.contentType = "text";
-  //     } catch (e: any) {
-  //       entry.content = `Error reading file: ${e.message}`;
-  //     }
-  //   } else {
-  //     // For binary files, just store basic info
-  //     entry.content = `File: ${file.name}\nSize: ${(file.size / 1024).toFixed(
-  //       2
-  //     )} KB\nType: ${file.type || "Unknown"}`;
-  //     entry.contentType = fileType;
-  //   }
 
   return entry;
 };
@@ -189,28 +171,6 @@ export const processZip = async (file: File): Promise<FileItem[]> => {
         sourcePath: `${zipName}/${path}`,
       };
 
-      // Only extract text files
-      //   if (fileType === "text") {
-      //     try {
-      //       const text = await zipEntry.async("text");
-      //       entry.content = text.slice(0, 5000);
-      //       entry.contentType = "text";
-      //     } catch (e: any) {
-      //       entry.content = `Error: ${e.message}`;
-      //     }
-      //   } else {
-      //     // For binary files, just store info
-      //     // entry.content = `ZIP Entry: ${fileName}\nCompressed Size: ${(
-      //     //   zipEntry._data.compressedSize / 1024
-      //     // ).toFixed(2)} KB`;
-      //     // entry.contentType = fileType;
-      //     // ✅ FIX 1: Get file size from the ZIP entry properly
-      //     const arrayBuffer = await zipEntry.async("arraybuffer");
-      //     const sizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
-      //     entry.content = `ZIP Entry: ${fileName}\nSize: ${sizeKB} KB`;
-      //     entry.contentType = fileType;
-      //   }
-
       // Extract content based on file type
       if (fileType === "text") {
         try {
@@ -221,17 +181,27 @@ export const processZip = async (file: File): Promise<FileItem[]> => {
           entry.content = `Error: ${e.message}`;
         }
       } else if (fileType === "office" && ext === "pdf") {
-        // ✅ EXTRACT PDF FROM ZIP - This was missing!
+        // Extract PDF
         try {
-          console.log(`Extracting PDF from ZIP: ${fileName}`);
           const arrayBuffer = await zipEntry.async("arraybuffer");
           entry.content = await extractPDFContent(arrayBuffer);
           entry.contentType = "office";
-          console.log("ZIP PDF extracted successfully");
         } catch (e: any) {
           console.error("ZIP PDF extraction error:", e);
           entry.content = `Error extracting PDF: ${e.message}`;
         }
+      } else if (fileType === "office" && ext === "docx") {
+        // ADD: DOCX placeholder
+        const arrayBuffer = await zipEntry.async("arraybuffer");
+        const sizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
+        entry.content = `DOCX file: ${fileName}\nSize: ${sizeKB} KB\n\nNote: Install mammoth.js to extract DOCX content`;
+        entry.contentType = "office";
+      } else if (fileType === "office" && (ext === "xlsx" || ext === "xls")) {
+        // ADD: Excel placeholder
+        const arrayBuffer = await zipEntry.async("arraybuffer");
+        const sizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
+        entry.content = `Excel file: ${fileName}\nSize: ${sizeKB} KB\n\nNote: Install xlsx.js to extract Excel content`;
+        entry.contentType = "office";
       } else {
         // For other binary files, just store info
         const arrayBuffer = await zipEntry.async("arraybuffer");
@@ -260,12 +230,38 @@ export const processZip = async (file: File): Promise<FileItem[]> => {
 };
 
 // Process folder - Web API limitation: can't fully traverse folders like Node.js
+// export const processFolder = async (
+//   folderEntry: FileSystemDirectoryEntry,
+//   parentId: string | null
+// ): Promise<FileItem[]> => {
+//   const entries: FileItem[] = [];
+//   const folderId = generateId();
+
+//   // Add the folder itself
+//   entries.push({
+//     id: folderId,
+//     name: folderEntry.name,
+//     type: "folder",
+//     parentId: parentId,
+//     sourcePath: folderEntry.fullPath,
+//   });
+
+//   // Note: Full folder traversal requires complex recursive logic
+//   // For MVP, just create the folder entry
+//   // You can enhance this later
+
+//   return entries;
+// };
+
+// src/components/DatasetOrganizer/utils/fileProcessors.ts
+
 export const processFolder = async (
   folderEntry: FileSystemDirectoryEntry,
   parentId: string | null
 ): Promise<FileItem[]> => {
   const entries: FileItem[] = [];
   const folderId = generateId();
+  const basePath = folderEntry.name;
 
   // Add the folder itself
   entries.push({
@@ -273,12 +269,78 @@ export const processFolder = async (
     name: folderEntry.name,
     type: "folder",
     parentId: parentId,
-    sourcePath: folderEntry.fullPath,
+    sourcePath: basePath,
   });
 
-  // Note: Full folder traversal requires complex recursive logic
-  // For MVP, just create the folder entry
-  // You can enhance this later
+  // Helper: Promisify readEntries
+  const readEntries = (
+    reader: FileSystemDirectoryReader
+  ): Promise<FileSystemEntry[]> => {
+    return new Promise((resolve, reject) => {
+      reader.readEntries(resolve, reject);
+    });
+  };
+
+  // Helper: Promisify file() method
+  const getFile = (fileEntry: FileSystemFileEntry): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      fileEntry.file(resolve, reject);
+    });
+  };
+
+  // Recursive traversal function
+  async function traverseDirectory(
+    dirEntry: FileSystemDirectoryEntry,
+    currentParentId: string,
+    currentPath: string
+  ): Promise<void> {
+    const dirReader = dirEntry.createReader();
+    let allEntries: FileSystemEntry[] = [];
+
+    // Read all entries (may require multiple calls)
+    const readBatch = async (): Promise<void> => {
+      const batch = await readEntries(dirReader);
+      if (batch.length > 0) {
+        allEntries = allEntries.concat(Array.from(batch));
+        await readBatch(); // Keep reading
+      }
+    };
+
+    await readBatch();
+
+    // Process each entry
+    for (const entry of allEntries) {
+      const entryPath = `${currentPath}/${entry.name}`;
+
+      if (entry.isFile) {
+        // Process file
+        const fileEntry = entry as FileSystemFileEntry;
+        const file = await getFile(fileEntry);
+        const fileItem = await processFile(file);
+        fileItem.parentId = currentParentId;
+        fileItem.sourcePath = entryPath;
+        entries.push(fileItem);
+      } else if (entry.isDirectory) {
+        // Process subfolder
+        const subFolderId = generateId();
+        entries.push({
+          id: subFolderId,
+          name: entry.name,
+          type: "folder",
+          parentId: currentParentId,
+          sourcePath: entryPath,
+        });
+        await traverseDirectory(
+          entry as FileSystemDirectoryEntry,
+          subFolderId,
+          entryPath
+        );
+      }
+    }
+  }
+
+  // Start traversal
+  await traverseDirectory(folderEntry, folderId, basePath);
 
   return entries;
 };
