@@ -1,7 +1,7 @@
 // src/components/DatasetOrganizer/DropZone.tsx
 import { processFile, processFolder, processZip } from "./utils/fileProcessors";
 import { CloudUpload, Add } from "@mui/icons-material";
-import { Box, Typography, Paper, Button } from "@mui/material";
+import { Box, Typography, Paper, Button, TextField } from "@mui/material";
 import { Colors } from "design/theme";
 import React, { useState, useRef } from "react";
 import { FileItem } from "redux/projects/types/projects.interface";
@@ -25,6 +25,7 @@ const DropZone: React.FC<DropZoneProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [basePath, setBasePath] = useState<string>("");
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -68,7 +69,7 @@ const DropZone: React.FC<DropZoneProps> = ({
         const zipFiles = await processZip(file);
         setFiles((prev) => [...prev, ...zipFiles]);
       } else {
-        const fileItem = await processFile(file);
+        const fileItem = await processFile(file, basePath);
         setFiles((prev) => [...prev, fileItem]);
       }
     }
@@ -82,10 +83,13 @@ const DropZone: React.FC<DropZoneProps> = ({
         const zipFiles = await processZip(file);
         setFiles((prev) => [...prev, ...zipFiles]);
       } else {
-        const fileItem = await processFile(file);
+        const fileItem = await processFile(file, basePath);
         setFiles((prev) => [...prev, fileItem]);
       }
     }
+
+    // Reset input
+    e.target.value = "";
   };
 
   return (
@@ -139,6 +143,7 @@ const DropZone: React.FC<DropZoneProps> = ({
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
           Supports NIfTI, SNIRF, HDF5, NeuroJSON, folders, and ZIP archives
         </Typography>
+
         {files.length === 0 && (
           <>
             <Typography
@@ -168,6 +173,16 @@ const DropZone: React.FC<DropZoneProps> = ({
           accept=".nii,.nii.gz,.snirf,.h5,.hdf5,.jnii,.jmsh,.json,.txt,.md,.zip,.docx,.pdf,.xlsx,.xls"
         />
       </Paper>
+      <TextField
+        label="Base Directory Path (optional)"
+        placeholder="example: /Users/username/Desktop/Downloads"
+        value={basePath}
+        onChange={(e) => setBasePath(e.target.value)}
+        fullWidth
+        size="small"
+        sx={{ mb: 2 }}
+        helperText="Enter the folder path where these files are located"
+      />
     </Box>
   );
 };

@@ -180,7 +180,12 @@ const DatasetOrganizer: React.FC = () => {
 
   if (!currentProject) {
     return (
-      <Box p={4}>
+      <Box
+        sx={{
+          p: 4,
+          background: "linear-gradient(180deg,#f6f7fb 0%, #aeb6e8 100%)",
+        }}
+      >
         <Alert severity="error">Project not found</Alert>
         <Button onClick={() => navigate("/dashboard")} sx={{ mt: 2 }}>
           Back to Dashboard
@@ -195,7 +200,7 @@ const DatasetOrganizer: React.FC = () => {
         display: "flex",
         flexDirection: "column",
         height: "100vh",
-        background: Colors.white,
+        background: "linear-gradient(180deg,#f6f7fb 0%, #aeb6e8 100%)",
       }}
     >
       {/* Header */}
