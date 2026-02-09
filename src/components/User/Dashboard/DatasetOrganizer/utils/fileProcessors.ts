@@ -158,7 +158,10 @@ export const processFile = async (
 };
 
 // Process ZIP files
-export const processZip = async (file: File): Promise<FileItem[]> => {
+export const processZip = async (
+  file: File,
+  basePath?: string
+): Promise<FileItem[]> => {
   const zip = new JSZip();
   const zipName = file.name;
 
@@ -166,6 +169,16 @@ export const processZip = async (file: File): Promise<FileItem[]> => {
     const contents = await zip.loadAsync(file);
     const entries: FileItem[] = [];
     const pathMap: Record<string, string> = {};
+    // ✅ ADD: Create root ZIP container
+    const zipRootId = generateId();
+    entries.push({
+      id: zipRootId,
+      name: zipName,
+      type: "zip",
+      parentId: null,
+      sourcePath: zipName,
+    });
+
     const paths = Object.keys(contents.files).sort();
 
     for (const path of paths) {
@@ -177,7 +190,8 @@ export const processZip = async (file: File): Promise<FileItem[]> => {
       const parts = path.split("/");
       const fileName = parts.pop()!;
       let currentPath = "";
-      let parentId: string | null = null;
+      //   let parentId: string | null = null;
+      let parentId: string | null = zipRootId;
 
       // Create folder hierarchy
       parts.forEach((part) => {
@@ -185,12 +199,16 @@ export const processZip = async (file: File): Promise<FileItem[]> => {
         if (!pathMap[folderPath]) {
           const folderId = generateId();
           pathMap[folderPath] = folderId;
+          const folderSourcePath = basePath
+            ? `${basePath}/${zipName}/${folderPath}`.replace(/\/+/g, "/")
+            : `${zipName}/${folderPath}`;
           entries.push({
             id: folderId,
             name: part,
             type: "folder",
             parentId: parentId,
-            sourcePath: `${zipName}/${folderPath}`,
+            // sourcePath: `${zipName}/${folderPath}`,
+            sourcePath: folderSourcePath,
           });
         }
         parentId = pathMap[folderPath];
@@ -202,13 +220,19 @@ export const processZip = async (file: File): Promise<FileItem[]> => {
       const fileType = getFileType(fileName);
       const ext = fileName.toLowerCase().split(".").pop();
 
+      // Add basePath to file sourcePath
+      const fileSourcePath = basePath
+        ? `${basePath}/${zipName}/${path}`.replace(/\/+/g, "/")
+        : `${zipName}/${path}`;
+
       const entry: FileItem = {
         id: fileId,
         name: fileName,
         type: "file",
         parentId: parentId,
         fileType: fileType as any,
-        sourcePath: `${zipName}/${path}`,
+        // sourcePath: `${zipName}/${path}`,
+        sourcePath: fileSourcePath,
       };
 
       // Extract content based on file type
@@ -323,11 +347,18 @@ export const processZip = async (file: File): Promise<FileItem[]> => {
 
 export const processFolder = async (
   folderEntry: FileSystemDirectoryEntry,
-  parentId: string | null
+  parentId: string | null,
+  basePath?: string
 ): Promise<FileItem[]> => {
   const entries: FileItem[] = [];
   const folderId = generateId();
-  const basePath = folderEntry.name;
+  //   const basePath = folderEntry.name;
+  const folderName = folderEntry.name;
+
+  // Add basePath to root folder sourcePath
+  const rootSourcePath = basePath
+    ? `${basePath}/${folderName}`.replace(/\/+/g, "/")
+    : folderName;
 
   // Add the folder itself
   entries.push({
@@ -335,7 +366,8 @@ export const processFolder = async (
     name: folderEntry.name,
     type: "folder",
     parentId: parentId,
-    sourcePath: basePath,
+    // sourcePath: basePath,
+    sourcePath: rootSourcePath,
   });
 
   // Helper: Promisify readEntries
@@ -376,7 +408,11 @@ export const processFolder = async (
 
     // Process each entry
     for (const entry of allEntries) {
-      const entryPath = `${currentPath}/${entry.name}`;
+      //   const entryPath = `${currentPath}/${entry.name}`;
+      // Construct full path with basePath
+      const entryPath = basePath
+        ? `${basePath}/${currentPath}/${entry.name}`.replace(/\/+/g, "/")
+        : `${currentPath}/${entry.name}`;
 
       if (entry.isFile) {
         // Process file
@@ -399,14 +435,15 @@ export const processFolder = async (
         await traverseDirectory(
           entry as FileSystemDirectoryEntry,
           subFolderId,
-          entryPath
+          //   entryPath
+          `${currentPath}/${entry.name}`
         );
       }
     }
   }
 
   // Start traversal
-  await traverseDirectory(folderEntry, folderId, basePath);
+  await traverseDirectory(folderEntry, folderId, folderName);
 
   return entries;
 };

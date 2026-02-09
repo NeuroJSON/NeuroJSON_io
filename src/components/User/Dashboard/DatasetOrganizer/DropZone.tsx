@@ -59,14 +59,14 @@ const DropZone: React.FC<DropZoneProps> = ({
 
     // Process folders
     for (const folderEntry of folderEntries) {
-      const folderFiles = await processFolder(folderEntry, null);
+      const folderFiles = await processFolder(folderEntry, null, basePath);
       setFiles((prev) => [...prev, ...folderFiles]);
     }
 
     // Process files
     for (const file of fileItems) {
       if (file.name.toLowerCase().endsWith(".zip")) {
-        const zipFiles = await processZip(file);
+        const zipFiles = await processZip(file, basePath);
         setFiles((prev) => [...prev, ...zipFiles]);
       } else {
         const fileItem = await processFile(file, basePath);
@@ -80,7 +80,7 @@ const DropZone: React.FC<DropZoneProps> = ({
 
     for (const file of selectedFiles) {
       if (file.name.toLowerCase().endsWith(".zip")) {
-        const zipFiles = await processZip(file);
+        const zipFiles = await processZip(file, basePath);
         setFiles((prev) => [...prev, ...zipFiles]);
       } else {
         const fileItem = await processFile(file, basePath);

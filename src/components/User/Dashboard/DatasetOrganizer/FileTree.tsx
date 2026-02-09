@@ -1,3 +1,4 @@
+import { generateId } from "./utils/fileProcessors";
 import {
   Folder,
   InsertDriveFile,
@@ -7,6 +8,7 @@ import {
   NoteAdd,
   Edit,
   Description,
+  Add,
 } from "@mui/icons-material";
 import {
   Box,
@@ -44,6 +46,69 @@ const FileTree: React.FC<FileTreeProps> = ({
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [metaEditorOpen, setMetaEditorOpen] = useState(false);
+  const [metaType, setMetaType] = useState<
+    "readme" | "subject" | "instructions" | null
+  >(null);
+  const [metaFileName, setMetaFileName] = useState("");
+  const [metaContent, setMetaContent] = useState("");
+
+  // In FileTree.tsx
+  const metaConfigs = {
+    readme: {
+      label: "Add README File",
+      defaultFilename: "README.md",
+      placeholder:
+        "Enter dataset description, authors, license, and other important information...",
+    },
+    subject: {
+      label: "Add Subject/Session Info",
+      defaultFilename: "participants.txt",
+      placeholder:
+        "Enter subject IDs, session info, and participant metadata...\n\nExample:\nSubject ID: sub-01\nSession: ses-01\nAge: 25\nSex: M",
+    },
+    instructions: {
+      label: "Add Conversion Instructions",
+      defaultFilename: "CONVERSION_NOTES.md",
+      placeholder:
+        "Enter instructions for converting this dataset to BIDS format...\n\nExample:\n- Rename T1w files to sub-XX_T1w.nii.gz\n- Create JSON sidecars for each scan\n- Map task names to BIDS task labels",
+    },
+  };
+
+  const handleOpenMetaEditor = (
+    type: "readme" | "subject" | "instructions"
+  ) => {
+    const config = metaConfigs[type];
+    setMetaType(type);
+    setMetaFileName(config.defaultFilename);
+    setMetaContent("");
+    setMetaEditorOpen(true);
+  };
+
+  const handleSaveMetaFile = () => {
+    if (!metaFileName.trim()) {
+      alert("Please enter a filename");
+      return;
+    }
+
+    const newFile: FileItem = {
+      id: generateId(),
+      name: metaFileName.trim(),
+      type: "file",
+      parentId: null,
+      fileType: "meta",
+      content: metaContent,
+      contentType: "text",
+      sourcePath: undefined,
+      isUserMeta: true,
+    };
+
+    setFiles((prev) => [...prev, newFile]);
+    setMetaEditorOpen(false);
+    setMetaType(null);
+    setMetaFileName("");
+    setMetaContent("");
+  };
 
   const handleToggleExpand = (id: string) => {
     setExpandedIds((prev) => {
@@ -325,6 +390,48 @@ const FileTree: React.FC<FileTreeProps> = ({
             </Typography>
           </Box>
 
+          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mb: 1 }}>
+            <Button
+              size="small"
+              startIcon={<Add />}
+              onClick={() => handleOpenMetaEditor("readme")}
+              sx={{
+                fontSize: "0.75rem",
+                textTransform: "none",
+                color: "text.secondary",
+                "&:hover": { backgroundColor: "rgba(128, 90, 213, 0.1)" },
+              }}
+            >
+              README
+            </Button>
+            <Button
+              size="small"
+              startIcon={<Add />}
+              onClick={() => handleOpenMetaEditor("subject")}
+              sx={{
+                fontSize: "0.75rem",
+                textTransform: "none",
+                color: "text.secondary",
+                "&:hover": { backgroundColor: "rgba(128, 90, 213, 0.1)" },
+              }}
+            >
+              Subject ID
+            </Button>
+            <Button
+              size="small"
+              startIcon={<Add />}
+              onClick={() => handleOpenMetaEditor("instructions")}
+              sx={{
+                fontSize: "0.75rem",
+                textTransform: "none",
+                color: "text.secondary",
+                "&:hover": { backgroundColor: "rgba(128, 90, 213, 0.1)" },
+              }}
+            >
+              Instructions
+            </Button>
+          </Box>
+
           {selectedIds.size > 0 && (
             <Button
               size="small"
@@ -479,6 +586,73 @@ const FileTree: React.FC<FileTreeProps> = ({
             }}
           >
             Save Note
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Meta File Editor Dialog */}
+      <Dialog
+        open={metaEditorOpen}
+        onClose={() => setMetaEditorOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ color: Colors.darkPurple }}>
+          {metaType && metaConfigs[metaType].label}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Filename"
+            fullWidth
+            variant="outlined"
+            value={metaFileName}
+            onChange={(e) => setMetaFileName(e.target.value)}
+            sx={{
+              mb: 2,
+              mt: 1,
+              "& .MuiInputLabel-root.Mui-focused": { color: Colors.purple },
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+            }}
+          />
+          <TextField
+            multiline
+            rows={6}
+            fullWidth
+            variant="outlined"
+            placeholder={metaType ? metaConfigs[metaType].placeholder : ""}
+            value={metaContent}
+            onChange={(e) => setMetaContent(e.target.value)}
+            sx={{
+              "& .MuiInputLabel-root.Mui-focused": { color: Colors.purple },
+              "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
+                {
+                  borderColor: Colors.purple,
+                },
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setMetaEditorOpen(false)}
+            sx={{ color: Colors.purple }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSaveMetaFile}
+            variant="contained"
+            sx={{
+              background: `linear-gradient(135deg, ${Colors.rose} 0%, ${Colors.purple} 100%)`,
+              "&:hover": {
+                background: `linear-gradient(135deg, ${Colors.purple} 0%, ${Colors.rose} 100%)`,
+              },
+            }}
+          >
+            Save
           </Button>
         </DialogActions>
       </Dialog>
