@@ -326,9 +326,9 @@ const DatasetOrganizer: React.FC = () => {
       </Box>
 
       {/* LLM Panel */}
-      {/* {showLLMPanel && (
+      {showLLMPanel && (
         <LLMPanel files={files} onClose={() => setShowLLMPanel(false)} />
-      )} */}
+      )}
     </Box>
   );
 };

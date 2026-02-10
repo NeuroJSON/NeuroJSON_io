@@ -15,7 +15,7 @@ import {
   Alert,
 } from "@mui/material";
 import { Colors } from "design/theme";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FileItem } from "redux/projects/types/projects.interface";
 
 interface LLMPanelProps {
@@ -29,29 +29,47 @@ interface LLMProvider {
   models: Array<{ id: string; name: string }>;
   noApiKey?: boolean;
   isAnthropic?: boolean;
+  customUrl?: boolean;
 }
 
 const llmProviders: Record<string, LLMProvider> = {
   ollama: {
-    name: "Ollama (Local)",
+    name: "Ollama (Local Server)",
     baseUrl: "http://localhost:11434/v1/chat/completions",
     models: [
+      { id: "qwen3-coder:30b", name: "Qwen 3 Coder" },
       { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder" },
       { id: "codellama:latest", name: "Code Llama" },
       { id: "llama3.1:latest", name: "Llama 3.1" },
+      { id: "mistral:latest", name: "Mistral" },
+      { id: "deepseek-coder:latest", name: "DeepSeek Coder" },
     ],
     noApiKey: true,
+    customUrl: true,
   },
   groq: {
-    name: "Groq",
+    name: "Groq (Free API Key - 14,400 req/day)",
     baseUrl: "https://api.groq.com/openai/v1/chat/completions",
     models: [
       { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B" },
       { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B (Fast)" },
+      { id: "mixtral-8x7b-32768", name: "Mixtral 8x7B" },
+    ],
+  },
+  openrouter: {
+    name: "OpenRouter (Free models available)",
+    baseUrl: "https://openrouter.ai/api/v1/chat/completions",
+    models: [
+      {
+        id: "meta-llama/llama-3.1-8b-instruct:free",
+        name: "Llama 3.1 8B (Free)",
+      },
+      { id: "google/gemma-2-9b-it:free", name: "Gemma 2 9B (Free)" },
+      { id: "mistralai/mistral-7b-instruct:free", name: "Mistral 7B (Free)" },
     ],
   },
   anthropic: {
-    name: "Anthropic",
+    name: "Anthropic Claude (Paid)",
     baseUrl: "https://api.anthropic.com/v1/messages",
     models: [
       { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" },
@@ -59,16 +77,63 @@ const llmProviders: Record<string, LLMProvider> = {
     ],
     isAnthropic: true,
   },
+  openai: {
+    name: "OpenAI (Paid)",
+    baseUrl: "https://api.openai.com/v1/chat/completions",
+    models: [
+      { id: "gpt-4o-mini", name: "GPT-4o Mini" },
+      { id: "gpt-4o", name: "GPT-4o" },
+    ],
+  },
 };
 
 const LLMPanel: React.FC<LLMPanelProps> = ({ files, onClose }) => {
-  const [provider, setProvider] = useState<string>("groq");
-  const [model, setModel] = useState<string>("llama-3.3-70b-versatile");
+  const [provider, setProvider] = useState<string>("ollama");
+  const [model, setModel] = useState<string>("qwen3-coder:30b");
+  const [ollamaUrl, setOllamaUrl] = useState<string>(
+    "http://huo.neu.edu:11434"
+  );
   const [apiKey, setApiKey] = useState<string>("");
   const [generatedScript, setGeneratedScript] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("");
+
+  const [panelHeight, setPanelHeight] = useState<number>(350);
+  const [isResizing, setIsResizing] = useState(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsResizing(true);
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing) return;
+
+    const newHeight = window.innerHeight - e.clientY;
+    if (newHeight >= 100 && newHeight <= window.innerHeight - 100) {
+      setPanelHeight(newHeight);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsResizing(false);
+  };
+
+  // Add event listeners
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "ns-resize";
+
+      return () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+        document.body.style.cursor = "";
+      };
+    }
+  }, [isResizing]);
 
   const currentProvider = llmProviders[provider];
 
@@ -126,7 +191,27 @@ Output ONLY the Python script.`;
     try {
       let response;
 
-      if (currentProvider.isAnthropic) {
+      if (provider === "ollama") {
+        const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+        response = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code.",
+              },
+              { role: "user", content: prompt },
+            ],
+            stream: false,
+          }),
+        });
+      } else if (currentProvider.isAnthropic) {
         response = await fetch(currentProvider.baseUrl, {
           method: "POST",
           headers: {
@@ -214,7 +299,7 @@ Output ONLY the Python script.`;
         bottom: 0,
         left: 0,
         right: 0,
-        height: "50vh",
+        height: `${panelHeight}px`,
         zIndex: 1000,
         borderTop: 2,
         borderColor: Colors.purple,
@@ -222,6 +307,30 @@ Output ONLY the Python script.`;
         flexDirection: "column",
       }}
     >
+      {/* Resize Handle */}
+      <Box
+        onMouseDown={handleMouseDown}
+        sx={{
+          height: 6,
+          backgroundColor: isResizing ? Colors.lightGray : Colors.lightGray,
+          cursor: "ns-resize",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          "&:hover": {
+            backgroundColor: Colors.lightGray,
+          },
+        }}
+      >
+        <Box
+          sx={{
+            width: 40,
+            height: 3,
+            backgroundColor: Colors.secondaryPurple,
+            // borderRadius: 2,
+          }}
+        />
+      </Box>
       {/* Header */}
       <Box
         sx={{
@@ -289,6 +398,18 @@ Output ONLY the Python script.`;
               ))}
             </Select>
           </FormControl>
+
+          {/* ✅ ADD THIS: Ollama Server URL field */}
+          {provider === "ollama" && (
+            <TextField
+              fullWidth
+              label="Ollama Server URL"
+              value={ollamaUrl}
+              onChange={(e) => setOllamaUrl(e.target.value)}
+              placeholder="http://localhost:11434"
+              sx={{ mb: 2 }}
+            />
+          )}
 
           {!currentProvider.noApiKey && (
             <TextField
