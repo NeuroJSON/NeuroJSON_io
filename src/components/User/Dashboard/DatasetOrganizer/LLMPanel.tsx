@@ -97,6 +97,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({ files, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("");
+  const [baseDirectoryPath, setBaseDirectoryPath] = useState<string>(""); // ✅ Add this
 
   const [panelHeight, setPanelHeight] = useState<number>(350);
   const [isResizing, setIsResizing] = useState(false);
@@ -178,7 +179,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({ files, onClose }) => {
 FILE STRUCTURE AND METADATA:
 ${fileSummary}
 
-all _sourcePath are relative to the root path /Users/elaine/Downloads
+all _sourcePath are relative to the root path ${baseDirectoryPath}
 
 Please generate a Python script that:
 1. Reads the source files
@@ -400,7 +401,7 @@ Output ONLY the Python script.`;
             </Select>
           </FormControl>
 
-          {/* ✅ ADD THIS: Ollama Server URL field */}
+          {/* Ollama Server URL field */}
           {provider === "ollama" && (
             <TextField
               fullWidth
@@ -411,6 +412,17 @@ Output ONLY the Python script.`;
               sx={{ mb: 2 }}
             />
           )}
+          {/* ADD THIS: Base Directory Path field (shows for ALL providers) */}
+          <TextField
+            fullWidth
+            required
+            label="Base Directory Path (required)"
+            value={baseDirectoryPath}
+            onChange={(e) => setBaseDirectoryPath(e.target.value)}
+            placeholder="Enter the folder path where these files are located"
+            helperText="e.g., /Users/name/datasets/study1 or C:\Data\Study1"
+            sx={{ mb: 2 }}
+          />
 
           {!currentProvider.noApiKey && (
             <TextField
@@ -431,11 +443,16 @@ Output ONLY the Python script.`;
               loading ? <CircularProgress size={20} /> : <AutoAwesome />
             }
             onClick={handleGenerate}
-            disabled={loading}
+            // disabled={loading}
+            disabled={loading || !baseDirectoryPath.trim()} // Add
             sx={{
               background: `linear-gradient(135deg, ${Colors.purple} 0%, ${Colors.secondaryPurple} 100%)`,
               "&:hover": {
                 background: `linear-gradient(135deg, ${Colors.secondaryPurple} 0%, ${Colors.purple} 100%)`,
+              },
+              "&.Mui-disabled": {
+                background: "#e0e0e0",
+                color: "#9e9e9e",
               },
             }}
           >
