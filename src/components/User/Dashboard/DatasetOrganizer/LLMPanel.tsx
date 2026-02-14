@@ -1,4 +1,3 @@
-// src/components/DatasetOrganizer/LLMPanel.tsx
 import { Close, ContentCopy, Download, AutoAwesome } from "@mui/icons-material";
 import {
   Box,
@@ -178,6 +177,8 @@ const LLMPanel: React.FC<LLMPanelProps> = ({ files, onClose }) => {
 
 FILE STRUCTURE AND METADATA:
 ${fileSummary}
+
+all _sourcePath are relative to the root path /Users/elaine/Downloads
 
 Please generate a Python script that:
 1. Reads the source files

@@ -2,9 +2,10 @@ const jwt = require("jsonwebtoken");
 const { User } = require("../models");
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "3600";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || 14400; // default 4 hours
+const MAX_SESSION_DURATION = process.env.MAX_SESSION_DURATION || "86400"; // 24 hours default
 
-const setTokenCookie = (res, user) => {
+const setTokenCookie = (res, user, isNewSession = true) => {
   // create safe user object for token
   const safeUser = {
     id: user.id,
@@ -12,12 +13,12 @@ const setTokenCookie = (res, user) => {
     username: user.username,
   };
 
-  // Add session start time for new logins
+  // Add
   const payload = {
     data: safeUser,
   };
 
-  // If this is a new session, add the session start time
+  // Add: If this is a new session, add the session start time
   if (isNewSession) {
     payload.sessionStart = Math.floor(Date.now() / 1000); // Unix timestamp
   } else {
@@ -26,7 +27,11 @@ const setTokenCookie = (res, user) => {
   }
 
   // sign JWT token
-  const token = jwt.sign({ data: safeUser }, JWT_SECRET, {
+  // const token = jwt.sign({ data: safeUser }, JWT_SECRET, {
+  //   expiresIn: parseInt(JWT_EXPIRES_IN),
+  // });
+  // replace with
+  const token = jwt.sign(payload, JWT_SECRET, {
     expiresIn: parseInt(JWT_EXPIRES_IN),
   });
 
@@ -67,14 +72,11 @@ const restoreUser = (req, res, next) => {
       // extract user id from token payload
       const { id } = jwtPayload.data;
 
-      // Check maximum session duration (e.g., 24 hours)
-      const MAX_SESSION_DURATION = parseInt(
-        process.env.MAX_SESSION_DURATION || "86400"
-      ); // 24 hours default
+      // Add: Check maximum session duration
       const currentTime = Math.floor(Date.now() / 1000);
       const sessionAge = currentTime - jwtPayload.sessionStart;
 
-      if (sessionAge > MAX_SESSION_DURATION) {
+      if (sessionAge > parseInt(MAX_SESSION_DURATION)) {
         // Session has exceeded maximum duration
         res.clearCookie("token");
         return next();
@@ -88,7 +90,7 @@ const restoreUser = (req, res, next) => {
         },
       });
 
-      // refresh token - issue new token with extended expiration
+      // Add: refresh token - issue new token with extended expiration
       if (req.user) {
         req.user.sessionStart = jwtPayload.sessionStart; // Pass along the original session start
         setTokenCookie(res, req.user, false);
