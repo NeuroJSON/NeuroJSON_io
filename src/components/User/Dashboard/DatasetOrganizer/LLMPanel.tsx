@@ -183,16 +183,21 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     const fileSummary = buildFileSummary(null);
     const prompt = `You are a neuroimaging data expert. Analyze the following file structure and metadata from a neuroimaging dataset and generate a Python script to convert it to BIDS format.
 
+BASE DIRECTORY PATH: ${baseDirectoryPath}
+
 FILE STRUCTURE AND METADATA:
 ${fileSummary}
 
-all _sourcePath are relative to the root path ${baseDirectoryPath}
+IMPORTANT: All file paths shown above are RELATIVE paths. The actual files are located in the base directory: ${baseDirectoryPath}
+For example, if you see "test.zip/sub-01/scan.nii", the full path is: ${baseDirectoryPath}/test.zip/sub-01/scan.nii
 
 Please generate a Python script that:
-1. Reads the source files
-2. Renames and reorganizes them according to BIDS specification
-3. Creates required BIDS metadata files (dataset_description.json, participants.tsv, etc.)
-4. Handles the specific file types present (NIfTI, SNIRF, JSON sidecars, etc.)
+1. Uses the base directory path: ${baseDirectoryPath}
+2. Reads the source files by combining base path + relative paths
+3. Reads the source files
+4. Renames and reorganizes them according to BIDS specification
+5. Creates required BIDS metadata files (dataset_description.json, participants.tsv, etc.)
+6. Handles the specific file types present (NIfTI, SNIRF, JSON sidecars, etc.)
 
 Include comments explaining the BIDS structure.
 Output ONLY the Python script.`;
