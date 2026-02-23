@@ -38,6 +38,7 @@ const DatasetOrganizer: React.FC = () => {
   const [showLLMPanel, setShowLLMPanel] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [baseDirectoryPath, setBaseDirectoryPath] = useState<string>(""); // ✅ ADD this line
   // Helper to mark as changed
   const markAsChanged = () => {
     setHasUnsavedChanges(true);
@@ -73,6 +74,7 @@ const DatasetOrganizer: React.FC = () => {
       setFiles(state.files || []);
       setSelectedIds(new Set(state.selectedIds || []));
       setExpandedIds(new Set(state.expandedIds || []));
+      setBaseDirectoryPath(state.baseDirectoryPath || ""); // ✅ ADD this line
       setHasUnsavedChanges(false);
     }
   }, [currentProject]);
@@ -88,6 +90,7 @@ const DatasetOrganizer: React.FC = () => {
             files,
             selectedIds: Array.from(selectedIds),
             expandedIds: Array.from(expandedIds),
+            baseDirectoryPath, // ✅ ADD this line
           },
         })
       ).unwrap();
@@ -108,7 +111,13 @@ const DatasetOrganizer: React.FC = () => {
         if (child.type === "folder" || child.type === "zip") {
           result[child.name] = {
             _type: child.type,
-            _sourcePath: child.sourcePath || "",
+            // _sourcePath: child.sourcePath || "", //change
+            //add
+            _sourcePath: baseDirectoryPath
+              ? `${baseDirectoryPath}/${
+                  child.sourcePath || child.name
+                }`.replace(/\/+/g, "/")
+              : child.sourcePath || "",
             _children: buildTree(child.id),
           };
         } else {
@@ -116,7 +125,15 @@ const DatasetOrganizer: React.FC = () => {
             _type: "file",
             _fileType: child.fileType || "other",
           };
-          if (child.sourcePath) fileData._sourcePath = child.sourcePath;
+          // if (child.sourcePath) fileData._sourcePath = child.sourcePath; // change
+          //add
+          if (child.sourcePath || baseDirectoryPath) {
+            fileData._sourcePath = baseDirectoryPath
+              ? `${baseDirectoryPath}/${
+                  child.sourcePath || child.name
+                }`.replace(/\/+/g, "/")
+              : child.sourcePath;
+          }
           if (child.isUserMeta) fileData._isUserMeta = true;
           if (child.content) fileData._content = child.content;
           if (child.contentType) fileData._contentType = child.contentType;
@@ -307,6 +324,8 @@ const DatasetOrganizer: React.FC = () => {
           <DropZone
             files={files}
             setFiles={updateFiles} // Pass wrapper
+            baseDirectoryPath={baseDirectoryPath} // ✅ ADD this line
+            setBaseDirectoryPath={setBaseDirectoryPath} // ✅ ADD this line
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
             expandedIds={expandedIds}
@@ -327,7 +346,12 @@ const DatasetOrganizer: React.FC = () => {
 
       {/* LLM Panel */}
       {showLLMPanel && (
-        <LLMPanel files={files} onClose={() => setShowLLMPanel(false)} />
+        <LLMPanel
+          files={files}
+          baseDirectoryPath={baseDirectoryPath} // ✅ ADD this line
+          setBaseDirectoryPath={setBaseDirectoryPath} // ✅ ADD this line
+          onClose={() => setShowLLMPanel(false)}
+        />
       )}
     </Box>
   );

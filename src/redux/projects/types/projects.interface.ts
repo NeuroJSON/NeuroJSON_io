@@ -25,6 +25,7 @@ export interface ExtractorState {
   files: FileItem[];
   selectedIds: string[];
   expandedIds: string[];
+  baseDirectoryPath?: string; //add
 }
 
 // Project Interface

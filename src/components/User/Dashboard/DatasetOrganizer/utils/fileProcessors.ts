@@ -72,9 +72,9 @@ export const processFile = async (
   basePath?: string
 ): Promise<FileItem> => {
   const relativePath = file.webkitRelativePath || file.name;
-  const fullPath = basePath
-    ? `${basePath}/${relativePath}`.replace(/\/+/g, "/") // Clean up double slashes
-    : relativePath;
+  // const fullPath = basePath
+  //   ? `${basePath}/${relativePath}`.replace(/\/+/g, "/") // Clean up double slashes
+  //   : relativePath;
   const entry: FileItem = {
     id: generateId(),
     name: file.name,
@@ -82,7 +82,8 @@ export const processFile = async (
     parentId: null,
     fileType: getFileType(file.name) as any,
     // sourcePath: file.name,
-    sourcePath: fullPath, // ← Now includes base path if provided
+    // sourcePath: fullPath, // ← Now includes base path if provided
+    sourcePath: relativePath, //add
   };
 
   // Only extract content for text files
@@ -199,16 +200,17 @@ export const processZip = async (
         if (!pathMap[folderPath]) {
           const folderId = generateId();
           pathMap[folderPath] = folderId;
-          const folderSourcePath = basePath
-            ? `${basePath}/${zipName}/${folderPath}`.replace(/\/+/g, "/")
-            : `${zipName}/${folderPath}`;
+          // const folderSourcePath = basePath
+          //   ? `${basePath}/${zipName}/${folderPath}`.replace(/\/+/g, "/")
+          //   : `${zipName}/${folderPath}`;
           entries.push({
             id: folderId,
             name: part,
             type: "folder",
             parentId: parentId,
             // sourcePath: `${zipName}/${folderPath}`,
-            sourcePath: folderSourcePath,
+            // sourcePath: folderSourcePath,
+            sourcePath: `${zipName}/${folderPath}`, //add
           });
         }
         parentId = pathMap[folderPath];
@@ -221,9 +223,9 @@ export const processZip = async (
       const ext = fileName.toLowerCase().split(".").pop();
 
       // Add basePath to file sourcePath
-      const fileSourcePath = basePath
-        ? `${basePath}/${zipName}/${path}`.replace(/\/+/g, "/")
-        : `${zipName}/${path}`;
+      // const fileSourcePath = basePath
+      //   ? `${basePath}/${zipName}/${path}`.replace(/\/+/g, "/")
+      //   : `${zipName}/${path}`;
 
       const entry: FileItem = {
         id: fileId,
@@ -231,8 +233,8 @@ export const processZip = async (
         type: "file",
         parentId: parentId,
         fileType: fileType as any,
-        // sourcePath: `${zipName}/${path}`,
-        sourcePath: fileSourcePath,
+        sourcePath: `${zipName}/${path}`, // only relative path
+        // sourcePath: fileSourcePath,//change
       };
 
       // Extract content based on file type
@@ -356,9 +358,9 @@ export const processFolder = async (
   const folderName = folderEntry.name;
 
   // Add basePath to root folder sourcePath
-  const rootSourcePath = basePath
-    ? `${basePath}/${folderName}`.replace(/\/+/g, "/")
-    : folderName;
+  // const rootSourcePath = basePath
+  //   ? `${basePath}/${folderName}`.replace(/\/+/g, "/")
+  //   : folderName;
 
   // Add the folder itself
   entries.push({
@@ -367,7 +369,8 @@ export const processFolder = async (
     type: "folder",
     parentId: parentId,
     // sourcePath: basePath,
-    sourcePath: rootSourcePath,
+    // sourcePath: rootSourcePath,
+    sourcePath: folderName, //add
   });
 
   // Helper: Promisify readEntries
@@ -408,11 +411,11 @@ export const processFolder = async (
 
     // Process each entry
     for (const entry of allEntries) {
-      //   const entryPath = `${currentPath}/${entry.name}`;
+      const entryPath = `${currentPath}/${entry.name}`;
       // Construct full path with basePath
-      const entryPath = basePath
-        ? `${basePath}/${currentPath}/${entry.name}`.replace(/\/+/g, "/")
-        : `${currentPath}/${entry.name}`;
+      // const entryPath = basePath
+      //   ? `${basePath}/${currentPath}/${entry.name}`.replace(/\/+/g, "/")
+      //   : `${currentPath}/${entry.name}`;
 
       if (entry.isFile) {
         // Process file
@@ -420,7 +423,7 @@ export const processFolder = async (
         const file = await getFile(fileEntry);
         const fileItem = await processFile(file);
         fileItem.parentId = currentParentId;
-        fileItem.sourcePath = entryPath;
+        fileItem.sourcePath = entryPath; // only relative path
         entries.push(fileItem);
       } else if (entry.isDirectory) {
         // Process subfolder

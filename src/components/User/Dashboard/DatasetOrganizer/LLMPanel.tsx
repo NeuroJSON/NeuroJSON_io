@@ -19,6 +19,8 @@ import { FileItem } from "redux/projects/types/projects.interface";
 
 interface LLMPanelProps {
   files: FileItem[];
+  baseDirectoryPath: string; // ✅ ADD this line
+  setBaseDirectoryPath: (path: string) => void; // ✅ ADD this line
   onClose: () => void;
 }
 
@@ -86,7 +88,12 @@ const llmProviders: Record<string, LLMProvider> = {
   },
 };
 
-const LLMPanel: React.FC<LLMPanelProps> = ({ files, onClose }) => {
+const LLMPanel: React.FC<LLMPanelProps> = ({
+  files,
+  baseDirectoryPath, // ✅ ADD this line
+  setBaseDirectoryPath, // ✅ ADD this line
+  onClose,
+}) => {
   const [provider, setProvider] = useState<string>("ollama");
   const [model, setModel] = useState<string>("qwen3-coder:30b");
   const [ollamaUrl, setOllamaUrl] = useState<string>(
@@ -97,7 +104,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({ files, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("");
-  const [baseDirectoryPath, setBaseDirectoryPath] = useState<string>(""); // ✅ Add this
+  // const [baseDirectoryPath, setBaseDirectoryPath] = useState<string>(""); // change
 
   const [panelHeight, setPanelHeight] = useState<number>(350);
   const [isResizing, setIsResizing] = useState(false);

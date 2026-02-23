@@ -9,6 +9,8 @@ import { FileItem } from "redux/projects/types/projects.interface";
 interface DropZoneProps {
   files: FileItem[];
   setFiles: React.Dispatch<React.SetStateAction<FileItem[]>>;
+  baseDirectoryPath: string; // ✅ ADD this line
+  setBaseDirectoryPath: React.Dispatch<React.SetStateAction<string>>; // ✅ ADD this line
   selectedIds: Set<string>;
   setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   expandedIds: Set<string>;
@@ -18,6 +20,8 @@ interface DropZoneProps {
 const DropZone: React.FC<DropZoneProps> = ({
   files,
   setFiles,
+  baseDirectoryPath, // ✅ ADD this line
+  setBaseDirectoryPath, // ✅ ADD this line
   selectedIds,
   setSelectedIds,
   expandedIds,
@@ -25,7 +29,7 @@ const DropZone: React.FC<DropZoneProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [basePath, setBasePath] = useState<string>("");
+  // const [basePath, setBasePath] = useState<string>(""); // change
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -59,17 +63,24 @@ const DropZone: React.FC<DropZoneProps> = ({
 
     // Process folders
     for (const folderEntry of folderEntries) {
-      const folderFiles = await processFolder(folderEntry, null, basePath);
+      // const folderFiles = await processFolder(folderEntry, null, basePath);// change
+      const folderFiles = await processFolder(
+        folderEntry,
+        null,
+        baseDirectoryPath
+      ); // add
       setFiles((prev) => [...prev, ...folderFiles]);
     }
 
     // Process files
     for (const file of fileItems) {
       if (file.name.toLowerCase().endsWith(".zip")) {
-        const zipFiles = await processZip(file, basePath);
+        // const zipFiles = await processZip(file, basePath);//change
+        const zipFiles = await processZip(file, baseDirectoryPath); //add
         setFiles((prev) => [...prev, ...zipFiles]);
       } else {
-        const fileItem = await processFile(file, basePath);
+        // const fileItem = await processFile(file, basePath);//change
+        const fileItem = await processFile(file, baseDirectoryPath); //add
         setFiles((prev) => [...prev, fileItem]);
       }
     }
@@ -80,10 +91,12 @@ const DropZone: React.FC<DropZoneProps> = ({
 
     for (const file of selectedFiles) {
       if (file.name.toLowerCase().endsWith(".zip")) {
-        const zipFiles = await processZip(file, basePath);
+        // const zipFiles = await processZip(file, basePath);//change
+        const zipFiles = await processZip(file, baseDirectoryPath); //add
         setFiles((prev) => [...prev, ...zipFiles]);
       } else {
-        const fileItem = await processFile(file, basePath);
+        // const fileItem = await processFile(file, basePath); //change
+        const fileItem = await processFile(file, baseDirectoryPath); //add
         setFiles((prev) => [...prev, fileItem]);
       }
     }
@@ -176,8 +189,10 @@ const DropZone: React.FC<DropZoneProps> = ({
       <TextField
         label="Base Directory Path (optional)"
         placeholder="example: /Users/username/Desktop/Downloads"
-        value={basePath}
-        onChange={(e) => setBasePath(e.target.value)}
+        // value={basePath} // change
+        // onChange={(e) => setBasePath(e.target.value)} //change
+        value={baseDirectoryPath} // ✅ CHANGE: Use prop
+        onChange={(e) => setBaseDirectoryPath(e.target.value)} // ✅ CHANGE: Use prop setter
         fullWidth
         size="small"
         sx={{ mb: 2 }}
