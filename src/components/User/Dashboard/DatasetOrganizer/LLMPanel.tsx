@@ -19,8 +19,8 @@ import { FileItem } from "redux/projects/types/projects.interface";
 
 interface LLMPanelProps {
   files: FileItem[];
-  baseDirectoryPath: string; // ✅ ADD this line
-  setBaseDirectoryPath: (path: string) => void; // ✅ ADD this line
+  baseDirectoryPath: string;
+  setBaseDirectoryPath: (path: string) => void;
   onClose: () => void;
 }
 
@@ -90,8 +90,8 @@ const llmProviders: Record<string, LLMProvider> = {
 
 const LLMPanel: React.FC<LLMPanelProps> = ({
   files,
-  baseDirectoryPath, // ✅ ADD this line
-  setBaseDirectoryPath, // ✅ ADD this line
+  baseDirectoryPath,
+  setBaseDirectoryPath,
   onClose,
 }) => {
   const [provider, setProvider] = useState<string>("ollama");
@@ -104,8 +104,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("");
-  // const [baseDirectoryPath, setBaseDirectoryPath] = useState<string>(""); // change
-
   const [panelHeight, setPanelHeight] = useState<number>(350);
   const [isResizing, setIsResizing] = useState(false);
 
@@ -144,31 +142,252 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
 
   const currentProvider = llmProviders[provider];
 
-  const buildFileSummary = (
-    parentId: string | null,
-    indent: string = ""
-  ): string => {
-    let summary = "";
-    const children = files.filter((f) => f.parentId === parentId);
+  // const buildFileSummary = (
+  //   parentId: string | null,
+  //   indent: string = ""
+  // ): string => {
+  //   let summary = "";
+  //   const children = files.filter((f) => f.parentId === parentId);
 
-    children.forEach((child) => {
-      summary += `${indent}${child.name}`;
-      if (child.type === "folder" || child.type === "zip") {
-        summary += "/\n";
-        summary += buildFileSummary(child.id, indent + "  ");
-      } else {
-        if (child.contentType) summary += ` [${child.contentType}]`;
-        summary += "\n";
-        if (child.content && child.content.length < 500) {
-          summary += `${indent}  Content: ${child.content
-            .slice(0, 300)
-            .replace(/\n/g, " ")}\n`;
-        }
-      }
+  //   children.forEach((child) => {
+  //     summary += `${indent}${child.name}`;
+  //     if (child.type === "folder" || child.type === "zip") {
+  //       summary += "/\n";
+  //       summary += buildFileSummary(child.id, indent + "  ");
+  //     } else {
+  //       if (child.contentType) summary += ` [${child.contentType}]`;
+  //       summary += "\n";
+  //       if (child.content && child.content.length < 500) {
+  //         summary += `${indent}  Content: ${child.content
+  //           .slice(0, 300)
+  //           .replace(/\n/g, " ")}\n`;
+  //       }
+  //     }
+  //   });
+
+  //   return summary;
+  // };
+  // ✅ UPDATED: Build structured file summary
+  const buildFileSummary = (): string => {
+    let summary = "FILE STRUCTURE:\n";
+    summary += "=" + "=".repeat(70) + "\n\n";
+
+    // Separate data files and user metadata
+    const dataFiles = files.filter((f) => !f.isUserMeta);
+    const metaFiles = files.filter((f) => f.isUserMeta);
+
+    // List all data files with their types
+    summary += "DATA FILES:\n";
+    dataFiles.forEach((f) => {
+      const indent = "  ".repeat((f.sourcePath?.split("/").length || 1) - 1);
+      summary += `${indent}- ${f.name}`;
+      if (f.fileType) summary += ` [${f.fileType}]`;
+      if (f.sourcePath) summary += ` (${f.sourcePath})`;
+      summary += "\n";
     });
+
+    // Show user metadata content
+    if (metaFiles.length > 0) {
+      summary += "\nUSER-PROVIDED METADATA:\n";
+      summary += "-".repeat(70) + "\n";
+      metaFiles.forEach((f) => {
+        summary += `\n[${f.name}]:\n${f.content}\n`;
+      });
+    }
 
     return summary;
   };
+
+  // ✅ NEW: Analyze file patterns
+  const analyzeFilePatterns = (): string => {
+    const dataFiles = files.filter((f) => f.type === "file" && !f.isUserMeta);
+    const filenames = dataFiles.map((f) => f.name);
+
+    const extensions = [
+      ...new Set(
+        filenames.map((name) => {
+          const parts = name.toLowerCase().split(".");
+          return parts.length > 1 ? parts[parts.length - 1] : "none";
+        })
+      ),
+    ];
+
+    return `
+FILENAME ANALYSIS:
+${"=".repeat(70)}
+Total data files: ${dataFiles.length}
+File types: ${extensions.join(", ")}
+
+Sample filenames (first 10):
+${filenames
+  .slice(0, 10)
+  .map((name) => `  - ${name}`)
+  .join("\n")}
+${
+  filenames.length > 10 ? `\n  ... and ${filenames.length - 10} more files` : ""
+}
+`;
+  };
+
+  // ✅ NEW: Extract user context
+  const getUserContext = (): string => {
+    const readme = files.find((f) => f.name.toLowerCase().includes("readme"));
+    const instructions = files.find(
+      (f) =>
+        f.name.toLowerCase().includes("conversion") ||
+        f.name.toLowerCase().includes("instruction")
+    );
+    const participants = files.find((f) =>
+      f.name.toLowerCase().includes("participant")
+    );
+
+    let context = "";
+
+    if (readme?.content) {
+      context += `README:\n${readme.content}\n\n`;
+    }
+
+    if (instructions?.content) {
+      context += `CONVERSION INSTRUCTIONS:\n${instructions.content}\n\n`;
+    }
+
+    if (participants?.content) {
+      context += `PARTICIPANT INFO:\n${participants.content}\n\n`;
+    }
+
+    return context || "No user-provided context available.";
+  };
+
+  // ✅ NEW: Collect file annotations
+  const getFileAnnotations = (): string => {
+    const filesWithNotes = files.filter((f) => f.note);
+    if (filesWithNotes.length === 0) return "";
+
+    return `
+FILE ANNOTATIONS (User Notes):
+${filesWithNotes.map((f) => `  ${f.name}: ${f.note}`).join("\n")}
+`;
+  };
+
+  //   const handleGenerate = async () => {
+  //     if (!currentProvider.noApiKey && !apiKey.trim()) {
+  //       setError("Please enter an API key");
+  //       return;
+  //     }
+
+  //     setLoading(true);
+  //     setError(null);
+  //     setStatus(`Generating script using ${currentProvider.name}...`);
+
+  //     const fileSummary = buildFileSummary(null);
+  //     const prompt = `You are a neuroimaging data expert. Analyze the following file structure and metadata from a neuroimaging dataset and generate a Python script to convert it to BIDS format.
+
+  // BASE DIRECTORY PATH: ${baseDirectoryPath}
+
+  // FILE STRUCTURE AND METADATA:
+  // ${fileSummary}
+
+  // IMPORTANT: All file paths shown above are RELATIVE paths. The actual files are located in the base directory: ${baseDirectoryPath}
+  // For example, if you see "test.zip/sub-01/scan.nii", the full path is: ${baseDirectoryPath}/test.zip/sub-01/scan.nii
+
+  // Please generate a Python script that:
+  // 1. Uses the base directory path: ${baseDirectoryPath}
+  // 2. Reads the source files by combining base path + relative paths
+  // 3. Reads the source files
+  // 4. Renames and reorganizes them according to BIDS specification
+  // 5. Creates required BIDS metadata files (dataset_description.json, participants.tsv, etc.)
+  // 6. Handles the specific file types present (NIfTI, SNIRF, JSON sidecars, etc.)
+
+  // Include comments explaining the BIDS structure.
+  // Output ONLY the Python script.`;
+
+  //     try {
+  //       let response;
+
+  //       if (provider === "ollama") {
+  //         const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+  //         response = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+  //           method: "POST",
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //           },
+  //           body: JSON.stringify({
+  //             model,
+  //             messages: [
+  //               {
+  //                 role: "system",
+  //                 content:
+  //                   "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code.",
+  //               },
+  //               { role: "user", content: prompt },
+  //             ],
+  //             stream: false,
+  //           }),
+  //         });
+  //       } else if (currentProvider.isAnthropic) {
+  //         response = await fetch(currentProvider.baseUrl, {
+  //           method: "POST",
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //             "x-api-key": apiKey,
+  //             "anthropic-version": "2023-06-01",
+  //           },
+  //           body: JSON.stringify({
+  //             model,
+  //             max_tokens: 4096,
+  //             messages: [{ role: "user", content: prompt }],
+  //           }),
+  //         });
+  //       } else {
+  //         const headers: Record<string, string> = {
+  //           "Content-Type": "application/json",
+  //         };
+
+  //         if (!currentProvider.noApiKey) {
+  //           headers["Authorization"] = `Bearer ${apiKey}`;
+  //         }
+
+  //         response = await fetch(currentProvider.baseUrl, {
+  //           method: "POST",
+  //           headers,
+  //           body: JSON.stringify({
+  //             model,
+  //             messages: [
+  //               {
+  //                 role: "system",
+  //                 content:
+  //                   "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code.",
+  //               },
+  //               { role: "user", content: prompt },
+  //             ],
+  //             max_tokens: 4096,
+  //             temperature: 0.7,
+  //           }),
+  //         });
+  //       }
+
+  //       const data = await response.json();
+
+  //       if (!response.ok) {
+  //         throw new Error(data.error?.message || "Failed to generate script");
+  //       }
+
+  //       let script = "";
+  //       if (currentProvider.isAnthropic) {
+  //         script = data.content[0].text;
+  //       } else {
+  //         script = data.choices[0].message.content;
+  //       }
+
+  //       setGeneratedScript(script);
+  //       setStatus(`✓ Script generated using ${currentProvider.name}`);
+  //     } catch (err: any) {
+  //       setError(err.message || "Failed to generate script");
+  //       setStatus("❌ Error generating script");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
   const handleGenerate = async () => {
     if (!currentProvider.noApiKey && !apiKey.trim()) {
@@ -176,31 +395,79 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       return;
     }
 
+    if (!baseDirectoryPath.trim()) {
+      setError("Please enter a base directory path");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setStatus(`Generating script using ${currentProvider.name}...`);
 
-    const fileSummary = buildFileSummary(null);
-    const prompt = `You are a neuroimaging data expert. Analyze the following file structure and metadata from a neuroimaging dataset and generate a Python script to convert it to BIDS format.
+    const fileSummary = buildFileSummary();
+    const filePatterns = analyzeFilePatterns();
+    const userContext = getUserContext();
+    const annotations = getFileAnnotations();
 
-BASE DIRECTORY PATH: ${baseDirectoryPath}
+    // ✅ UPDATED: Improved prompt
+    const prompt = `You are a neuroimaging BIDS conversion expert.
 
-FILE STRUCTURE AND METADATA:
+╔════════════════════════════════════════════════════════════════════╗
+║ TASK: Generate Python script to convert dataset to BIDS format    ║
+╚════════════════════════════════════════════════════════════════════╝
+
+BASE DIRECTORY: ${baseDirectoryPath}
+
 ${fileSummary}
 
-IMPORTANT: All file paths shown above are RELATIVE paths. The actual files are located in the base directory: ${baseDirectoryPath}
-For example, if you see "test.zip/sub-01/scan.nii", the full path is: ${baseDirectoryPath}/test.zip/sub-01/scan.nii
+${filePatterns}
 
-Please generate a Python script that:
-1. Uses the base directory path: ${baseDirectoryPath}
-2. Reads the source files by combining base path + relative paths
-3. Reads the source files
-4. Renames and reorganizes them according to BIDS specification
-5. Creates required BIDS metadata files (dataset_description.json, participants.tsv, etc.)
-6. Handles the specific file types present (NIfTI, SNIRF, JSON sidecars, etc.)
+USER-PROVIDED CONTEXT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userContext}
 
-Include comments explaining the BIDS structure.
-Output ONLY the Python script.`;
+${annotations}
+
+REQUIREMENTS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. CRITICAL: All file paths are RELATIVE to base directory: ${baseDirectoryPath}
+ Example: If you see "test.zip/scan.nii", the full path is:
+ ${baseDirectoryPath}/test.zip/scan.nii
+
+2. Analyze filename patterns to determine:
+ - Number of subjects (look for repeating patterns in filenames)
+ - Session structure (if any)
+ - Data modalities (anat, func, dwi, fmap, etc.)
+ - Task names (for functional scans)
+
+3. Use the user-provided context (README, instructions, participant info) to:
+ - Extract dataset name and description
+ - Identify subject groupings
+ - Understand data acquisition details
+ - Apply any special conversion requirements
+
+4. Generate a complete, runnable Python script that:
+ ✓ Imports necessary libraries (os, shutil, json, nibabel if needed)
+ ✓ Creates proper BIDS directory structure
+ ✓ Generates dataset_description.json with actual dataset information
+ ✓ Creates participants.tsv if participant info is available
+ ✓ Copies/renames files to BIDS naming convention (sub-XX_suffix.nii.gz)
+ ✓ Creates JSON sidecars for imaging files with relevant metadata
+ ✓ Handles specific file types present
+ ✓ Includes error handling and progress messages
+
+BIDS NAMING CONVENTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Subject IDs: sub-<label> (e.g., sub-01, sub-control)
+- Session IDs: ses-<label> (if multiple sessions)
+- Anatomical: sub-XX_[ses-YY_]<suffix>.nii.gz (e.g., sub-01_T1w.nii.gz)
+- Functional: sub-XX_[ses-YY_]task-<label>_bold.nii.gz
+- SNIRF: sub-XX_[ses-YY_]task-<label>_nirs.snirf
+
+CRITICAL OUTPUT FORMAT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Output ONLY the Python script. No markdown code fences, no explanations.
+The script should be complete and ready to run.`;
 
     try {
       let response;
@@ -218,7 +485,7 @@ Output ONLY the Python script.`;
               {
                 role: "system",
                 content:
-                  "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code.",
+                  "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code without markdown fences or explanations.",
               },
               { role: "user", content: prompt },
             ],
@@ -257,7 +524,7 @@ Output ONLY the Python script.`;
               {
                 role: "system",
                 content:
-                  "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code.",
+                  "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code without markdown fences or explanations.",
               },
               { role: "user", content: prompt },
             ],
@@ -279,6 +546,9 @@ Output ONLY the Python script.`;
       } else {
         script = data.choices[0].message.content;
       }
+
+      // Clean up markdown fences if AI included them anyway
+      script = script.replace(/^```python\n?/g, "").replace(/\n?```$/g, "");
 
       setGeneratedScript(script);
       setStatus(`✓ Script generated using ${currentProvider.name}`);
