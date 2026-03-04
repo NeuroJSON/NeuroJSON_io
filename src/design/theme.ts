@@ -1,5 +1,3 @@
-// import { orange, purple } from "@mui/material/colors";
-import { lightGreen } from "@mui/material/colors";
 import { createTheme } from "@mui/material/styles";
 
 const primary = {

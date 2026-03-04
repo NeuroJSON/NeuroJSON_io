@@ -180,7 +180,37 @@ const FileTree: React.FC<FileTreeProps> = ({
   const renderFileIcon = (file: FileItem) => {
     // AI generated files — use AutoAwesome icon with purple color
     if (file.source === "ai") {
-      return <AutoAwesome sx={{ color: Colors.purple, fontSize: 20 }} />;
+      return (
+        <>
+          {file.source === "ai" && (
+            <Box
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                px: 0.5,
+                py: 0.1,
+                ml: 0.5,
+                borderRadius: 0.5,
+                backgroundColor: "rgba(88, 101, 242, 0.1)",
+                border: `1px solid ${Colors.purple}`,
+              }}
+            >
+              <AutoAwesome sx={{ color: Colors.purple, fontSize: 15 }} />
+              <Typography
+                sx={{
+                  fontSize: "0.7rem",
+                  color: Colors.purple,
+                  fontFamily: "Ubuntu",
+                  fontWeight: 600,
+                  lineHeight: 1.5,
+                }}
+              >
+                AI
+              </Typography>
+            </Box>
+          )}
+        </>
+      );
     }
     if (file.type === "folder" || file.type === "zip") {
       return <Folder sx={{ color: Colors.darkGreen, fontSize: 20 }} />;
@@ -271,6 +301,22 @@ const FileTree: React.FC<FileTreeProps> = ({
           >
             {file.name}
           </Typography>
+
+          {/* Add timestamp for AI files */}
+          {file.source === "ai" && file.generatedAt && (
+            <Typography
+              variant="caption"
+              sx={{
+                color: Colors.purple,
+                fontSize: "0.7rem",
+                opacity: 0.7,
+                mr: 1,
+                fontFamily: "Ubuntu",
+              }}
+            >
+              {file.generatedAt}
+            </Typography>
+          )}
 
           {/* Note Icon */}
           <IconButton
@@ -471,10 +517,6 @@ const FileTree: React.FC<FileTreeProps> = ({
         >
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <AutoAwesome sx={{ fontSize: 10, color: Colors.purple }} />
-              <Typography variant="caption">AI Generated</Typography>
-            </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
               <Box
                 sx={{
                   width: 8,
@@ -539,6 +581,34 @@ const FileTree: React.FC<FileTreeProps> = ({
                 }}
               />
               <Typography variant="caption">User Meta</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  px: 0.5,
+                  py: 0.1,
+                  ml: 0.5,
+                  borderRadius: 0.5,
+                  backgroundColor: "rgba(88, 101, 242, 0.1)",
+                  border: `1px solid ${Colors.purple}`,
+                }}
+              >
+                <AutoAwesome sx={{ color: Colors.purple, fontSize: 15 }} />
+                <Typography
+                  sx={{
+                    fontSize: "0.7rem",
+                    color: Colors.purple,
+                    fontFamily: "Ubuntu",
+                    fontWeight: 600,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  AI
+                </Typography>
+              </Box>
+              <Typography variant="caption">AI Generated</Typography>
             </Box>
           </Box>
         </Box>

@@ -17,6 +17,7 @@ export interface FileItem {
   sourcePath?: string;
   isUserMeta?: boolean;
   source?: "user" | "ai";
+  generatedAt?: string;
   note?: string;
   loading?: boolean;
 }

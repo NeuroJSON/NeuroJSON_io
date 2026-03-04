@@ -430,7 +430,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       if (currentProvider.isAnthropic) {
         partsResponse = await fetch(currentProvider.baseUrl, {
           method: "POST",
-          signal: controller.signal, // ✅ Add to all fetch calls
+          signal: controller.signal,
           headers: {
             "Content-Type": "application/json",
             "x-api-key": apiKey,
@@ -446,7 +446,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
         partsResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
           method: "POST",
-          signal: controller.signal, // ✅ Add to all fetch calls
+          signal: controller.signal,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             model,
@@ -456,7 +456,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       } else {
         partsResponse = await fetch(currentProvider.baseUrl, {
           method: "POST",
-          signal: controller.signal, // ✅ Add to all fetch calls
+          signal: controller.signal,
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
@@ -477,6 +477,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       // ==========================================
       // Add trio files to Virtual File System
       // ==========================================
+      const timestamp = new Date().toLocaleString();
       const trioFiles: FileItem[] = [
         {
           id: generateId(),
@@ -488,6 +489,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           isUserMeta: true,
           parentId: null,
           source: "ai",
+          generatedAt: timestamp,
         },
         {
           id: generateId(),
@@ -502,6 +504,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           isUserMeta: true,
           parentId: null,
           source: "ai",
+          generatedAt: timestamp,
         },
         {
           id: generateId(),
@@ -516,10 +519,9 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           isUserMeta: true,
           parentId: null,
           source: "ai",
+          generatedAt: timestamp,
         },
       ];
-
-      // updateFiles((prev) => [...prev, ...trioFiles]);
       // replace existing trio files, add if not exist
       updateFiles((prev) => {
         const trioNames = [
@@ -542,17 +544,14 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       );
     } catch (err: any) {
       if (err.name === "AbortError") {
-        // ✅ Add this check
         setStatus("❌ Generation cancelled");
       } else {
         setError(err.message || "Failed to generate trio files");
         setStatus("❌ Error generating trio files");
       }
-      // setError(err.message || "Failed to generate trio files");
-      // setStatus("❌ Error generating trio files");
     } finally {
       setGeneratingTrio(false);
-      setAbortController(null); // ✅ Clear controller
+      setAbortController(null); // Clear controller
     }
   };
 
@@ -591,140 +590,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
 
   const currentProvider = llmProviders[provider];
 
-  // ✅ UPDATED: Build structured file summary that highlights trio files
-  // const buildFileSummary = (): string => {
-  //   let summary = "";
-
-  //   // Check if trio files exist
-  //   const datasetDesc = files.find(
-  //     (f) => f.name === "dataset_description.json"
-  //   );
-  //   const readme = files.find((f) => f.name === "README.md");
-  //   const participants = files.find((f) => f.name === "participants.tsv");
-
-  //   const hasTrioFiles = datasetDesc || readme || participants;
-
-  //   if (hasTrioFiles) {
-  //     summary += "GENERATED BIDS METADATA FILES:\n";
-  //     summary += "=".repeat(70) + "\n\n";
-
-  //     if (datasetDesc?.content) {
-  //       summary += "[dataset_description.json]:\n";
-  //       summary += datasetDesc.content + "\n\n";
-  //     }
-
-  //     if (readme?.content) {
-  //       summary += "[README.md]:\n";
-  //       summary += readme.content.slice(0, 1000) + "\n\n";
-  //     }
-
-  //     if (participants?.content) {
-  //       summary += "[participants.tsv]:\n";
-  //       summary += participants.content + "\n\n";
-  //     }
-
-  //     summary += "=".repeat(70) + "\n\n";
-  //   }
-
-  //   summary += "DATA FILES TO CONVERT:\n";
-  //   summary += "=".repeat(70) + "\n";
-
-  //   // List data files (exclude trio and user meta)
-  //   const dataFiles = files.filter(
-  //     (f) =>
-  //       !f.isUserMeta ||
-  //       ["dataset_description.json", "README.md", "participants.tsv"].includes(
-  //         f.name
-  //       )
-  //   );
-
-  //   dataFiles.forEach((f) => {
-  //     if (
-  //       !["dataset_description.json", "README.md", "participants.tsv"].includes(
-  //         f.name
-  //       )
-  //     ) {
-  //       summary += `  - ${f.name}`;
-  //       if (f.fileType) summary += ` [${f.fileType}]`;
-  //       if (f.sourcePath) summary += ` (${f.sourcePath})`;
-  //       summary += "\n";
-  //     }
-  //   });
-
-  //   return summary;
-  // };
-
-  // ✅ NEW: Analyze file patterns
-  //   const analyzeFilePatterns = (): string => {
-  //     const dataFiles = files.filter((f) => f.type === "file" && !f.isUserMeta);
-  //     const filenames = dataFiles.map((f) => f.name);
-
-  //     const extensions = [
-  //       ...new Set(
-  //         filenames.map((name) => {
-  //           const parts = name.toLowerCase().split(".");
-  //           return parts.length > 1 ? parts[parts.length - 1] : "none";
-  //         })
-  //       ),
-  //     ];
-
-  //     return `
-  // FILENAME ANALYSIS:
-  // ${"=".repeat(70)}
-  // Total data files: ${dataFiles.length}
-  // File types: ${extensions.join(", ")}
-
-  // Sample filenames (first 10):
-  // ${filenames
-  //   .slice(0, 10)
-  //   .map((name) => `  - ${name}`)
-  //   .join("\n")}
-  // ${
-  //   filenames.length > 10 ? `\n  ... and ${filenames.length - 10} more files` : ""
-  // }
-  // `;
-  //   };
-
-  // ✅ NEW: Extract user context
-  // const getUserContext = (): string => {
-  //   const readme = files.find((f) => f.name.toLowerCase().includes("readme"));
-  //   const instructions = files.find(
-  //     (f) =>
-  //       f.name.toLowerCase().includes("conversion") ||
-  //       f.name.toLowerCase().includes("instruction")
-  //   );
-  //   const participants = files.find((f) =>
-  //     f.name.toLowerCase().includes("participant")
-  //   );
-
-  //   let context = "";
-
-  //   if (readme?.content) {
-  //     context += `README:\n${readme.content}\n\n`;
-  //   }
-
-  //   if (instructions?.content) {
-  //     context += `CONVERSION INSTRUCTIONS:\n${instructions.content}\n\n`;
-  //   }
-
-  //   if (participants?.content) {
-  //     context += `PARTICIPANT INFO:\n${participants.content}\n\n`;
-  //   }
-
-  //   return context || "No user-provided context available.";
-  // };
-
-  // ✅ NEW: Collect file annotations
-  //   const getFileAnnotations = (): string => {
-  //     const filesWithNotes = files.filter((f) => f.note);
-  //     if (filesWithNotes.length === 0) return "";
-
-  //     return `
-  // FILE ANNOTATIONS (User Notes):
-  // ${filesWithNotes.map((f) => `  ${f.name}: ${f.note}`).join("\n")}
-  // `;
-  //   };
-
   const handleGenerate = async () => {
     if (!currentProvider.noApiKey && !apiKey.trim()) {
       setError("Please enter an API key");
@@ -736,18 +601,14 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       return;
     }
 
-    // ✅ Create abort controller
+    // Create abort controller
     const controller = new AbortController();
     setAbortController(controller);
 
     setLoading(true);
     setError(null);
     setStatus(`Generating script using ${currentProvider.name}...`);
-    // modify
-    // const fileSummary = buildFileSummary();
-    // const filePatterns = analyzeFilePatterns();
-    // const userContext = getUserContext();
-    // const annotations = getFileAnnotations();
+
     const fileSummary = buildFileSummary(files);
     const filePatterns = analyzeFilePatterns(files);
     const userContext = getUserContext(files);
@@ -758,7 +619,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     console.log(userContext);
     console.log("=================================");
 
-    // ✅ UPDATED: Improved prompt that uses trio files
+    // UPDATED: Improved prompt that uses trio files
     const prompt = getConversionScriptPrompt(
       baseDirectoryPath,
       fileSummary,
@@ -766,65 +627,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       userContext,
       annotations
     );
-    //     const prompt = `You are a BIDS conversion expert.
-
-    // ╔════════════════════════════════════════════════════════════════╗
-    // ║ TASK: Generate Python script to convert dataset to BIDS       ║
-    // ╚════════════════════════════════════════════════════════════════╝
-
-    // BASE DIRECTORY: ${baseDirectoryPath}
-
-    // ${fileSummary}
-
-    // ${filePatterns}
-
-    // ${userContext}
-
-    // ${annotations}
-
-    // CRITICAL INSTRUCTIONS:
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-    // 1. The BIDS metadata files (dataset_description.json, README.md, participants.tsv)
-    //    have ALREADY been generated above. Your script should:
-    //    ✓ Use the exact content from dataset_description.json above
-    //    ✓ Use the exact participant IDs from participants.tsv above
-    //    ✓ Create these files as-is in the BIDS directory
-
-    // 2. All file paths are RELATIVE to: ${baseDirectoryPath}
-    //    Construct full paths as: os.path.join('${baseDirectoryPath}', relative_path)
-
-    // 3. BIDS directory structure to create:
-    //    bids_dataset/
-    //    ├── dataset_description.json  ← Use exact content from above
-    //    ├── README.md                  ← Use exact content from above
-    //    ├── participants.tsv           ← Use exact content from above
-    //    └── sub-XX/
-    //        ├── anat/
-    //        ├── func/
-    //        └── ...
-
-    // 4. For each data file:
-    //    ✓ Determine which subject it belongs to (match with participants.tsv)
-    //    ✓ Determine modality (anat/func/dwi/fmap based on file type)
-    //    ✓ Rename to BIDS convention: sub-XX_suffix.nii.gz
-    //    ✓ Create JSON sidecar with metadata
-
-    // 5. File type handling:
-    //    - NIfTI (.nii, .nii.gz): Copy to appropriate modality folder
-    //    - SNIRF (.snirf): Copy to func/ folder as sub-XX_task-<name>_nirs.snirf
-    //    - JSON: Use as sidecars or metadata
-
-    // OUTPUT REQUIREMENTS:
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Generate a complete, runnable Python script that:
-    // - Imports: os, shutil, json, pathlib
-    // - Creates BIDS directory structure
-    // - Writes the three metadata files (using exact content from above)
-    // - Copies and renames data files to BIDS format
-    // - Includes error handling and progress messages
-
-    // OUTPUT ONLY THE PYTHON SCRIPT (no markdown fences, no explanations).`;
 
     try {
       let response;
@@ -833,7 +635,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
         response = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
           method: "POST",
-          signal: controller.signal, // ✅ Add this
+          signal: controller.signal,
           headers: {
             "Content-Type": "application/json",
           },
@@ -853,7 +655,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       } else if (currentProvider.isAnthropic) {
         response = await fetch(currentProvider.baseUrl, {
           method: "POST",
-          signal: controller.signal, // ✅ Add this
+          signal: controller.signal,
           headers: {
             "Content-Type": "application/json",
             "x-api-key": apiKey,
@@ -876,7 +678,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
 
         response = await fetch(currentProvider.baseUrl, {
           method: "POST",
-          signal: controller.signal, // ✅ Add this
+          signal: controller.signal,
           headers,
           body: JSON.stringify({
             model,
@@ -914,17 +716,14 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       setStatus(`✓ Script generated using ${currentProvider.name}`);
     } catch (err: any) {
       if (err.name === "AbortError") {
-        // ✅ Add this check
         setStatus("❌ Generation cancelled");
       } else {
         setError(err.message || "Failed to generate script");
         setStatus("❌ Error generating script");
       }
-      // setError(err.message || "Failed to generate script");
-      // setStatus("❌ Error generating script");
     } finally {
       setLoading(false);
-      setAbortController(null); // ✅ Clear controller
+      setAbortController(null); // Clear controller
     }
   };
 
