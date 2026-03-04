@@ -16,6 +16,7 @@ export interface FileItem {
   contentType?: string;
   sourcePath?: string;
   isUserMeta?: boolean;
+  source?: "user" | "ai";
   note?: string;
   loading?: boolean;
 }

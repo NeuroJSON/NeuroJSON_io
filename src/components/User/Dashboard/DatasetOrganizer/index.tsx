@@ -9,6 +9,11 @@ import {
   Typography,
   Alert,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
@@ -22,8 +27,6 @@ import {
   selectIsUpdatingProject,
 } from "redux/projects/projects.selector";
 import { FileItem } from "redux/projects/types/projects.interface";
-
-//add
 
 const DatasetOrganizer: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -83,8 +86,8 @@ const DatasetOrganizer: React.FC = () => {
       setSelectedIds(new Set(state.selectedIds || []));
       setExpandedIds(new Set(state.expandedIds || []));
       setBaseDirectoryPath(state.baseDirectoryPath || "");
-      setEvidenceBundle(state.evidenceBundle || null); // ✅ Add this
-      setTrioGenerated(state.trioGenerated || false); // ✅ Add this
+      setEvidenceBundle(state.evidenceBundle || null);
+      setTrioGenerated(state.trioGenerated || false);
       setHasUnsavedChanges(false);
     }
   }, [currentProject]);
@@ -101,8 +104,8 @@ const DatasetOrganizer: React.FC = () => {
             selectedIds: Array.from(selectedIds),
             expandedIds: Array.from(expandedIds),
             baseDirectoryPath,
-            evidenceBundle, // ✅ Add this
-            trioGenerated, // ✅ Add this
+            evidenceBundle,
+            trioGenerated,
           },
         })
       ).unwrap();
@@ -177,9 +180,7 @@ const DatasetOrganizer: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  // ========================================================================
   // BACK BUTTON WITH DIALOG
-  // ========================================================================
   const handleBack = () => {
     if (hasUnsavedChanges) {
       setShowExitDialog(true);
@@ -333,8 +334,8 @@ const DatasetOrganizer: React.FC = () => {
           <DropZone
             files={files}
             setFiles={updateFiles} // Pass wrapper
-            baseDirectoryPath={baseDirectoryPath} // ✅ ADD this line
-            setBaseDirectoryPath={setBaseDirectoryPath} // ✅ ADD this line
+            baseDirectoryPath={baseDirectoryPath}
+            setBaseDirectoryPath={setBaseDirectoryPath}
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
             expandedIds={expandedIds}
@@ -359,14 +360,61 @@ const DatasetOrganizer: React.FC = () => {
           files={files}
           baseDirectoryPath={baseDirectoryPath}
           setBaseDirectoryPath={setBaseDirectoryPath}
-          evidenceBundle={evidenceBundle} // ✅ Pass this
-          setEvidenceBundle={setEvidenceBundle} // ✅ Pass this
-          trioGenerated={trioGenerated} // ✅ Pass this
-          setTrioGenerated={setTrioGenerated} // ✅ Pass this
-          updateFiles={updateFiles} // ✅ Pass this to add trio files
+          evidenceBundle={evidenceBundle}
+          setEvidenceBundle={setEvidenceBundle}
+          trioGenerated={trioGenerated}
+          setTrioGenerated={setTrioGenerated}
+          updateFiles={updateFiles}
           onClose={() => setShowLLMPanel(false)}
         />
       )}
+
+      {/* Exit Confirmation Dialog */}
+      <Dialog open={showExitDialog} onClose={() => setShowExitDialog(false)}>
+        <DialogTitle>Unsaved Changes</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You have unsaved changes. Are you sure you want to leave? Your
+            changes will be lost.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="outlined"
+            onClick={() => setShowExitDialog(false)}
+            sx={{ color: Colors.purple, border: Colors.purple }}
+          >
+            Stay
+          </Button>
+          <Button
+            onClick={() => {
+              setShowExitDialog(false);
+              navigate("/dashboard");
+            }}
+            variant="outlined"
+            sx={{ color: Colors.purple, border: Colors.purple }}
+          >
+            Leave Without Saving
+          </Button>
+          <Button
+            onClick={async () => {
+              await handleSave();
+              setShowExitDialog(false);
+              navigate("/dashboard");
+            }}
+            variant="contained"
+            sx={{
+              background: `linear-gradient(135deg, ${Colors.rose} 0%, ${Colors.purple} 100%)`,
+              "&:hover": {
+                background: `linear-gradient(135deg, ${Colors.purple} 0%, ${Colors.rose} 100%)`,
+                border: "none",
+              },
+            }}
+          >
+            Save & Leave
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

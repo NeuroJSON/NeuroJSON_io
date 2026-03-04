@@ -13,10 +13,14 @@ import { FileItem } from "redux/projects/types/projects.interface";
 export const buildFileSummary = (files: FileItem[]): string => {
   let summary = "";
 
-  // Check if trio files exist
-  const datasetDesc = files.find((f) => f.name === "dataset_description.json");
-  const readme = files.find((f) => f.name === "README.md");
-  const participants = files.find((f) => f.name === "participants.tsv");
+  // Trio section — AI generated files only
+  const datasetDesc = files.find(
+    (f) => f.source === "ai" && f.name === "dataset_description.json"
+  );
+  const readme = files.find((f) => f.source === "ai" && f.name === "README.md");
+  const participants = files.find(
+    (f) => f.source === "ai" && f.name === "participants.tsv"
+  );
 
   const hasTrioFiles = datasetDesc || readme || participants;
 
@@ -42,29 +46,19 @@ export const buildFileSummary = (files: FileItem[]): string => {
     summary += "=".repeat(70) + "\n\n";
   }
 
+  // Data files section — user dropped files only
   summary += "DATA FILES TO CONVERT:\n";
   summary += "=".repeat(70) + "\n";
 
-  // List data files with detailed categorization
   const dataFiles = files.filter(
-    (f) =>
-      !f.isUserMeta ||
-      ["dataset_description.json", "README.md", "participants.tsv"].includes(
-        f.name
-      )
+    (f) => f.source === "user" && f.type === "file"
   );
 
   dataFiles.forEach((f) => {
-    if (
-      !["dataset_description.json", "README.md", "participants.tsv"].includes(
-        f.name
-      )
-    ) {
-      const category = categorizeFile(f);
-      summary += `  - ${f.name} [${category}]`;
-      if (f.sourcePath) summary += ` (${f.sourcePath})`;
-      summary += "\n";
-    }
+    const category = categorizeFile(f);
+    summary += `  - ${f.name} [${category}]`;
+    if (f.sourcePath) summary += ` (${f.sourcePath})`;
+    summary += "\n";
   });
 
   return summary;
@@ -194,11 +188,14 @@ export const buildEvidenceBundle = (
     root: baseDirectoryPath,
     counts_by_ext: counts,
     all_files: files
-      .filter((f) => !f.isUserMeta)
+      // .filter((f) => !f.isUserMeta)
+      .filter((f) => f.source === "user" && f.type === "file")
       .map((f) => f.sourcePath || f.name),
     documents: files
       //   .filter((f) => f.content && ["text", "office"].includes(f.fileType || ""))
+
       .filter((f) => {
+        if (f.source !== "user") return false; // exclude AI files
         if (!f.content || f.content.trim().length === 0) return false;
 
         // ✅ Text files - primary source
@@ -232,10 +229,14 @@ export const buildEvidenceBundle = (
     },
     trio_found: {
       "dataset_description.json": files.some(
-        (f) => f.name === "dataset_description.json"
+        (f) => f.source === "ai" && f.name === "dataset_description.json"
       ),
-      "README.md": files.some((f) => f.name === "README.md"),
-      "participants.tsv": files.some((f) => f.name === "participants.tsv"),
+      "README.md": files.some(
+        (f) => f.source === "ai" && f.name === "README.md"
+      ),
+      "participants.tsv": files.some(
+        (f) => f.source === "ai" && f.name === "participants.tsv"
+      ),
     },
   };
 };

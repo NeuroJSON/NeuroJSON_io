@@ -84,6 +84,7 @@ export const processFile = async (
     // sourcePath: file.name,
     // sourcePath: fullPath, // ← Now includes base path if provided
     sourcePath: relativePath, //add
+    source: "user", // add source
   };
 
   // Only extract content for text files
@@ -234,6 +235,7 @@ export const processZip = async (
         parentId: parentId,
         fileType: fileType as any,
         sourcePath: `${zipName}/${path}`, // only relative path
+        source: "user",
         // sourcePath: fileSourcePath,//change
       };
 

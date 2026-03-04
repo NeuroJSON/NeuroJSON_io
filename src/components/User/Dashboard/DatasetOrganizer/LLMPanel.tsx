@@ -487,6 +487,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           contentType: "text",
           isUserMeta: true,
           parentId: null,
+          source: "ai",
         },
         {
           id: generateId(),
@@ -500,6 +501,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           contentType: "text",
           isUserMeta: true,
           parentId: null,
+          source: "ai",
         },
         {
           id: generateId(),
@@ -513,10 +515,27 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           contentType: "text",
           isUserMeta: true,
           parentId: null,
+          source: "ai",
         },
       ];
 
-      updateFiles((prev) => [...prev, ...trioFiles]);
+      // updateFiles((prev) => [...prev, ...trioFiles]);
+      // replace existing trio files, add if not exist
+      updateFiles((prev) => {
+        const trioNames = [
+          "dataset_description.json",
+          "README.md",
+          "participants.tsv",
+        ];
+
+        // Remove old AI generated trio files
+        const withoutOldTrio = prev.filter(
+          (f) => !(f.source === "ai" && trioNames.includes(f.name))
+        );
+
+        // Add new trio files
+        return [...withoutOldTrio, ...trioFiles];
+      });
       setTrioGenerated(true);
       setStatus(
         "✓ BIDS trio files generated and added to Virtual File System!"

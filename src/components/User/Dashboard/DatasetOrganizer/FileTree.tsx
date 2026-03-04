@@ -9,6 +9,8 @@ import {
   Edit,
   Description,
   Add,
+  AutoAwesome,
+  FolderSpecial,
 } from "@mui/icons-material";
 import {
   Box,
@@ -176,6 +178,10 @@ const FileTree: React.FC<FileTreeProps> = ({
   };
 
   const renderFileIcon = (file: FileItem) => {
+    // AI generated files — use AutoAwesome icon with purple color
+    if (file.source === "ai") {
+      return <AutoAwesome sx={{ color: Colors.purple, fontSize: 20 }} />;
+    }
     if (file.type === "folder" || file.type === "zip") {
       return <Folder sx={{ color: Colors.darkGreen, fontSize: 20 }} />;
     }
@@ -464,6 +470,10 @@ const FileTree: React.FC<FileTreeProps> = ({
           }}
         >
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <AutoAwesome sx={{ fontSize: 10, color: Colors.purple }} />
+              <Typography variant="caption">AI Generated</Typography>
+            </Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
               <Box
                 sx={{
