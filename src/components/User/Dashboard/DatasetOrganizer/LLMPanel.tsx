@@ -1,3 +1,19 @@
+import { generateId } from "./utils/fileProcessors";
+//add
+import {
+  buildFileSummary,
+  analyzeFilePatterns,
+  getUserContext,
+  getFileAnnotations,
+  downloadJSON,
+  buildEvidenceBundle,
+} from "./utils/llmHelpers";
+import {
+  getDatasetDescriptionPrompt,
+  getReadmePrompt,
+  getParticipantsPrompt,
+  getConversionScriptPrompt,
+} from "./utils/llmPrompts";
 import { Close, ContentCopy, Download, AutoAwesome } from "@mui/icons-material";
 import {
   Box,
@@ -21,6 +37,11 @@ interface LLMPanelProps {
   files: FileItem[];
   baseDirectoryPath: string;
   setBaseDirectoryPath: (path: string) => void;
+  evidenceBundle: any; // ✅ Add
+  setEvidenceBundle: (bundle: any) => void; // ✅ Add
+  trioGenerated: boolean; // ✅ Add
+  setTrioGenerated: (value: boolean) => void; // ✅ Add
+  updateFiles: (updater: React.SetStateAction<FileItem[]>) => void; // ✅ Add
   onClose: () => void;
 }
 
@@ -92,6 +113,11 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   files,
   baseDirectoryPath,
   setBaseDirectoryPath,
+  evidenceBundle, // ✅ Add
+  setEvidenceBundle, // ✅ Add
+  trioGenerated, // ✅ Add
+  setTrioGenerated, // ✅ Add
+  updateFiles, // ✅ Add
   onClose,
 }) => {
   const [provider, setProvider] = useState<string>("ollama");
@@ -101,11 +127,415 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   );
   const [apiKey, setApiKey] = useState<string>("");
   const [generatedScript, setGeneratedScript] = useState<string>("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // add loading spin to generate script button
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("");
+  const [generatingEvidence, setGeneratingEvidence] = useState(false); // Add loading spin to evidence button
+  const [generatingTrio, setGeneratingTrio] = useState(false); // Add loading spin to trio button
+  const [abortController, setAbortController] =
+    useState<AbortController | null>(null); // ✅ Add this
+
   const [panelHeight, setPanelHeight] = useState<number>(350);
   const [isResizing, setIsResizing] = useState(false);
+
+  // Helper functions
+  // const getCountsByExtension = (): Record<string, number> => {
+  //   const counts: Record<string, number> = {};
+  //   files.forEach((f) => {
+  //     const ext = f.fileType || "unknown";
+  //     counts[ext] = (counts[ext] || 0) + 1;
+  //   });
+  //   return counts;
+  // };
+
+  // const detectModality = (): string => {
+  //   const counts = getCountsByExtension();
+  //   if (counts.nifti > 0) return "mri";
+  //   if (counts.hdf5 > 0 || files.some((f) => f.name.endsWith(".snirf")))
+  //     return "nirs";
+  //   return "mixed";
+  // };
+
+  // const getUserContextText = (): string => {
+  //   const readme = files.find((f) => f.name.toLowerCase().includes("readme"));
+  //   const instructions = files.find(
+  //     (f) =>
+  //       f.name.toLowerCase().includes("conversion") ||
+  //       f.name.toLowerCase().includes("instruction")
+  //   );
+  //   const participants = files.find((f) =>
+  //     f.name.toLowerCase().includes("participant")
+  //   );
+
+  //   const parts = [];
+  //   if (readme?.content) parts.push(`README:\n${readme.content}`);
+  //   if (instructions?.content)
+  //     parts.push(`INSTRUCTIONS:\n${instructions.content}`);
+  //   if (participants?.content)
+  //     parts.push(`PARTICIPANTS:\n${participants.content}`);
+
+  //   return parts.join("\n\n");
+  // };
+
+  // ========================================================================
+  // BUTTON 1: GENERATE EVIDENCE BUNDLE
+  // ========================================================================
+  const handleGenerateEvidence = () => {
+    if (!baseDirectoryPath.trim()) {
+      setError("Please enter a base directory path first");
+      return;
+    }
+
+    setGeneratingEvidence(true); // ✅ Add this
+    setError(null);
+    setStatus("Building evidence bundle..."); // ✅ Add this
+    try {
+      //modify
+      // const bundle = {
+      //   root: baseDirectoryPath,
+      //   counts_by_ext: getCountsByExtension(),
+      //   all_files: files
+      //     .filter((f) => !f.isUserMeta)
+      //     .map((f) => f.sourcePath || f.name),
+      //   documents: files
+      //     .filter(
+      //       (f) => f.content && ["text", "office"].includes(f.fileType || "")
+      //     )
+      //     .map((f) => ({
+      //       relpath: f.sourcePath || f.name,
+      //       filename: f.name,
+      //       type: f.fileType || "unknown",
+      //       content: f.content || "",
+      //     })),
+      //   user_hints: {
+      //     user_text: getUserContextText(),
+      //     modality_hint: detectModality(),
+      //     n_subjects: null,
+      //   },
+      // };
+      // ✅ Add this debug block
+      console.log("=== FILES GOING INTO buildEvidenceBundle ===");
+      console.log("Total files:", files.length);
+      console.log(
+        "Files with content:",
+        files.filter((f) => !!f.content).length
+      );
+      console.log(
+        "Files by fileType:",
+        files.reduce((acc, f) => {
+          acc[f.fileType || "undefined"] =
+            (acc[f.fileType || "undefined"] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      );
+      console.log(
+        "isUserMeta files:",
+        files.filter((f) => f.isUserMeta).map((f) => f.name)
+      );
+      // ==========================================
+      const bundle = buildEvidenceBundle(files, baseDirectoryPath);
+
+      setEvidenceBundle(bundle);
+      downloadJSON(bundle, "evidence_bundle.json");
+      setStatus("✓ Evidence bundle generated and downloaded!");
+    } catch (err: any) {
+      setError("Failed to generate evidence bundle"); // ✅ Add this
+    } finally {
+      setGeneratingEvidence(false); // ✅ Add this
+    }
+  };
+
+  // ========================================================================
+  // BUTTON 2: GENERATE BIDS TRIO
+  // ========================================================================
+
+  // Button 2: Generate BIDS Trio with LLM calls
+  const handleGenerateTrio = async () => {
+    if (!evidenceBundle) {
+      setError("Please generate evidence bundle first");
+      return;
+    }
+
+    if (!currentProvider.noApiKey && !apiKey.trim()) {
+      setError("Please enter an API key");
+      return;
+    }
+
+    // ✅ Create abort controller
+    const controller = new AbortController();
+    setAbortController(controller);
+
+    setGeneratingTrio(true);
+    setError(null);
+    setStatus("Generating BIDS trio files...");
+
+    try {
+      const userText = evidenceBundle.user_hints.user_text || "";
+
+      // ==========================================
+      // Call 1: Generate dataset_description.json
+      // ==========================================
+      setStatus("1/3 Generating dataset_description.json...");
+      const ddPrompt = getDatasetDescriptionPrompt(userText);
+      //       const ddPrompt = `You are a BIDS dataset_description.json generator.
+
+      // EXTRACT from the following user-provided content:
+      // ${userText}
+
+      // Generate a valid dataset_description.json with these fields:
+      // - Name: Extract dataset name from content
+      // - BIDSVersion: Use "1.10.0"
+      // - DatasetType: Use "raw"
+      // - License: Extract or use "PD"
+      // - Authors: Extract author names (must be array)
+
+      // OUTPUT: Valid JSON only (no markdown, no explanations)`;
+
+      let ddResponse;
+      if (currentProvider.isAnthropic) {
+        ddResponse = await fetch(currentProvider.baseUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: 2048,
+            messages: [{ role: "user", content: ddPrompt }],
+          }),
+        });
+      } else if (provider === "ollama") {
+        const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+        ddResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+          method: "POST",
+          signal: controller.signal, // ✅ Add to all fetch calls
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: ddPrompt }],
+          }),
+        });
+      } else {
+        ddResponse = await fetch(currentProvider.baseUrl, {
+          method: "POST",
+          signal: controller.signal, // ✅ Add to all fetch calls
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: ddPrompt }],
+            max_tokens: 2048,
+          }),
+        });
+      }
+
+      const ddData = await ddResponse.json();
+      let ddText = currentProvider.isAnthropic
+        ? ddData.content[0].text
+        : ddData.choices[0].message.content;
+
+      // Clean up markdown fences
+      ddText = ddText
+        .replace(/^```json\n?/g, "")
+        .replace(/\n?```$/g, "")
+        .trim();
+      const datasetDesc = JSON.parse(ddText);
+
+      // ==========================================
+      // Call 2: Generate README.md
+      // ==========================================
+      setStatus("2/3 Generating README.md...");
+      const readmePrompt = getReadmePrompt(userText);
+      //       const readmePrompt = `Generate a BIDS README.md file.
+
+      // USER CONTEXT:
+      // ${userText}
+
+      // Create a comprehensive README with sections:
+      // - Overview (use user context)
+      // - Dataset Description
+      // - File Organization
+      // - Usage Notes
+
+      // OUTPUT: Direct Markdown text (no JSON wrapper, no code fences)`;
+
+      let readmeResponse;
+      if (currentProvider.isAnthropic) {
+        readmeResponse = await fetch(currentProvider.baseUrl, {
+          method: "POST",
+          signal: controller.signal, // ✅ Add to all fetch calls
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: 2048,
+            messages: [{ role: "user", content: readmePrompt }],
+          }),
+        });
+      } else if (provider === "ollama") {
+        const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+        readmeResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+          method: "POST",
+          signal: controller.signal, // ✅ Add to all fetch calls
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: readmePrompt }],
+          }),
+        });
+      } else {
+        readmeResponse = await fetch(currentProvider.baseUrl, {
+          method: "POST",
+          signal: controller.signal, // ✅ Add to all fetch calls
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: readmePrompt }],
+            max_tokens: 2048,
+          }),
+        });
+      }
+
+      const readmeData = await readmeResponse.json();
+      const readmeContent = currentProvider.isAnthropic
+        ? readmeData.content[0].text
+        : readmeData.choices[0].message.content;
+
+      // ==========================================
+      // Call 3: Generate participants.tsv
+      // ==========================================
+      setStatus("3/3 Generating participants.tsv...");
+      const partsPrompt = getParticipantsPrompt(userText);
+      //       const partsPrompt = `Generate a BIDS participants.tsv file.
+
+      // USER CONTEXT:
+      // ${userText}
+
+      // Extract participant information (IDs, demographics).
+      // If no info available, create basic: participant_id\\nsub-01
+
+      // OUTPUT: Direct TSV text (no JSON, no code fences)`;
+
+      let partsResponse;
+      if (currentProvider.isAnthropic) {
+        partsResponse = await fetch(currentProvider.baseUrl, {
+          method: "POST",
+          signal: controller.signal, // ✅ Add to all fetch calls
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: 1024,
+            messages: [{ role: "user", content: partsPrompt }],
+          }),
+        });
+      } else if (provider === "ollama") {
+        const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+        partsResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+          method: "POST",
+          signal: controller.signal, // ✅ Add to all fetch calls
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: partsPrompt }],
+          }),
+        });
+      } else {
+        partsResponse = await fetch(currentProvider.baseUrl, {
+          method: "POST",
+          signal: controller.signal, // ✅ Add to all fetch calls
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "user", content: partsPrompt }],
+            max_tokens: 1024,
+          }),
+        });
+      }
+
+      const partsData = await partsResponse.json();
+      const participantsContent = currentProvider.isAnthropic
+        ? partsData.content[0].text
+        : partsData.choices[0].message.content;
+
+      // ==========================================
+      // Add trio files to Virtual File System
+      // ==========================================
+      const trioFiles: FileItem[] = [
+        {
+          id: generateId(),
+          name: "dataset_description.json",
+          type: "file",
+          fileType: "meta",
+          content: JSON.stringify(datasetDesc, null, 2),
+          contentType: "text",
+          isUserMeta: true,
+          parentId: null,
+        },
+        {
+          id: generateId(),
+          name: "README.md",
+          type: "file",
+          fileType: "meta",
+          content: readmeContent
+            .replace(/^```markdown\n?/g, "")
+            .replace(/\n?```$/g, "")
+            .trim(),
+          contentType: "text",
+          isUserMeta: true,
+          parentId: null,
+        },
+        {
+          id: generateId(),
+          name: "participants.tsv",
+          type: "file",
+          fileType: "meta",
+          content: participantsContent
+            .replace(/^```\n?/g, "")
+            .replace(/\n?```$/g, "")
+            .trim(),
+          contentType: "text",
+          isUserMeta: true,
+          parentId: null,
+        },
+      ];
+
+      updateFiles((prev) => [...prev, ...trioFiles]);
+      setTrioGenerated(true);
+      setStatus(
+        "✓ BIDS trio files generated and added to Virtual File System!"
+      );
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        // ✅ Add this check
+        setStatus("❌ Generation cancelled");
+      } else {
+        setError(err.message || "Failed to generate trio files");
+        setStatus("❌ Error generating trio files");
+      }
+      // setError(err.message || "Failed to generate trio files");
+      // setStatus("❌ Error generating trio files");
+    } finally {
+      setGeneratingTrio(false);
+      setAbortController(null); // ✅ Clear controller
+    }
+  };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsResizing(true);
@@ -142,251 +572,138 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
 
   const currentProvider = llmProviders[provider];
 
-  // const buildFileSummary = (
-  //   parentId: string | null,
-  //   indent: string = ""
-  // ): string => {
+  // ✅ UPDATED: Build structured file summary that highlights trio files
+  // const buildFileSummary = (): string => {
   //   let summary = "";
-  //   const children = files.filter((f) => f.parentId === parentId);
 
-  //   children.forEach((child) => {
-  //     summary += `${indent}${child.name}`;
-  //     if (child.type === "folder" || child.type === "zip") {
-  //       summary += "/\n";
-  //       summary += buildFileSummary(child.id, indent + "  ");
-  //     } else {
-  //       if (child.contentType) summary += ` [${child.contentType}]`;
+  //   // Check if trio files exist
+  //   const datasetDesc = files.find(
+  //     (f) => f.name === "dataset_description.json"
+  //   );
+  //   const readme = files.find((f) => f.name === "README.md");
+  //   const participants = files.find((f) => f.name === "participants.tsv");
+
+  //   const hasTrioFiles = datasetDesc || readme || participants;
+
+  //   if (hasTrioFiles) {
+  //     summary += "GENERATED BIDS METADATA FILES:\n";
+  //     summary += "=".repeat(70) + "\n\n";
+
+  //     if (datasetDesc?.content) {
+  //       summary += "[dataset_description.json]:\n";
+  //       summary += datasetDesc.content + "\n\n";
+  //     }
+
+  //     if (readme?.content) {
+  //       summary += "[README.md]:\n";
+  //       summary += readme.content.slice(0, 1000) + "\n\n";
+  //     }
+
+  //     if (participants?.content) {
+  //       summary += "[participants.tsv]:\n";
+  //       summary += participants.content + "\n\n";
+  //     }
+
+  //     summary += "=".repeat(70) + "\n\n";
+  //   }
+
+  //   summary += "DATA FILES TO CONVERT:\n";
+  //   summary += "=".repeat(70) + "\n";
+
+  //   // List data files (exclude trio and user meta)
+  //   const dataFiles = files.filter(
+  //     (f) =>
+  //       !f.isUserMeta ||
+  //       ["dataset_description.json", "README.md", "participants.tsv"].includes(
+  //         f.name
+  //       )
+  //   );
+
+  //   dataFiles.forEach((f) => {
+  //     if (
+  //       !["dataset_description.json", "README.md", "participants.tsv"].includes(
+  //         f.name
+  //       )
+  //     ) {
+  //       summary += `  - ${f.name}`;
+  //       if (f.fileType) summary += ` [${f.fileType}]`;
+  //       if (f.sourcePath) summary += ` (${f.sourcePath})`;
   //       summary += "\n";
-  //       if (child.content && child.content.length < 500) {
-  //         summary += `${indent}  Content: ${child.content
-  //           .slice(0, 300)
-  //           .replace(/\n/g, " ")}\n`;
-  //       }
   //     }
   //   });
 
   //   return summary;
   // };
-  // ✅ UPDATED: Build structured file summary
-  const buildFileSummary = (): string => {
-    let summary = "FILE STRUCTURE:\n";
-    summary += "=" + "=".repeat(70) + "\n\n";
-
-    // Separate data files and user metadata
-    const dataFiles = files.filter((f) => !f.isUserMeta);
-    const metaFiles = files.filter((f) => f.isUserMeta);
-
-    // List all data files with their types
-    summary += "DATA FILES:\n";
-    dataFiles.forEach((f) => {
-      const indent = "  ".repeat((f.sourcePath?.split("/").length || 1) - 1);
-      summary += `${indent}- ${f.name}`;
-      if (f.fileType) summary += ` [${f.fileType}]`;
-      if (f.sourcePath) summary += ` (${f.sourcePath})`;
-      summary += "\n";
-    });
-
-    // Show user metadata content
-    if (metaFiles.length > 0) {
-      summary += "\nUSER-PROVIDED METADATA:\n";
-      summary += "-".repeat(70) + "\n";
-      metaFiles.forEach((f) => {
-        summary += `\n[${f.name}]:\n${f.content}\n`;
-      });
-    }
-
-    return summary;
-  };
 
   // ✅ NEW: Analyze file patterns
-  const analyzeFilePatterns = (): string => {
-    const dataFiles = files.filter((f) => f.type === "file" && !f.isUserMeta);
-    const filenames = dataFiles.map((f) => f.name);
+  //   const analyzeFilePatterns = (): string => {
+  //     const dataFiles = files.filter((f) => f.type === "file" && !f.isUserMeta);
+  //     const filenames = dataFiles.map((f) => f.name);
 
-    const extensions = [
-      ...new Set(
-        filenames.map((name) => {
-          const parts = name.toLowerCase().split(".");
-          return parts.length > 1 ? parts[parts.length - 1] : "none";
-        })
-      ),
-    ];
+  //     const extensions = [
+  //       ...new Set(
+  //         filenames.map((name) => {
+  //           const parts = name.toLowerCase().split(".");
+  //           return parts.length > 1 ? parts[parts.length - 1] : "none";
+  //         })
+  //       ),
+  //     ];
 
-    return `
-FILENAME ANALYSIS:
-${"=".repeat(70)}
-Total data files: ${dataFiles.length}
-File types: ${extensions.join(", ")}
+  //     return `
+  // FILENAME ANALYSIS:
+  // ${"=".repeat(70)}
+  // Total data files: ${dataFiles.length}
+  // File types: ${extensions.join(", ")}
 
-Sample filenames (first 10):
-${filenames
-  .slice(0, 10)
-  .map((name) => `  - ${name}`)
-  .join("\n")}
-${
-  filenames.length > 10 ? `\n  ... and ${filenames.length - 10} more files` : ""
-}
-`;
-  };
+  // Sample filenames (first 10):
+  // ${filenames
+  //   .slice(0, 10)
+  //   .map((name) => `  - ${name}`)
+  //   .join("\n")}
+  // ${
+  //   filenames.length > 10 ? `\n  ... and ${filenames.length - 10} more files` : ""
+  // }
+  // `;
+  //   };
 
   // ✅ NEW: Extract user context
-  const getUserContext = (): string => {
-    const readme = files.find((f) => f.name.toLowerCase().includes("readme"));
-    const instructions = files.find(
-      (f) =>
-        f.name.toLowerCase().includes("conversion") ||
-        f.name.toLowerCase().includes("instruction")
-    );
-    const participants = files.find((f) =>
-      f.name.toLowerCase().includes("participant")
-    );
+  // const getUserContext = (): string => {
+  //   const readme = files.find((f) => f.name.toLowerCase().includes("readme"));
+  //   const instructions = files.find(
+  //     (f) =>
+  //       f.name.toLowerCase().includes("conversion") ||
+  //       f.name.toLowerCase().includes("instruction")
+  //   );
+  //   const participants = files.find((f) =>
+  //     f.name.toLowerCase().includes("participant")
+  //   );
 
-    let context = "";
+  //   let context = "";
 
-    if (readme?.content) {
-      context += `README:\n${readme.content}\n\n`;
-    }
+  //   if (readme?.content) {
+  //     context += `README:\n${readme.content}\n\n`;
+  //   }
 
-    if (instructions?.content) {
-      context += `CONVERSION INSTRUCTIONS:\n${instructions.content}\n\n`;
-    }
+  //   if (instructions?.content) {
+  //     context += `CONVERSION INSTRUCTIONS:\n${instructions.content}\n\n`;
+  //   }
 
-    if (participants?.content) {
-      context += `PARTICIPANT INFO:\n${participants.content}\n\n`;
-    }
+  //   if (participants?.content) {
+  //     context += `PARTICIPANT INFO:\n${participants.content}\n\n`;
+  //   }
 
-    return context || "No user-provided context available.";
-  };
+  //   return context || "No user-provided context available.";
+  // };
 
   // ✅ NEW: Collect file annotations
-  const getFileAnnotations = (): string => {
-    const filesWithNotes = files.filter((f) => f.note);
-    if (filesWithNotes.length === 0) return "";
+  //   const getFileAnnotations = (): string => {
+  //     const filesWithNotes = files.filter((f) => f.note);
+  //     if (filesWithNotes.length === 0) return "";
 
-    return `
-FILE ANNOTATIONS (User Notes):
-${filesWithNotes.map((f) => `  ${f.name}: ${f.note}`).join("\n")}
-`;
-  };
-
-  //   const handleGenerate = async () => {
-  //     if (!currentProvider.noApiKey && !apiKey.trim()) {
-  //       setError("Please enter an API key");
-  //       return;
-  //     }
-
-  //     setLoading(true);
-  //     setError(null);
-  //     setStatus(`Generating script using ${currentProvider.name}...`);
-
-  //     const fileSummary = buildFileSummary(null);
-  //     const prompt = `You are a neuroimaging data expert. Analyze the following file structure and metadata from a neuroimaging dataset and generate a Python script to convert it to BIDS format.
-
-  // BASE DIRECTORY PATH: ${baseDirectoryPath}
-
-  // FILE STRUCTURE AND METADATA:
-  // ${fileSummary}
-
-  // IMPORTANT: All file paths shown above are RELATIVE paths. The actual files are located in the base directory: ${baseDirectoryPath}
-  // For example, if you see "test.zip/sub-01/scan.nii", the full path is: ${baseDirectoryPath}/test.zip/sub-01/scan.nii
-
-  // Please generate a Python script that:
-  // 1. Uses the base directory path: ${baseDirectoryPath}
-  // 2. Reads the source files by combining base path + relative paths
-  // 3. Reads the source files
-  // 4. Renames and reorganizes them according to BIDS specification
-  // 5. Creates required BIDS metadata files (dataset_description.json, participants.tsv, etc.)
-  // 6. Handles the specific file types present (NIfTI, SNIRF, JSON sidecars, etc.)
-
-  // Include comments explaining the BIDS structure.
-  // Output ONLY the Python script.`;
-
-  //     try {
-  //       let response;
-
-  //       if (provider === "ollama") {
-  //         const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-  //         response = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-  //           method: "POST",
-  //           headers: {
-  //             "Content-Type": "application/json",
-  //           },
-  //           body: JSON.stringify({
-  //             model,
-  //             messages: [
-  //               {
-  //                 role: "system",
-  //                 content:
-  //                   "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code.",
-  //               },
-  //               { role: "user", content: prompt },
-  //             ],
-  //             stream: false,
-  //           }),
-  //         });
-  //       } else if (currentProvider.isAnthropic) {
-  //         response = await fetch(currentProvider.baseUrl, {
-  //           method: "POST",
-  //           headers: {
-  //             "Content-Type": "application/json",
-  //             "x-api-key": apiKey,
-  //             "anthropic-version": "2023-06-01",
-  //           },
-  //           body: JSON.stringify({
-  //             model,
-  //             max_tokens: 4096,
-  //             messages: [{ role: "user", content: prompt }],
-  //           }),
-  //         });
-  //       } else {
-  //         const headers: Record<string, string> = {
-  //           "Content-Type": "application/json",
-  //         };
-
-  //         if (!currentProvider.noApiKey) {
-  //           headers["Authorization"] = `Bearer ${apiKey}`;
-  //         }
-
-  //         response = await fetch(currentProvider.baseUrl, {
-  //           method: "POST",
-  //           headers,
-  //           body: JSON.stringify({
-  //             model,
-  //             messages: [
-  //               {
-  //                 role: "system",
-  //                 content:
-  //                   "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code.",
-  //               },
-  //               { role: "user", content: prompt },
-  //             ],
-  //             max_tokens: 4096,
-  //             temperature: 0.7,
-  //           }),
-  //         });
-  //       }
-
-  //       const data = await response.json();
-
-  //       if (!response.ok) {
-  //         throw new Error(data.error?.message || "Failed to generate script");
-  //       }
-
-  //       let script = "";
-  //       if (currentProvider.isAnthropic) {
-  //         script = data.content[0].text;
-  //       } else {
-  //         script = data.choices[0].message.content;
-  //       }
-
-  //       setGeneratedScript(script);
-  //       setStatus(`✓ Script generated using ${currentProvider.name}`);
-  //     } catch (err: any) {
-  //       setError(err.message || "Failed to generate script");
-  //       setStatus("❌ Error generating script");
-  //     } finally {
-  //       setLoading(false);
-  //     }
+  //     return `
+  // FILE ANNOTATIONS (User Notes):
+  // ${filesWithNotes.map((f) => `  ${f.name}: ${f.note}`).join("\n")}
+  // `;
   //   };
 
   const handleGenerate = async () => {
@@ -400,74 +717,95 @@ ${filesWithNotes.map((f) => `  ${f.name}: ${f.note}`).join("\n")}
       return;
     }
 
+    // ✅ Create abort controller
+    const controller = new AbortController();
+    setAbortController(controller);
+
     setLoading(true);
     setError(null);
     setStatus(`Generating script using ${currentProvider.name}...`);
+    // modify
+    // const fileSummary = buildFileSummary();
+    // const filePatterns = analyzeFilePatterns();
+    // const userContext = getUserContext();
+    // const annotations = getFileAnnotations();
+    const fileSummary = buildFileSummary(files);
+    const filePatterns = analyzeFilePatterns(files);
+    const userContext = getUserContext(files);
+    const annotations = getFileAnnotations(files);
+    console.log("=== PROMPT BEING SENT TO LLM ===");
+    console.log(fileSummary);
+    console.log(filePatterns);
+    console.log(userContext);
+    console.log("=================================");
 
-    const fileSummary = buildFileSummary();
-    const filePatterns = analyzeFilePatterns();
-    const userContext = getUserContext();
-    const annotations = getFileAnnotations();
+    // ✅ UPDATED: Improved prompt that uses trio files
+    const prompt = getConversionScriptPrompt(
+      baseDirectoryPath,
+      fileSummary,
+      filePatterns,
+      userContext,
+      annotations
+    );
+    //     const prompt = `You are a BIDS conversion expert.
 
-    // ✅ UPDATED: Improved prompt
-    const prompt = `You are a neuroimaging BIDS conversion expert.
+    // ╔════════════════════════════════════════════════════════════════╗
+    // ║ TASK: Generate Python script to convert dataset to BIDS       ║
+    // ╚════════════════════════════════════════════════════════════════╝
 
-╔════════════════════════════════════════════════════════════════════╗
-║ TASK: Generate Python script to convert dataset to BIDS format    ║
-╚════════════════════════════════════════════════════════════════════╝
+    // BASE DIRECTORY: ${baseDirectoryPath}
 
-BASE DIRECTORY: ${baseDirectoryPath}
+    // ${fileSummary}
 
-${fileSummary}
+    // ${filePatterns}
 
-${filePatterns}
+    // ${userContext}
 
-USER-PROVIDED CONTEXT:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${userContext}
+    // ${annotations}
 
-${annotations}
+    // CRITICAL INSTRUCTIONS:
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-REQUIREMENTS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. CRITICAL: All file paths are RELATIVE to base directory: ${baseDirectoryPath}
- Example: If you see "test.zip/scan.nii", the full path is:
- ${baseDirectoryPath}/test.zip/scan.nii
+    // 1. The BIDS metadata files (dataset_description.json, README.md, participants.tsv)
+    //    have ALREADY been generated above. Your script should:
+    //    ✓ Use the exact content from dataset_description.json above
+    //    ✓ Use the exact participant IDs from participants.tsv above
+    //    ✓ Create these files as-is in the BIDS directory
 
-2. Analyze filename patterns to determine:
- - Number of subjects (look for repeating patterns in filenames)
- - Session structure (if any)
- - Data modalities (anat, func, dwi, fmap, etc.)
- - Task names (for functional scans)
+    // 2. All file paths are RELATIVE to: ${baseDirectoryPath}
+    //    Construct full paths as: os.path.join('${baseDirectoryPath}', relative_path)
 
-3. Use the user-provided context (README, instructions, participant info) to:
- - Extract dataset name and description
- - Identify subject groupings
- - Understand data acquisition details
- - Apply any special conversion requirements
+    // 3. BIDS directory structure to create:
+    //    bids_dataset/
+    //    ├── dataset_description.json  ← Use exact content from above
+    //    ├── README.md                  ← Use exact content from above
+    //    ├── participants.tsv           ← Use exact content from above
+    //    └── sub-XX/
+    //        ├── anat/
+    //        ├── func/
+    //        └── ...
 
-4. Generate a complete, runnable Python script that:
- ✓ Imports necessary libraries (os, shutil, json, nibabel if needed)
- ✓ Creates proper BIDS directory structure
- ✓ Generates dataset_description.json with actual dataset information
- ✓ Creates participants.tsv if participant info is available
- ✓ Copies/renames files to BIDS naming convention (sub-XX_suffix.nii.gz)
- ✓ Creates JSON sidecars for imaging files with relevant metadata
- ✓ Handles specific file types present
- ✓ Includes error handling and progress messages
+    // 4. For each data file:
+    //    ✓ Determine which subject it belongs to (match with participants.tsv)
+    //    ✓ Determine modality (anat/func/dwi/fmap based on file type)
+    //    ✓ Rename to BIDS convention: sub-XX_suffix.nii.gz
+    //    ✓ Create JSON sidecar with metadata
 
-BIDS NAMING CONVENTIONS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Subject IDs: sub-<label> (e.g., sub-01, sub-control)
-- Session IDs: ses-<label> (if multiple sessions)
-- Anatomical: sub-XX_[ses-YY_]<suffix>.nii.gz (e.g., sub-01_T1w.nii.gz)
-- Functional: sub-XX_[ses-YY_]task-<label>_bold.nii.gz
-- SNIRF: sub-XX_[ses-YY_]task-<label>_nirs.snirf
+    // 5. File type handling:
+    //    - NIfTI (.nii, .nii.gz): Copy to appropriate modality folder
+    //    - SNIRF (.snirf): Copy to func/ folder as sub-XX_task-<name>_nirs.snirf
+    //    - JSON: Use as sidecars or metadata
 
-CRITICAL OUTPUT FORMAT:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Output ONLY the Python script. No markdown code fences, no explanations.
-The script should be complete and ready to run.`;
+    // OUTPUT REQUIREMENTS:
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Generate a complete, runnable Python script that:
+    // - Imports: os, shutil, json, pathlib
+    // - Creates BIDS directory structure
+    // - Writes the three metadata files (using exact content from above)
+    // - Copies and renames data files to BIDS format
+    // - Includes error handling and progress messages
+
+    // OUTPUT ONLY THE PYTHON SCRIPT (no markdown fences, no explanations).`;
 
     try {
       let response;
@@ -476,6 +814,7 @@ The script should be complete and ready to run.`;
         const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
         response = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
           method: "POST",
+          signal: controller.signal, // ✅ Add this
           headers: {
             "Content-Type": "application/json",
           },
@@ -495,6 +834,7 @@ The script should be complete and ready to run.`;
       } else if (currentProvider.isAnthropic) {
         response = await fetch(currentProvider.baseUrl, {
           method: "POST",
+          signal: controller.signal, // ✅ Add this
           headers: {
             "Content-Type": "application/json",
             "x-api-key": apiKey,
@@ -517,6 +857,7 @@ The script should be complete and ready to run.`;
 
         response = await fetch(currentProvider.baseUrl, {
           method: "POST",
+          signal: controller.signal, // ✅ Add this
           headers,
           body: JSON.stringify({
             model,
@@ -553,10 +894,25 @@ The script should be complete and ready to run.`;
       setGeneratedScript(script);
       setStatus(`✓ Script generated using ${currentProvider.name}`);
     } catch (err: any) {
-      setError(err.message || "Failed to generate script");
-      setStatus("❌ Error generating script");
+      if (err.name === "AbortError") {
+        // ✅ Add this check
+        setStatus("❌ Generation cancelled");
+      } else {
+        setError(err.message || "Failed to generate script");
+        setStatus("❌ Error generating script");
+      }
+      // setError(err.message || "Failed to generate script");
+      // setStatus("❌ Error generating script");
     } finally {
       setLoading(false);
+      setAbortController(null); // ✅ Clear controller
+    }
+  };
+
+  const handleCancel = () => {
+    if (abortController) {
+      abortController.abort();
+      setStatus("Cancelling...");
     }
   };
 
@@ -718,6 +1074,102 @@ The script should be complete and ready to run.`;
             />
           )}
 
+          {/* Step-by-step workflow buttons */}
+          <Box
+            sx={{
+              mb: 2,
+              p: 2,
+              backgroundColor: "rgba(128, 90, 213, 0.05)",
+              borderRadius: 1,
+            }}
+          >
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mb: 1, display: "block" }}
+            >
+              Workflow Steps:
+            </Typography>
+
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <Button
+                fullWidth
+                size="small"
+                variant={evidenceBundle ? "contained" : "outlined"}
+                onClick={handleGenerateEvidence}
+                disabled={!baseDirectoryPath.trim() || generatingEvidence} // ✅ Add || generatingEvidence
+                startIcon={
+                  generatingEvidence ? <CircularProgress size={16} /> : null
+                } // ✅ Add this
+                // disabled={!baseDirectoryPath.trim()}
+                sx={{
+                  justifyContent: "flex-start",
+                  textTransform: "none",
+                  backgroundColor: evidenceBundle
+                    ? Colors.darkGreen
+                    : "transparent",
+                  borderColor: Colors.purple,
+                  color: evidenceBundle ? "white" : Colors.purple,
+                  "&:hover": {
+                    backgroundColor: evidenceBundle
+                      ? Colors.darkGreen
+                      : "rgba(128, 90, 213, 0.1)",
+                  },
+                }}
+              >
+                {/* {evidenceBundle ? "✓" : "1."} Generate Evidence Bundle */}
+                {generatingEvidence
+                  ? "Generating..."
+                  : evidenceBundle
+                  ? "✓ Generate Evidence Bundle"
+                  : "1. Generate Evidence Bundle"}
+              </Button>
+
+              <Button
+                fullWidth
+                size="small"
+                variant={trioGenerated ? "contained" : "outlined"}
+                onClick={handleGenerateTrio}
+                // disabled={!evidenceBundle}
+                disabled={!evidenceBundle || generatingTrio} // ✅ Add || generatingTrio
+                startIcon={
+                  generatingTrio ? <CircularProgress size={16} /> : null
+                } // ✅ Add this
+                sx={{
+                  justifyContent: "flex-start",
+                  textTransform: "none",
+                  backgroundColor: trioGenerated
+                    ? Colors.darkGreen
+                    : "transparent",
+                  borderColor: Colors.purple,
+                  color: trioGenerated ? "white" : Colors.purple,
+                  "&:hover": {
+                    backgroundColor: trioGenerated
+                      ? Colors.darkGreen
+                      : "rgba(128, 90, 213, 0.1)",
+                  },
+                }}
+              >
+                {/* {trioGenerated ? "✓" : "2."} Generate BIDS Trio */}
+                {generatingTrio
+                  ? "Generating..."
+                  : trioGenerated
+                  ? "✓ Generate BIDS Trio"
+                  : "2. Generate BIDS Trio"}
+              </Button>
+              <Typography
+                variant="body2"
+                sx={{
+                  textAlign: "left",
+                  color: trioGenerated ? Colors.purple : Colors.lightGray,
+                  py: 1,
+                }}
+              >
+                3. Ready to Generate Script ↓
+              </Typography>
+            </Box>
+          </Box>
+
           <Button
             fullWidth
             variant="contained"
@@ -726,7 +1178,7 @@ The script should be complete and ready to run.`;
             }
             onClick={handleGenerate}
             // disabled={loading}
-            disabled={loading || !baseDirectoryPath.trim()} // Add
+            disabled={loading || !baseDirectoryPath.trim() || !trioGenerated} // Add
             sx={{
               background: `linear-gradient(135deg, ${Colors.purple} 0%, ${Colors.secondaryPurple} 100%)`,
               "&:hover": {
@@ -740,6 +1192,24 @@ The script should be complete and ready to run.`;
           >
             {loading ? "Generating..." : "Generate Script"}
           </Button>
+
+          {/* cancel button*/}
+          {(generatingTrio || loading) && (
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={handleCancel}
+              sx={{
+                borderColor: Colors.rose,
+                color: Colors.rose,
+                "&:hover": {
+                  backgroundColor: "rgba(211, 47, 47, 0.1)",
+                },
+              }}
+            >
+              Cancel
+            </Button>
+          )}
 
           {error && (
             <Alert severity="error" sx={{ mt: 2 }}>

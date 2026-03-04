@@ -25,7 +25,27 @@ export interface ExtractorState {
   files: FileItem[];
   selectedIds: string[];
   expandedIds: string[];
-  baseDirectoryPath?: string; //add
+  baseDirectoryPath?: string;
+  evidenceBundle?: any; // ✅ Add this
+  trioGenerated?: boolean; // ✅ Add this
+}
+
+// add
+export interface EvidenceBundle {
+  root: string;
+  counts_by_ext: Record<string, number>;
+  all_files: string[];
+  documents: Array<{
+    relpath: string;
+    filename: string;
+    type: string;
+    content: string;
+  }>;
+  user_hints: {
+    user_text: string;
+    modality_hint: string;
+    n_subjects: number | null;
+  };
 }
 
 // Project Interface

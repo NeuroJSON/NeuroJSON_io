@@ -1,6 +1,7 @@
 import DropZone from "./DropZone";
 import FileTree from "./FileTree";
 import LLMPanel from "./LLMPanel";
+import { generateId } from "./utils/fileProcessors";
 import { ArrowBack, Save, GetApp, Psychology } from "@mui/icons-material";
 import {
   Box,
@@ -22,6 +23,8 @@ import {
 } from "redux/projects/projects.selector";
 import { FileItem } from "redux/projects/types/projects.interface";
 
+//add
+
 const DatasetOrganizer: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
@@ -38,7 +41,12 @@ const DatasetOrganizer: React.FC = () => {
   const [showLLMPanel, setShowLLMPanel] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [baseDirectoryPath, setBaseDirectoryPath] = useState<string>(""); // ✅ ADD this line
+  const [baseDirectoryPath, setBaseDirectoryPath] = useState<string>("");
+  // add
+  const [evidenceBundle, setEvidenceBundle] = useState<any>(null);
+  const [trioGenerated, setTrioGenerated] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false); //add
+
   // Helper to mark as changed
   const markAsChanged = () => {
     setHasUnsavedChanges(true);
@@ -74,7 +82,9 @@ const DatasetOrganizer: React.FC = () => {
       setFiles(state.files || []);
       setSelectedIds(new Set(state.selectedIds || []));
       setExpandedIds(new Set(state.expandedIds || []));
-      setBaseDirectoryPath(state.baseDirectoryPath || ""); // ✅ ADD this line
+      setBaseDirectoryPath(state.baseDirectoryPath || "");
+      setEvidenceBundle(state.evidenceBundle || null); // ✅ Add this
+      setTrioGenerated(state.trioGenerated || false); // ✅ Add this
       setHasUnsavedChanges(false);
     }
   }, [currentProject]);
@@ -90,7 +100,9 @@ const DatasetOrganizer: React.FC = () => {
             files,
             selectedIds: Array.from(selectedIds),
             expandedIds: Array.from(expandedIds),
-            baseDirectoryPath, // ✅ ADD this line
+            baseDirectoryPath,
+            evidenceBundle, // ✅ Add this
+            trioGenerated, // ✅ Add this
           },
         })
       ).unwrap();
@@ -165,23 +177,20 @@ const DatasetOrganizer: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  // ========================================================================
+  // BACK BUTTON WITH DIALOG
+  // ========================================================================
   const handleBack = () => {
     if (hasUnsavedChanges) {
-      const userWantsToSave = window.confirm(
-        "You have unsaved changes. Do you want to save before leaving?"
-      );
-
-      if (userWantsToSave) {
-        handleSave();
-        navigate("/dashboard");
-      }
-      // If user clicks Cancel, do nothing (stay on page)
+      setShowExitDialog(true);
     } else {
-      // No unsaved changes, go back directly
       navigate("/dashboard");
     }
   };
 
+  // ========================================================================
+  // LOADING & ERROR STATES
+  // ========================================================================
   if (loading && !currentProject) {
     return (
       <Box
@@ -348,8 +357,13 @@ const DatasetOrganizer: React.FC = () => {
       {showLLMPanel && (
         <LLMPanel
           files={files}
-          baseDirectoryPath={baseDirectoryPath} // ✅ ADD this line
-          setBaseDirectoryPath={setBaseDirectoryPath} // ✅ ADD this line
+          baseDirectoryPath={baseDirectoryPath}
+          setBaseDirectoryPath={setBaseDirectoryPath}
+          evidenceBundle={evidenceBundle} // ✅ Pass this
+          setEvidenceBundle={setEvidenceBundle} // ✅ Pass this
+          trioGenerated={trioGenerated} // ✅ Pass this
+          setTrioGenerated={setTrioGenerated} // ✅ Pass this
+          updateFiles={updateFiles} // ✅ Pass this to add trio files
           onClose={() => setShowLLMPanel(false)}
         />
       )}
