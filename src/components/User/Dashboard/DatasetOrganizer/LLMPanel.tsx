@@ -133,49 +133,10 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   const [generatingEvidence, setGeneratingEvidence] = useState(false); // Add loading spin to evidence button
   const [generatingTrio, setGeneratingTrio] = useState(false); // Add loading spin to trio button
   const [abortController, setAbortController] =
-    useState<AbortController | null>(null); // ✅ Add this
+    useState<AbortController | null>(null);
 
-  const [panelHeight, setPanelHeight] = useState<number>(350);
+  const [panelHeight, setPanelHeight] = useState<number>(450);
   const [isResizing, setIsResizing] = useState(false);
-
-  // Helper functions
-  // const getCountsByExtension = (): Record<string, number> => {
-  //   const counts: Record<string, number> = {};
-  //   files.forEach((f) => {
-  //     const ext = f.fileType || "unknown";
-  //     counts[ext] = (counts[ext] || 0) + 1;
-  //   });
-  //   return counts;
-  // };
-
-  // const detectModality = (): string => {
-  //   const counts = getCountsByExtension();
-  //   if (counts.nifti > 0) return "mri";
-  //   if (counts.hdf5 > 0 || files.some((f) => f.name.endsWith(".snirf")))
-  //     return "nirs";
-  //   return "mixed";
-  // };
-
-  // const getUserContextText = (): string => {
-  //   const readme = files.find((f) => f.name.toLowerCase().includes("readme"));
-  //   const instructions = files.find(
-  //     (f) =>
-  //       f.name.toLowerCase().includes("conversion") ||
-  //       f.name.toLowerCase().includes("instruction")
-  //   );
-  //   const participants = files.find((f) =>
-  //     f.name.toLowerCase().includes("participant")
-  //   );
-
-  //   const parts = [];
-  //   if (readme?.content) parts.push(`README:\n${readme.content}`);
-  //   if (instructions?.content)
-  //     parts.push(`INSTRUCTIONS:\n${instructions.content}`);
-  //   if (participants?.content)
-  //     parts.push(`PARTICIPANTS:\n${participants.content}`);
-
-  //   return parts.join("\n\n");
-  // };
 
   // ========================================================================
   // BUTTON 1: GENERATE EVIDENCE BUNDLE
@@ -186,52 +147,28 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       return;
     }
 
-    setGeneratingEvidence(true); // ✅ Add this
+    setGeneratingEvidence(true);
     setError(null);
-    setStatus("Building evidence bundle..."); // ✅ Add this
+    setStatus("Building evidence bundle...");
     try {
-      //modify
-      // const bundle = {
-      //   root: baseDirectoryPath,
-      //   counts_by_ext: getCountsByExtension(),
-      //   all_files: files
-      //     .filter((f) => !f.isUserMeta)
-      //     .map((f) => f.sourcePath || f.name),
-      //   documents: files
-      //     .filter(
-      //       (f) => f.content && ["text", "office"].includes(f.fileType || "")
-      //     )
-      //     .map((f) => ({
-      //       relpath: f.sourcePath || f.name,
-      //       filename: f.name,
-      //       type: f.fileType || "unknown",
-      //       content: f.content || "",
-      //     })),
-      //   user_hints: {
-      //     user_text: getUserContextText(),
-      //     modality_hint: detectModality(),
-      //     n_subjects: null,
-      //   },
-      // };
-      // ✅ Add this debug block
-      console.log("=== FILES GOING INTO buildEvidenceBundle ===");
-      console.log("Total files:", files.length);
-      console.log(
-        "Files with content:",
-        files.filter((f) => !!f.content).length
-      );
-      console.log(
-        "Files by fileType:",
-        files.reduce((acc, f) => {
-          acc[f.fileType || "undefined"] =
-            (acc[f.fileType || "undefined"] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>)
-      );
-      console.log(
-        "isUserMeta files:",
-        files.filter((f) => f.isUserMeta).map((f) => f.name)
-      );
+      // console.log("=== FILES GOING INTO buildEvidenceBundle ===");
+      // console.log("Total files:", files.length);
+      // console.log(
+      //   "Files with content:",
+      //   files.filter((f) => !!f.content).length
+      // );
+      // console.log(
+      //   "Files by fileType:",
+      //   files.reduce((acc, f) => {
+      //     acc[f.fileType || "undefined"] =
+      //       (acc[f.fileType || "undefined"] || 0) + 1;
+      //     return acc;
+      //   }, {} as Record<string, number>)
+      // );
+      // console.log(
+      //   "isUserMeta files:",
+      //   files.filter((f) => f.isUserMeta).map((f) => f.name)
+      // );
       // ==========================================
       const bundle = buildEvidenceBundle(files, baseDirectoryPath);
 
@@ -239,17 +176,15 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       downloadJSON(bundle, "evidence_bundle.json");
       setStatus("✓ Evidence bundle generated and downloaded!");
     } catch (err: any) {
-      setError("Failed to generate evidence bundle"); // ✅ Add this
+      setError("Failed to generate evidence bundle");
     } finally {
-      setGeneratingEvidence(false); // ✅ Add this
+      setGeneratingEvidence(false);
     }
   };
 
   // ========================================================================
-  // BUTTON 2: GENERATE BIDS TRIO
+  // BUTTON 2: Generate BIDS Trio with LLM calls
   // ========================================================================
-
-  // Button 2: Generate BIDS Trio with LLM calls
   const handleGenerateTrio = async () => {
     if (!evidenceBundle) {
       setError("Please generate evidence bundle first");
@@ -261,7 +196,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       return;
     }
 
-    // ✅ Create abort controller
+    // Create abort controller
     const controller = new AbortController();
     setAbortController(controller);
 
@@ -277,19 +212,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       // ==========================================
       setStatus("1/3 Generating dataset_description.json...");
       const ddPrompt = getDatasetDescriptionPrompt(userText);
-      //       const ddPrompt = `You are a BIDS dataset_description.json generator.
-
-      // EXTRACT from the following user-provided content:
-      // ${userText}
-
-      // Generate a valid dataset_description.json with these fields:
-      // - Name: Extract dataset name from content
-      // - BIDSVersion: Use "1.10.0"
-      // - DatasetType: Use "raw"
-      // - License: Extract or use "PD"
-      // - Authors: Extract author names (must be array)
-
-      // OUTPUT: Valid JSON only (no markdown, no explanations)`;
 
       let ddResponse;
       if (currentProvider.isAnthropic) {
@@ -310,7 +232,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
         ddResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
           method: "POST",
-          signal: controller.signal, // ✅ Add to all fetch calls
+          signal: controller.signal,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             model,
@@ -320,7 +242,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       } else {
         ddResponse = await fetch(currentProvider.baseUrl, {
           method: "POST",
-          signal: controller.signal, // ✅ Add to all fetch calls
+          signal: controller.signal,
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
@@ -350,24 +272,12 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       // ==========================================
       setStatus("2/3 Generating README.md...");
       const readmePrompt = getReadmePrompt(userText);
-      //       const readmePrompt = `Generate a BIDS README.md file.
-
-      // USER CONTEXT:
-      // ${userText}
-
-      // Create a comprehensive README with sections:
-      // - Overview (use user context)
-      // - Dataset Description
-      // - File Organization
-      // - Usage Notes
-
-      // OUTPUT: Direct Markdown text (no JSON wrapper, no code fences)`;
 
       let readmeResponse;
       if (currentProvider.isAnthropic) {
         readmeResponse = await fetch(currentProvider.baseUrl, {
           method: "POST",
-          signal: controller.signal, // ✅ Add to all fetch calls
+          signal: controller.signal,
           headers: {
             "Content-Type": "application/json",
             "x-api-key": apiKey,
@@ -383,7 +293,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
         readmeResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
           method: "POST",
-          signal: controller.signal, // ✅ Add to all fetch calls
+          signal: controller.signal,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             model,
@@ -393,7 +303,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       } else {
         readmeResponse = await fetch(currentProvider.baseUrl, {
           method: "POST",
-          signal: controller.signal, // ✅ Add to all fetch calls
+          signal: controller.signal,
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
@@ -416,15 +326,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       // ==========================================
       setStatus("3/3 Generating participants.tsv...");
       const partsPrompt = getParticipantsPrompt(userText);
-      //       const partsPrompt = `Generate a BIDS participants.tsv file.
-
-      // USER CONTEXT:
-      // ${userText}
-
-      // Extract participant information (IDs, demographics).
-      // If no info available, create basic: participant_id\\nsub-01
-
-      // OUTPUT: Direct TSV text (no JSON, no code fences)`;
 
       let partsResponse;
       if (currentProvider.isAnthropic) {
@@ -613,11 +514,11 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     const filePatterns = analyzeFilePatterns(files);
     const userContext = getUserContext(files);
     const annotations = getFileAnnotations(files);
-    console.log("=== PROMPT BEING SENT TO LLM ===");
-    console.log(fileSummary);
-    console.log(filePatterns);
-    console.log(userContext);
-    console.log("=================================");
+    // console.log("=== PROMPT BEING SENT TO LLM ===");
+    // console.log(fileSummary);
+    // console.log(filePatterns);
+    // console.log(userContext);
+    // console.log("=================================");
 
     // UPDATED: Improved prompt that uses trio files
     const prompt = getConversionScriptPrompt(
@@ -753,7 +654,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   return (
     <Paper
       sx={{
-        // position: "fixed",
         position: "absolute",
         bottom: 0,
         left: 0,
@@ -786,7 +686,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             width: 40,
             height: 3,
             backgroundColor: Colors.secondaryPurple,
-            // borderRadius: 2,
           }}
         />
       </Box>
@@ -869,7 +768,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               sx={{ mb: 2 }}
             />
           )}
-          {/* ADD THIS: Base Directory Path field (shows for ALL providers) */}
+          {/* Base Directory Path field (shows for ALL providers) */}
           <TextField
             fullWidth
             required
@@ -916,11 +815,10 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 size="small"
                 variant={evidenceBundle ? "contained" : "outlined"}
                 onClick={handleGenerateEvidence}
-                disabled={!baseDirectoryPath.trim() || generatingEvidence} // ✅ Add || generatingEvidence
+                disabled={!baseDirectoryPath.trim() || generatingEvidence}
                 startIcon={
                   generatingEvidence ? <CircularProgress size={16} /> : null
-                } // ✅ Add this
-                // disabled={!baseDirectoryPath.trim()}
+                }
                 sx={{
                   justifyContent: "flex-start",
                   textTransform: "none",
@@ -936,7 +834,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                   },
                 }}
               >
-                {/* {evidenceBundle ? "✓" : "1."} Generate Evidence Bundle */}
                 {generatingEvidence
                   ? "Generating..."
                   : evidenceBundle
@@ -949,11 +846,10 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 size="small"
                 variant={trioGenerated ? "contained" : "outlined"}
                 onClick={handleGenerateTrio}
-                // disabled={!evidenceBundle}
-                disabled={!evidenceBundle || generatingTrio} // ✅ Add || generatingTrio
+                disabled={!evidenceBundle || generatingTrio}
                 startIcon={
                   generatingTrio ? <CircularProgress size={16} /> : null
-                } // ✅ Add this
+                }
                 sx={{
                   justifyContent: "flex-start",
                   textTransform: "none",
@@ -969,7 +865,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                   },
                 }}
               >
-                {/* {trioGenerated ? "✓" : "2."} Generate BIDS Trio */}
                 {generatingTrio
                   ? "Generating..."
                   : trioGenerated
@@ -996,8 +891,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               loading ? <CircularProgress size={20} /> : <AutoAwesome />
             }
             onClick={handleGenerate}
-            // disabled={loading}
-            disabled={loading || !baseDirectoryPath.trim() || !trioGenerated} // Add
+            disabled={loading || !baseDirectoryPath.trim() || !trioGenerated}
             sx={{
               background: `linear-gradient(135deg, ${Colors.purple} 0%, ${Colors.secondaryPurple} 100%)`,
               "&:hover": {

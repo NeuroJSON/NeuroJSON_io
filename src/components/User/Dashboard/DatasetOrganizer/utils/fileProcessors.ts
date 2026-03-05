@@ -25,6 +25,9 @@ export const getFileType = (name: string): string => {
     neurojsonText: ["jnii", "jmsh", "jdt", "jnirs"],
     neurojsonBinary: ["jdb", "bjd", "bnii", "bmsh", "bnirs"],
     office: ["docx", "pdf", "xlsx", "xls"],
+    matlab: ["mat"],
+    dicom: ["dcm"],
+    nirs: ["nirs"],
   };
 
   for (const [type, extensions] of Object.entries(fileTypes)) {
@@ -144,6 +147,27 @@ export const processFile = async (
       const buffer = await file.arrayBuffer();
       entry.content = extractExcelContent(buffer);
       entry.contentType = "office";
+    } else if (fileType === "matlab") {
+      entry.content = `MATLAB File: ${file.name}\nSize: ${(
+        file.size / 1024
+      ).toFixed(
+        2
+      )} KB\nFormat: .mat (fNIRS data — will be converted to SNIRF by autobidsify)`;
+      entry.contentType = "matlab";
+    } else if (fileType === "dicom") {
+      entry.content = `DICOM File: ${file.name}\nSize: ${(
+        file.size / 1024
+      ).toFixed(
+        2
+      )} KB\nFormat: .dcm (MRI data — will be converted to NIfTI by dcm2niix)`;
+      entry.contentType = "dicom";
+    } else if (fileType === "nirs") {
+      entry.content = `Homer3 File: ${file.name}\nSize: ${(
+        file.size / 1024
+      ).toFixed(
+        2
+      )} KB\nFormat: .nirs (fNIRS data — will be converted to SNIRF by autobidsify)`;
+      entry.contentType = "nirs";
     } else {
       // For other binary files, just store basic info
       entry.content = `File: ${file.name}\nSize: ${(file.size / 1024).toFixed(
@@ -171,7 +195,7 @@ export const processZip = async (
     const contents = await zip.loadAsync(file);
     const entries: FileItem[] = [];
     const pathMap: Record<string, string> = {};
-    // ✅ ADD: Create root ZIP container
+    // Create root ZIP container
     const zipRootId = generateId();
     entries.push({
       id: zipRootId,
@@ -322,6 +346,23 @@ export const processZip = async (
         const sizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
         entry.content = `Binary NeuroJSON: ${fileName}\nSize: ${sizeKB} KB\nFormat: BJData`;
         entry.contentType = "neurojson";
+      }
+      // matlab placeholder
+      else if (fileType === "matlab") {
+        const arrayBuffer = await zipEntry.async("arraybuffer");
+        const sizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
+        entry.content = `MATLAB File: ${fileName}\nSize: ${sizeKB} KB\nFormat: .mat (fNIRS data — will be converted to SNIRF by autobidsify)`;
+        entry.contentType = "matlab";
+      } else if (fileType === "dicom") {
+        const arrayBuffer = await zipEntry.async("arraybuffer");
+        const sizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
+        entry.content = `DICOM File: ${fileName}\nSize: ${sizeKB} KB\nFormat: .dcm (MRI data — will be converted to NIfTI by dcm2niix)`;
+        entry.contentType = "dicom";
+      } else if (fileType === "nirs") {
+        const arrayBuffer = await zipEntry.async("arraybuffer");
+        const sizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
+        entry.content = `Homer3 File: ${fileName}\nSize: ${sizeKB} KB\nFormat: .nirs (fNIRS data — will be converted to SNIRF by autobidsify)`;
+        entry.contentType = "nirs";
       } else {
         // For other binary files, just store info
         const arrayBuffer = await zipEntry.async("arraybuffer");
