@@ -753,7 +753,8 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   return (
     <Paper
       sx={{
-        position: "fixed",
+        // position: "fixed",
+        position: "absolute",
         bottom: 0,
         left: 0,
         right: 0,
@@ -939,7 +940,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 {generatingEvidence
                   ? "Generating..."
                   : evidenceBundle
-                  ? "✓ Generate Evidence Bundle"
+                  ? "✓  1. Generate Evidence Bundle"
                   : "1. Generate Evidence Bundle"}
               </Button>
 
@@ -972,7 +973,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 {generatingTrio
                   ? "Generating..."
                   : trioGenerated
-                  ? "✓ Generate BIDS Trio"
+                  ? "✓  2. Generate BIDS Trio"
                   : "2. Generate BIDS Trio"}
               </Button>
               <Typography
@@ -983,7 +984,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                   py: 1,
                 }}
               >
-                3. Ready to Generate Script ↓
+                Ready to Generate Script ↓
               </Typography>
             </Box>
           </Box>
@@ -1008,7 +1009,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               },
             }}
           >
-            {loading ? "Generating..." : "Generate Script"}
+            {loading ? "Generating..." : "3. Generate Script"}
           </Button>
 
           {/* cancel button*/}

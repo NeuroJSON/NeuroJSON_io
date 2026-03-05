@@ -330,7 +330,7 @@ const DatasetOrganizer: React.FC = () => {
       {/* Main Content */}
       <Box sx={{ display: "flex", flex: 1, minHeight: 0 }}>
         {/* Left: Drop Zone */}
-        <Box sx={{ flex: 1, overflow: "auto", p: 3 }}>
+        <Box sx={{ flex: 1, overflow: "auto", p: 3, position: "relative" }}>
           <DropZone
             files={files}
             setFiles={updateFiles} // Pass wrapper
@@ -341,6 +341,20 @@ const DatasetOrganizer: React.FC = () => {
             expandedIds={expandedIds}
             setExpandedIds={setExpandedIds}
           />
+          {/* LLM Panel */}
+          {showLLMPanel && (
+            <LLMPanel
+              files={files}
+              baseDirectoryPath={baseDirectoryPath}
+              setBaseDirectoryPath={setBaseDirectoryPath}
+              evidenceBundle={evidenceBundle}
+              setEvidenceBundle={setEvidenceBundle}
+              trioGenerated={trioGenerated}
+              setTrioGenerated={setTrioGenerated}
+              updateFiles={updateFiles}
+              onClose={() => setShowLLMPanel(false)}
+            />
+          )}
         </Box>
 
         {/* Right: File Tree */}
@@ -353,21 +367,6 @@ const DatasetOrganizer: React.FC = () => {
           setExpandedIds={updateExpandedIds} // Pass wrapper
         />
       </Box>
-
-      {/* LLM Panel */}
-      {showLLMPanel && (
-        <LLMPanel
-          files={files}
-          baseDirectoryPath={baseDirectoryPath}
-          setBaseDirectoryPath={setBaseDirectoryPath}
-          evidenceBundle={evidenceBundle}
-          setEvidenceBundle={setEvidenceBundle}
-          trioGenerated={trioGenerated}
-          setTrioGenerated={setTrioGenerated}
-          updateFiles={updateFiles}
-          onClose={() => setShowLLMPanel(false)}
-        />
-      )}
 
       {/* Exit Confirmation Dialog */}
       <Dialog open={showExitDialog} onClose={() => setShowExitDialog(false)}>
