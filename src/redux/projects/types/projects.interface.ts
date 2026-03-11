@@ -11,6 +11,10 @@ export interface FileItem {
     | "neurojsonBinary"
     | "office"
     | "meta"
+    | "matlab"
+    | "dicom"
+    | "nirs"
+    | "array"
     | "other";
   content?: string;
   contentType?: string;

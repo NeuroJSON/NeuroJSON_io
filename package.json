@@ -31,6 +31,7 @@
     "bjd": "^0.3.2",
     "buffer": "6.0.3",
     "dayjs": "^1.11.10",
+    "dicom-parser": "^1.8.21",
     "jquery": "^3.7.1",
     "jsfive": "^0.4.0",
     "json-stringify-safe": "^5.0.1",

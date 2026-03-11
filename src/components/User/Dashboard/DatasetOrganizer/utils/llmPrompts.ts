@@ -141,14 +141,41 @@ export const getConversionScriptPrompt = (
   - [anatomical-T2w] → Goes to sub-XX/anat/ folder, rename to sub-XX_T2w.nii.gz
   - [functional-bold] → Goes to sub-XX/func/ folder, rename to sub-XX_task-<name>_run-XX_bold.nii.gz
   - [functional-nirs] → Goes to sub-XX/func/ folder, rename to sub-XX_task-<name>_nirs.snirf
+  - [anatomical-dicom] → Convert to NIfTI using dcm2niix, then goes to sub-XX/anat/
   - [diffusion] → Goes to sub-XX/dwi/ folder
   - [fieldmap] → Goes to sub-XX/fmap/ folder
+
+  FORMAT CONVERSION RULES:
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Some files require conversion before copying to BIDS:
+  
+  - <format: DICOM → convert_to: nifti (dcm2niix)>
+      → Run: subprocess.run(['dcm2niix', '-o', dest_dir, '-f', bids_filename, src_file])
+      → Output goes to sub-XX/anat/
+  
+  - <format: MATLAB → convert_to: snirf>
+      → Use MNE-Python: mne.export.export_raw(dst, raw, fmt='snirf')
+      → OR note in script that manual conversion is needed
+      → Output goes to sub-XX/nirs/
+  
+  - <format: Homer3 → convert_to: snirf>
+      → Same as MATLAB conversion above
+      → Output goes to sub-XX/nirs/
+  
+  - <format: NIfTI → format_ready: true>
+      → Direct copy, no conversion needed
+  
+  - <format: SNIRF → format_ready: true>
+      → Direct copy, no conversion needed
   
   FILENAME-BASED DETECTION (if category unclear):
   - Contains "task-" AND "bold" → ALWAYS functional (func/ folder)
   - Contains "T1w" → ALWAYS anatomical (anat/ folder)
   - Contains "T2w" OR "inplaneT2" → ALWAYS anatomical (anat/ folder)
   - Ends with ".snirf" → ALWAYS functional (func/ folder)
+  - Ends with ".dcm" → ALWAYS needs dcm2niix conversion → anat/ folder
+  - Ends with ".mat" → ALWAYS needs snirf conversion → nirs/ folder  
+  - Ends with ".nirs" → ALWAYS needs snirf conversion → nirs/ folder
   
   ⚠️ CRITICAL: NEVER put task-based files in anat/ folder!
   ⚠️ CRITICAL: NEVER put T1w/T2w files in func/ folder!
@@ -214,4 +241,122 @@ export const getConversionScriptPrompt = (
   - Has error handling and progress messages
   
   OUTPUT ONLY THE PYTHON SCRIPT (no markdown code fences, no explanations before or after).`;
+};
+
+/**
+ * Prompt for BIDSPlan.yaml generation
+ * Based on autobidsify's PROMPT_BIDS_PLAN
+ */
+export const getBIDSPlanPrompt = (
+  fileSummary: string,
+  filePatterns: string,
+  userContext: string,
+  subjectInfo: {
+    subjects: { originalId: string; bidsId: string }[];
+    strategy: string;
+  },
+  countsByExt: Record<string, number>,
+  sampleFiles: string
+): string => {
+  // Build assignment_rules from Python-extracted subjects
+  const assignmentRules = subjectInfo.subjects
+    .slice(0, 50) // cap at 50
+    .map(
+      (s) =>
+        `- match:\n  - '*${s.originalId}*'\n  original: ${s.originalId}\n  subject: '${s.bidsId}'`
+    )
+    .join("\n");
+
+  const subjectLabels = subjectInfo.subjects
+    .slice(0, 50)
+    .map((s) => `  - '${s.bidsId}'`)
+    .join("\n");
+
+  const participantMetadata = subjectInfo.subjects
+    .slice(0, 50)
+    .map((s) => `  '${s.bidsId}':\n    original_id: ${s.originalId}`)
+    .join("\n");
+
+  const countsText = Object.entries(countsByExt)
+    .map(([ext, count]) => `  ${ext}: ${count} files`)
+    .join("\n");
+
+  return `You are a BIDS dataset architect. Generate a BIDSPlan.yaml file.
+
+${fileSummary}
+
+${filePatterns}
+
+${userContext}
+
+CONVERSION RULES (CRITICAL):
+- .dcm  → format_ready: false, convert_to: nifti,  modality: mri
+- .nii/.nii.gz → format_ready: true,  convert_to: none,  modality: mri
+- .jnii/.bnii  → format_ready: false, convert_to: nifti,  modality: mri
+- .mat  → format_ready: false, convert_to: snirf, modality: nirs
+- .nirs → format_ready: false, convert_to: snirf, modality: nirs
+- .snirf → format_ready: true, convert_to: none,  modality: nirs
+
+YOUR ONLY JOB: Generate the mappings section based on the file types present.
+Copy assignment_rules, participant_metadata, and subjects sections EXACTLY as shown in the OUTPUT below.
+
+OUTPUT (Raw YAML only, no markdown, no explanation):
+
+assignment_rules:
+${assignmentRules}
+
+FILE EXTENSION COUNTS (use these to determine which mappings to generate):
+${countsText}
+
+SAMPLE FILENAMES (use these to determine correct bids_template and match_pattern):
+${sampleFiles}
+
+MAPPINGS FORMAT (ONE entry per file extension, use glob patterns NOT individual filenames):
+
+Example 1 - DICOM:
+  mappings:
+  - modality: mri
+    match: ['*.dcm', '**/*.dcm']
+    format_ready: false
+    convert_to: nifti
+    filename_rules:
+      - match_pattern: '.*'
+        bids_template: 'sub-X_T1w.nii.gz'
+
+Example 2 - fNIRS .mat:
+  mappings:
+  - modality: nirs
+    match: ['*.mat', '**/*.mat']
+    format_ready: false
+    convert_to: snirf
+    filename_rules:
+      - match_pattern: '.*'
+        bids_template: 'sub-X_task-rest_nirs.snirf'
+
+Example 3 - Mixed:
+  mappings:
+  - modality: mri
+    match: ['*.nii.gz']
+    format_ready: true
+    convert_to: none
+    filename_rules:
+      - match_pattern: '.*T1.*'
+        bids_template: 'sub-X_T1w.nii.gz'
+  - modality: nirs
+    match: ['*.mat']
+    format_ready: false
+    convert_to: snirf
+    filename_rules:
+      - match_pattern: '.*'
+        bids_template: 'sub-X_task-rest_nirs.snirf'
+
+participant_metadata:
+${participantMetadata}
+
+subjects:
+  count: ${subjectInfo.subjects.length}
+  id_strategy: ${subjectInfo.strategy}
+  labels:
+${subjectLabels}
+  source: python_extracted`;
 };

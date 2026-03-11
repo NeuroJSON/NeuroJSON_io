@@ -7,12 +7,14 @@ import {
   getFileAnnotations,
   downloadJSON,
   buildEvidenceBundle,
+  extractSubjectsFromFiles,
 } from "./utils/llmHelpers";
 import {
   getDatasetDescriptionPrompt,
   getReadmePrompt,
   getParticipantsPrompt,
   getConversionScriptPrompt,
+  getBIDSPlanPrompt,
 } from "./utils/llmPrompts";
 import { Close, ContentCopy, Download, AutoAwesome } from "@mui/icons-material";
 import {
@@ -127,6 +129,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   );
   const [apiKey, setApiKey] = useState<string>("");
   const [generatedScript, setGeneratedScript] = useState<string>("");
+  const [bidsPlan, setBidsPlan] = useState<string>(""); // add bids plan
   const [loading, setLoading] = useState(false); // add loading spin to generate script button
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("");
@@ -628,6 +631,147 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     }
   };
 
+  const handleGeneratePlan = async () => {
+    if (!currentProvider.noApiKey && !apiKey.trim()) {
+      setError("Please enter an API key");
+      return;
+    }
+    if (!baseDirectoryPath.trim()) {
+      setError("Please enter a base directory path");
+      return;
+    }
+
+    const controller = new AbortController();
+    setAbortController(controller);
+    setLoading(true);
+    setError(null);
+    setStatus(`Generating BIDSPlan.yaml using ${currentProvider.name}...`);
+
+    const fileSummary = buildFileSummary(files);
+    const filePatterns = analyzeFilePatterns(files);
+    const userContext = getUserContext(files);
+    const subjectInfo = extractSubjectsFromFiles(files);
+    const sampleFiles =
+      evidenceBundle?.samples
+        ?.slice(0, 10)
+        .map((s: any) => `  - ${s.relpath}`)
+        .join("\n") || "";
+
+    console.log("=== SAMPLE FILES ===");
+    console.log(sampleFiles);
+    console.log("=== COUNTS BY EXT ===");
+    console.log(evidenceBundle?.counts_by_ext);
+
+    const prompt = getBIDSPlanPrompt(
+      fileSummary,
+      filePatterns,
+      userContext,
+      subjectInfo,
+      evidenceBundle?.counts_by_ext || {},
+      sampleFiles
+    );
+
+    try {
+      let response;
+
+      if (provider === "ollama") {
+        const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+        response = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a BIDS dataset architect. Output only valid YAML without markdown fences or explanations.",
+              },
+              { role: "user", content: prompt },
+            ],
+            stream: false,
+          }),
+        });
+      } else if (currentProvider.isAnthropic) {
+        response = await fetch(currentProvider.baseUrl, {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: 2048,
+            messages: [{ role: "user", content: prompt }],
+          }),
+        });
+      } else {
+        response = await fetch(currentProvider.baseUrl, {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a BIDS dataset architect. Output only valid YAML without markdown fences or explanations.",
+              },
+              { role: "user", content: prompt },
+            ],
+            max_tokens: 2048,
+            temperature: 0.15,
+          }),
+        });
+      }
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Failed to generate BIDSPlan");
+      }
+
+      let plan = currentProvider.isAnthropic
+        ? data.content[0].text
+        : data.choices[0].message.content;
+
+      // Clean up markdown fences if present
+      plan = plan
+        .replace(/^```yaml\n?/g, "")
+        .replace(/\n?```$/g, "")
+        .trim();
+
+      setBidsPlan(plan);
+      setStatus(`✓ BIDSPlan.yaml generated using ${currentProvider.name}`);
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        setStatus("❌ Generation cancelled");
+      } else {
+        setError(err.message || "Failed to generate BIDSPlan");
+        setStatus("❌ Error generating BIDSPlan");
+      }
+    } finally {
+      setLoading(false);
+      setAbortController(null);
+    }
+  };
+
+  const handleDownloadPlan = () => {
+    const blob = new Blob([bidsPlan], { type: "text/yaml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "BIDSPlan.yaml";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleCancel = () => {
     if (abortController) {
       abortController.abort();
@@ -890,6 +1034,25 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             startIcon={
               loading ? <CircularProgress size={20} /> : <AutoAwesome />
             }
+            onClick={handleGeneratePlan}
+            disabled={loading || !baseDirectoryPath.trim() || !trioGenerated}
+            sx={{
+              background: `linear-gradient(135deg, ${Colors.purple} 0%, ${Colors.secondaryPurple} 100%)`,
+              "&:hover": {
+                background: `linear-gradient(135deg, ${Colors.secondaryPurple} 0%, ${Colors.purple} 100%)`,
+              },
+              "&.Mui-disabled": { background: "#e0e0e0", color: "#9e9e9e" },
+            }}
+          >
+            {loading ? "Generating..." : "3a. Generate BIDSPlan.yaml"}
+          </Button>
+
+          <Button
+            fullWidth
+            variant="contained"
+            startIcon={
+              loading ? <CircularProgress size={20} /> : <AutoAwesome />
+            }
             onClick={handleGenerate}
             disabled={loading || !baseDirectoryPath.trim() || !trioGenerated}
             sx={{
@@ -903,7 +1066,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               },
             }}
           >
-            {loading ? "Generating..." : "3. Generate Script"}
+            {loading ? "Generating..." : "3b. Generate Script"}
           </Button>
 
           {/* cancel button*/}
@@ -947,18 +1110,25 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             <Button
               size="small"
               startIcon={<ContentCopy />}
-              onClick={handleCopy}
-              disabled={!generatedScript}
+              // onClick={handleCopy}
+              // disabled={!generatedScript}
+              onClick={() =>
+                navigator.clipboard.writeText(bidsPlan || generatedScript)
+              }
+              disabled={!bidsPlan && !generatedScript}
             >
               Copy
             </Button>
             <Button
               size="small"
               startIcon={<Download />}
-              onClick={handleDownload}
-              disabled={!generatedScript}
+              // onClick={handleDownload}
+              // disabled={!generatedScript}
+              onClick={bidsPlan ? handleDownloadPlan : handleDownload}
+              disabled={!bidsPlan && !generatedScript}
             >
-              Download
+              {/* Download */}
+              {bidsPlan ? "Download BIDSPlan.yaml" : "Download Script"}
             </Button>
           </Box>
 
@@ -974,8 +1144,11 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               color: "#d4d4d4",
             }}
           >
-            {generatedScript ||
-              'Configure your LLM provider and click "Generate Script"...'}
+            {/* {generatedScript ||
+              'Configure your LLM provider and click "Generate Script"...'} */}
+            {bidsPlan ||
+              generatedScript ||
+              'Configure your LLM provider and click "Generate BIDSPlan.yaml"...'}
           </Paper>
         </Box>
       </Box>

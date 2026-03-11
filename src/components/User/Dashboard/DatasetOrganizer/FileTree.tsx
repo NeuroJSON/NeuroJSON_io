@@ -136,6 +136,15 @@ const FileTree: React.FC<FileTreeProps> = ({
     });
   };
 
+  const handleSelectAll = () => {
+    const allIds = files.map((f) => f.id);
+    setSelectedIds(new Set(allIds));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
   const handleDeleteSelected = () => {
     if (selectedIds.size === 0) return;
     if (!window.confirm(`Delete ${selectedIds.size} selected item(s)?`)) return;
@@ -225,6 +234,10 @@ const FileTree: React.FC<FileTreeProps> = ({
       neurojsonBinary: Colors.secondaryPurple,
       office: "#38bdf8",
       meta: Colors.yellow,
+      matlab: Colors.black,
+      dicom: "#34d399",
+      nirs: Colors.darkOrange, // show homer3 in footer legend
+      array: "#9ca3af",
     };
 
     const color = colorMap[file.fileType || "other"] || "#9ca3af";
@@ -429,8 +442,9 @@ const FileTree: React.FC<FileTreeProps> = ({
             borderBottom: 1,
             borderColor: "divider",
             display: "flex",
+            flexDirection: "column",
             justifyContent: "space-between",
-            alignItems: "center",
+            // alignItems: "center",
           }}
         >
           <Box>
@@ -484,21 +498,39 @@ const FileTree: React.FC<FileTreeProps> = ({
             </Button>
           </Box>
 
-          {selectedIds.size > 0 && (
+          {/* Select All / Deselect All */}
+          <Box>
             <Button
               size="small"
-              startIcon={<Delete />}
-              onClick={handleDeleteSelected}
+              onClick={
+                selectedIds.size > 0 ? handleDeselectAll : handleSelectAll
+              }
               sx={{
-                color: Colors.rose,
-                "&:hover": {
-                  backgroundColor: "rgba(211, 47, 47, 0.1)",
-                },
+                fontSize: "0.75rem",
+                textTransform: "none",
+                color: "text.secondary",
+                "&:hover": { backgroundColor: "rgba(128, 90, 213, 0.1)" },
               }}
             >
-              Delete ({selectedIds.size})
+              {selectedIds.size > 0 ? "Deselect All" : "Select All"}
             </Button>
-          )}
+
+            {selectedIds.size > 0 && (
+              <Button
+                size="small"
+                startIcon={<Delete />}
+                onClick={handleDeleteSelected}
+                sx={{
+                  color: Colors.rose,
+                  "&:hover": {
+                    backgroundColor: "rgba(211, 47, 47, 0.1)",
+                  },
+                }}
+              >
+                Delete ({selectedIds.size})
+              </Button>
+            )}
+          </Box>
         </Box>
 
         {/* File Tree */}
@@ -581,6 +613,50 @@ const FileTree: React.FC<FileTreeProps> = ({
                 }}
               />
               <Typography variant="caption">User Meta</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: "#34d399",
+                }}
+              />
+              <Typography variant="caption">DICOM</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: Colors.black,
+                }}
+              />
+              <Typography variant="caption">MATLAB</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: Colors.darkOrange,
+                }}
+              />
+              <Typography variant="caption">Homer3</Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  backgroundColor: "#9ca3af",
+                }}
+              />
+              <Typography variant="caption">Array</Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
               <Box

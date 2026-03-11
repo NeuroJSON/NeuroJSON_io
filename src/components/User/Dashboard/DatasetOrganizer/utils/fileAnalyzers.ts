@@ -16,6 +16,9 @@ export const categorizeFile = (file: FileItem): string => {
     return "functional-nirs";
   }
 
+  if (name.endsWith(".nirs")) return "functional-nirs";
+  if (name.endsWith(".mat")) return "functional-nirs";
+
   // Anatomical scans
   if (name.includes("t1w")) {
     return "anatomical-T1w";
@@ -26,6 +29,8 @@ export const categorizeFile = (file: FileItem): string => {
   if (name.includes("flair")) {
     return "anatomical-FLAIR";
   }
+
+  if (name.endsWith(".dcm")) return "anatomical-dicom";
 
   // Diffusion
   if (name.includes("dwi") || name.includes("diffusion")) {
@@ -51,8 +56,13 @@ export const detectModality = (files: FileItem[]): string => {
     counts[ext] = (counts[ext] || 0) + 1;
   });
 
-  if (counts.nifti > 0) return "mri";
-  if (counts.hdf5 > 0 || files.some((f) => f.name.endsWith(".snirf")))
+  if (counts.nifti > 0 || counts.dicom > 0) return "mri";
+  if (
+    counts.hdf5 > 0 ||
+    counts.matlab > 0 ||
+    counts.homer3 > 0 ||
+    files.some((f) => f.name.endsWith(".snirf"))
+  )
     return "nirs";
   return "mixed";
 };

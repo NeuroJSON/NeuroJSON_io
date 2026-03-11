@@ -54,11 +54,47 @@ export const buildFileSummary = (files: FileItem[]): string => {
     (f) => f.source === "user" && f.type === "file"
   );
 
+  const formatLabel: Record<string, string> = {
+    dicom: "format: DICOM → convert_to: nifti (dcm2niix)",
+    matlab: "format: MATLAB → convert_to: snirf",
+    homer3: "format: Homer3 → convert_to: snirf",
+    nifti: "format: NIfTI → format_ready: true",
+    hdf5: "format: SNIRF → format_ready: true",
+  };
+
+  // dataFiles.forEach((f) => {
+  //   const category = categorizeFile(f);
+  //   const fmt = formatLabel[f.fileType || ""] || ""; // add
+  //   summary += `  - ${f.name} [${category}]`;
+  //   if (fmt) summary += ` <${fmt}>`; // add
+  //   if (f.sourcePath) summary += ` (${f.sourcePath})`;
+  //   summary += "\n";
+  // });
+  const byType: Record<string, typeof dataFiles> = {};
   dataFiles.forEach((f) => {
-    const category = categorizeFile(f);
-    summary += `  - ${f.name} [${category}]`;
-    if (f.sourcePath) summary += ` (${f.sourcePath})`;
+    const key = f.fileType || "other";
+    if (!byType[key]) byType[key] = [];
+    byType[key].push(f);
+  });
+
+  Object.entries(byType).forEach(([type, typeFiles]) => {
+    const fmt = formatLabel[type] || "";
+    const sample = typeFiles.slice(0, 5);
+
+    summary += `\n[${type.toUpperCase()}] ${typeFiles.length} files total`;
+    if (fmt) summary += ` — ${fmt}`;
     summary += "\n";
+
+    sample.forEach((f) => {
+      const category = categorizeFile(f);
+      summary += `  - ${f.name} [${category}]`;
+      if (f.sourcePath) summary += ` (${f.sourcePath})`;
+      summary += "\n";
+    });
+
+    if (typeFiles.length > 5) {
+      summary += `  ... and ${typeFiles.length - 5} more ${type} files\n`;
+    }
   });
 
   return summary;
@@ -184,9 +220,38 @@ export const buildEvidenceBundle = (
   const counts = getCountsByExtension(files);
   const userText = getUserContextText(files);
 
+  // add for samples ---start---
+  const dataFiles = files.filter(
+    (f) => f.source === "user" && f.type === "file"
+  );
+
+  // Mirror autobidsify's _intelligent_file_sampling()
+  // Group by file type, take up to 5 samples per type
+  const samplesByType: Record<string, FileItem[]> = {};
+  dataFiles.forEach((f) => {
+    const key = f.fileType || "other";
+    if (!samplesByType[key]) samplesByType[key] = [];
+    if (samplesByType[key].length < 5) {
+      samplesByType[key].push(f);
+    }
+  });
+
+  const samples = Object.values(samplesByType)
+    .flat()
+    .map((f) => ({
+      relpath: f.sourcePath || f.name,
+      filename: f.name,
+      suffix: f.name.split(".").pop() || "",
+      kind: f.fileType || "other",
+      size: 0,
+    }));
+
+  // ----end---
+
   return {
     root: baseDirectoryPath,
     counts_by_ext: counts,
+    samples, // add for samples
     all_files: files
       // .filter((f) => !f.isUserMeta)
       .filter((f) => f.source === "user" && f.type === "file")
@@ -239,4 +304,79 @@ export const buildEvidenceBundle = (
       ),
     },
   };
+};
+
+/**
+ * Extract subject identifiers from file list
+ * Mirrors autobidsify's _extract_subjects_from_flat_filenames()
+ */
+export const extractSubjectsFromFiles = (
+  files: FileItem[]
+): {
+  subjects: { originalId: string; bidsId: string }[];
+  strategy: string;
+} => {
+  const dataFiles = files.filter(
+    (f) => f.source === "user" && f.type === "file"
+  );
+
+  // Count occurrences of each base identifier
+  const identifierCounts: Record<string, number> = {};
+  // dataFiles.forEach((f) => {
+  //   const nameNoExt = f.name.replace(/\.[^/.]+$/, "").replace(/\.nii$/, "");
+  //   const match = nameNoExt.match(/^([A-Za-z0-9\-]+)/);
+  //   if (match) {
+  //     const id = match[1];
+  //     identifierCounts[id] = (identifierCounts[id] || 0) + 1;
+  //   }
+  // });
+  dataFiles.forEach((f) => {
+    const nameNoExt = f.name
+      .replace(/\.nii\.gz$/i, "")
+      .replace(/\.[^/.]+$/, "")
+      .replace(/\s*\([^)]*\)/, ""); // remove (309) etc.
+
+    // Split on first digit sequence or underscore — take prefix only
+    // VHMCT1mm → VHMCT, sub-01 → sub-01, BZZ003 → BZZ
+    const match = nameNoExt.match(/^([A-Za-z]+(?:-[A-Za-z]+)*)/);
+    if (match) {
+      const id = match[1];
+      identifierCounts[id] = (identifierCounts[id] || 0) + 1;
+    }
+  });
+
+  // Sort by frequency — most common identifiers are likely subjects
+  // const sorted = Object.entries(identifierCounts).sort((a, b) => b[1] - a[1]);
+
+  // Step 2: Keep only identifiers that appear in multiple files
+  // (single-file identifiers are likely body parts, not subjects)
+  const totalFiles = dataFiles.length;
+  const threshold = Math.max(2, Math.floor(totalFiles * 0.05)); // at least 5% of files
+
+  const filtered = Object.entries(identifierCounts)
+    .filter(([, count]) => count >= threshold)
+    .sort((a, b) => b[1] - a[1]);
+
+  // If filtering leaves nothing, fall back to all identifiers
+  const candidates =
+    filtered.length > 0
+      ? filtered
+      : Object.entries(identifierCounts).sort((a, b) => b[1] - a[1]);
+  // Step 3: Use numeric strategy for >10 subjects
+  const strategy = candidates.length > 10 ? "numeric" : "numeric";
+  // const strategy = sorted.length > 10 ? "numeric" : "semantic";
+
+  // const subjects = sorted.map(([originalId], i) => ({
+  //   originalId,
+  //   bidsId:
+  //     strategy === "numeric"
+  //       ? String(i + 1)
+  //       : originalId.replace(/[^a-zA-Z0-9]/g, ""),
+  // }));
+  const subjects = candidates.map(([originalId], i) => ({
+    originalId,
+    bidsId: String(i + 1),
+  }));
+
+  return { subjects, strategy };
 };

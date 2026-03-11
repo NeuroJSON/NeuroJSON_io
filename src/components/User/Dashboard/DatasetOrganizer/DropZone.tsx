@@ -1,7 +1,14 @@
 // src/components/DatasetOrganizer/DropZone.tsx
 import { processFile, processFolder, processZip } from "./utils/fileProcessors";
-import { CloudUpload, Add } from "@mui/icons-material";
-import { Box, Typography, Paper, Button, TextField } from "@mui/material";
+import { CloudUpload, Add, CheckCircle } from "@mui/icons-material";
+import {
+  Box,
+  Typography,
+  Paper,
+  Button,
+  TextField,
+  CircularProgress,
+} from "@mui/material";
 import { Colors } from "design/theme";
 import React, { useState, useRef } from "react";
 import { FileItem } from "redux/projects/types/projects.interface";
@@ -28,6 +35,7 @@ const DropZone: React.FC<DropZoneProps> = ({
   setExpandedIds,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // ← add
   const fileInputRef = useRef<HTMLInputElement>(null);
   // const [basePath, setBasePath] = useState<string>(""); // change
 
@@ -44,6 +52,7 @@ const DropZone: React.FC<DropZoneProps> = ({
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
+    setIsProcessing(true); // ← add
 
     const items = Array.from(e.dataTransfer.items); // detect if it is a folder
     const droppedFiles = Array.from(e.dataTransfer.files); // only gives file objects, can't detect folders
@@ -60,49 +69,51 @@ const DropZone: React.FC<DropZoneProps> = ({
         fileItems.push(droppedFiles[i]);
       }
     }
-
-    // Process folders
-    for (const folderEntry of folderEntries) {
-      // const folderFiles = await processFolder(folderEntry, null, basePath);// change
-      const folderFiles = await processFolder(
-        folderEntry,
-        null,
-        baseDirectoryPath
-      ); // add
-      setFiles((prev) => [...prev, ...folderFiles]);
-    }
-
-    // Process files
-    for (const file of fileItems) {
-      if (file.name.toLowerCase().endsWith(".zip")) {
-        // const zipFiles = await processZip(file, basePath);//change
-        const zipFiles = await processZip(file, baseDirectoryPath); //add
-        setFiles((prev) => [...prev, ...zipFiles]);
-      } else {
-        // const fileItem = await processFile(file, basePath);//change
-        const fileItem = await processFile(file, baseDirectoryPath); //add
-        setFiles((prev) => [...prev, fileItem]);
+    try {
+      // Process folders
+      for (const folderEntry of folderEntries) {
+        const folderFiles = await processFolder(
+          folderEntry,
+          null,
+          baseDirectoryPath
+        );
+        setFiles((prev) => [...prev, ...folderFiles]);
       }
+
+      // Process files
+      for (const file of fileItems) {
+        if (file.name.toLowerCase().endsWith(".zip")) {
+          const zipFiles = await processZip(file, baseDirectoryPath);
+          setFiles((prev) => [...prev, ...zipFiles]);
+        } else {
+          const fileItem = await processFile(file, baseDirectoryPath);
+          setFiles((prev) => [...prev, fileItem]);
+        }
+      }
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
+    setIsProcessing(true);
 
-    for (const file of selectedFiles) {
-      if (file.name.toLowerCase().endsWith(".zip")) {
-        // const zipFiles = await processZip(file, basePath);//change
-        const zipFiles = await processZip(file, baseDirectoryPath); //add
-        setFiles((prev) => [...prev, ...zipFiles]);
-      } else {
-        // const fileItem = await processFile(file, basePath); //change
-        const fileItem = await processFile(file, baseDirectoryPath); //add
-        setFiles((prev) => [...prev, fileItem]);
+    try {
+      for (const file of selectedFiles) {
+        if (file.name.toLowerCase().endsWith(".zip")) {
+          const zipFiles = await processZip(file, baseDirectoryPath);
+          setFiles((prev) => [...prev, ...zipFiles]);
+        } else {
+          const fileItem = await processFile(file, baseDirectoryPath);
+          setFiles((prev) => [...prev, fileItem]);
+        }
       }
+    } finally {
+      setIsProcessing(false);
+      // Reset input
+      e.target.value = "";
     }
-
-    // Reset input
-    e.target.value = "";
   };
 
   return (
@@ -141,20 +152,38 @@ const DropZone: React.FC<DropZoneProps> = ({
           },
         }}
       >
-        <CloudUpload
+        {/* <CloudUpload
           sx={{
             fontSize: files.length > 0 ? 40 : 64, // ← Smaller icon when files exist
             color: Colors.purple,
             mb: 1,
           }}
-        />
+        /> */}
+        {isProcessing ? (
+          <CircularProgress size={48} sx={{ color: Colors.purple, mb: 1 }} />
+        ) : (
+          <CloudUpload
+            sx={{
+              fontSize: files.length > 0 ? 40 : 64,
+              color: Colors.purple,
+              mb: 1,
+            }}
+          />
+        )}
+
         <Typography variant={files.length > 0 ? "body1" : "h6"} gutterBottom>
-          {files.length > 0
+          {/* {files.length > 0
+            ? "Drop more files here"
+            : "Drop your neuroimaging files here"} */}
+          {isProcessing
+            ? "Processing files..."
+            : files.length > 0
             ? "Drop more files here"
             : "Drop your neuroimaging files here"}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          Supports NIfTI, SNIRF, HDF5, NeuroJSON, folders, and ZIP archives
+          Supports NIfTI, DICOM, SNIRF, MATLAB, Homer3, HDF5, NeuroJSON,
+          folders, and ZIP archives
         </Typography>
 
         {files.length === 0 && (
@@ -183,7 +212,7 @@ const DropZone: React.FC<DropZoneProps> = ({
           multiple
           hidden
           onChange={handleFileSelect}
-          accept=".nii,.nii.gz,.snirf,.h5,.hdf5,.jnii,.jmsh,.json,.txt,.md,.zip,.docx,.pdf,.xlsx,.xls"
+          accept=".nii,.nii.gz,.snirf,.h5,.hdf5,.jnii,.jmsh,.json,.txt,.md,.zip,.docx,.pdf,.xlsx,.xls,.mat,.dcm,.nirs"
         />
       </Paper>
       <TextField

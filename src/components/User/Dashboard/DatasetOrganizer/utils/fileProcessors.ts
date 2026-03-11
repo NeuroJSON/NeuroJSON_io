@@ -1,3 +1,4 @@
+import * as dicomParser from "dicom-parser";
 import * as hdf5 from "jsfive";
 import JSZip from "jszip";
 import * as mammoth from "mammoth";
@@ -21,7 +22,8 @@ export const getFileType = (name: string): string => {
   const fileTypes: Record<string, string[]> = {
     text: ["json", "md", "txt", "tsv", "bvec", "bval", "csv"],
     nifti: ["nii"],
-    hdf5: ["snirf", "h5", "hdf5", "hdf"],
+    hdf5: ["snirf"],
+    array: ["h5", "hdf5", "hdf", "npy", "npz"],
     neurojsonText: ["jnii", "jmsh", "jdt", "jnirs"],
     neurojsonBinary: ["jdb", "bjd", "bnii", "bmsh", "bnirs"],
     office: ["docx", "pdf", "xlsx", "xls"],
@@ -155,11 +157,13 @@ export const processFile = async (
       )} KB\nFormat: .mat (fNIRS data — will be converted to SNIRF by autobidsify)`;
       entry.contentType = "matlab";
     } else if (fileType === "dicom") {
-      entry.content = `DICOM File: ${file.name}\nSize: ${(
-        file.size / 1024
-      ).toFixed(
-        2
-      )} KB\nFormat: .dcm (MRI data — will be converted to NIfTI by dcm2niix)`;
+      // entry.content = `DICOM File: ${file.name}\nSize: ${(
+      //   file.size / 1024
+      // ).toFixed(
+      //   2
+      // )} KB\nFormat: .dcm (MRI data — will be converted to NIfTI by dcm2niix)`;
+      const buffer = await file.arrayBuffer();
+      entry.content = parseDicomHeader(buffer);
       entry.contentType = "dicom";
     } else if (fileType === "nirs") {
       entry.content = `Homer3 File: ${file.name}\nSize: ${(
@@ -168,6 +172,14 @@ export const processFile = async (
         2
       )} KB\nFormat: .nirs (fNIRS data — will be converted to SNIRF by autobidsify)`;
       entry.contentType = "nirs";
+    } else if (fileType === "array") {
+      entry.content = `Array File: ${file.name}\nSize: ${(
+        file.size / 1024
+      ).toFixed(2)} KB\nFormat: ${file.name
+        .split(".")
+        .pop()
+        ?.toUpperCase()} (generic array data — will be placed in unknown pool by autobidsify)`;
+      entry.contentType = "array";
     } else {
       // For other binary files, just store basic info
       entry.content = `File: ${file.name}\nSize: ${(file.size / 1024).toFixed(
@@ -353,16 +365,27 @@ export const processZip = async (
         const sizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
         entry.content = `MATLAB File: ${fileName}\nSize: ${sizeKB} KB\nFormat: .mat (fNIRS data — will be converted to SNIRF by autobidsify)`;
         entry.contentType = "matlab";
-      } else if (fileType === "dicom") {
+      }
+      // dicom header extraction from ZIP
+      else if (fileType === "dicom") {
         const arrayBuffer = await zipEntry.async("arraybuffer");
-        const sizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
-        entry.content = `DICOM File: ${fileName}\nSize: ${sizeKB} KB\nFormat: .dcm (MRI data — will be converted to NIfTI by dcm2niix)`;
+        // const sizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
+        // entry.content = `DICOM File: ${fileName}\nSize: ${sizeKB} KB\nFormat: .dcm (MRI data — will be converted to NIfTI by dcm2niix)`;
+        entry.content = parseDicomHeader(arrayBuffer);
         entry.contentType = "dicom";
       } else if (fileType === "nirs") {
         const arrayBuffer = await zipEntry.async("arraybuffer");
         const sizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
         entry.content = `Homer3 File: ${fileName}\nSize: ${sizeKB} KB\nFormat: .nirs (fNIRS data — will be converted to SNIRF by autobidsify)`;
         entry.contentType = "nirs";
+      } else if (fileType === "array") {
+        const arrayBuffer = await zipEntry.async("arraybuffer");
+        const sizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
+        entry.content = `Array File: ${fileName}\nSize: ${sizeKB} KB\nFormat: ${fileName
+          .split(".")
+          .pop()
+          ?.toUpperCase()} (generic array data — will be placed in unknown pool by autobidsify)`;
+        entry.contentType = "array";
       } else {
         // For other binary files, just store info
         const arrayBuffer = await zipEntry.async("arraybuffer");
@@ -706,6 +729,51 @@ const formatHDF5Tree = (node: any, indent: number = 0): string => {
     result += "\n";
   }
   return result;
+};
+
+// parse dicom header
+const parseDicomHeader = (buffer: ArrayBuffer): string => {
+  try {
+    const byteArray = new Uint8Array(buffer);
+    const dataSet = dicomParser.parseDicom(byteArray);
+
+    const getString = (tag: string): string => {
+      try {
+        return dataSet.string(tag) || "";
+      } catch {
+        return "";
+      }
+    };
+
+    const patientID = getString("x00100020");
+    const patientName = getString("x00100010");
+    const patientSex = getString("x00100040");
+    const patientAge = getString("x00101010");
+    const studyDescription = getString("x00081030");
+    const seriesDescription = getString("x0008103e");
+    const modality = getString("x00080060");
+    const manufacturer = getString("x00080070");
+    const rows = getString("x00280010");
+    const cols = getString("x00280011");
+
+    const lines = [`DICOM File`, `─`.repeat(50)];
+
+    if (modality) lines.push(`Modality: ${modality}`);
+    if (studyDescription) lines.push(`Study: ${studyDescription}`);
+    if (seriesDescription) lines.push(`Series: ${seriesDescription}`);
+    if (patientID) lines.push(`Patient ID: ${patientID}`);
+    if (patientName) lines.push(`Patient Name: ${patientName}`);
+    if (patientSex) lines.push(`Sex: ${patientSex}`);
+    if (patientAge) lines.push(`Age: ${patientAge}`);
+    if (manufacturer) lines.push(`Scanner: ${manufacturer}`);
+    if (rows && cols) lines.push(`Image Size: ${rows} × ${cols}`);
+
+    return lines.join("\n");
+  } catch (e: any) {
+    return `DICOM File\nSize: ${(buffer.byteLength / 1024).toFixed(
+      2
+    )} KB\nError reading header: ${e.message}`;
+  }
 };
 
 // Extract DOCX text content
