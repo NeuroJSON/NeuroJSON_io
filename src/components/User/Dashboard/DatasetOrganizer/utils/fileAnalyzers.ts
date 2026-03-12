@@ -149,3 +149,198 @@ export const analyzeFilenamePatterns = (
     hasTaskNames,
   };
 };
+
+// add to fileAnalyzers.ts
+
+// export interface SubjectRecord {
+//   original_id: string;
+//   numeric_id: string;
+//   site: string | null;
+//   pattern_name: string;
+//   file_count: number;
+// }
+
+// export interface SubjectAnalysis {
+//   success: boolean;
+//   method: string;
+//   subject_records: SubjectRecord[];
+//   subject_count: number;
+//   has_site_info: boolean;
+//   variants_by_subject: Record<string, any>;
+//   python_generated_filename_rules: any[];
+//   id_mapping: {
+//     id_mapping: Record<string, string>;
+//     reverse_mapping: Record<string, string>;
+//     strategy_used: string;
+//     metadata_columns: string[];
+//   };
+// }
+
+// // mirrors _extract_subjects_from_directory_structure
+// const extractFromDirectoryStructure = (
+//   allFiles: string[]
+// ): Omit<SubjectAnalysis, "id_mapping"> | null => {
+//   const patterns: Array<[RegExp, boolean, number, number | null, string]> = [
+//     [/^([A-Za-z]+)_sub(\d+)$/i, true, 2, 1, "site_prefixed"],
+//     [/^sub-(\d+)$/i, false, 1, null, "standard_bids"],
+//     [/^subject[_-]?(\d+)$/i, false, 1, null, "simple"],
+//     [/^(\d{3,})$/, false, 1, null, "numeric_only"],
+//   ];
+
+//   const subjectRecords: SubjectRecord[] = [];
+//   const seenIds = new Set<string>();
+
+//   for (const filepath of allFiles) {
+//     const parts = filepath.split("/");
+//     for (const part of parts.slice(0, 2)) {
+//       for (const [
+//         regex,
+//         hasSite,
+//         idGroup,
+//         siteGroup,
+//         patternName,
+//       ] of patterns) {
+//         const match = part.match(regex);
+//         if (match) {
+//           const originalId = match[0];
+//           if (seenIds.has(originalId)) break;
+//           seenIds.add(originalId);
+//           subjectRecords.push({
+//             original_id: originalId,
+//             numeric_id: match[idGroup],
+//             site: hasSite && siteGroup ? match[siteGroup] : null,
+//             pattern_name: patternName,
+//             file_count: 0,
+//           });
+//           break;
+//         }
+//       }
+//     }
+//   }
+
+//   if (subjectRecords.length === 0) return null;
+
+//   subjectRecords.sort((a, b) => {
+//     const na = parseInt(a.numeric_id) || 0;
+//     const nb = parseInt(b.numeric_id) || 0;
+//     return na - nb;
+//   });
+
+//   return {
+//     success: true,
+//     method: "directory_structure",
+//     subject_records: subjectRecords,
+//     subject_count: subjectRecords.length,
+//     has_site_info: subjectRecords.some((r) => r.site !== null),
+//     variants_by_subject: {},
+//     python_generated_filename_rules: [],
+//   };
+// };
+
+// // mirrors _extract_subjects_from_flat_filenames
+// const extractFromFlatFilenames = (
+//   allFiles: string[]
+// ): Omit<SubjectAnalysis, "id_mapping"> | null => {
+//   const identifierToFiles: Record<string, string[]> = {};
+
+//   for (const filepath of allFiles) {
+//     const filename = filepath.split("/").pop() || "";
+//     const nameNoExt = filename
+//       .replace(/\.[^/.]+$/, "")
+//       .replace(/\.nii\.gz$/, "");
+//     const match = nameNoExt.match(/^([A-Za-z0-9\-]+)/);
+//     if (match) {
+//       const identifier = match[1];
+//       if (!identifierToFiles[identifier]) identifierToFiles[identifier] = [];
+//       identifierToFiles[identifier].push(filepath);
+//     }
+//   }
+
+//   if (Object.keys(identifierToFiles).length === 0) return null;
+
+//   const extractNumeric = (id: string): number => {
+//     const nums = id.match(/\d+/g);
+//     return nums ? parseInt(nums[nums.length - 1]) : 999999;
+//   };
+
+//   const sortedIdentifiers = Object.keys(identifierToFiles).sort(
+//     (a, b) => extractNumeric(a) - extractNumeric(b)
+//   );
+
+//   const subjectRecords: SubjectRecord[] = sortedIdentifiers.map((id, i) => ({
+//     original_id: id,
+//     numeric_id: String(i + 1),
+//     site: null,
+//     pattern_name: "dominant_prefix",
+//     file_count: identifierToFiles[id].length,
+//   }));
+
+//   return {
+//     success: true,
+//     method: "dominant_prefix_fallback",
+//     subject_records: subjectRecords,
+//     subject_count: subjectRecords.length,
+//     has_site_info: false,
+//     variants_by_subject: {},
+//     python_generated_filename_rules: [],
+//   };
+// };
+
+// // mirrors _generate_subject_id_mapping
+// const generateIdMapping = (
+//   subjectInfo: Omit<SubjectAnalysis, "id_mapping">
+// ): SubjectAnalysis["id_mapping"] => {
+//   const records = subjectInfo.subject_records;
+//   const idMapping: Record<string, string> = {};
+//   const reverseMapping: Record<string, string> = {};
+
+//   // detect already-BIDS format (sub-01, sub-02...)
+//   const allAlreadyBids = records.every((r) => /^sub-\w+$/i.test(r.original_id));
+
+//   if (allAlreadyBids) {
+//     for (const rec of records) {
+//       const bidsId = rec.original_id.replace(/^sub-/i, "");
+//       idMapping[rec.original_id] = bidsId;
+//       reverseMapping[bidsId] = rec.original_id;
+//     }
+//     return {
+//       id_mapping: idMapping,
+//       reverse_mapping: reverseMapping,
+//       strategy_used: "already_bids",
+//       metadata_columns: [],
+//     };
+//   }
+
+//   // numeric strategy
+//   for (let i = 0; i < records.length; i++) {
+//     const orig = records[i].original_id;
+//     const bidsId = String(i + 1);
+//     idMapping[orig] = bidsId;
+//     reverseMapping[bidsId] = orig;
+//   }
+
+//   return {
+//     id_mapping: idMapping,
+//     reverse_mapping: reverseMapping,
+//     strategy_used: "numeric",
+//     metadata_columns: ["original_id"],
+//   };
+// };
+
+// // main export — call this from llmHelpers
+// export const extractSubjectAnalysis = (allFiles: string[]): SubjectAnalysis => {
+//   const fromDir = extractFromDirectoryStructure(allFiles);
+//   const base = fromDir ??
+//     extractFromFlatFilenames(allFiles) ?? {
+//       success: false,
+//       method: "none",
+//       subject_records: [],
+//       subject_count: 0,
+//       has_site_info: false,
+//       variants_by_subject: {},
+//       python_generated_filename_rules: [],
+//     };
+
+//   const idMapping = generateIdMapping(base);
+//   return { ...base, id_mapping: idMapping };
+// };

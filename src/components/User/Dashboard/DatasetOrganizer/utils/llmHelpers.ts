@@ -5,6 +5,7 @@ import {
   getCountsByExtension,
   getUserContextText,
 } from "./fileAnalyzers";
+import { extractSubjectAnalysis } from "./filenameTokenizer";
 import { FileItem } from "redux/projects/types/projects.interface";
 
 /**
@@ -248,17 +249,23 @@ export const buildEvidenceBundle = (
 
   // ----end---
 
+  // add this for subject_analysis.json
+  const allFiles = files
+    .filter((f) => f.source === "user" && f.type === "file")
+    .map((f) => f.sourcePath || f.name);
+
+  const subjectAnalysis = extractSubjectAnalysis(allFiles);
+  // ← end
+
   return {
     root: baseDirectoryPath,
     counts_by_ext: counts,
     samples, // add for samples
-    all_files: files
-      // .filter((f) => !f.isUserMeta)
-      .filter((f) => f.source === "user" && f.type === "file")
-      .map((f) => f.sourcePath || f.name),
+    // all_files: files
+    //   .filter((f) => f.source === "user" && f.type === "file")
+    //   .map((f) => f.sourcePath || f.name),
+    all_files: allFiles,
     documents: files
-      //   .filter((f) => f.content && ["text", "office"].includes(f.fileType || ""))
-
       .filter((f) => {
         if (f.source !== "user") return false; // exclude AI files
         if (!f.content || f.content.trim().length === 0) return false;
@@ -290,8 +297,10 @@ export const buildEvidenceBundle = (
     user_hints: {
       user_text: userText,
       modality_hint: detectModality(files),
-      n_subjects: null,
+      // n_subjects: null,
+      n_subjects: subjectAnalysis.subject_count || null, // ← use extracted count
     },
+    subject_analysis: subjectAnalysis, // ← add for subject_analysis
     trio_found: {
       "dataset_description.json": files.some(
         (f) => f.source === "ai" && f.name === "dataset_description.json"

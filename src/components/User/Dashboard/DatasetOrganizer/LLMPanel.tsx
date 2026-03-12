@@ -670,7 +670,8 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       userContext,
       subjectInfo,
       evidenceBundle?.counts_by_ext || {},
-      sampleFiles
+      sampleFiles,
+      evidenceBundle
     );
 
     try {
@@ -808,6 +809,10 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     zip.file(
       "_staging/evidence_bundle.json",
       JSON.stringify(evidenceBundle, null, 2)
+    );
+    zip.file(
+      "_staging/subject_analysis.json",
+      JSON.stringify(evidenceBundle.subject_analysis, null, 2)
     );
     // trio files (get content from the AI-generated FileItems)
     const dd = files.find(
