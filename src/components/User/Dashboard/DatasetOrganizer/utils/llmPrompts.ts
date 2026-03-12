@@ -4,15 +4,30 @@
  * Prompt for dataset_description.json generation
  * Based on auto-bidsify's PROMPT_TRIO_DATASET_DESC
  */
-export const getDatasetDescriptionPrompt = (userText: string): string => {
+export const getDatasetDescriptionPrompt = (
+  userText: string,
+  evidenceBundle?: any
+): string => {
+  const documentsContext =
+    evidenceBundle?.documents
+      ?.map((d: any) => `[${d.filename}]:\n${d.content}`)
+      .join("\n\n") || "";
   return `You are a BIDS dataset_description.json generator.
   
   CRITICAL: Use the following user-provided content to extract dataset information!
   
   USER-PROVIDED CONTENT:
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  ${userText}
+  ${userText || "(no readme/instructions provided)"}
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   ALL UPLOADED DOCUMENTS (search these for dataset name, authors, etc.):
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ${documentsContext || "(no documents)"}
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Also consider the dataset folder name for clues about the dataset name:
+  File paths start with: ${evidenceBundle?.root || ""}
   
   CRITICAL RULES:
   - Authors MUST be array: ["Name 1", "Name 2", "Name 3"]

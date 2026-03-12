@@ -8,6 +8,7 @@ import {
   downloadJSON,
   buildEvidenceBundle,
   extractSubjectsFromFiles,
+  buildIngestInfo,
 } from "./utils/llmHelpers";
 import {
   getDatasetDescriptionPrompt,
@@ -32,6 +33,7 @@ import {
   Alert,
 } from "@mui/material";
 import { Colors } from "design/theme";
+import JSZip from "jszip";
 import React, { useState, useEffect } from "react";
 import { FileItem } from "redux/projects/types/projects.interface";
 
@@ -214,7 +216,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       // Call 1: Generate dataset_description.json
       // ==========================================
       setStatus("1/3 Generating dataset_description.json...");
-      const ddPrompt = getDatasetDescriptionPrompt(userText);
+      const ddPrompt = getDatasetDescriptionPrompt(userText, evidenceBundle);
 
       let ddResponse;
       if (currentProvider.isAnthropic) {
@@ -795,6 +797,43 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadPackage = async () => {
+    const zip = new JSZip();
+    const outputDir = "bids-output";
+
+    // _staging/ files
+    const ingestInfo = buildIngestInfo(baseDirectoryPath, outputDir);
+    zip.file("_staging/ingest_info.json", JSON.stringify(ingestInfo, null, 2));
+    zip.file("_staging/BIDSPlan.yaml", bidsPlan); // your already-generated YAML
+    zip.file(
+      "_staging/evidence_bundle.json",
+      JSON.stringify(evidenceBundle, null, 2)
+    );
+    // trio files (get content from the AI-generated FileItems)
+    const dd = files.find(
+      (f) => f.source === "ai" && f.name === "dataset_description.json"
+    );
+    const readme = files.find(
+      (f) => f.source === "ai" && f.name === "README.md"
+    );
+    const participants = files.find(
+      (f) => f.source === "ai" && f.name === "participants.tsv"
+    );
+
+    if (dd?.content) zip.file("dataset_description.json", dd.content);
+    if (readme?.content) zip.file("README.md", readme.content);
+    if (participants?.content)
+      zip.file("participants.tsv", participants.content);
+
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "bids-output.zip";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Paper
       sx={{
@@ -1129,6 +1168,15 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             >
               {/* Download */}
               {bidsPlan ? "Download BIDSPlan.yaml" : "Download Script"}
+            </Button>
+            <Button
+              size="small"
+              startIcon={<Download />}
+              onClick={handleDownloadPackage}
+              disabled={!bidsPlan && !generatingTrio}
+            >
+              {/* Download */}
+              Download zip file for convert
             </Button>
           </Box>
 

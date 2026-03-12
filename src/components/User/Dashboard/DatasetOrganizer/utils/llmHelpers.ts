@@ -380,3 +380,19 @@ export const extractSubjectsFromFiles = (
 
   return { subjects, strategy };
 };
+
+export const buildIngestInfo = (
+  baseDirectoryPath: string,
+  outputDir: string
+): object => {
+  return {
+    step: "ingest",
+    timestamp: new Date().toISOString(),
+    input_path: baseDirectoryPath,
+    input_type: "directory",
+    output_dir: outputDir,
+    staging_dir: null,
+    actual_data_path: baseDirectoryPath, // ← the key field executor uses
+    status: "complete",
+  };
+};
