@@ -391,9 +391,18 @@ export const extractSubjectsFromFiles = (
 };
 
 export const buildIngestInfo = (
-  baseDirectoryPath: string,
-  outputDir: string
+  baseDirectoryPath: string
+  // outputDir: string
 ): object => {
+  // Remove trailing slash if any
+  const cleanPath = baseDirectoryPath.replace(/\/$/, "");
+
+  // Get parent directory
+  const parentDir = cleanPath.substring(0, cleanPath.lastIndexOf("/"));
+
+  // Append outputs: "/home/.../test3-web/outputs"
+  const outputDir = `${parentDir}/outputs`;
+
   return {
     step: "ingest",
     timestamp: new Date().toISOString(),

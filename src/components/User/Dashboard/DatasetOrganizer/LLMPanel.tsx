@@ -800,10 +800,10 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
 
   const handleDownloadPackage = async () => {
     const zip = new JSZip();
-    const outputDir = "bids-output";
+    // const outputDir = "outputs";
 
     // _staging/ files
-    const ingestInfo = buildIngestInfo(baseDirectoryPath, outputDir);
+    const ingestInfo = buildIngestInfo(baseDirectoryPath);
     zip.file("_staging/ingest_info.json", JSON.stringify(ingestInfo, null, 2));
     zip.file("_staging/BIDSPlan.yaml", bidsPlan); // your already-generated YAML
     zip.file(
@@ -834,7 +834,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "bids-output.zip";
+    a.download = "outputs.zip";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -960,7 +960,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           <TextField
             fullWidth
             required
-            label="Base Directory Path (required)"
+            label="Directory Path (required)"
             value={baseDirectoryPath}
             onChange={(e) => setBaseDirectoryPath(e.target.value)}
             placeholder="Enter the folder path where these files are located"
@@ -1091,7 +1091,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             {loading ? "Generating..." : "3a. Generate BIDSPlan.yaml"}
           </Button>
 
-          <Button
+          {/* <Button
             fullWidth
             variant="contained"
             startIcon={
@@ -1111,7 +1111,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             }}
           >
             {loading ? "Generating..." : "3b. Generate Script"}
-          </Button>
+          </Button> */}
 
           {/* cancel button*/}
           {(generatingTrio || loading) && (

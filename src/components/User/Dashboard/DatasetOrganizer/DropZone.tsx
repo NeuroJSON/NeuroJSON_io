@@ -216,7 +216,7 @@ const DropZone: React.FC<DropZoneProps> = ({
         />
       </Paper>
       <TextField
-        label="Base Directory Path (optional)"
+        label="Directory Path (actual data path)"
         placeholder="example: /Users/username/Desktop/Downloads"
         // value={basePath} // change
         // onChange={(e) => setBasePath(e.target.value)} //change
