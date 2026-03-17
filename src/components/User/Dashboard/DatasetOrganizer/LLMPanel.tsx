@@ -376,9 +376,41 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       }
 
       const partsData = await partsResponse.json();
-      const participantsContent = currentProvider.isAnthropic
+      const participantsRaw = currentProvider.isAnthropic
         ? partsData.content[0].text
         : partsData.choices[0].message.content;
+
+      // Build TSV from schema — Python-style, no hallucinated values
+      let participantsContent = "";
+      try {
+        const schemaText = participantsRaw
+          .replace(/^```json\n?/g, "")
+          .replace(/\n?```$/g, "")
+          .trim();
+        const schema = JSON.parse(schemaText);
+        const columns: string[] = schema.columns.map((c: any) => c.name);
+
+        // Get subject IDs from evidence bundle (extracted by Python-style analysis)
+        const idMapping =
+          evidenceBundle?.subject_analysis?.id_mapping?.id_mapping;
+        const subjectLabels: string[] = idMapping
+          ? Object.values(idMapping).map((id) => `sub-${id}`)
+          : ["sub-01"]; // fallback if no subject analysis
+
+        const header = columns.join("\t");
+        const rows = subjectLabels.map((subId) =>
+          columns
+            .map((col: string) => (col === "participant_id" ? subId : "n/a"))
+            .join("\t")
+        );
+        participantsContent = [header, ...rows].join("\n");
+      } catch (e) {
+        // Fallback: LLM didn't return valid JSON schema, use raw content
+        participantsContent = participantsRaw
+          .replace(/^```\n?/g, "")
+          .replace(/\n?```$/g, "")
+          .trim();
+      }
 
       // ==========================================
       // Add trio files to Virtual File System
@@ -839,6 +871,196 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  // save zip
+  const handleSaveZip = async () => {
+    // Add output files to VFS
+    const timestamp = new Date().toLocaleString();
+    const zipLabel = `bids_output_${new Date().toISOString().slice(0, 10)}`;
+    const outputFiles: FileItem[] = [];
+
+    const folderId = generateId();
+    outputFiles.push({
+      id: folderId,
+      name: zipLabel,
+      type: "folder",
+      parentId: null,
+      source: "output",
+      generatedAt: timestamp,
+    });
+
+    // _staging subfolder
+    const stagingFolderId = generateId();
+    outputFiles.push({
+      id: stagingFolderId,
+      name: "_staging",
+      type: "folder",
+      parentId: folderId, // ← child of root output folder
+      source: "output",
+      generatedAt: timestamp,
+    });
+
+    // Files inside _staging
+    if (bidsPlan) {
+      outputFiles.push({
+        id: generateId(),
+        name: "BIDSPlan.yaml",
+        type: "file",
+        fileType: "text",
+        content: bidsPlan,
+        parentId: stagingFolderId, // ← inside _staging
+        source: "output",
+        generatedAt: timestamp,
+      });
+    }
+
+    if (evidenceBundle) {
+      outputFiles.push({
+        id: generateId(),
+        name: "evidence_bundle.json",
+        type: "file",
+        fileType: "text",
+        content: JSON.stringify(evidenceBundle, null, 2),
+        parentId: stagingFolderId, // ← inside _staging
+        source: "output",
+        generatedAt: timestamp,
+      });
+
+      outputFiles.push({
+        id: generateId(),
+        name: "ingest_info.json",
+        type: "file",
+        fileType: "text",
+        content: JSON.stringify(buildIngestInfo(baseDirectoryPath), null, 2),
+        parentId: stagingFolderId, // ← inside _staging
+        source: "output",
+        generatedAt: timestamp,
+      });
+
+      if (evidenceBundle.subject_analysis) {
+        outputFiles.push({
+          id: generateId(),
+          name: "subject_analysis.json",
+          type: "file",
+          fileType: "text",
+          content: JSON.stringify(evidenceBundle.subject_analysis, null, 2),
+          parentId: stagingFolderId, // ← inside _staging
+          source: "output",
+          generatedAt: timestamp,
+        });
+      }
+    }
+    // Trio files at root level (outside _staging)
+    const dd = files.find(
+      (f) => f.source === "ai" && f.name === "dataset_description.json"
+    );
+    const readme = files.find(
+      (f) => f.source === "ai" && f.name === "README.md"
+    );
+    const participants = files.find(
+      (f) => f.source === "ai" && f.name === "participants.tsv"
+    );
+
+    [dd, readme, participants].forEach((f) => {
+      if (f?.content) {
+        outputFiles.push({
+          ...f,
+          id: generateId(),
+          parentId: folderId,
+          source: "output",
+          generatedAt: timestamp,
+        });
+      }
+    });
+
+    updateFiles((prev) => [...prev, ...outputFiles]);
+    setStatus("✓ Saved to VFS. Click 'Save Changes' to persist to database.");
+  };
+  // const handleSaveZip = async () => {
+  //   const zip = new JSZip();
+
+  //   // _staging/ files
+  //   const ingestInfo = buildIngestInfo(baseDirectoryPath);
+  //   zip.file("_staging/ingest_info.json", JSON.stringify(ingestInfo, null, 2));
+  //   zip.file("_staging/BIDSPlan.yaml", bidsPlan);
+  //   zip.file(
+  //     "_staging/evidence_bundle.json",
+  //     JSON.stringify(evidenceBundle, null, 2)
+  //   );
+  //   zip.file(
+  //     "_staging/subject_analysis.json",
+  //     JSON.stringify(evidenceBundle.subject_analysis, null, 2)
+  //   );
+
+  //   // Declare trio files once, reuse for both zip and VFS
+  //   const dd = files.find(
+  //     (f) => f.source === "ai" && f.name === "dataset_description.json"
+  //   );
+  //   const readme = files.find(
+  //     (f) => f.source === "ai" && f.name === "README.md"
+  //   );
+  //   const participants = files.find(
+  //     (f) => f.source === "ai" && f.name === "participants.tsv"
+  //   );
+
+  //   // Add trio files to zip
+  //   if (dd?.content) zip.file("dataset_description.json", dd.content);
+  //   if (readme?.content) zip.file("README.md", readme.content);
+  //   if (participants?.content)
+  //     zip.file("participants.tsv", participants.content);
+
+  //   const blob = await zip.generateAsync({ type: "blob" });
+  //   const url = URL.createObjectURL(blob);
+  //   const a = document.createElement("a");
+  //   a.href = url;
+  //   a.download = `bids_output_${new Date().toISOString().slice(0, 10)}.zip`;
+  //   a.click();
+  //   URL.revokeObjectURL(url);
+
+  //   // Add output files to VFS
+  //   const timestamp = new Date().toLocaleString();
+  //   const zipLabel = `bids_output_${new Date().toISOString().slice(0, 10)}`;
+  //   const outputFiles: FileItem[] = [];
+
+  //   const folderId = generateId();
+  //   outputFiles.push({
+  //     id: folderId,
+  //     name: zipLabel,
+  //     type: "folder",
+  //     parentId: null,
+  //     source: "output",
+  //     generatedAt: timestamp,
+  //   });
+
+  //   // Add trio files under the folder
+  //   [dd, readme, participants].forEach((f) => {
+  //     if (f?.content) {
+  //       outputFiles.push({
+  //         ...f,
+  //         id: generateId(),
+  //         parentId: folderId,
+  //         source: "output",
+  //         generatedAt: timestamp,
+  //       });
+  //     }
+  //   });
+
+  //   // Add BIDSPlan.yaml under the folder
+  //   if (bidsPlan) {
+  //     outputFiles.push({
+  //       id: generateId(),
+  //       name: "BIDSPlan.yaml",
+  //       type: "file",
+  //       fileType: "text",
+  //       content: bidsPlan,
+  //       parentId: folderId,
+  //       source: "output",
+  //       generatedAt: timestamp,
+  //     });
+  //   }
+
+  //   updateFiles((prev) => [...prev, ...outputFiles]);
+  // };
+
   return (
     <Paper
       sx={{
@@ -1182,6 +1404,16 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             >
               {/* Download */}
               Download zip file for convert
+            </Button>
+            <Button
+              size="small"
+              startIcon={<Download />}
+              onClick={handleSaveZip}
+              disabled={!bidsPlan || !trioGenerated}
+              sx={{ color: Colors.darkGreen, borderColor: Colors.darkGreen }}
+              variant="outlined"
+            >
+              💾 Save to VFS
             </Button>
           </Box>
 

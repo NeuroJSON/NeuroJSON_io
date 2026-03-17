@@ -1,4 +1,5 @@
 const { Project, User } = require("../models");
+const { nanoid } = require("nanoid");
 
 // Create a new organizer project
 const createProject = async (req, res) => {
@@ -8,6 +9,7 @@ const createProject = async (req, res) => {
 
     const project = await Project.create({
       user_id: user.id,
+      public_id: nanoid(12),
       name: name || `Dataset Project ${new Date().toLocaleDateString()}`,
       description: description || "don't have description yet",
       extractor_state: {
@@ -40,6 +42,7 @@ const getUserProjects = async (req, res) => {
       order: [["updated_at", "DESC"]],
       attributes: [
         "id",
+        "public_id", // ← ADD
         "name",
         "description",
         "created_at",
@@ -53,6 +56,7 @@ const getUserProjects = async (req, res) => {
       const state = project.extractor_state || { files: [] };
       return {
         id: project.id,
+        public_id: project.public_id, // ← ADD
         name: project.name,
         description: project.description,
         created_at: project.created_at,
@@ -82,7 +86,8 @@ const getProject = async (req, res) => {
 
     const project = await Project.findOne({
       where: {
-        id: projectId,
+        // id: projectId,
+        public_id: projectId,
         user_id: user.id,
       },
     });
@@ -112,7 +117,8 @@ const updateProject = async (req, res) => {
 
     const project = await Project.findOne({
       where: {
-        id: projectId,
+        // id: projectId,
+        public_id: projectId,
         user_id: user.id,
       },
     });
@@ -154,7 +160,8 @@ const deleteProject = async (req, res) => {
 
     const project = await Project.findOne({
       where: {
-        id: projectId,
+        // id: projectId,
+        public_id: projectId,
         user_id: user.id,
       },
     });

@@ -32,6 +32,6 @@ export const selectProjectsError = (state: RootState): string | null => {
 };
 
 // Get project by ID (from cached list)
-export const selectProjectById = (state: RootState, projectId: number) => {
-  return state.projects.projects.find((p) => p.id === projectId);
+export const selectProjectById = (state: RootState, projectId: string) => {
+  return state.projects.projects.find((p) => p.public_id === projectId);
 };

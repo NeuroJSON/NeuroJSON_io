@@ -11,6 +11,7 @@ import {
   Add,
   AutoAwesome,
   FolderSpecial,
+  Download,
 } from "@mui/icons-material";
 import {
   Box,
@@ -25,6 +26,7 @@ import {
   DialogActions,
 } from "@mui/material";
 import { Colors } from "design/theme";
+import JSZip from "jszip";
 import React, { useState } from "react";
 import { FileItem } from "redux/projects/types/projects.interface";
 
@@ -54,6 +56,10 @@ const FileTree: React.FC<FileTreeProps> = ({
   >(null);
   const [metaFileName, setMetaFileName] = useState("");
   const [metaContent, setMetaContent] = useState("");
+
+  // split files into two groups
+  const userFiles = files.filter((f) => f.source !== "output");
+  const outputFiles = files.filter((f) => f.source === "output");
 
   // In FileTree.tsx
   const metaConfigs = {
@@ -167,6 +173,42 @@ const FileTree: React.FC<FileTreeProps> = ({
     setSelectedIds(new Set());
   };
 
+  const handleDownloadOutputFolder = async (
+    folderId: string,
+    folderName: string
+  ) => {
+    const zip = new JSZip();
+
+    // Recursive function to add files to zip
+    const addToZip = (
+      parentId: string,
+      zipFolder: any,
+      currentPath: string
+    ) => {
+      const children = files.filter((f) => f.parentId === parentId);
+      children.forEach((child) => {
+        if (child.type === "folder") {
+          const subFolder = zipFolder.folder(child.name);
+          addToZip(child.id, subFolder, `${currentPath}/${child.name}`);
+        } else {
+          if (child.content) {
+            zipFolder.file(child.name, child.content);
+          }
+        }
+      });
+    };
+
+    addToZip(folderId, zip, folderName);
+
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${folderName}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleAddNote = (id: string) => {
     const file = files.find((f) => f.id === id);
     setEditingNoteId(id);
@@ -187,6 +229,12 @@ const FileTree: React.FC<FileTreeProps> = ({
   };
 
   const renderFileIcon = (file: FileItem) => {
+    if (file.source === "output") {
+      if (file.type === "folder") {
+        return <FolderSpecial sx={{ color: Colors.darkGreen, fontSize: 20 }} />;
+      }
+      return <InsertDriveFile sx={{ color: Colors.darkGreen, fontSize: 20 }} />;
+    }
     // AI generated files — use AutoAwesome icon with purple color
     if (file.source === "ai") {
       return (
@@ -245,8 +293,13 @@ const FileTree: React.FC<FileTreeProps> = ({
   };
 
   // one item in the tree
-  const renderTreeItem = (file: FileItem, depth: number = 0) => {
-    const children = files.filter((f) => f.parentId === file.id);
+  const renderTreeItem = (
+    file: FileItem,
+    depth: number = 0,
+    filePool: FileItem[] = files
+  ) => {
+    // const children = files.filter((f) => f.parentId === file.id); // origin
+    const children = filePool.filter((f) => f.parentId === file.id);
     const hasChildren = children.length > 0;
 
     // Check if file has content or children to show expand button
@@ -314,6 +367,23 @@ const FileTree: React.FC<FileTreeProps> = ({
           >
             {file.name}
           </Typography>
+
+          {/* Download button for output root folders */}
+          {file.source === "output" &&
+            file.parentId === null &&
+            file.type === "folder" && (
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownloadOutputFolder(file.id, file.name);
+                }}
+                sx={{ p: 0.25, color: Colors.purple }}
+                title="Download as ZIP"
+              >
+                <Download sx={{ fontSize: 16 }} />
+              </IconButton>
+            )}
 
           {/* Add timestamp for AI files */}
           {file.source === "ai" && file.generatedAt && (
@@ -396,7 +466,11 @@ const FileTree: React.FC<FileTreeProps> = ({
 
         {/* Children */}
         {hasChildren && isExpanded && (
-          <Box>{children.map((child) => renderTreeItem(child, depth + 1))}</Box>
+          <Box>
+            {children.map((child) =>
+              renderTreeItem(child, depth + 1, filePool)
+            )}
+          </Box> // add filePool
         )}
       </Box>
     );
@@ -534,8 +608,42 @@ const FileTree: React.FC<FileTreeProps> = ({
         </Box>
 
         {/* File Tree */}
-        <Box sx={{ flex: 1, overflow: "auto", p: 1 }}>
+        {/* <Box sx={{ flex: 1, overflow: "auto", p: 1 }}>
           {rootFiles.map((file) => renderTreeItem(file))}
+        </Box> */}
+
+        <Box sx={{ flex: 1, overflow: "auto", p: 1 }}>
+          {userFiles
+            .filter((f) => f.parentId === null)
+            .map((f) => renderTreeItem(f, 0, userFiles))}
+
+          {outputFiles.length > 0 && (
+            <>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  px: 1,
+                  py: 0.5,
+                  mt: 1,
+                  borderTop: 1,
+                  borderColor: "divider",
+                }}
+              >
+                <FolderSpecial sx={{ color: Colors.darkGreen, fontSize: 16 }} />
+                <Typography
+                  variant="caption"
+                  sx={{ color: Colors.darkGreen, fontWeight: 600 }}
+                >
+                  Saved Outputs
+                </Typography>
+              </Box>
+              {outputFiles
+                .filter((f) => f.parentId === null)
+                .map((f) => renderTreeItem(f, 0, outputFiles))}
+            </>
+          )}
         </Box>
 
         {/* Footer Legend */}

@@ -24,6 +24,12 @@ module.exports = {
         type: Sequelize.STRING(200),
         allowNull: false,
       },
+      public_id: {
+        type: Sequelize.STRING(12),
+        allowNull: false,
+        unique: true,
+        defaultValue: "",
+      },
       description: {
         type: Sequelize.TEXT,
         allowNull: true,

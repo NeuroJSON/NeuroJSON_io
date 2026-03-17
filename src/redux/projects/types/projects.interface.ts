@@ -20,7 +20,7 @@ export interface FileItem {
   contentType?: string;
   sourcePath?: string;
   isUserMeta?: boolean;
-  source?: "user" | "ai";
+  source?: "user" | "ai" | "output";
   generatedAt?: string;
   note?: string;
   loading?: boolean;
@@ -57,6 +57,7 @@ export interface EvidenceBundle {
 // Project Interface
 export interface Project {
   id: number;
+  public_id: string; // ← ADD
   user_id: number;
   name: string;
   description: string | null;
@@ -107,18 +108,19 @@ export interface CreateProjectPayload {
 }
 
 export interface GetProjectPayload {
-  projectId: number;
+  // projectId: number;
+  projectId: string;
 }
 
 export interface UpdateProjectPayload {
-  projectId: number;
+  projectId: string; // ← was number
   name?: string;
   description?: string;
   extractor_state?: ExtractorState;
 }
 
 export interface DeleteProjectPayload {
-  projectId: number;
+  projectId: string; // ← was number
 }
 
 // export interface LLMProvider {

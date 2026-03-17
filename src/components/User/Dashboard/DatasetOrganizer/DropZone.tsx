@@ -17,7 +17,8 @@ interface DropZoneProps {
   files: FileItem[];
   setFiles: React.Dispatch<React.SetStateAction<FileItem[]>>;
   baseDirectoryPath: string; // ✅ ADD this line
-  setBaseDirectoryPath: React.Dispatch<React.SetStateAction<string>>; // ✅ ADD this line
+  // setBaseDirectoryPath: React.Dispatch<React.SetStateAction<string>>;
+  setBaseDirectoryPath: (path: string) => void;
   selectedIds: Set<string>;
   setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   expandedIds: Set<string>;

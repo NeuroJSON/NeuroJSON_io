@@ -1,5 +1,7 @@
 const { DataTypes, Model } = require("sequelize");
 const { sequelize } = require("../config/database");
+const { nanoid } = require("nanoid");
+console.log("nanoid test:", nanoid(12));
 
 class Project extends Model {}
 
@@ -21,6 +23,11 @@ Project.init(
     name: {
       type: DataTypes.STRING(200),
       allowNull: false,
+    },
+    public_id: {
+      type: DataTypes.STRING(12),
+      allowNull: false,
+      unique: true,
     },
     description: {
       type: DataTypes.TEXT,

@@ -50,7 +50,8 @@ export const ProjectsService = {
   },
 
   // Get specific project
-  getProject: async (projectId: number): Promise<GetProjectResponse> => {
+  getProject: async (projectId: string): Promise<GetProjectResponse> => {
+    // ← was number
     const response = await fetch(`${API_URL}/projects/${projectId}`, {
       method: "GET",
       credentials: "include",
@@ -90,7 +91,8 @@ export const ProjectsService = {
   },
 
   // Delete project
-  deleteProject: async (projectId: number): Promise<DeleteProjectResponse> => {
+  deleteProject: async (projectId: string): Promise<DeleteProjectResponse> => {
+    // ← was number
     const response = await fetch(`${API_URL}/projects/${projectId}`, {
       method: "DELETE",
       credentials: "include",

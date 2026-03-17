@@ -85,42 +85,85 @@ export const getReadmePrompt = (userText: string): string => {
  * Based on auto-bidsify's PROMPT_TRIO_PARTICIPANTS
  */
 export const getParticipantsPrompt = (userText: string): string => {
-  return `Generate a BIDS participants.tsv file.
-  
-  CRITICAL: Extract participant metadata from the following user-provided content!
-  
-  USER-PROVIDED CONTENT:
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  ${userText}
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  
-  Extract participant information:
-  - Subject IDs (look for "sub-01", "2 subjects", "participants: sub-01 and sub-02", etc.)
-  - Demographics if available:
-    - "1 male, 1 female" → sex column: M, F
-    - "ages 25-65" → age column
-    - "patients and controls" → group column
-    - "right-handed" → handedness column
-  
-  Rules:
-  - First column MUST be "participant_id"
-  - Use tab (\\t) as delimiter
-  - Include only columns with actual data (no empty columns)
-  - If only subject IDs known, output: participant_id\\nsub-01\\nsub-02
-  
-  Examples:
-  - If text says "2 subjects: sub-01 and sub-02" with no demographics:
-    participant_id
-    sub-01
-    sub-02
-  
-  - If text says "sub-01 (25y, male), sub-02 (30y, female)":
-    participant_id\\tage\\tsex
-    sub-01\\t25\\tM
-    sub-02\\t30\\tF
-  
-  OUTPUT: Direct TSV text only (no JSON, no code fences, no markdown)`;
+  return `You are a BIDS participants.tsv column schema generator.
+
+USER-PROVIDED CONTENT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${userText}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+YOUR JOB: Decide which columns belong in participants.tsv based ONLY on what is explicitly stated in the user content above.
+
+STRICT RULES:
+- participant_id is ALWAYS required
+- ONLY add columns for demographics EXPLICITLY mentioned in the content
+- DO NOT invent age, sex, handedness, or any column not directly stated
+- If no demographic info is mentioned, return ONLY participant_id
+
+Output ONLY valid JSON (no markdown fences, no explanation):
+{
+  "columns": [
+    {"name": "participant_id", "required": true}
+  ]
+}
+
+Examples:
+- Content mentions "1 male, 1 female" → add {"name": "sex", "levels": ["M", "F"]}
+- Content mentions "patients and controls" → add {"name": "group", "levels": ["patient", "control"]}
+- Content mentions nothing about demographics → return only participant_id
+`;
 };
+
+// export const getParticipantsPrompt = (userText: string): string => {
+//   return `Generate a BIDS participants.tsv file.
+
+//   CRITICAL: Extract participant metadata from the following user-provided content!
+
+//   USER-PROVIDED CONTENT:
+//   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//   ${userText}
+//   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+//   STRICT RULES:
+//   - First column MUST be "participant_id"
+//   - Use tab (\\t) as delimiter
+//   - ONLY include columns for data EXPLICITLY mentioned in the user content above
+//   - DO NOT invent or assume age, sex, handedness, or any other column unless it is directly stated in the content
+//   - If no demographic data is mentioned, output ONLY participant_id column
+//   - If only subject IDs are known, output the minimal form below
+
+//   MINIMAL FORM (use this when no demographics are mentioned):
+//   participant_id
+//   sub-01
+//   sub-02
+
+//   Extract participant information:
+//   - Subject IDs (look for "sub-01", "2 subjects", "participants: sub-01 and sub-02", etc.)
+//   - Demographics if available:
+//     - "1 male, 1 female" → sex column: M, F
+//     - "ages 25-65" → age column
+//     - "patients and controls" → group column
+//     - "right-handed" → handedness column
+
+//   Rules:
+//   - First column MUST be "participant_id"
+//   - Use tab (\\t) as delimiter
+//   - Include only columns with actual data (no empty columns)
+//   - If only subject IDs known, output: participant_id\\nsub-01\\nsub-02
+
+//   Examples:
+//   - If text says "2 subjects: sub-01 and sub-02" with no demographics:
+//     participant_id
+//     sub-01
+//     sub-02
+
+//   - If text says "sub-01 (25y, male), sub-02 (30y, female)":
+//     participant_id\\tage\\tsex
+//     sub-01\\t25\\tM
+//     sub-02\\t30\\tF
+
+//   OUTPUT: Direct TSV text only (no JSON, no code fences, no markdown)`;
+// };
 
 /**
  * Main prompt for BIDS conversion script generation

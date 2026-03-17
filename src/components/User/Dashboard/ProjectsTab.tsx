@@ -55,12 +55,12 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ userId }) => {
   const [newProjectDescription, setNewProjectDescription] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<{
-    id: number;
+    id: string; // ← was number
     name: string;
   } | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<{
-    id: number;
+    id: string; // ← was number
     name: string;
     description: string;
   } | null>(null);
@@ -69,8 +69,9 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ userId }) => {
     dispatch(getUserProjects());
   }, [dispatch]);
 
-  const handleViewProject = (projectId: number) => {
-    navigate(`/projects/${projectId}`);
+  const handleViewProject = (publicId: string) => {
+    // ← was number
+    navigate(`/projects/${publicId}`);
   };
 
   const handleCreateOpen = () => {
@@ -102,8 +103,9 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ userId }) => {
     }
   };
 
-  const handleDeleteClick = (projectId: number, projectName: string) => {
-    setProjectToDelete({ id: projectId, name: projectName });
+  const handleDeleteClick = (publicId: string, projectName: string) => {
+    // ← was number
+    setProjectToDelete({ id: publicId, name: projectName });
     setDeleteDialogOpen(true);
   };
 
@@ -129,7 +131,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ userId }) => {
 
   const handleEditClick = (project: any) => {
     setEditingProject({
-      id: project.id,
+      id: project.public_id, // ← was project.id
       name: project.name,
       description: project.description || "",
     });
@@ -322,7 +324,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ userId }) => {
                       variant="outlined"
                       size="small"
                       startIcon={<Visibility />}
-                      onClick={() => handleViewProject(project.id)}
+                      onClick={() => handleViewProject(project.public_id)} // ← was project.id
                       sx={{
                         color: Colors.purple,
                         borderColor: Colors.purple,
@@ -336,8 +338,8 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ userId }) => {
                     </Button>
                     <IconButton
                       size="small"
-                      onClick={() =>
-                        handleDeleteClick(project.id, project.name)
+                      onClick={
+                        () => handleDeleteClick(project.public_id, project.name) // ← was project.id
                       }
                       sx={{
                         color: Colors.rose,

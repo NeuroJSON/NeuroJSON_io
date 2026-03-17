@@ -71,10 +71,16 @@ const DatasetOrganizer: React.FC = () => {
     markAsChanged();
   };
 
+  const updateBaseDirectoryPath = (path: string) => {
+    setBaseDirectoryPath(path);
+    markAsChanged();
+  };
+
   // Load project on mount
   useEffect(() => {
     if (projectId) {
-      dispatch(getProject({ projectId: parseInt(projectId) }));
+      // dispatch(getProject({ projectId: parseInt(projectId) }));
+      dispatch(getProject({ projectId }));
     }
   }, [projectId, dispatch]);
 
@@ -98,7 +104,7 @@ const DatasetOrganizer: React.FC = () => {
     try {
       await dispatch(
         updateProject({
-          projectId: currentProject.id,
+          projectId: currentProject.public_id, // ← was currentProject.id
           extractor_state: {
             files,
             selectedIds: Array.from(selectedIds),
@@ -335,7 +341,8 @@ const DatasetOrganizer: React.FC = () => {
             files={files}
             setFiles={updateFiles} // Pass wrapper
             baseDirectoryPath={baseDirectoryPath}
-            setBaseDirectoryPath={setBaseDirectoryPath}
+            // setBaseDirectoryPath={setBaseDirectoryPath}
+            setBaseDirectoryPath={updateBaseDirectoryPath} // ← was setBaseDirectoryPath
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
             expandedIds={expandedIds}
@@ -346,7 +353,8 @@ const DatasetOrganizer: React.FC = () => {
             <LLMPanel
               files={files}
               baseDirectoryPath={baseDirectoryPath}
-              setBaseDirectoryPath={setBaseDirectoryPath}
+              // setBaseDirectoryPath={setBaseDirectoryPath}
+              setBaseDirectoryPath={updateBaseDirectoryPath} // ← was setBaseDirectoryPath
               evidenceBundle={evidenceBundle}
               setEvidenceBundle={setEvidenceBundle}
               trioGenerated={trioGenerated}
