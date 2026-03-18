@@ -204,37 +204,157 @@ export const analyzeTokenStatistics = (
  * 2. If fails → try filename token statistics (dominant prefix approach)
  * 3. Generate ID mapping (already_bids / numeric / semantic)
  */
-export const extractSubjectAnalysis = (allFiles: string[]): SubjectAnalysis => {
-  // ── Step 1: Try directory structure (mirrors _extract_subjects_from_directory_structure)
-  const fromDir = extractFromDirectoryStructure(allFiles);
-  if (fromDir && fromDir.subject_records.length > 0) {
-    const idMapping = generateIdMapping(fromDir);
-    return { ...fromDir, id_mapping: idMapping };
-  }
+// export const extractSubjectAnalysis = (allFiles: string[], userNSubjects?: number | null, dominantPrefixes?: { prefix: string; count: number; percentage: number }[]): SubjectAnalysis => {
+//   // ── Step 1: Try directory structure (mirrors _extract_subjects_from_directory_structure)
+//   const fromDir = extractFromDirectoryStructure(allFiles);
+//   if (fromDir && fromDir.subject_records.length > 0) {
+//     const idMapping = generateIdMapping(fromDir);
+//     return { ...fromDir, id_mapping: idMapping };
+//   }
 
-  // ── Step 2: Filename token statistics (mirrors filename_tokenizer approach)
-  const fromTokens = extractFromTokenStatistics(allFiles);
-  if (fromTokens && fromTokens.subject_records.length > 0) {
-    const idMapping = generateIdMapping(fromTokens);
-    return { ...fromTokens, id_mapping: idMapping };
-  }
+//   // ── Step 2: Filename token statistics (mirrors filename_tokenizer approach)
+//   const fromTokens = extractFromTokenStatistics(allFiles);
+//   if (fromTokens && fromTokens.subject_records.length > 0) {
+//     const idMapping = generateIdMapping(fromTokens);
+//     return { ...fromTokens, id_mapping: idMapping };
+//   }
 
-  // ── Fallback: empty result
-  return {
-    success: false,
-    method: "none",
-    subject_records: [],
-    subject_count: 0,
-    has_site_info: false,
-    variants_by_subject: {},
-    python_generated_filename_rules: [],
-    id_mapping: {
-      id_mapping: {},
-      reverse_mapping: {},
-      strategy_used: "none",
-      metadata_columns: [],
-    },
-  };
+//   // ── Fallback: empty result
+//   return {
+//     success: false,
+//     method: "none",
+//     subject_records: [],
+//     subject_count: 0,
+//     has_site_info: false,
+//     variants_by_subject: {},
+//     python_generated_filename_rules: [],
+//     id_mapping: {
+//       id_mapping: {},
+//       reverse_mapping: {},
+//       strategy_used: "none",
+//       metadata_columns: [],
+//     },
+//   };
+// };
+
+// ── Step 1: Directory structure patterns
+// Mirrors _extract_subjects_from_directory_structure() in planner.py
+// const extractFromDirectoryStructure = (
+//   allFiles: string[]
+// ): Omit<SubjectAnalysis, "id_mapping"> | null => {
+//   const patterns: Array<[RegExp, boolean, number, number | null, string]> = [
+//     [/^([A-Za-z]+)_sub(\d+)$/i, true, 2, 1, "site_prefixed"],
+//     [/^sub-(\w+)$/i, false, 1, null, "standard_bids"],
+//     [/^subject[_-]?(\d+)$/i, false, 1, null, "simple"],
+//     [/^(\d{3,})$/, false, 1, null, "numeric_only"],
+//   ];
+
+//   const subjectRecords: SubjectRecord[] = [];
+//   const seenIds = new Set<string>();
+
+//   for (const filepath of allFiles) {
+//     const parts = filepath.split("/");
+//     for (const part of parts.slice(0, 2)) {
+//       for (const [
+//         regex,
+//         hasSite,
+//         idGroup,
+//         siteGroup,
+//         patternName,
+//       ] of patterns) {
+//         const match = part.match(regex);
+//         if (match) {
+//           const originalId = match[0];
+//           if (seenIds.has(originalId)) break;
+//           seenIds.add(originalId);
+//           subjectRecords.push({
+//             original_id: originalId,
+//             numeric_id: match[idGroup],
+//             site: hasSite && siteGroup ? match[siteGroup] : null,
+//             pattern_name: patternName,
+//             file_count: 0,
+//           });
+//           break;
+//         }
+//       }
+//     }
+//   }
+
+//   if (subjectRecords.length === 0) return null;
+
+//   subjectRecords.sort((a, b) => {
+//     const na = parseInt(a.numeric_id) || 0;
+//     const nb = parseInt(b.numeric_id) || 0;
+//     return na - nb;
+//   });
+
+//   return {
+//     success: true,
+//     method: "directory_structure",
+//     subject_records: subjectRecords,
+//     subject_count: subjectRecords.length,
+//     has_site_info: subjectRecords.some((r) => r.site !== null),
+//     variants_by_subject: {},
+//     python_generated_filename_rules: [],
+//   };
+// };
+
+// ── Step 2: Token statistics (dominant prefix approach)
+// Mirrors FilenamePatternAnalyzer + analyze_filenames_for_subjects() in filename_tokenizer.py
+// const extractFromTokenStatistics = (
+//   allFiles: string[]
+// ): Omit<SubjectAnalysis, "id_mapping"> | null => {
+//   // Extract just filenames (not full paths) — mirrors filename_tokenizer.py line:
+//   // filenames = [f.split('/')[-1] for f in all_files]
+//   const filenames = allFiles.map((f) =>
+//     f.includes("/") ? f.split("/").pop()! : f
+//   );
+
+//   const stats = analyzeTokenStatistics(filenames);
+
+//   if (stats.dominantPrefixes.length === 0) return null;
+
+//   // Count files per prefix
+//   const prefixFileCounts: Record<string, number> = {};
+//   for (const filename of filenames) {
+//     const tokens = tokenizeFilename(filename);
+//     if (tokens.length > 0) {
+//       const first = tokens[0];
+//       if (stats.dominantPrefixes.some((p) => p.prefix === first)) {
+//         prefixFileCounts[first] = (prefixFileCounts[first] || 0) + 1;
+//       }
+//     }
+//   }
+
+//   const subjectRecords: SubjectRecord[] = stats.dominantPrefixes.map(
+//     (p, i) => ({
+//       original_id: p.prefix,
+//       numeric_id: String(i + 1),
+//       site: null,
+//       pattern_name: "dominant_prefix",
+//       file_count: prefixFileCounts[p.prefix] || p.count,
+//     })
+//   );
+
+//   return {
+//     success: true,
+//     method: "dominant_prefix_fallback",
+//     subject_records: subjectRecords,
+//     subject_count: subjectRecords.length,
+//     has_site_info: false,
+//     variants_by_subject: {},
+//     python_generated_filename_rules: [],
+//   };
+// };
+
+/**
+ * Mirrors _extract_numeric_id_from_identifier() in planner.py
+ * BZZ003 → "003", sub-01 → "01", patient021 → "021"
+ */
+const extractNumericIdFromIdentifier = (identifier: string): string | null => {
+  const numbers = identifier.match(/\d+/g);
+  if (!numbers) return null;
+  return numbers[numbers.length - 1]; // last numeric sequence, preserving leading zeros
 };
 
 // ── Step 1: Directory structure patterns
@@ -244,9 +364,9 @@ const extractFromDirectoryStructure = (
 ): Omit<SubjectAnalysis, "id_mapping"> | null => {
   const patterns: Array<[RegExp, boolean, number, number | null, string]> = [
     [/^([A-Za-z]+)_sub(\d+)$/i, true, 2, 1, "site_prefixed"],
-    [/^sub-(\w+)$/i, false, 1, null, "standard_bids"],
+    [/^sub-(\w+)$/, false, 1, null, "standard_bids"], // directory named sub-01
     [/^subject[_-]?(\d+)$/i, false, 1, null, "simple"],
-    [/^(\d{3,})$/, false, 1, null, "numeric_only"],
+    [/^\d{3,}$/, false, 1, null, "numeric_only"], // directory named 001
   ];
 
   const subjectRecords: SubjectRecord[] = [];
@@ -254,7 +374,11 @@ const extractFromDirectoryStructure = (
 
   for (const filepath of allFiles) {
     const parts = filepath.split("/");
-    for (const part of parts.slice(0, 2)) {
+    // Only check the first 2 path parts (directory levels), not the filename
+    // mirrors: for part in parts[:2]
+    const dirsOnly = parts.slice(0, Math.min(2, parts.length - 1)); // exclude filename
+
+    for (const part of dirsOnly) {
       for (const [
         regex,
         hasSite,
@@ -299,52 +423,137 @@ const extractFromDirectoryStructure = (
   };
 };
 
-// ── Step 2: Token statistics (dominant prefix approach)
-// Mirrors FilenamePatternAnalyzer + analyze_filenames_for_subjects() in filename_tokenizer.py
-const extractFromTokenStatistics = (
+const DATA_EXTENSIONS = /\.(snirf|nii|nii\.gz|dcm|mat|nirs|h5|hdf5|edf|bdf)$/i;
+const TRIO_FILENAMES = new Set([
+  "dataset_description.json",
+  "participants.tsv",
+  "readme.md",
+  "readme.txt",
+  "readme.rst",
+  "readme",
+]);
+// ── Step 2: Flat filename identifier extraction
+// Mirrors _extract_subjects_from_flat_filenames() in planner.py
+// KEY DIFFERENCE from old version: uses base identifier (before first _)
+// not tokenizer dominant prefixes
+const extractFromFlatFilenames = (
   allFiles: string[]
 ): Omit<SubjectAnalysis, "id_mapping"> | null => {
-  // Extract just filenames (not full paths) — mirrors filename_tokenizer.py line:
-  // filenames = [f.split('/')[-1] for f in all_files]
-  const filenames = allFiles.map((f) =>
-    f.includes("/") ? f.split("/").pop()! : f
-  );
+  const identifierToFiles: Record<string, string[]> = {};
 
-  const stats = analyzeTokenStatistics(filenames);
+  for (const filepath of allFiles) {
+    const filename = filepath.split("/").pop()!;
 
-  if (stats.dominantPrefixes.length === 0) return null;
+    // Skip trio files
+    if (TRIO_FILENAMES.has(filename.toLowerCase())) continue;
+    // Skip non-data files (PDFs, docs, JSONs that aren't data)
+    if (!DATA_EXTENSIONS.test(filename)) continue;
+    // Remove extension(s): sub-01_ses-left2s_task-FRESHMOTOR_nirs.snirf → sub-01_ses-left2s_task-FRESHMOTOR_nirs
+    const nameNoExt = filename.replace(/(\.[^.]+)+$/, "");
 
-  // Count files per prefix
-  const prefixFileCounts: Record<string, number> = {};
-  for (const filename of filenames) {
-    const tokens = tokenizeFilename(filename);
-    if (tokens.length > 0) {
-      const first = tokens[0];
-      if (stats.dominantPrefixes.some((p) => p.prefix === first)) {
-        prefixFileCounts[first] = (prefixFileCounts[first] || 0) + 1;
-      }
+    // Extract base identifier — alphanumeric before first underscore
+    // sub-01_ses-left2s → sub-01
+    // BZZ003_rest → BZZ003
+    // VHMCT1mm-Hip → VHMCT1mm-Hip (no underscore, take full name)
+    const match = nameNoExt.match(/^([A-Za-z0-9\-]+)/);
+    if (match) {
+      const identifier = match[1];
+      if (!identifierToFiles[identifier]) identifierToFiles[identifier] = [];
+      identifierToFiles[identifier].push(filepath);
     }
   }
 
-  const subjectRecords: SubjectRecord[] = stats.dominantPrefixes.map(
-    (p, i) => ({
-      original_id: p.prefix,
+  if (Object.keys(identifierToFiles).length === 0) return null;
+
+  // Sort by extracted numeric ID if possible (mirrors sort_key in planner.py)
+  const sortedIdentifiers = Object.keys(identifierToFiles).sort((a, b) => {
+    const na = extractNumericIdFromIdentifier(a);
+    const nb = extractNumericIdFromIdentifier(b);
+    if (na && nb) return parseInt(na) - parseInt(nb);
+    return a.localeCompare(b);
+  });
+
+  const subjectRecords: SubjectRecord[] = sortedIdentifiers.map(
+    (identifier, i) => ({
+      original_id: identifier,
       numeric_id: String(i + 1),
       site: null,
-      pattern_name: "dominant_prefix",
-      file_count: prefixFileCounts[p.prefix] || p.count,
+      pattern_name: "filename_identifier",
+      file_count: identifierToFiles[identifier].length,
     })
   );
 
   return {
     success: true,
-    method: "dominant_prefix_fallback",
+    method: "flat_filename_identifiers",
     subject_records: subjectRecords,
     subject_count: subjectRecords.length,
     has_site_info: false,
     variants_by_subject: {},
     python_generated_filename_rules: [],
   };
+};
+
+export const extractSubjectAnalysis = (
+  allFiles: string[],
+  userNSubjects?: number | null,
+  dominantPrefixes?: { prefix: string; count: number; percentage: number }[]
+): SubjectAnalysis => {
+  // Step 1: directory structure
+  let subjectInfo = extractFromDirectoryStructure(allFiles);
+
+  // Step 2: flat filename fallback
+  if (!subjectInfo || subjectInfo.subject_records.length === 0) {
+    subjectInfo = extractFromFlatFilenames(allFiles);
+  }
+
+  if (!subjectInfo || subjectInfo.subject_records.length === 0) {
+    return {
+      success: false,
+      method: "none",
+      subject_records: [],
+      subject_count: 0,
+      has_site_info: false,
+      variants_by_subject: {},
+      python_generated_filename_rules: [],
+      id_mapping: {
+        id_mapping: {},
+        reverse_mapping: {},
+        strategy_used: "none",
+        metadata_columns: [],
+      },
+    };
+  }
+
+  // ── CRITICAL validation: mirrors planner.py lines 190-215
+  // If extracted count doesn't match user hint but dominant prefixes do,
+  // fall back to dominant prefixes (handles VHM/VHF body-part over-extraction)
+  const pythonCount = subjectInfo.subject_count;
+  if (
+    userNSubjects &&
+    pythonCount !== userNSubjects &&
+    dominantPrefixes &&
+    dominantPrefixes.length === userNSubjects
+  ) {
+    subjectInfo = {
+      success: true,
+      method: "dominant_prefix_fallback",
+      subject_records: dominantPrefixes.map((p, i) => ({
+        original_id: p.prefix,
+        numeric_id: String(i + 1),
+        site: null,
+        pattern_name: "dominant_prefix",
+        file_count: p.count,
+      })),
+      subject_count: dominantPrefixes.length,
+      has_site_info: false,
+      variants_by_subject: {},
+      python_generated_filename_rules: [],
+    };
+  }
+
+  const idMapping = generateIdMapping(subjectInfo);
+  return { ...subjectInfo, id_mapping: idMapping };
 };
 
 // ── ID mapping — mirrors _generate_subject_id_mapping() in planner.py

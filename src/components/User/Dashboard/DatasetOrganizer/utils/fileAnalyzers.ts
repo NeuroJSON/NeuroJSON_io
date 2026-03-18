@@ -74,10 +74,20 @@ export const getCountsByExtension = (
   files: FileItem[]
 ): Record<string, number> => {
   const counts: Record<string, number> = {};
-  files.forEach((f) => {
-    const ext = f.fileType || "unknown";
-    counts[ext] = (counts[ext] || 0) + 1;
-  });
+  // files.forEach((f) => {
+  //   const ext = f.fileType || "unknown";
+  //   counts[ext] = (counts[ext] || 0) + 1;
+  // });
+  files
+    .filter((f) => f.source === "user" && f.type === "file")
+    .forEach((f) => {
+      // Mirror Python: use ".nii.gz" as a single key for .nii.gz files
+      const name = f.name.toLowerCase();
+      const ext = name.endsWith(".nii.gz")
+        ? ".nii.gz"
+        : "." + name.split(".").pop();
+      counts[ext] = (counts[ext] || 0) + 1;
+    });
   return counts;
 };
 
@@ -95,13 +105,29 @@ export const getUserContextText = (files: FileItem[]): string => {
     f.name.toLowerCase().includes("participant")
   );
 
+  const datasetDescription = files.find(
+    (f) => f.name.toLowerCase() === "dataset_description.json"
+  );
+
+  const pdfsAndDocs = files.filter(
+    (f) =>
+      f.source === "user" &&
+      f.fileType === "office" &&
+      f.content?.trim() &&
+      f.name.toLowerCase() !== "participants.tsv" // already handled
+  );
+
   const parts = [];
+  if (datasetDescription?.content)
+    parts.push(`DATASET DESCRIPTION:\n${datasetDescription.content}`);
   if (readme?.content) parts.push(`README:\n${readme.content}`);
   if (instructions?.content)
     parts.push(`INSTRUCTIONS:\n${instructions.content}`);
   if (participants?.content)
     parts.push(`PARTICIPANTS:\n${participants.content}`);
-
+  pdfsAndDocs.forEach((f) => {
+    parts.push(`DOCUMENT [${f.name}]:\n${f.content!.slice(0, 3000)}`);
+  });
   return parts.join("\n\n");
 };
 

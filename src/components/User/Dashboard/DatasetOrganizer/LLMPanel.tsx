@@ -1,4 +1,5 @@
 import { generateId } from "./utils/fileProcessors";
+import { extractSubjectAnalysis } from "./utils/filenameTokenizer";
 //add
 import {
   buildFileSummary,
@@ -140,6 +141,13 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   const [abortController, setAbortController] =
     useState<AbortController | null>(null);
 
+  const [subjectAnalysis, setSubjectAnalysis] = useState<any>(null);
+  const [nSubjects, setNSubjects] = useState<string>("");
+  const [modalityHint, setModalityHint] = useState<string>("mri");
+  const [describeText, setDescribeText] = useState<string>("");
+  const [nSubjectsError, setNSubjectsError] = useState(false);
+  const [modalityError, setModalityError] = useState(false);
+
   const [panelHeight, setPanelHeight] = useState<number>(450);
   const [isResizing, setIsResizing] = useState(false);
 
@@ -147,6 +155,12 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   // BUTTON 1: GENERATE EVIDENCE BUNDLE
   // ========================================================================
   const handleGenerateEvidence = () => {
+    const hasNSubjectsError = !nSubjects || parseInt(nSubjects) < 1;
+    const hasModalityError = !modalityHint;
+    setNSubjectsError(hasNSubjectsError);
+    setModalityError(hasModalityError);
+    if (hasNSubjectsError || hasModalityError) return;
+
     if (!baseDirectoryPath.trim()) {
       setError("Please enter a base directory path first");
       return;
@@ -156,26 +170,11 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     setError(null);
     setStatus("Building evidence bundle...");
     try {
-      // console.log("=== FILES GOING INTO buildEvidenceBundle ===");
-      // console.log("Total files:", files.length);
-      // console.log(
-      //   "Files with content:",
-      //   files.filter((f) => !!f.content).length
-      // );
-      // console.log(
-      //   "Files by fileType:",
-      //   files.reduce((acc, f) => {
-      //     acc[f.fileType || "undefined"] =
-      //       (acc[f.fileType || "undefined"] || 0) + 1;
-      //     return acc;
-      //   }, {} as Record<string, number>)
-      // );
-      // console.log(
-      //   "isUserMeta files:",
-      //   files.filter((f) => f.isUserMeta).map((f) => f.name)
-      // );
-      // ==========================================
-      const bundle = buildEvidenceBundle(files, baseDirectoryPath);
+      const bundle = buildEvidenceBundle(files, baseDirectoryPath, {
+        nSubjects: nSubjects ? parseInt(nSubjects) : null,
+        modalityHint,
+        describeText,
+      });
 
       setEvidenceBundle(bundle);
       downloadJSON(bundle, "evidence_bundle.json");
@@ -215,203 +214,249 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       // ==========================================
       // Call 1: Generate dataset_description.json
       // ==========================================
-      setStatus("1/3 Generating dataset_description.json...");
-      const ddPrompt = getDatasetDescriptionPrompt(userText, evidenceBundle);
-
-      let ddResponse;
-      if (currentProvider.isAnthropic) {
-        ddResponse = await fetch(currentProvider.baseUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model,
-            max_tokens: 2048,
-            messages: [{ role: "user", content: ddPrompt }],
-          }),
-        });
-      } else if (provider === "ollama") {
-        const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-        ddResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-          method: "POST",
-          signal: controller.signal,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model,
-            messages: [{ role: "user", content: ddPrompt }],
-          }),
-        });
+      let datasetDesc: any;
+      if (evidenceBundle.trio_found?.["dataset_description.json"]) {
+        setStatus("1/3 dataset_description.json already exists, skipping...");
+        const existing = files.find(
+          (f) => f.source === "user" && f.name === "dataset_description.json"
+        );
+        datasetDesc = existing?.content ? JSON.parse(existing.content) : {};
       } else {
-        ddResponse = await fetch(currentProvider.baseUrl, {
-          method: "POST",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [{ role: "user", content: ddPrompt }],
-            max_tokens: 2048,
-          }),
-        });
+        setStatus("1/3 Generating dataset_description.json...");
+        const ddPrompt = getDatasetDescriptionPrompt(userText, evidenceBundle);
+
+        let ddResponse;
+        if (currentProvider.isAnthropic) {
+          ddResponse = await fetch(currentProvider.baseUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": apiKey,
+              "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+              model,
+              max_tokens: 2048,
+              messages: [{ role: "user", content: ddPrompt }],
+            }),
+          });
+        } else if (provider === "ollama") {
+          const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+          ddResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+            method: "POST",
+            signal: controller.signal,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model,
+              messages: [{ role: "user", content: ddPrompt }],
+            }),
+          });
+        } else {
+          ddResponse = await fetch(currentProvider.baseUrl, {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model,
+              messages: [{ role: "user", content: ddPrompt }],
+              max_tokens: 2048,
+            }),
+          });
+        }
+
+        const ddData = await ddResponse.json();
+        let ddText = currentProvider.isAnthropic
+          ? ddData.content[0].text
+          : ddData.choices[0].message.content;
+
+        // Clean up markdown fences
+        ddText = ddText
+          .replace(/^```json\n?/g, "")
+          .replace(/\n?```$/g, "")
+          .trim();
+        datasetDesc = JSON.parse(ddText);
       }
-
-      const ddData = await ddResponse.json();
-      let ddText = currentProvider.isAnthropic
-        ? ddData.content[0].text
-        : ddData.choices[0].message.content;
-
-      // Clean up markdown fences
-      ddText = ddText
-        .replace(/^```json\n?/g, "")
-        .replace(/\n?```$/g, "")
-        .trim();
-      const datasetDesc = JSON.parse(ddText);
 
       // ==========================================
       // Call 2: Generate README.md
       // ==========================================
-      setStatus("2/3 Generating README.md...");
-      const readmePrompt = getReadmePrompt(userText);
-
-      let readmeResponse;
-      if (currentProvider.isAnthropic) {
-        readmeResponse = await fetch(currentProvider.baseUrl, {
-          method: "POST",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model,
-            max_tokens: 2048,
-            messages: [{ role: "user", content: readmePrompt }],
-          }),
-        });
-      } else if (provider === "ollama") {
-        const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-        readmeResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-          method: "POST",
-          signal: controller.signal,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model,
-            messages: [{ role: "user", content: readmePrompt }],
-          }),
-        });
+      let readmeContent: string;
+      if (evidenceBundle.trio_found?.["README.md"]) {
+        setStatus("2/3 README.md already exists, skipping...");
+        const existing = files.find(
+          (f) =>
+            f.source === "user" &&
+            ["README.md", "README.txt", "README.rst", "readme.md"].includes(
+              f.name
+            )
+        );
+        readmeContent = existing?.content || "";
       } else {
-        readmeResponse = await fetch(currentProvider.baseUrl, {
-          method: "POST",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [{ role: "user", content: readmePrompt }],
-            max_tokens: 2048,
-          }),
-        });
+        setStatus("2/3 Generating README.md...");
+        const readmePrompt = getReadmePrompt(userText);
+
+        let readmeResponse;
+        if (currentProvider.isAnthropic) {
+          readmeResponse = await fetch(currentProvider.baseUrl, {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": apiKey,
+              "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+              model,
+              max_tokens: 2048,
+              messages: [{ role: "user", content: readmePrompt }],
+            }),
+          });
+        } else if (provider === "ollama") {
+          const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+          readmeResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+            method: "POST",
+            signal: controller.signal,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model,
+              messages: [{ role: "user", content: readmePrompt }],
+            }),
+          });
+        } else {
+          readmeResponse = await fetch(currentProvider.baseUrl, {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model,
+              messages: [{ role: "user", content: readmePrompt }],
+              max_tokens: 2048,
+            }),
+          });
+        }
+
+        const readmeData = await readmeResponse.json();
+        readmeContent = currentProvider.isAnthropic
+          ? readmeData.content[0].text
+          : readmeData.choices[0].message.content;
       }
-
-      const readmeData = await readmeResponse.json();
-      const readmeContent = currentProvider.isAnthropic
-        ? readmeData.content[0].text
-        : readmeData.choices[0].message.content;
-
       // ==========================================
       // Call 3: Generate participants.tsv
       // ==========================================
-      setStatus("3/3 Generating participants.tsv...");
-      const partsPrompt = getParticipantsPrompt(userText);
-
-      let partsResponse;
-      if (currentProvider.isAnthropic) {
-        partsResponse = await fetch(currentProvider.baseUrl, {
-          method: "POST",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model,
-            max_tokens: 1024,
-            messages: [{ role: "user", content: partsPrompt }],
-          }),
-        });
-      } else if (provider === "ollama") {
-        const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-        partsResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-          method: "POST",
-          signal: controller.signal,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model,
-            messages: [{ role: "user", content: partsPrompt }],
-          }),
-        });
-      } else {
-        partsResponse = await fetch(currentProvider.baseUrl, {
-          method: "POST",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [{ role: "user", content: partsPrompt }],
-            max_tokens: 1024,
-          }),
-        });
-      }
-
-      const partsData = await partsResponse.json();
-      const participantsRaw = currentProvider.isAnthropic
-        ? partsData.content[0].text
-        : partsData.choices[0].message.content;
-
-      // Build TSV from schema — Python-style, no hallucinated values
-      let participantsContent = "";
-      try {
-        const schemaText = participantsRaw
-          .replace(/^```json\n?/g, "")
-          .replace(/\n?```$/g, "")
-          .trim();
-        const schema = JSON.parse(schemaText);
-        const columns: string[] = schema.columns.map((c: any) => c.name);
-
-        // Get subject IDs from evidence bundle (extracted by Python-style analysis)
-        const idMapping =
-          evidenceBundle?.subject_analysis?.id_mapping?.id_mapping;
-        const subjectLabels: string[] = idMapping
-          ? Object.values(idMapping).map((id) => `sub-${id}`)
-          : ["sub-01"]; // fallback if no subject analysis
-
-        const header = columns.join("\t");
-        const rows = subjectLabels.map((subId) =>
-          columns
-            .map((col: string) => (col === "participant_id" ? subId : "n/a"))
-            .join("\t")
+      let participantsContent: string;
+      if (evidenceBundle.trio_found?.["participants.tsv"]) {
+        setStatus("3/3 participants.tsv already exists, skipping...");
+        const existing = files.find(
+          (f) => f.source === "user" && f.name === "participants.tsv"
         );
-        participantsContent = [header, ...rows].join("\n");
-      } catch (e) {
-        // Fallback: LLM didn't return valid JSON schema, use raw content
-        participantsContent = participantsRaw
-          .replace(/^```\n?/g, "")
-          .replace(/\n?```$/g, "")
-          .trim();
-      }
+        participantsContent = existing?.content || "";
+      } else {
+        setStatus("3/3 Generating participants.tsv...");
+        const partsPrompt = getParticipantsPrompt(userText);
 
+        let partsResponse;
+        if (currentProvider.isAnthropic) {
+          partsResponse = await fetch(currentProvider.baseUrl, {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": apiKey,
+              "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+              model,
+              max_tokens: 1024,
+              messages: [{ role: "user", content: partsPrompt }],
+            }),
+          });
+        } else if (provider === "ollama") {
+          const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+          partsResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+            method: "POST",
+            signal: controller.signal,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model,
+              messages: [{ role: "user", content: partsPrompt }],
+            }),
+          });
+        } else {
+          partsResponse = await fetch(currentProvider.baseUrl, {
+            method: "POST",
+            signal: controller.signal,
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model,
+              messages: [{ role: "user", content: partsPrompt }],
+              max_tokens: 1024,
+            }),
+          });
+        }
+
+        const partsData = await partsResponse.json();
+        const participantsRaw = currentProvider.isAnthropic
+          ? partsData.content[0].text
+          : partsData.choices[0].message.content;
+
+        // Build TSV from schema
+        try {
+          const schemaText = participantsRaw
+            .replace(/^```json\n?/g, "")
+            .replace(/\n?```$/g, "")
+            .trim();
+          const schema = JSON.parse(schemaText);
+          const columns: string[] = schema.columns.map((c: any) => c.name);
+
+          // Get subject IDs from evidence bundle (extracted by Python-style analysis)
+          // const idMapping =
+          //   evidenceBundle?.subject_analysis?.id_mapping?.id_mapping;
+          // const subjectLabels: string[] = idMapping
+          //   ? Object.values(idMapping).map((id) => `sub-${id}`)
+          //   : ["sub-01"]; // fallback if no subject analysis
+          // Get subject IDs from subjectAnalysis state (computed at plan stage)
+          // Fall back to computing fresh if plan hasn't been run yet
+          const currentSubjectAnalysis =
+            subjectAnalysis ||
+            extractSubjectAnalysis(
+              evidenceBundle?.all_files || [],
+              evidenceBundle?.user_hints?.n_subjects,
+              evidenceBundle?.filename_analysis?.python_statistics
+                ?.dominant_prefixes
+            );
+          const idMap = currentSubjectAnalysis?.id_mapping?.id_mapping;
+          const subjectLabels: string[] =
+            idMap && Object.keys(idMap).length > 0
+              ? Object.values(idMap).map((id) => `sub-${id}`)
+              : Array.from(
+                  { length: evidenceBundle?.user_hints?.n_subjects || 1 },
+                  (_, i) => `sub-${String(i + 1).padStart(2, "0")}`
+                );
+
+          const header = columns.join("\t");
+          const rows = subjectLabels.map((subId) =>
+            columns
+              .map((col: string) => (col === "participant_id" ? subId : "n/a"))
+              .join("\t")
+          );
+          participantsContent = [header, ...rows].join("\n");
+        } catch (e) {
+          // Fallback: LLM didn't return valid JSON schema, use raw content
+          participantsContent = participantsRaw
+            .replace(/^```\n?/g, "")
+            .replace(/\n?```$/g, "")
+            .trim();
+        }
+      }
       // ==========================================
       // Add trio files to Virtual File System
       // ==========================================
@@ -474,7 +519,17 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         );
 
         // Add new trio files
-        return [...withoutOldTrio, ...trioFiles];
+        // return [...withoutOldTrio, ...trioFiles];
+
+        // Only add AI-generated files for ones that weren't user-uploaded
+        const newTrioFiles = trioFiles.filter(
+          (tf) =>
+            !evidenceBundle.trio_found?.[
+              tf.name as keyof typeof evidenceBundle.trio_found
+            ]
+        );
+
+        return [...withoutOldTrio, ...newTrioFiles];
       });
       setTrioGenerated(true);
       setStatus(
@@ -681,26 +736,45 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     setError(null);
     setStatus(`Generating BIDSPlan.yaml using ${currentProvider.name}...`);
 
+    // ── Compute subject analysis (mirrors planner.py Step 1)
+    const allFiles = evidenceBundle?.all_files || [];
+    const userNSubjects = evidenceBundle?.user_hints?.n_subjects;
+    const dominantPrefixes =
+      evidenceBundle?.filename_analysis?.python_statistics?.dominant_prefixes;
+
+    const computedSubjectAnalysis = extractSubjectAnalysis(
+      allFiles,
+      userNSubjects,
+      dominantPrefixes
+    );
+    setSubjectAnalysis(computedSubjectAnalysis);
+
     const fileSummary = buildFileSummary(files);
     const filePatterns = analyzeFilePatterns(files);
     const userContext = getUserContext(files);
-    const subjectInfo = extractSubjectsFromFiles(files);
+    // const subjectInfo = extractSubjectsFromFiles(files);
+    const subjectInfo = computedSubjectAnalysis;
     const sampleFiles =
       evidenceBundle?.samples
         ?.slice(0, 10)
         .map((s: any) => `  - ${s.relpath}`)
         .join("\n") || "";
 
-    console.log("=== SAMPLE FILES ===");
-    console.log(sampleFiles);
-    console.log("=== COUNTS BY EXT ===");
-    console.log(evidenceBundle?.counts_by_ext);
+    // console.log("=== SAMPLE FILES ===");
+    // console.log(sampleFiles);
+    // console.log("=== COUNTS BY EXT ===");
+    // console.log(evidenceBundle?.counts_by_ext);
 
     const prompt = getBIDSPlanPrompt(
       fileSummary,
       filePatterns,
       userContext,
-      subjectInfo,
+      {
+        subjects: Object.entries(
+          computedSubjectAnalysis.id_mapping.id_mapping
+        ).map(([originalId, bidsId]) => ({ originalId, bidsId })),
+        strategy: computedSubjectAnalysis.id_mapping.strategy_used,
+      },
       evidenceBundle?.counts_by_ext || {},
       sampleFiles,
       evidenceBundle
@@ -844,17 +918,26 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     );
     zip.file(
       "_staging/subject_analysis.json",
-      JSON.stringify(evidenceBundle.subject_analysis, null, 2)
+      JSON.stringify(subjectAnalysis, null, 2) // ← was evidenceBundle.subject_analysis
     );
     // trio files (get content from the AI-generated FileItems)
     const dd = files.find(
-      (f) => f.source === "ai" && f.name === "dataset_description.json"
+      (f) =>
+        (f.source === "ai" || f.source === "user") &&
+        f.name === "dataset_description.json"
     );
     const readme = files.find(
-      (f) => f.source === "ai" && f.name === "README.md"
+      (f) =>
+        (f.source === "ai" || f.source === "user") &&
+        (f.name === "README.md" ||
+          f.name === "README.txt" ||
+          f.name === "README.rst" ||
+          f.name === "readme.md")
     );
     const participants = files.find(
-      (f) => f.source === "ai" && f.name === "participants.tsv"
+      (f) =>
+        (f.source === "ai" || f.source === "user") &&
+        f.name === "participants.tsv"
     );
 
     if (dd?.content) zip.file("dataset_description.json", dd.content);
@@ -936,13 +1019,14 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         generatedAt: timestamp,
       });
 
-      if (evidenceBundle.subject_analysis) {
+      if (subjectAnalysis) {
+        // ← was evidenceBundle.subject_analysis
         outputFiles.push({
           id: generateId(),
           name: "subject_analysis.json",
           type: "file",
           fileType: "text",
-          content: JSON.stringify(evidenceBundle.subject_analysis, null, 2),
+          content: JSON.stringify(subjectAnalysis, null, 2), // ← was evidenceBundle.subject_analysis
           parentId: stagingFolderId, // ← inside _staging
           source: "output",
           generatedAt: timestamp,
@@ -951,13 +1035,22 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     }
     // Trio files at root level (outside _staging)
     const dd = files.find(
-      (f) => f.source === "ai" && f.name === "dataset_description.json"
+      (f) =>
+        (f.source === "ai" || f.source === "user") &&
+        f.name === "dataset_description.json"
     );
     const readme = files.find(
-      (f) => f.source === "ai" && f.name === "README.md"
+      (f) =>
+        (f.source === "ai" || f.source === "user") &&
+        (f.name === "README.md" ||
+          f.name === "README.txt" ||
+          f.name === "README.rst" ||
+          f.name === "readme.md")
     );
     const participants = files.find(
-      (f) => f.source === "ai" && f.name === "participants.tsv"
+      (f) =>
+        (f.source === "ai" || f.source === "user") &&
+        f.name === "participants.tsv"
     );
 
     [dd, readme, participants].forEach((f) => {
@@ -1220,6 +1313,59 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             </Typography>
 
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              <TextField
+                label="Number of subjects (required)*"
+                placeholder="e.g. 2"
+                value={nSubjects}
+                onChange={(e) => {
+                  setNSubjects(e.target.value);
+                  setNSubjectsError(false);
+                }}
+                type="number"
+                size="small"
+                error={nSubjectsError}
+                helperText={nSubjectsError ? "Required" : ""}
+                inputProps={{ min: 1 }}
+                sx={{ mb: 1 }}
+              />
+
+              <FormControl size="small" error={modalityError} sx={{ mb: 1 }}>
+                <InputLabel>Modality (required)*</InputLabel>
+                <Select
+                  value={modalityHint}
+                  onChange={(e) => {
+                    setModalityHint(e.target.value);
+                    setModalityError(false);
+                  }}
+                  label="Modality (required)*"
+                >
+                  <MenuItem value="">
+                    <em>Select modality</em>
+                  </MenuItem>
+                  <MenuItem value="mri">MRI</MenuItem>
+                  <MenuItem value="nirs">NIRS</MenuItem>
+                  <MenuItem value="mixed">Mixed</MenuItem>
+                </Select>
+                {modalityError && (
+                  <Typography
+                    variant="caption"
+                    color="error"
+                    sx={{ mt: 0.5, ml: 1.5 }}
+                  >
+                    Required
+                  </Typography>
+                )}
+              </FormControl>
+
+              {/* <TextField
+                label="Describe your dataset (optional)"
+                placeholder='e.g. "DICOM files from 2 subjects, one male one female"'
+                value={describeText}
+                onChange={(e) => setDescribeText(e.target.value)}
+                size="small"
+                multiline
+                rows={2}
+              /> */}
               <Button
                 fullWidth
                 size="small"
