@@ -4,6 +4,7 @@ import Routes from "components/Routes";
 import theme from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useGAPageviews } from "hooks/useGAPageviews";
+import { useSessionPoller } from "hooks/useSessionPoller";
 import { useEffect, useState } from "react";
 import React from "react";
 import { BrowserRouter, useLocation } from "react-router-dom";
@@ -26,6 +27,7 @@ function AuthHandler() {
   const navigate = useNavigate();
   const hasProcessedOAuthRef = React.useRef(false);
 
+  useSessionPoller();
   // Handle browser back/forward navigation
   useEffect(() => {
     const handlePopState = () => {

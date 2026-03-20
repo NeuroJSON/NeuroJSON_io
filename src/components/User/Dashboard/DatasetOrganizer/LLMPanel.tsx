@@ -18,7 +18,13 @@ import {
   getConversionScriptPrompt,
   getBIDSPlanPrompt,
 } from "./utils/llmPrompts";
-import { Close, ContentCopy, Download, AutoAwesome } from "@mui/icons-material";
+import {
+  Close,
+  ContentCopy,
+  Download,
+  AutoAwesome,
+  DriveFileMove,
+} from "@mui/icons-material";
 import {
   Box,
   Paper,
@@ -1427,7 +1433,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                   ? "✓  2. Generate BIDS Trio"
                   : "2. Generate BIDS Trio"}
               </Button>
-              <Typography
+              {/* <Typography
                 variant="body2"
                 sx={{
                   textAlign: "left",
@@ -1436,7 +1442,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 }}
               >
                 Ready to Generate Script ↓
-              </Typography>
+              </Typography> */}
             </Box>
           </Box>
 
@@ -1456,7 +1462,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               "&.Mui-disabled": { background: "#e0e0e0", color: "#9e9e9e" },
             }}
           >
-            {loading ? "Generating..." : "3a. Generate BIDSPlan.yaml"}
+            {loading ? "Generating..." : "3. Generate BIDSPlan.yaml"}
           </Button>
 
           {/* <Button
@@ -1531,7 +1537,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             >
               Copy
             </Button>
-            <Button
+            {/* <Button
               size="small"
               startIcon={<Download />}
               // onClick={handleDownload}
@@ -1539,9 +1545,8 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               onClick={bidsPlan ? handleDownloadPlan : handleDownload}
               disabled={!bidsPlan && !generatedScript}
             >
-              {/* Download */}
               {bidsPlan ? "Download BIDSPlan.yaml" : "Download Script"}
-            </Button>
+            </Button> */}
             <Button
               size="small"
               startIcon={<Download />}
@@ -1553,13 +1558,12 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             </Button>
             <Button
               size="small"
-              startIcon={<Download />}
+              startIcon={<DriveFileMove />}
               onClick={handleSaveZip}
               disabled={!bidsPlan || !trioGenerated}
               sx={{ color: Colors.darkGreen, borderColor: Colors.darkGreen }}
-              variant="outlined"
             >
-              💾 Save to VFS
+              Save to Virtual File System
             </Button>
           </Box>
 

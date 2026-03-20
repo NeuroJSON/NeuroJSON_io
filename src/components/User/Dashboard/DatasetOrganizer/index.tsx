@@ -281,9 +281,9 @@ const DatasetOrganizer: React.FC = () => {
               },
             }}
           >
-            Generate BIDS Script
+            Generate BIDS Plan
           </Button>
-          <Button
+          {/* <Button
             variant="contained"
             startIcon={<GetApp />}
             onClick={handleExportJSON}
@@ -298,7 +298,7 @@ const DatasetOrganizer: React.FC = () => {
             }}
           >
             Export JSON
-          </Button>
+          </Button> */}
           <Button
             variant="contained"
             startIcon={<Save />}
