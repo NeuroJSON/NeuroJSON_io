@@ -43,6 +43,7 @@ import { Colors } from "design/theme";
 import JSZip from "jszip";
 import React, { useState, useEffect } from "react";
 import { FileItem } from "redux/projects/types/projects.interface";
+import { OllamaService } from "services/ollama.service";
 
 interface LLMPanelProps {
   files: FileItem[];
@@ -70,12 +71,14 @@ const llmProviders: Record<string, LLMProvider> = {
     name: "Ollama (Local Server)",
     baseUrl: "http://localhost:11434/v1/chat/completions",
     models: [
-      { id: "qwen3-coder:30b", name: "Qwen 3 Coder" },
-      { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder" },
-      { id: "codellama:latest", name: "Code Llama" },
-      { id: "llama3.1:latest", name: "Llama 3.1" },
-      { id: "mistral:latest", name: "Mistral" },
-      { id: "deepseek-coder:latest", name: "DeepSeek Coder" },
+      { id: "qwen3-coder-next:latest", name: "Qwen 3 Coder Next" }, // ← add
+      { id: "qwen3-coder-careful:latest", name: "Qwen 3 Coder Careful" }, // ← add
+      // { id: "qwen3-coder:30b", name: "Qwen 3 Coder" },
+      // { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder" },
+      // { id: "codellama:latest", name: "Code Llama" },
+      // { id: "llama3.1:latest", name: "Llama 3.1" },
+      // { id: "mistral:latest", name: "Mistral" },
+      // { id: "deepseek-coder:latest", name: "DeepSeek Coder" },
     ],
     noApiKey: true,
     customUrl: true,
@@ -133,9 +136,9 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
 }) => {
   const [provider, setProvider] = useState<string>("ollama");
   const [model, setModel] = useState<string>("qwen3-coder:30b");
-  const [ollamaUrl, setOllamaUrl] = useState<string>(
-    "http://huo.neu.edu:11434"
-  );
+  // const [ollamaUrl, setOllamaUrl] = useState<string>(
+  //   "http://jin.neu.edu:11434"
+  // );
   const [apiKey, setApiKey] = useState<string>("");
   const [generatedScript, setGeneratedScript] = useState<string>("");
   const [bidsPlan, setBidsPlan] = useState<string>(""); // add bids plan
@@ -247,16 +250,20 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             }),
           });
         } else if (provider === "ollama") {
-          const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-          ddResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-            method: "POST",
-            signal: controller.signal,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model,
-              messages: [{ role: "user", content: ddPrompt }],
-            }),
-          });
+          // const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+          // ddResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+          //   method: "POST",
+          //   signal: controller.signal,
+          //   headers: { "Content-Type": "application/json" },
+          //   body: JSON.stringify({
+          //     model,
+          //     messages: [{ role: "user", content: ddPrompt }],
+          //     stream: false,
+          //   }),
+          // });
+          ddResponse = await OllamaService.chat(model, [
+            { role: "user", content: ddPrompt },
+          ]);
         } else {
           ddResponse = await fetch(currentProvider.baseUrl, {
             method: "POST",
@@ -273,7 +280,9 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           });
         }
 
-        const ddData = await ddResponse.json();
+        // const ddData = await ddResponse.json();
+        const ddData =
+          provider === "ollama" ? ddResponse : await ddResponse.json();
         let ddText = currentProvider.isAnthropic
           ? ddData.content[0].text
           : ddData.choices[0].message.content;
@@ -321,16 +330,20 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             }),
           });
         } else if (provider === "ollama") {
-          const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-          readmeResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-            method: "POST",
-            signal: controller.signal,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model,
-              messages: [{ role: "user", content: readmePrompt }],
-            }),
-          });
+          // const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+          // readmeResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+          //   method: "POST",
+          //   signal: controller.signal,
+          //   headers: { "Content-Type": "application/json" },
+          //   body: JSON.stringify({
+          //     model,
+          //     messages: [{ role: "user", content: readmePrompt }],
+          //     stream: false,
+          //   }),
+          // });
+          readmeResponse = await OllamaService.chat(model, [
+            { role: "user", content: readmePrompt },
+          ]);
         } else {
           readmeResponse = await fetch(currentProvider.baseUrl, {
             method: "POST",
@@ -347,7 +360,9 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           });
         }
 
-        const readmeData = await readmeResponse.json();
+        // const readmeData = await readmeResponse.json();
+        const readmeData =
+          provider === "ollama" ? readmeResponse : await readmeResponse.json();
         readmeContent = currentProvider.isAnthropic
           ? readmeData.content[0].text
           : readmeData.choices[0].message.content;
@@ -383,16 +398,20 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             }),
           });
         } else if (provider === "ollama") {
-          const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-          partsResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-            method: "POST",
-            signal: controller.signal,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model,
-              messages: [{ role: "user", content: partsPrompt }],
-            }),
-          });
+          // const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+          // partsResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+          //   method: "POST",
+          //   signal: controller.signal,
+          //   headers: { "Content-Type": "application/json" },
+          //   body: JSON.stringify({
+          //     model,
+          //     messages: [{ role: "user", content: partsPrompt }],
+          //     stream: false,
+          //   }),
+          // });
+          partsResponse = await OllamaService.chat(model, [
+            { role: "user", content: partsPrompt },
+          ]);
         } else {
           partsResponse = await fetch(currentProvider.baseUrl, {
             method: "POST",
@@ -409,7 +428,9 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           });
         }
 
-        const partsData = await partsResponse.json();
+        // const partsData = await partsResponse.json();
+        const partsData =
+          provider === "ollama" ? partsResponse : await partsResponse.json();
         const participantsRaw = currentProvider.isAnthropic
           ? partsData.content[0].text
           : partsData.choices[0].message.content;
@@ -631,26 +652,34 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       let response;
 
       if (provider === "ollama") {
-        const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-        response = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-          method: "POST",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
+        // const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+        // response = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+        //   method: "POST",
+        //   signal: controller.signal,
+        //   headers: {
+        //     "Content-Type": "application/json",
+        //   },
+        //   body: JSON.stringify({
+        //     model,
+        //     messages: [
+        //       {
+        //         role: "system",
+        //         content:
+        //           "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code without markdown fences or explanations.",
+        //       },
+        //       { role: "user", content: prompt },
+        //     ],
+        //     stream: false,
+        //   }),
+        // });
+        response = await OllamaService.chat(model, [
+          {
+            role: "system",
+            content:
+              "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code without markdown fences or explanations.",
           },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code without markdown fences or explanations.",
-              },
-              { role: "user", content: prompt },
-            ],
-            stream: false,
-          }),
-        });
+          { role: "user", content: prompt },
+        ]);
       } else if (currentProvider.isAnthropic) {
         response = await fetch(currentProvider.baseUrl, {
           method: "POST",
@@ -695,18 +724,25 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         });
       }
 
-      const data = await response.json();
+      // const data = await response.json();
+      const data = provider === "ollama" ? response : await response.json();
 
-      if (!response.ok) {
+      // if (!response.ok) {
+      //   throw new Error(data.error?.message || "Failed to generate script");
+      // }
+      if (!response.ok && provider !== "ollama") {
         throw new Error(data.error?.message || "Failed to generate script");
       }
 
-      let script = "";
-      if (currentProvider.isAnthropic) {
-        script = data.content[0].text;
-      } else {
-        script = data.choices[0].message.content;
-      }
+      // let script = "";
+      // if (currentProvider.isAnthropic) {
+      //   script = data.content[0].text;
+      // } else {
+      //   script = data.choices[0].message.content;
+      // }
+      let script = currentProvider.isAnthropic
+        ? data.content[0].text
+        : data.choices[0].message.content;
 
       // Clean up markdown fences if AI included them anyway
       script = script.replace(/^```python\n?/g, "").replace(/\n?```$/g, "");
@@ -790,24 +826,32 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       let response;
 
       if (provider === "ollama") {
-        const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-        response = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-          method: "POST",
-          signal: controller.signal,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You are a BIDS dataset architect. Output only valid YAML without markdown fences or explanations.",
-              },
-              { role: "user", content: prompt },
-            ],
-            stream: false,
-          }),
-        });
+        // const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
+        // response = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
+        //   method: "POST",
+        //   signal: controller.signal,
+        //   headers: { "Content-Type": "application/json" },
+        //   body: JSON.stringify({
+        //     model,
+        //     messages: [
+        //       {
+        //         role: "system",
+        //         content:
+        //           "You are a BIDS dataset architect. Output only valid YAML without markdown fences or explanations.",
+        //       },
+        //       { role: "user", content: prompt },
+        //     ],
+        //     stream: false,
+        //   }),
+        // });
+        response = await OllamaService.chat(model, [
+          {
+            role: "system",
+            content:
+              "You are a BIDS dataset architect. Output only valid YAML without markdown fences or explanations.",
+          },
+          { role: "user", content: prompt },
+        ]);
       } else if (currentProvider.isAnthropic) {
         response = await fetch(currentProvider.baseUrl, {
           method: "POST",
@@ -847,8 +891,13 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         });
       }
 
-      const data = await response.json();
-      if (!response.ok) {
+      // const data = await response.json();
+
+      // if (!response.ok) {
+      //   throw new Error(data.error?.message || "Failed to generate BIDSPlan");
+      // }
+      const data = provider === "ollama" ? response : await response.json();
+      if (!response.ok && provider !== "ollama") {
         throw new Error(data.error?.message || "Failed to generate BIDSPlan");
       }
 
@@ -1267,7 +1316,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           </FormControl>
 
           {/* Ollama Server URL field */}
-          {provider === "ollama" && (
+          {/* {provider === "ollama" && (
             <TextField
               fullWidth
               label="Ollama Server URL"
@@ -1276,7 +1325,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               placeholder="http://localhost:11434"
               sx={{ mb: 2 }}
             />
-          )}
+          )} */}
           {/* Base Directory Path field (shows for ALL providers) */}
           <TextField
             fullWidth

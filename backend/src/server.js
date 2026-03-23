@@ -13,6 +13,7 @@ const dbsRoutes = require("./routes/dbs.routes");
 const datasetsRoutes = require("./routes/datasets.routes");
 const collectionRoutes = require("./routes/collection.route");
 const projectRoutes = require("./routes/projects.routes");
+const ollamaRoutes = require("./routes/ollama.routes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -49,6 +50,7 @@ app.use("/api/v1/dbs", dbsRoutes);
 app.use("/api/v1/datasets", datasetsRoutes);
 app.use("/api/v1/collections", collectionRoutes);
 app.use("/api/v1/projects", projectRoutes);
+app.use("/api/v1/ollama", ollamaRoutes);
 
 // health check endpoint
 app.get("/api/health", async (req, res) => {
