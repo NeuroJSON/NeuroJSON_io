@@ -63,25 +63,23 @@ interface LLMProvider {
   models: Array<{ id: string; name: string }>;
   noApiKey?: boolean;
   isAnthropic?: boolean;
-  customUrl?: boolean;
+  // customUrl?: boolean;
 }
 
 const llmProviders: Record<string, LLMProvider> = {
   ollama: {
     name: "Ollama (Local Server)",
-    baseUrl: "http://localhost:11434/v1/chat/completions",
+    // baseUrl: "http://localhost:11434/v1/chat/completions",
+    baseUrl: "",
     models: [
-      { id: "qwen3-coder-next:latest", name: "Qwen 3 Coder Next" }, // ← add
-      { id: "qwen3-coder-careful:latest", name: "Qwen 3 Coder Careful" }, // ← add
-      // { id: "qwen3-coder:30b", name: "Qwen 3 Coder" },
-      // { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder" },
-      // { id: "codellama:latest", name: "Code Llama" },
-      // { id: "llama3.1:latest", name: "Llama 3.1" },
-      // { id: "mistral:latest", name: "Mistral" },
-      // { id: "deepseek-coder:latest", name: "DeepSeek Coder" },
+      { id: "qwen3-coder-next:latest", name: "Qwen 3 Coder Next" },
+      { id: "qwen3-coder-careful:latest", name: "Qwen 3 Coder Careful" },
+      { id: "qwen3.5:9b", name: "Qwen 3.5 9B" },
+      { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder (7.6B)" },
+      { id: "qwen2.5-coder:7b", name: "Qwen 2.5 Coder 7B" },
     ],
     noApiKey: true,
-    customUrl: true,
+    // customUrl: true,
   },
   groq: {
     name: "Groq (Free API Key - 14,400 req/day)",
@@ -135,7 +133,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   onClose,
 }) => {
   const [provider, setProvider] = useState<string>("ollama");
-  const [model, setModel] = useState<string>("qwen3-coder:30b");
+  const [model, setModel] = useState<string>("qwen3-coder-next:latest");
   // const [ollamaUrl, setOllamaUrl] = useState<string>(
   //   "http://jin.neu.edu:11434"
   // );
@@ -238,6 +236,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         if (currentProvider.isAnthropic) {
           ddResponse = await fetch(currentProvider.baseUrl, {
             method: "POST",
+            signal: controller.signal,
             headers: {
               "Content-Type": "application/json",
               "x-api-key": apiKey,
