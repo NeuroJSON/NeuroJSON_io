@@ -150,10 +150,10 @@ const register = async (req, res) => {
         username: user.username,
         email: user.email,
         email_verified: user.email_verified,
-        firstName: user.first_name, // NEW
-        lastName: user.last_name, // NEW
-        company: user.company, // NEW
-        interests: user.interests, // NEW
+        firstName: user.first_name,
+        lastName: user.last_name,
+        company: user.company,
+        interests: user.interests,
       },
     });
   } catch (error) {
@@ -354,7 +354,7 @@ const resendVerificationEmail = async (req, res) => {
   }
 };
 
-// NEW: Complete profile for OAuth users
+// Complete profile for OAuth users
 const completeProfile = async (req, res) => {
   try {
     const { token, firstName, lastName, company, interests } = req.body;
@@ -595,6 +595,75 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// Update user profile
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { firstName, lastName, company, interests } = req.body;
+
+    // Validate input
+    if (!firstName || !lastName || !company) {
+      return res.status(400).json({
+        message: "First name, last name, and company/institution are required",
+      });
+    }
+
+    // Validate field lengths
+    if (firstName.trim().length < 1 || firstName.trim().length > 255) {
+      return res.status(400).json({
+        message: "First name must be between 1 and 255 characters",
+      });
+    }
+    if (lastName.trim().length < 1 || lastName.trim().length > 255) {
+      return res.status(400).json({
+        message: "Last name must be between 1 and 255 characters",
+      });
+    }
+    if (company.trim().length < 1 || company.trim().length > 255) {
+      return res.status(400).json({
+        message: "Company/institution must be between 1 and 255 characters",
+      });
+    }
+
+    // Find user
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update profile
+    user.first_name = firstName.trim();
+    user.last_name = lastName.trim();
+    user.company = company.trim();
+    user.interests = interests ? interests.trim() : null;
+    await user.save();
+
+    res.json({
+      message: "Profile updated successfully",
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        email_verified: user.email_verified,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        company: user.company,
+        interests: user.interests,
+        isOAuthUser: !!(user.google_id || user.orcid_id || user.github_id),
+        hasPassword: !!user.hashed_password,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
+      },
+    });
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({
+      message: "Error updating profile",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -603,6 +672,7 @@ module.exports = {
   resendVerificationEmail,
   completeProfile,
   changePassword,
-  forgotPassword, // New
+  forgotPassword,
   resetPassword,
+  updateProfile,
 };

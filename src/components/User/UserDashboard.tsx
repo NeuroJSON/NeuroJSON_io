@@ -1,6 +1,17 @@
+import CollectionsTab from "./Dashboard/CollectionsTab";
 import ProfileTab from "./Dashboard/ProfileTab";
+import ProjectsTab from "./Dashboard/ProjectsTab";
+import SavedDatasetsTab from "./Dashboard/SavedDatasetsTab";
 import SecurityTab from "./Dashboard/SecurityTab";
-import { AccountCircle, Lock, Settings } from "@mui/icons-material";
+import LikedDatasetsTab from "./Dashboard/likedDatasetsTab";
+import {
+  AccountCircle,
+  Lock,
+  Settings,
+  Bookmark,
+  Favorite,
+  FolderOpen,
+} from "@mui/icons-material";
 import {
   Box,
   Container,
@@ -96,6 +107,8 @@ const UserDashboard: React.FC = () => {
           value={tabValue}
           onChange={handleTabChange}
           aria-label="dashboard tabs"
+          variant="scrollable"
+          scrollButtons="auto"
           sx={{
             borderBottom: 1,
             borderColor: "divider",
@@ -123,6 +136,24 @@ const UserDashboard: React.FC = () => {
             aria-controls="dashboard-tabpanel-1"
           />
           <Tab
+            icon={<Bookmark />}
+            label="Collections"
+            id="dashboard-tab-2"
+            aria-controls="dashboard-tabpanel-2"
+          />
+          <Tab
+            icon={<Favorite />}
+            label="Liked"
+            id="dashboard-tab-3"
+            aria-controls="dashboard-tabpanel-3"
+          />
+          <Tab
+            icon={<FolderOpen />}
+            label="Projects"
+            id="dashboard-tab-3"
+            aria-controls="dashboard-tabpanel-3"
+          />
+          <Tab
             icon={<Settings />}
             label="Settings"
             id="dashboard-tab-2"
@@ -135,6 +166,15 @@ const UserDashboard: React.FC = () => {
         </TabPanel>
         <TabPanel value={tabValue} index={1}>
           <SecurityTab user={user} />
+        </TabPanel>
+        <TabPanel value={tabValue} index={2}>
+          <CollectionsTab userId={user.id} />
+        </TabPanel>
+        <TabPanel value={tabValue} index={3}>
+          <LikedDatasetsTab userId={user.id} />
+        </TabPanel>
+        <TabPanel value={tabValue} index={4}>
+          <ProjectsTab userId={user.id} />
         </TabPanel>
       </Paper>
     </Container>

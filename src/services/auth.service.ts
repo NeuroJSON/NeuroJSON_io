@@ -10,6 +10,8 @@ import {
   ForgotPasswordResponse,
   ResetPasswordData,
   ResetPasswordResponse,
+  UpdateProfileData,
+  UpdateProfileResponse,
 } from "redux/auth/types/auth.interface";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
@@ -146,5 +148,25 @@ export const AuthService = {
     }
 
     return responseData;
+  },
+  updateProfile: async (
+    profileData: UpdateProfileData
+  ): Promise<UpdateProfileResponse> => {
+    const response = await fetch(`${API_URL}/auth/update-profile`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(profileData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to update profile");
+    }
+
+    return data;
   },
 };
