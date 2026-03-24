@@ -276,7 +276,13 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const copyTimer = useRef<number | null>(null);
-  const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
+  // const aiSummary = datasetDocument?.[".datainfo"]?.AISummary ?? "";
+  const rawSummary = datasetDocument?.[".datainfo"]?.AISummary;
+  const aiSummary: string = !rawSummary
+    ? ""
+    : typeof rawSummary === "string"
+    ? rawSummary
+    : Object.values(rawSummary).filter(Boolean).join("\n\n");
   const readme = datasetDocument?.["README"] ?? "";
   const handleSelectRevision = (newRev?: string | null) => {
     setSearchParams((prev) => {
