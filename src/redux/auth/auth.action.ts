@@ -4,6 +4,7 @@ import {
   ChangePasswordData,
   ForgotPasswordData,
   ResetPasswordData,
+  UpdateProfileData,
 } from "./types/auth.interface";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { AuthService } from "services/auth.service";
@@ -93,6 +94,18 @@ export const resetPassword = createAsyncThunk(
       return response;
     } catch (error: any) {
       return rejectWithValue(error.message || "Failed to reset password");
+    }
+  }
+);
+
+export const updateProfile = createAsyncThunk(
+  "auth/updateProfile",
+  async (profileData: UpdateProfileData, { rejectWithValue }) => {
+    try {
+      const response = await AuthService.updateProfile(profileData);
+      return response.user;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to update profile");
     }
   }
 );

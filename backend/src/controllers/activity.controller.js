@@ -383,6 +383,177 @@ const getMostViewedDatasets = async (req, res) => {
   }
 };
 
+// get dataset statistics (views count and likes count)
+const getDatasetStats = async (req, res) => {
+  try {
+    const { dbName, datasetId } = req.params;
+
+    const dataset = await Dataset.findOne({
+      where: { couch_db: dbName, ds_id: datasetId },
+      attributes: ["id", "couch_db", "ds_id", "views_count"],
+    });
+
+    if (!dataset) {
+      return res.status(200).json({
+        viewsCount: 0,
+        likesCount: 0,
+        dataset: null,
+      });
+    }
+
+    // Count how many users liked this dataset
+    const likesCount = await DatasetLike.count({
+      where: { dataset_id: dataset.id },
+    });
+
+    res.status(200).json({
+      viewsCount: dataset.views_count,
+      likesCount: likesCount,
+      dataset: {
+        id: dataset.id,
+        couch_db: dataset.couch_db,
+        ds_id: dataset.ds_id,
+        views_count: dataset.views_count,
+        likes_count: likesCount,
+      },
+    });
+  } catch (error) {
+    console.error("Get dataset stats error:", error);
+    res.status(500).json({
+      message: "Error fetching dataset statistics",
+      error: error.message,
+    });
+  }
+};
+
+// check user activity
+const checkUserActivity = async (req, res) => {
+  try {
+    const user = req.user;
+    const { dbName, datasetId } = req.params;
+
+    // If user is not authenticated, return false for both
+    if (!user) {
+      return res.status(200).json({
+        isLiked: false,
+        isSaved: false,
+      });
+    }
+
+    // Find dataset
+    const dataset = await Dataset.findOne({
+      where: { couch_db: dbName, ds_id: datasetId },
+    });
+
+    // If dataset doesn't exist yet, user hasn't liked or saved it
+    if (!dataset) {
+      return res.status(200).json({
+        isLiked: false,
+        isSaved: false,
+      });
+    }
+
+    // Check if user has liked this dataset
+    const like = await DatasetLike.findOne({
+      where: { user_id: user.id, dataset_id: dataset.id },
+    });
+
+    // Check if user has saved this dataset
+    const save = await SavedDataset.findOne({
+      where: { user_id: user.id, dataset_id: dataset.id },
+    });
+
+    res.status(200).json({
+      isLiked: !!like,
+      isSaved: !!save,
+    });
+  } catch (error) {
+    console.error("Check user activity error:", error);
+    res.status(500).json({
+      message: "Error checking user activity",
+      error: error.message,
+    });
+  }
+};
+
+// Get user's saved datasets
+const getUserSavedDatasets = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const savedDatasets = await SavedDataset.findAll({
+      where: { user_id: userId },
+      include: [
+        {
+          model: Dataset,
+          attributes: ["id", "couch_db", "ds_id", "views_count"],
+        },
+      ],
+      order: [["created_at", "DESC"]], // Most recently saved first
+      attributes: ["id", "created_at"],
+    });
+
+    // Transform the data for frontend
+    const datasets = savedDatasets.map((saved) => ({
+      id: saved.Dataset.id,
+      couch_db: saved.Dataset.couch_db,
+      ds_id: saved.Dataset.ds_id,
+      views_count: saved.Dataset.views_count,
+      saved_at: saved.created_at,
+    }));
+
+    res.status(200).json({
+      savedDatasets: datasets,
+      count: datasets.length,
+    });
+  } catch (error) {
+    console.error("Get saved datasets error:", error);
+    res.status(500).json({
+      message: "Error fetching saved datasets",
+      error: error.message,
+    });
+  }
+};
+
+// Get user's liked datasets
+const getUserLikedDatasets = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const likedDatasets = await DatasetLike.findAll({
+      where: { user_id: userId },
+      include: [
+        {
+          model: Dataset,
+          attributes: ["id", "couch_db", "ds_id", "views_count"],
+        },
+      ],
+      order: [["created_at", "DESC"]], // Most recently liked first
+      attributes: ["id", "created_at"],
+    });
+
+    // Transform the data for frontend
+    const datasets = likedDatasets.map((like) => ({
+      id: like.Dataset.id,
+      couch_db: like.Dataset.couch_db,
+      ds_id: like.Dataset.ds_id,
+      views_count: like.Dataset.views_count,
+      liked_at: like.created_at,
+    }));
+
+    res.status(200).json({
+      likedDatasets: datasets,
+      count: datasets.length,
+    });
+  } catch (error) {
+    console.error("Get liked datasets error:", error);
+    res.status(500).json({
+      message: "Error fetching liked datasets",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   likeDataset,
   unlikeDataset,
@@ -394,4 +565,8 @@ module.exports = {
   deleteComment,
   trackView,
   getMostViewedDatasets,
+  getDatasetStats,
+  checkUserActivity,
+  getUserSavedDatasets,
+  getUserLikedDatasets,
 };

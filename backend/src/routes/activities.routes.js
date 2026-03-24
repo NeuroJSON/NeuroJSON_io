@@ -11,6 +11,10 @@ const {
   deleteComment,
   trackView,
   getMostViewedDatasets,
+  getDatasetStats,
+  checkUserActivity,
+  getUserLikedDatasets,
+  getUserSavedDatasets,
 } = require("../controllers/activity.controller");
 const { restoreUser, requireAuth } = require("../middleware/auth.middleware");
 
@@ -36,5 +40,14 @@ router.delete("/comments/:commentId", requireAuth, deleteComment);
 // View tracking
 router.post("/datasets/:dbName/:datasetId/views", trackView); // Public
 router.get("/datasets/most-viewed", getMostViewedDatasets); // Public
+
+// Dataset statistics (views count, likes count)
+router.get("/datasets/:dbName/:datasetId/stats", getDatasetStats); // Public
+// Check user activity (isLiked or isSaved)
+router.get("/datasets/:dbName/:datasetId/user-activity", checkUserActivity);
+
+// User's collections
+router.get("/users/me/saved-datasets", requireAuth, getUserSavedDatasets);
+router.get("/users/me/liked-datasets", requireAuth, getUserLikedDatasets);
 
 module.exports = router;

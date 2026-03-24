@@ -2,6 +2,9 @@ const { DataTypes, Model } = require("sequelize");
 const { sequelize } = require("../config/database");
 const User = require("../models/User");
 const Dataset = require("../models/Dataset");
+const Collection = require("../models/Collection");
+const CollectionDataset = require("../models/CollectionDataset");
+const Project = require("../models/Project");
 
 // DatasetLike Model
 class DatasetLike extends Model {}
@@ -197,6 +200,34 @@ Comment.belongsTo(Dataset, { foreignKey: "dataset_id" });
 Dataset.hasMany(ViewHistory, { foreignKey: "dataset_id", as: "viewHistory" });
 ViewHistory.belongsTo(Dataset, { foreignKey: "dataset_id" });
 
+// NEW: Collection Associations
+User.hasMany(Collection, { foreignKey: "user_id", as: "collections" });
+Collection.belongsTo(User, { foreignKey: "user_id" });
+
+Collection.belongsToMany(Dataset, {
+  through: CollectionDataset,
+  foreignKey: "collection_id",
+  otherKey: "dataset_id",
+  as: "datasets",
+});
+
+Dataset.belongsToMany(Collection, {
+  through: CollectionDataset,
+  foreignKey: "dataset_id",
+  otherKey: "collection_id",
+  as: "collections",
+});
+
+CollectionDataset.belongsTo(Collection, { foreignKey: "collection_id" });
+Collection.hasMany(CollectionDataset, { foreignKey: "collection_id" });
+
+CollectionDataset.belongsTo(Dataset, { foreignKey: "dataset_id" });
+Dataset.hasMany(CollectionDataset, { foreignKey: "dataset_id" });
+
+// NEW: Project Associations
+User.hasMany(Project, { foreignKey: "user_id", as: "projects" });
+Project.belongsTo(User, { foreignKey: "user_id" });
+
 module.exports = {
   User,
   Dataset,
@@ -204,4 +235,7 @@ module.exports = {
   SavedDataset,
   Comment,
   ViewHistory,
+  Collection,
+  CollectionDataset,
+  Project,
 };

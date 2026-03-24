@@ -31,13 +31,18 @@
     "bjd": "^0.3.2",
     "buffer": "6.0.3",
     "dayjs": "^1.11.10",
+    "dicom-parser": "^1.8.21",
     "jquery": "^3.7.1",
+    "jsfive": "^0.4.0",
     "json-stringify-safe": "^5.0.1",
+    "jszip": "^3.10.1",
     "jwt-decode": "^3.1.2",
     "lzma": "^2.3.2",
+    "mammoth": "^1.11.0",
     "numjs": "^0.16.1",
     "pako": "1.0.11",
     "path-browserify": "^1.0.1",
+    "pdfjs-dist": "3.4.120",
     "query-string": "^8.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -52,7 +57,8 @@
     "three": "0.145.0",
     "typescript": "^5.1.6",
     "uplot": "1.6.17",
-    "web-vitals": "^2.1.0"
+    "web-vitals": "^2.1.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
