@@ -7,6 +7,7 @@ export interface SubjectRecord {
   site: string | null;
   pattern_name: string;
   file_count: number;
+  group?: string;
 }
 
 export interface SubjectAnalysis {
@@ -359,14 +360,52 @@ const extractNumericIdFromIdentifier = (identifier: string): string | null => {
 
 // ── Step 1: Directory structure patterns
 // Mirrors _extract_subjects_from_directory_structure() in planner.py
+const SKIP_DIRS = new Set([
+  "anat",
+  "func",
+  "dwi",
+  "fmap",
+  "nirs",
+  "meg",
+  "eeg",
+  "beh",
+  "perf",
+  "derivatives",
+  "sourcedata",
+  "stimuli",
+  "walking",
+  "resting",
+  "resting_state",
+  "run",
+  "ses",
+  "pd",
+  "control",
+  "hc",
+  "task",
+  "sub",
+  "dataset",
+  "data",
+  "raw",
+  "bids",
+  "output",
+  "outputs",
+  "staging",
+  "_staging",
+  "mri",
+  "fnirs",
+  "edf",
+  "dicom",
+]);
+
 const extractFromDirectoryStructure = (
   allFiles: string[]
 ): Omit<SubjectAnalysis, "id_mapping"> | null => {
   const patterns: Array<[RegExp, boolean, number, number | null, string]> = [
-    [/^([A-Za-z]+)_sub(\d+)$/i, true, 2, 1, "site_prefixed"],
-    [/^sub-(\w+)$/, false, 1, null, "standard_bids"], // directory named sub-01
-    [/^subject[_-]?(\d+)$/i, false, 1, null, "simple"],
-    [/^\d{3,}$/, false, 1, null, "numeric_only"], // directory named 001
+    [/^([A-Za-z]+)_sub(\d+)$/i, true, 2, 1, "site_prefixed"], // Beijing_sub82352
+    [/^sub-(\w+)$/, false, 1, null, "standard_bids"], // sub-01
+    [/^subject[_-]?(\d+)$/i, false, 1, null, "simple"], // subject_01
+    [/^\d{3,}$/, false, 1, null, "numeric_only"], // 001
+    [/^([A-Za-z]+\d+)$/, false, 1, null, "alphanum_id"], // PD01, Control01, HC03
   ];
 
   const subjectRecords: SubjectRecord[] = [];
@@ -374,11 +413,14 @@ const extractFromDirectoryStructure = (
 
   for (const filepath of allFiles) {
     const parts = filepath.split("/");
-    // Only check the first 2 path parts (directory levels), not the filename
-    // mirrors: for part in parts[:2]
-    const dirsOnly = parts.slice(0, Math.min(2, parts.length - 1)); // exclude filename
+    // Check ALL directory levels (not just first 2)
+    const dirsOnly = parts.slice(0, parts.length - 1);
+    // const dirsOnly = parts.slice(0, Math.min(2, parts.length - 1)); // only first 2 levels
 
     for (const part of dirsOnly) {
+      // Skip known non-subject directory names
+      // if (SKIP_DIRS.has(part.toLowerCase())) continue;
+
       for (const [
         regex,
         hasSite,
@@ -393,7 +435,7 @@ const extractFromDirectoryStructure = (
           seenIds.add(originalId);
           subjectRecords.push({
             original_id: originalId,
-            numeric_id: match[idGroup],
+            numeric_id: match[idGroup] || match[0],
             site: hasSite && siteGroup ? match[siteGroup] : null,
             pattern_name: patternName,
             file_count: 0,
@@ -407,10 +449,40 @@ const extractFromDirectoryStructure = (
   if (subjectRecords.length === 0) return null;
 
   subjectRecords.sort((a, b) => {
+    // const na = parseInt(a.numeric_id) || 0;
+    // const nb = parseInt(b.numeric_id) || 0;
+    // return na - nb;
+    const aMatch = a.original_id.match(/^([A-Za-z]+)(\d+)$/);
+    const bMatch = b.original_id.match(/^([A-Za-z]+)(\d+)$/);
+
+    if (aMatch && bMatch) {
+      const prefixCompare = aMatch[1].localeCompare(bMatch[1]);
+      if (prefixCompare !== 0) return prefixCompare;
+      return parseInt(aMatch[2]) - parseInt(bMatch[2]);
+    }
+
     const na = parseInt(a.numeric_id) || 0;
     const nb = parseInt(b.numeric_id) || 0;
     return na - nb;
   });
+
+  // Build group map: subject originalId → parent directory name
+  // const groupMap: Record<string, string> = {};
+  // for (const filepath of allFiles) {
+  //   const parts = filepath.split("/");
+  //   for (let i = 1; i < parts.length - 1; i++) {
+  //     if (seenIds.has(parts[i]) && !SKIP_DIRS.has(parts[i - 1].toLowerCase())) {
+  //       groupMap[parts[i]] = parts[i - 1];
+  //     }
+  //   }
+  // }
+
+  // // Attach group to each record
+  // for (const rec of subjectRecords) {
+  //   if (groupMap[rec.original_id]) {
+  //     rec.group = groupMap[rec.original_id];
+  //   }
+  // }
 
   return {
     success: true,
@@ -549,6 +621,34 @@ export const extractSubjectAnalysis = (
       has_site_info: false,
       variants_by_subject: {},
       python_generated_filename_rules: [],
+    };
+  }
+  // bug fix for subject mapping
+  // === original
+  // const idMapping = generateIdMapping(subjectInfo);
+  // return { ...subjectInfo, id_mapping: idMapping };
+  // ==== end
+  // ==== updates
+  // CRITICAL: n_subjects is authoritative (mirrors planner.py PROMPT_BIDS_PLAN)
+  // If analysis count doesn't match user input, fall back to sequential numbering
+  const expectedCount = userNSubjects;
+  if (expectedCount && subjectInfo.subject_count !== expectedCount) {
+    const idMap: Record<string, string> = {};
+    const reverseMap: Record<string, string> = {};
+    for (let i = 1; i <= expectedCount; i++) {
+      const bidsId = String(i).padStart(2, "0");
+      idMap[`sub-${bidsId}`] = bidsId;
+      reverseMap[bidsId] = `sub-${bidsId}`;
+    }
+    return {
+      ...subjectInfo,
+      subject_count: expectedCount,
+      id_mapping: {
+        id_mapping: idMap,
+        reverse_mapping: reverseMap,
+        strategy_used: "numeric_fallback",
+        metadata_columns: [],
+      },
     };
   }
 

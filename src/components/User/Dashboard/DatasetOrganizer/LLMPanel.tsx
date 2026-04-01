@@ -184,6 +184,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       });
 
       setEvidenceBundle(bundle);
+      setSubjectAnalysis(null); // ← add this line
       downloadJSON(bundle, "evidence_bundle.json");
       setStatus("✓ Evidence bundle generated and downloaded!");
     } catch (err: any) {
@@ -380,6 +381,43 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         setStatus("3/3 Generating participants.tsv...");
         const partsPrompt = getParticipantsPrompt(userText);
 
+        // ← ADD HERE: compute subject analysis before try block so it's in scope
+        const currentSubjectAnalysis = extractSubjectAnalysis(
+          evidenceBundle?.all_files || [],
+          evidenceBundle?.user_hints?.n_subjects,
+          evidenceBundle?.filename_analysis?.python_statistics
+            ?.dominant_prefixes
+        );
+
+        console.log("=== PARTICIPANTS DEBUG ===");
+        console.log("method:", currentSubjectAnalysis?.method);
+        console.log("subject_count:", currentSubjectAnalysis?.subject_count);
+        console.log(
+          "id_mapping:",
+          currentSubjectAnalysis?.id_mapping?.id_mapping
+        );
+        console.log(
+          "reverse_mapping:",
+          currentSubjectAnalysis?.id_mapping?.reverse_mapping
+        );
+        console.log(
+          "subject_records sample:",
+          currentSubjectAnalysis?.subject_records?.slice(0, 3)
+        );
+        const idMap = currentSubjectAnalysis?.id_mapping?.id_mapping;
+        const expectedCount = evidenceBundle?.user_hints?.n_subjects;
+        const subjectLabels: string[] =
+          idMap &&
+          Object.keys(idMap).length > 0 &&
+          (!expectedCount || Object.keys(idMap).length === expectedCount)
+            ? Object.values(idMap).map((id: string) => `sub-${id}`)
+            : Array.from(
+                {
+                  length: expectedCount || Object.keys(idMap || {}).length || 1,
+                },
+                (_, i) => `sub-${String(i + 1).padStart(2, "0")}`
+              );
+
         let partsResponse;
         if (currentProvider.isAnthropic) {
           partsResponse = await fetch(currentProvider.baseUrl, {
@@ -435,52 +473,130 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           : partsData.choices[0].message.content;
 
         // Build TSV from schema
+        // try {
+        //   const schemaText = participantsRaw
+        //     .replace(/^```json\n?/g, "")
+        //     .replace(/\n?```$/g, "")
+        //     .trim();
+        //   const schema = JSON.parse(schemaText);
+        //   const columns: string[] = schema.columns.map((c: any) => c.name);
+
+        //   // Get subject IDs from evidence bundle (extracted by Python-style analysis)
+        //   // const idMapping =
+        //   //   evidenceBundle?.subject_analysis?.id_mapping?.id_mapping;
+        //   // const subjectLabels: string[] = idMapping
+        //   //   ? Object.values(idMapping).map((id) => `sub-${id}`)
+        //   //   : ["sub-01"]; // fallback if no subject analysis
+        //   // Get subject IDs from subjectAnalysis state (computed at plan stage)
+        //   // Fall back to computing fresh if plan hasn't been run yet
+        //   const currentSubjectAnalysis =
+        //     subjectAnalysis ||
+        //     extractSubjectAnalysis(
+        //       evidenceBundle?.all_files || [],
+        //       evidenceBundle?.user_hints?.n_subjects,
+        //       evidenceBundle?.filename_analysis?.python_statistics
+        //         ?.dominant_prefixes
+        //     );
+        //   const idMap = currentSubjectAnalysis?.id_mapping?.id_mapping;
+        //   const subjectLabels: string[] =
+        //     idMap && Object.keys(idMap).length > 0
+        //       ? Object.values(idMap).map((id) => `sub-${id}`)
+        //       : Array.from(
+        //           { length: evidenceBundle?.user_hints?.n_subjects || 1 },
+        //           (_, i) => `sub-${String(i + 1).padStart(2, "0")}`
+        //         );
+
+        //   const header = columns.join("\t");
+        //   // ====origin====
+        //   // const rows = subjectLabels.map((subId) =>
+        //   //   columns
+        //   //     .map((col: string) => (col === "participant_id" ? subId : "n/a"))
+        //   //     .join("\t")
+        //   // );
+        //   //====== end ======
+        //   // =====update start=====
+        //   const reverseMap =
+        //     currentSubjectAnalysis?.id_mapping?.reverse_mapping || {};
+        //   const subjectRecords = currentSubjectAnalysis?.subject_records || [];
+
+        //   const rows = subjectLabels.map((subId) => {
+        //     const bareId = subId.replace(/^sub-/, "");
+        //     const originalId = reverseMap[bareId];
+        //     const record = subjectRecords.find(
+        //       (r: any) => r.original_id === originalId
+        //     );
+        //     return columns
+        //       .map((col: string) => {
+        //         if (col === "participant_id") return subId;
+        //         if (col === "original_id") return originalId || "n/a";
+        //         if (col === "group") return (record as any)?.group || "n/a";
+        //         return "n/a";
+        //       })
+        //       .join("\t");
+        //   });
+        //   //====update end======
+        //   participantsContent = [header, ...rows].join("\n");
+        // } catch (e) {
+        //   // Fallback: LLM didn't return valid JSON schema, use raw content
+        //   participantsContent = participantsRaw
+        //     .replace(/^```\n?/g, "")
+        //     .replace(/\n?```$/g, "")
+        //     .trim();
+        // }
+        // Build TSV from schema + subject analysis
+        // Mirrors _generate_participants_tsv_from_python() in planner.py
         try {
           const schemaText = participantsRaw
             .replace(/^```json\n?/g, "")
             .replace(/\n?```$/g, "")
             .trim();
           const schema = JSON.parse(schemaText);
-          const columns: string[] = schema.columns.map((c: any) => c.name);
 
-          // Get subject IDs from evidence bundle (extracted by Python-style analysis)
-          // const idMapping =
-          //   evidenceBundle?.subject_analysis?.id_mapping?.id_mapping;
-          // const subjectLabels: string[] = idMapping
-          //   ? Object.values(idMapping).map((id) => `sub-${id}`)
-          //   : ["sub-01"]; // fallback if no subject analysis
-          // Get subject IDs from subjectAnalysis state (computed at plan stage)
-          // Fall back to computing fresh if plan hasn't been run yet
-          const currentSubjectAnalysis =
-            subjectAnalysis ||
-            extractSubjectAnalysis(
-              evidenceBundle?.all_files || [],
-              evidenceBundle?.user_hints?.n_subjects,
-              evidenceBundle?.filename_analysis?.python_statistics
-                ?.dominant_prefixes
+          // LLM decides extra demographic columns (sex, age, group etc.)
+          // but we always add participant_id and original_id ourselves
+          const extraColumns: string[] = schema.columns
+            .map((c: any) => c.name)
+            .filter(
+              (name: string) =>
+                name !== "participant_id" && name !== "original_id"
             );
-          const idMap = currentSubjectAnalysis?.id_mapping?.id_mapping;
-          const subjectLabels: string[] =
-            idMap && Object.keys(idMap).length > 0
-              ? Object.values(idMap).map((id) => `sub-${id}`)
-              : Array.from(
-                  { length: evidenceBundle?.user_hints?.n_subjects || 1 },
-                  (_, i) => `sub-${String(i + 1).padStart(2, "0")}`
-                );
+
+          // Always start with participant_id and original_id
+          const columns = ["participant_id", "original_id", ...extraColumns];
+
+          const reverseMap =
+            currentSubjectAnalysis?.id_mapping?.reverse_mapping || {};
+          const subjectRecords = currentSubjectAnalysis?.subject_records || [];
 
           const header = columns.join("\t");
-          const rows = subjectLabels.map((subId) =>
-            columns
-              .map((col: string) => (col === "participant_id" ? subId : "n/a"))
-              .join("\t")
-          );
+          const rows = subjectLabels.map((subId) => {
+            const bareId = subId.replace(/^sub-/, "");
+            const originalId = reverseMap[bareId] || "n/a";
+            const record = subjectRecords.find(
+              (r: any) => r.original_id === originalId
+            );
+            return columns
+              .map((col: string) => {
+                if (col === "participant_id") return subId;
+                if (col === "original_id") return originalId;
+                if (col === "group") return (record as any)?.group || "n/a";
+                return "n/a";
+              })
+              .join("\t");
+          });
+
           participantsContent = [header, ...rows].join("\n");
         } catch (e) {
-          // Fallback: LLM didn't return valid JSON schema, use raw content
-          participantsContent = participantsRaw
-            .replace(/^```\n?/g, "")
-            .replace(/\n?```$/g, "")
-            .trim();
+          // Fallback: generate minimal TSV directly from subject analysis
+          const reverseMap =
+            currentSubjectAnalysis?.id_mapping?.reverse_mapping || {};
+          const header = "participant_id\toriginal_id";
+          const rows = subjectLabels.map((subId) => {
+            const bareId = subId.replace(/^sub-/, "");
+            const originalId = reverseMap[bareId] || "n/a";
+            return `${subId}\t${originalId}`;
+          });
+          participantsContent = [header, ...rows].join("\n");
         }
       }
       // ==========================================
@@ -632,11 +748,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     const filePatterns = analyzeFilePatterns(files);
     const userContext = getUserContext(files);
     const annotations = getFileAnnotations(files);
-    // console.log("=== PROMPT BEING SENT TO LLM ===");
-    // console.log(fileSummary);
-    // console.log(filePatterns);
-    // console.log(userContext);
-    // console.log("=================================");
 
     // UPDATED: Improved prompt that uses trio files
     const prompt = getConversionScriptPrompt(
@@ -788,6 +899,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       userNSubjects,
       dominantPrefixes
     );
+
     setSubjectAnalysis(computedSubjectAnalysis);
 
     const fileSummary = buildFileSummary(files);
@@ -800,11 +912,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         ?.slice(0, 10)
         .map((s: any) => `  - ${s.relpath}`)
         .join("\n") || "";
-
-    // console.log("=== SAMPLE FILES ===");
-    // console.log(sampleFiles);
-    // console.log("=== COUNTS BY EXT ===");
-    // console.log(evidenceBundle?.counts_by_ext);
 
     const prompt = getBIDSPlanPrompt(
       fileSummary,

@@ -9,9 +9,13 @@ export const getDatasetDescriptionPrompt = (
   evidenceBundle?: any
 ): string => {
   const documentsContext =
+    // evidenceBundle?.documents
+    //   ?.map((d: any) => `[${d.filename}]:\n${d.content}`)
+    //   .join("\n\n") || "";
     evidenceBundle?.documents
-      ?.map((d: any) => `[${d.filename}]:\n${d.content}`)
+      ?.map((d: any) => `[${d.filename}]:\n${(d.content || "").slice(0, 500)}`)
       .join("\n\n") || "";
+
   return `You are a BIDS dataset_description.json generator.
   
   CRITICAL: Use the following user-provided content to extract dataset information!
