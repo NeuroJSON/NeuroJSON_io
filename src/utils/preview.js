@@ -33,6 +33,7 @@ var lastvolume = null;
 var lastvolumedata = null;
 var lastvolumedim = [];
 var lastclim = 0;
+var uplotInstance = null;
 var reqid = undefined;
 
 var canvas = null;
@@ -133,6 +134,12 @@ function destroyPreview() {
   lastvolume = null;
   lastvolumedata = null;
   texture = undefined;
+
+  if (uplotInstance !== null) {
+    uplotInstance.destroy();
+    uplotInstance = null;
+  }
+  $("#chartpanel").hide().html("");
 }
 
 function drawpreview(cfg) {
@@ -428,22 +435,32 @@ function dopreview(key, idx, isinternal, hastime) {
             ? "y" + i
             : hastime[i];
       }
-      let u = new uPlot(opts, plotdata, document.getElementById("plotchart"));
+      // let u = new uPlot(opts, plotdata, document.getElementById("plotchart"));
+      if (uplotInstance !== null) {
+        uplotInstance.destroy();
+        uplotInstance = null;
+      }
+      uplotInstance = new uPlot(
+        opts,
+        plotdata,
+        document.getElementById("plotchart")
+      );
     } else {
-      let u = new uPlot(
+      // let u = new uPlot(
+      //   opts,
+      //   [[...Array(dataroot.length).keys()], dataroot],
+      //   document.getElementById("plotchart")
+      // );
+      if (uplotInstance !== null) {
+        uplotInstance.destroy();
+        uplotInstance = null;
+      }
+      uplotInstance = new uPlot(
         opts,
         [[...Array(dataroot.length).keys()], dataroot],
         document.getElementById("plotchart")
       );
     }
-    // add spinner
-    // --- NEW LOGIC for 2D plot ---
-    // Signal that the 2D plot has just been created and is now visible.
-    // if (typeof window.__onPreviewReady === "function") {
-    //   window.__onPreviewReady();
-    //   window.__onPreviewReady = null; // Clean up to prevent accidental re-firing
-    // }
-    // --- END NEW LOGIC ---
 
     // for spinner
     // --- Signal React that 2D preview is ready ---
