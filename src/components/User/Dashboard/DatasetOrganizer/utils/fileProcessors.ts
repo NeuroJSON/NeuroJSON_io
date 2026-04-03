@@ -118,12 +118,32 @@ export const processFile = async (
       }
       entry.contentType = "hdf5";
     } else if (fileType === "neurojsonText") {
-      // Extract NeuroJSON text
       const text = await file.text();
-      // entry.content = text.slice(0, 5000);
       try {
         const json = JSON.parse(text);
-        entry.content = JSON.stringify(json, null, 2).slice(0, 5000);
+        // JNIfTI files — extract NIFTIHeader only, mirrors _extract_jnifti_header()
+        if (
+          file.name.toLowerCase().endsWith(".jnii") ||
+          file.name.toLowerCase().endsWith(".bnii")
+        ) {
+          const hdr = json?.NIFTIHeader ?? {};
+          const result: Record<string, any> = {};
+          for (const field of [
+            "Dim",
+            "VoxelSize",
+            "DataType",
+            "Intent",
+            "QForm",
+            "SForm",
+            "Description",
+            "NIIFormat",
+          ]) {
+            if (hdr[field] !== undefined) result[field] = hdr[field];
+          }
+          entry.content = JSON.stringify(result, null, 2);
+        } else {
+          entry.content = JSON.stringify(json, null, 2).slice(0, 5000);
+        }
       } catch (e) {
         entry.content = text.slice(0, 5000);
       }
@@ -344,9 +364,29 @@ export const processZip = async (
       else if (fileType === "neurojsonText") {
         try {
           const text = await zipEntry.async("text");
-          // entry.content = text.slice(0, 5000);
           const json = JSON.parse(text);
-          entry.content = JSON.stringify(json, null, 2).slice(0, 5000);
+          if (
+            fileName.toLowerCase().endsWith(".jnii") ||
+            fileName.toLowerCase().endsWith(".bnii")
+          ) {
+            const hdr = json?.NIFTIHeader ?? {};
+            const result: Record<string, any> = {};
+            for (const field of [
+              "Dim",
+              "VoxelSize",
+              "DataType",
+              "Intent",
+              "QForm",
+              "SForm",
+              "Description",
+              "NIIFormat",
+            ]) {
+              if (hdr[field] !== undefined) result[field] = hdr[field];
+            }
+            entry.content = JSON.stringify(result, null, 2);
+          } else {
+            entry.content = JSON.stringify(json, null, 2).slice(0, 5000);
+          }
           entry.contentType = "neurojson";
         } catch (e: any) {
           entry.content = `Error: ${e.message}`;
@@ -755,6 +795,14 @@ const parseDicomHeader = (buffer: ArrayBuffer): string => {
     const manufacturer = getString("x00080070");
     const rows = getString("x00280010");
     const cols = getString("x00280011");
+    const repetitionTime = getString("x00180080");
+    const echoTime = getString("x00180081");
+    const flipAngle = getString("x00181314");
+    const sliceThickness = getString("x00180050");
+    const magneticFieldStrength = getString("x00180087");
+    const manufacturerModel = getString("x00081090");
+    const softwareVersions = getString("x00181020");
+    const acquisitionDate = getString("x00080022");
 
     const lines = [`DICOM File`, `─`.repeat(50)];
 
@@ -767,7 +815,15 @@ const parseDicomHeader = (buffer: ArrayBuffer): string => {
     if (patientAge) lines.push(`Age: ${patientAge}`);
     if (manufacturer) lines.push(`Scanner: ${manufacturer}`);
     if (rows && cols) lines.push(`Image Size: ${rows} × ${cols}`);
-
+    if (repetitionTime) lines.push(`RepetitionTime: ${repetitionTime}`);
+    if (echoTime) lines.push(`EchoTime: ${echoTime}`);
+    if (flipAngle) lines.push(`FlipAngle: ${flipAngle}`);
+    if (sliceThickness) lines.push(`SliceThickness: ${sliceThickness}`);
+    if (magneticFieldStrength)
+      lines.push(`MagneticFieldStrength: ${magneticFieldStrength}`);
+    if (manufacturerModel) lines.push(`Model: ${manufacturerModel}`);
+    if (softwareVersions) lines.push(`SoftwareVersions: ${softwareVersions}`);
+    if (acquisitionDate) lines.push(`AcquisitionDate: ${acquisitionDate}`);
     return lines.join("\n");
   } catch (e: any) {
     return `DICOM File\nSize: ${(buffer.byteLength / 1024).toFixed(
