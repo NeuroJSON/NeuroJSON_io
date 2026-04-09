@@ -33,6 +33,7 @@ var lastvolume = null;
 var lastvolumedata = null;
 var lastvolumedim = [];
 var lastclim = 0;
+var uplotInstance = null;
 var reqid = undefined;
 
 var canvas = null;
@@ -74,18 +75,55 @@ var typedfun = {
   BigUint64Array: null,
 };
 
+// function destroyPreview() {
+//   if (window.scene) {
+//     while (window.scene.children.length > 0) {
+//       const obj = window.scene.children[0];
+//       window.scene.remove(obj);
+//       if (obj.geometry) obj.geometry.dispose();
+//       if (obj.material) obj.material.dispose();
+//     }
+//   }
+
+//   if (window.renderer && window.renderer.domElement) {
+//     window.renderer.domElement.remove();
+//     window.renderer.dispose();
+//   }
+
+//   window.scene = undefined;
+//   window.camera = undefined;
+//   window.renderer = undefined;
+//   window.controls = undefined;
+//   window.reqid = undefined;
+// }
 function destroyPreview() {
+  // Cancel animation loop first
+  if (reqid !== undefined) {
+    cancelAnimationFrame(reqid);
+    reqid = undefined;
+    window.reqid = undefined;
+  }
+
   if (window.scene) {
     while (window.scene.children.length > 0) {
       const obj = window.scene.children[0];
       window.scene.remove(obj);
       if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) obj.material.dispose();
+      if (obj.material) {
+        // Dispose any textures stored in shader uniforms
+        if (obj.material.uniforms) {
+          Object.values(obj.material.uniforms).forEach((u) => {
+            if (u.value && u.value.isTexture) u.value.dispose();
+          });
+        }
+        obj.material.dispose();
+      }
     }
   }
 
   if (window.renderer && window.renderer.domElement) {
     window.renderer.domElement.remove();
+    window.renderer.forceContextLoss();
     window.renderer.dispose();
   }
 
@@ -93,7 +131,15 @@ function destroyPreview() {
   window.camera = undefined;
   window.renderer = undefined;
   window.controls = undefined;
-  window.reqid = undefined;
+  lastvolume = null;
+  lastvolumedata = null;
+  texture = undefined;
+
+  if (uplotInstance !== null) {
+    uplotInstance.destroy();
+    uplotInstance = null;
+  }
+  $("#chartpanel").hide().html("");
 }
 
 function drawpreview(cfg) {
@@ -389,22 +435,32 @@ function dopreview(key, idx, isinternal, hastime) {
             ? "y" + i
             : hastime[i];
       }
-      let u = new uPlot(opts, plotdata, document.getElementById("plotchart"));
+      // let u = new uPlot(opts, plotdata, document.getElementById("plotchart"));
+      if (uplotInstance !== null) {
+        uplotInstance.destroy();
+        uplotInstance = null;
+      }
+      uplotInstance = new uPlot(
+        opts,
+        plotdata,
+        document.getElementById("plotchart")
+      );
     } else {
-      let u = new uPlot(
+      // let u = new uPlot(
+      //   opts,
+      //   [[...Array(dataroot.length).keys()], dataroot],
+      //   document.getElementById("plotchart")
+      // );
+      if (uplotInstance !== null) {
+        uplotInstance.destroy();
+        uplotInstance = null;
+      }
+      uplotInstance = new uPlot(
         opts,
         [[...Array(dataroot.length).keys()], dataroot],
         document.getElementById("plotchart")
       );
     }
-    // add spinner
-    // --- NEW LOGIC for 2D plot ---
-    // Signal that the 2D plot has just been created and is now visible.
-    // if (typeof window.__onPreviewReady === "function") {
-    //   window.__onPreviewReady();
-    //   window.__onPreviewReady = null; // Clean up to prevent accidental re-firing
-    // }
-    // --- END NEW LOGIC ---
 
     // for spinner
     // --- Signal React that 2D preview is ready ---
@@ -967,183 +1023,428 @@ function initcanvas() {
     panel.appendChild(stats.domElement);
   }
 
-  $("#camera-near").on("input", function () {
-    camera.near = parseFloat($(this).val());
-    renderer.render(scene, camera);
-    controls.update();
-    renderer.updateComplete = false;
-  });
+  // $("#camera-near").on("input", function () {
+  //   camera.near = parseFloat($(this).val());
+  //   renderer.render(scene, camera);
+  //   controls.update();
+  //   renderer.updateComplete = false;
+  // });
 
-  $("#camera-far").on("input", function () {
-    camera.far = parseFloat($(this).val());
-    renderer.render(scene, camera);
-    controls.update();
-    renderer.updateComplete = false;
-  });
+  // $("#camera-far").on("input", function () {
+  //   camera.far = parseFloat($(this).val());
+  //   renderer.render(scene, camera);
+  //   controls.update();
+  //   renderer.updateComplete = false;
+  // });
 
-  $("#clim-low").on("input", function () {
-    $(this).prop(
-      "title",
-      "" +
-        $(this).val() +
-        " [" +
-        $(this).prop("min") +
-        "," +
-        $(this).prop("max") +
-        "]"
-    );
-    if (lastvolume !== null) {
-      let val = lastvolume.material.uniforms["u_clim"].value;
-      lastvolume.material.uniforms["u_clim"].value.set(
-        parseFloat($(this).val()),
-        val.y
+  // $("#clim-low").on("input", function () {
+  //   $(this).prop(
+  //     "title",
+  //     "" +
+  //       $(this).val() +
+  //       " [" +
+  //       $(this).prop("min") +
+  //       "," +
+  //       $(this).prop("max") +
+  //       "]"
+  //   );
+  //   if (lastvolume !== null) {
+  //     let val = lastvolume.material.uniforms["u_clim"].value;
+  //     lastvolume.material.uniforms["u_clim"].value.set(
+  //       parseFloat($(this).val()),
+  //       val.y
+  //     );
+  //     renderer.updateComplete = false;
+  //   }
+  // });
+
+  // $("#clim-hi").on("input", function () {
+  //   $(this).prop(
+  //     "title",
+  //     "" +
+  //       $(this).val() +
+  //       " [" +
+  //       $(this).prop("min") +
+  //       "," +
+  //       $(this).prop("max") +
+  //       "]"
+  //   );
+  //   if (lastvolume !== null) {
+  //     let val = lastvolume.material.uniforms["u_clim"].value;
+  //     lastvolume.material.uniforms["u_clim"].value.set(
+  //       val.x,
+  //       parseFloat($(this).val())
+  //     );
+  //     renderer.updateComplete = false;
+  //   }
+  // });
+
+  // $("#isothreshold").on("input", function () {
+  //   $(this).prop(
+  //     "title",
+  //     "" +
+  //       $(this).val() +
+  //       " [" +
+  //       $(this).prop("min") +
+  //       "," +
+  //       $(this).prop("max") +
+  //       "]"
+  //   );
+  //   if (lastvolume !== null) {
+  //     let val = lastvolume.material.uniforms["u_renderthreshold"].value;
+  //     lastvolume.material.uniforms["u_renderthreshold"].value = parseFloat(
+  //       $(this).val()
+  //     );
+  //     renderer.updateComplete = false;
+  //   }
+  // });
+
+  // $("#mip-radio-button").on("change", function () {
+  //   if (lastvolume !== null) {
+  //     const unfs = lastvolume.material.uniforms;
+  //     lastvolume.material = new THREE.ShaderMaterial({
+  //       uniforms: THREE.UniformsUtils.clone(MipRenderShader.uniforms),
+  //       vertexShader: MipRenderShader.vertexShader,
+  //       fragmentShader: MipRenderShader.fragmentShader,
+  //       side: THREE.BackSide,
+  //     });
+  //     lastvolume.material.uniforms = unfs;
+  //     renderer.updateComplete = false;
+  //   }
+  // });
+
+  // $("#iso-radio-button").on("change", function () {
+  //   if (lastvolume !== null) {
+  //     const unfs = lastvolume.material.uniforms;
+  //     lastvolume.material = new THREE.ShaderMaterial({
+  //       uniforms: THREE.UniformsUtils.clone(IsoRenderShader.uniforms),
+  //       vertexShader: IsoRenderShader.vertexShader,
+  //       fragmentShader: IsoRenderShader.fragmentShader,
+  //       side: THREE.BackSide,
+  //     });
+  //     lastvolume.material.uniforms = unfs;
+  //     renderer.updateComplete = false;
+  //   }
+  // });
+
+  // $("#interp-radio-button").on("change", function () {
+  //   if (lastvolume !== null) {
+  //     const unfs = lastvolume.material.uniforms;
+  //     lastvolume.material = new THREE.RawShaderMaterial(InterpRenderShader());
+  //     lastvolume.material.uniforms = unfs;
+  //     lastvolume.material.uniforms.cameraPos.value.copy(camera.position);
+  //     renderer.updateComplete = false;
+  //   }
+  // });
+
+  // $("#cross-x-low").on("input", function () {
+  //   setcrosssectionsizes(this);
+  // });
+
+  // $("#cross-y-low").on("input", function () {
+  //   setcrosssectionsizes(this);
+  // });
+
+  // $("#cross-z-low").on("input", function () {
+  //   setcrosssectionsizes(this);
+  // });
+
+  // $("#cross-x-hi").on("input", function () {
+  //   setcrosssectionsizes(this);
+  // });
+
+  // $("#cross-y-hi").on("input", function () {
+  //   setcrosssectionsizes(this);
+  // });
+
+  // $("#cross-z-hi").on("input", function () {
+  //   setcrosssectionsizes(this);
+  // });
+
+  // $("#x_thickness, #y_thickness, #z_thickness").on("input", function () {
+  //   let eid = $(this).attr("id");
+  //   let linkedeid1 = eid.replace(/_thickness/, "-low").replace(/^/, "cross-");
+  //   let linkedeid2 = eid.replace(/_thickness/, "-hi").replace(/^/, "cross-");
+  //   if ($(this).val() == 0) {
+  //     $("#" + linkedeid1).val(0);
+  //     $("#" + linkedeid2).val(1);
+  //   } else {
+  //     $("#" + linkedeid1).val(
+  //       ($("#" + linkedeid1).val() + $("#" + linkedeid2).val()) * 0.5
+  //     );
+  //   }
+  //   setcrosssectionsizes($("#" + linkedeid1));
+  // });
+
+  // $("#pos-x-view").on("click", function () {
+  //   setControlAngles((Math.PI * 90) / 180, (Math.PI * 90) / 180);
+  //   renderer.updateComplete = false;
+  // });
+
+  // $("#neg-x-view").on("click", function () {
+  //   setControlAngles((Math.PI * 90) / 180, (Math.PI * 270) / 180);
+  // });
+
+  // $("#pos-y-view").on("click", function () {
+  //   setControlAngles((Math.PI * 90) / 180, (Math.PI * 180) / 180);
+  // });
+
+  // $("#neg-y-view").on("click", function () {
+  //   setControlAngles((Math.PI * 90) / 180, (Math.PI * 0) / 180);
+  // });
+
+  // $("#pos-z-view").on("click", function () {
+  //   setControlAngles(0, 0);
+  // });
+
+  // $("#neg-z-view").on("click", function () {
+  //   setControlAngles((Math.PI * 180) / 180, 0);
+  // });
+
+  $("#camera-near")
+    .off("input")
+    .on("input", function () {
+      camera.near = parseFloat($(this).val());
+      renderer.render(scene, camera);
+      controls.update();
+      renderer.updateComplete = false;
+    });
+
+  $("#camera-far")
+    .off("input")
+    .on("input", function () {
+      camera.far = parseFloat($(this).val());
+      renderer.render(scene, camera);
+      controls.update();
+      renderer.updateComplete = false;
+    });
+
+  $("#clim-low")
+    .off("input")
+    .on("input", function () {
+      $(this).prop(
+        "title",
+        "" +
+          $(this).val() +
+          " [" +
+          $(this).prop("min") +
+          "," +
+          $(this).prop("max") +
+          "]"
       );
-      renderer.updateComplete = false;
-    }
-  });
+      if (lastvolume !== null) {
+        let val = lastvolume.material.uniforms["u_clim"].value;
+        lastvolume.material.uniforms["u_clim"].value.set(
+          parseFloat($(this).val()),
+          val.y
+        );
+        renderer.updateComplete = false;
+      }
+    });
 
-  $("#clim-hi").on("input", function () {
-    $(this).prop(
-      "title",
-      "" +
-        $(this).val() +
-        " [" +
-        $(this).prop("min") +
-        "," +
-        $(this).prop("max") +
-        "]"
-    );
-    if (lastvolume !== null) {
-      let val = lastvolume.material.uniforms["u_clim"].value;
-      lastvolume.material.uniforms["u_clim"].value.set(
-        val.x,
-        parseFloat($(this).val())
+  $("#clim-hi")
+    .off("input")
+    .on("input", function () {
+      $(this).prop(
+        "title",
+        "" +
+          $(this).val() +
+          " [" +
+          $(this).prop("min") +
+          "," +
+          $(this).prop("max") +
+          "]"
       );
-      renderer.updateComplete = false;
-    }
-  });
+      if (lastvolume !== null) {
+        let val = lastvolume.material.uniforms["u_clim"].value;
+        lastvolume.material.uniforms["u_clim"].value.set(
+          val.x,
+          parseFloat($(this).val())
+        );
+        renderer.updateComplete = false;
+      }
+    });
 
-  $("#isothreshold").on("input", function () {
-    $(this).prop(
-      "title",
-      "" +
-        $(this).val() +
-        " [" +
-        $(this).prop("min") +
-        "," +
-        $(this).prop("max") +
-        "]"
-    );
-    if (lastvolume !== null) {
-      let val = lastvolume.material.uniforms["u_renderthreshold"].value;
-      lastvolume.material.uniforms["u_renderthreshold"].value = parseFloat(
-        $(this).val()
+  $("#isothreshold")
+    .off("input")
+    .on("input", function () {
+      $(this).prop(
+        "title",
+        "" +
+          $(this).val() +
+          " [" +
+          $(this).prop("min") +
+          "," +
+          $(this).prop("max") +
+          "]"
       );
+      if (lastvolume !== null) {
+        lastvolume.material.uniforms["u_renderthreshold"].value = parseFloat(
+          $(this).val()
+        );
+        renderer.updateComplete = false;
+      }
+    });
+
+  $("#mip-radio-button")
+    .off("change")
+    .on("change", function () {
+      if (lastvolume !== null) {
+        const unfs = lastvolume.material.uniforms;
+        lastvolume.material = new THREE.ShaderMaterial({
+          uniforms: THREE.UniformsUtils.clone(MipRenderShader.uniforms),
+          vertexShader: MipRenderShader.vertexShader,
+          fragmentShader: MipRenderShader.fragmentShader,
+          side: THREE.BackSide,
+        });
+        lastvolume.material.uniforms = unfs;
+        renderer.updateComplete = false;
+      }
+    });
+
+  $("#iso-radio-button")
+    .off("change")
+    .on("change", function () {
+      if (lastvolume !== null) {
+        const unfs = lastvolume.material.uniforms;
+        lastvolume.material = new THREE.ShaderMaterial({
+          uniforms: THREE.UniformsUtils.clone(IsoRenderShader.uniforms),
+          vertexShader: IsoRenderShader.vertexShader,
+          fragmentShader: IsoRenderShader.fragmentShader,
+          side: THREE.BackSide,
+        });
+        lastvolume.material.uniforms = unfs;
+        renderer.updateComplete = false;
+      }
+    });
+
+  $("#interp-radio-button")
+    .off("change")
+    .on("change", function () {
+      if (lastvolume !== null) {
+        const unfs = lastvolume.material.uniforms;
+        lastvolume.material = new THREE.RawShaderMaterial(InterpRenderShader());
+        lastvolume.material.uniforms = unfs;
+        lastvolume.material.uniforms.cameraPos.value.copy(camera.position);
+        renderer.updateComplete = false;
+      }
+    });
+
+  $("#cross-x-low")
+    .off("input")
+    .on("input", function () {
+      setcrosssectionsizes(this);
+    });
+  $("#cross-y-low")
+    .off("input")
+    .on("input", function () {
+      setcrosssectionsizes(this);
+    });
+  $("#cross-z-low")
+    .off("input")
+    .on("input", function () {
+      setcrosssectionsizes(this);
+    });
+  $("#cross-x-hi")
+    .off("input")
+    .on("input", function () {
+      setcrosssectionsizes(this);
+    });
+  $("#cross-y-hi")
+    .off("input")
+    .on("input", function () {
+      setcrosssectionsizes(this);
+    });
+  $("#cross-z-hi")
+    .off("input")
+    .on("input", function () {
+      setcrosssectionsizes(this);
+    });
+
+  $("#x_thickness, #y_thickness, #z_thickness")
+    .off("input")
+    .on("input", function () {
+      let eid = $(this).attr("id");
+      let linkedeid1 = eid.replace(/_thickness/, "-low").replace(/^/, "cross-");
+      let linkedeid2 = eid.replace(/_thickness/, "-hi").replace(/^/, "cross-");
+      if ($(this).val() == 0) {
+        $("#" + linkedeid1).val(0);
+        $("#" + linkedeid2).val(1);
+      } else {
+        $("#" + linkedeid1).val(
+          ($("#" + linkedeid1).val() + $("#" + linkedeid2).val()) * 0.5
+        );
+      }
+      setcrosssectionsizes($("#" + linkedeid1));
+    });
+
+  $("#pos-x-view")
+    .off("click")
+    .on("click", function () {
+      setControlAngles((Math.PI * 90) / 180, (Math.PI * 90) / 180);
       renderer.updateComplete = false;
-    }
-  });
+    });
+  $("#neg-x-view")
+    .off("click")
+    .on("click", function () {
+      setControlAngles((Math.PI * 90) / 180, (Math.PI * 270) / 180);
+    });
+  $("#pos-y-view")
+    .off("click")
+    .on("click", function () {
+      setControlAngles((Math.PI * 90) / 180, (Math.PI * 180) / 180);
+    });
+  $("#neg-y-view")
+    .off("click")
+    .on("click", function () {
+      setControlAngles((Math.PI * 90) / 180, (Math.PI * 0) / 180);
+    });
+  $("#pos-z-view")
+    .off("click")
+    .on("click", function () {
+      setControlAngles(0, 0);
+    });
+  $("#neg-z-view")
+    .off("click")
+    .on("click", function () {
+      setControlAngles((Math.PI * 180) / 180, 0);
+    });
 
-  $("#mip-radio-button").on("change", function () {
-    if (lastvolume !== null) {
-      const unfs = lastvolume.material.uniforms;
-      lastvolume.material = new THREE.ShaderMaterial({
-        uniforms: THREE.UniformsUtils.clone(MipRenderShader.uniforms),
-        vertexShader: MipRenderShader.vertexShader,
-        fragmentShader: MipRenderShader.fragmentShader,
-        side: THREE.BackSide,
-      });
-      lastvolume.material.uniforms = unfs;
-      renderer.updateComplete = false;
-    }
-  });
-
-  $("#iso-radio-button").on("change", function () {
-    if (lastvolume !== null) {
-      const unfs = lastvolume.material.uniforms;
-      lastvolume.material = new THREE.ShaderMaterial({
-        uniforms: THREE.UniformsUtils.clone(IsoRenderShader.uniforms),
-        vertexShader: IsoRenderShader.vertexShader,
-        fragmentShader: IsoRenderShader.fragmentShader,
-        side: THREE.BackSide,
-      });
-      lastvolume.material.uniforms = unfs;
-      renderer.updateComplete = false;
-    }
-  });
-
-  $("#interp-radio-button").on("change", function () {
-    if (lastvolume !== null) {
-      const unfs = lastvolume.material.uniforms;
-      lastvolume.material = new THREE.RawShaderMaterial(InterpRenderShader());
-      lastvolume.material.uniforms = unfs;
-      lastvolume.material.uniforms.cameraPos.value.copy(camera.position);
-      renderer.updateComplete = false;
-    }
-  });
-
-  $("#cross-x-low").on("input", function () {
-    setcrosssectionsizes(this);
-  });
-
-  $("#cross-y-low").on("input", function () {
-    setcrosssectionsizes(this);
-  });
-
-  $("#cross-z-low").on("input", function () {
-    setcrosssectionsizes(this);
-  });
-
-  $("#cross-x-hi").on("input", function () {
-    setcrosssectionsizes(this);
-  });
-
-  $("#cross-y-hi").on("input", function () {
-    setcrosssectionsizes(this);
-  });
-
-  $("#cross-z-hi").on("input", function () {
-    setcrosssectionsizes(this);
-  });
-
-  $("#x_thickness, #y_thickness, #z_thickness").on("input", function () {
-    let eid = $(this).attr("id");
-    let linkedeid1 = eid.replace(/_thickness/, "-low").replace(/^/, "cross-");
-    let linkedeid2 = eid.replace(/_thickness/, "-hi").replace(/^/, "cross-");
-    if ($(this).val() == 0) {
-      $("#" + linkedeid1).val(0);
-      $("#" + linkedeid2).val(1);
-    } else {
-      $("#" + linkedeid1).val(
-        ($("#" + linkedeid1).val() + $("#" + linkedeid2).val()) * 0.5
+  $("#cross-t")
+    .off("mouseup")
+    .on("mouseup", function () {
+      $(this).prop(
+        "title",
+        "" +
+          $(this).val() +
+          " [" +
+          $(this).prop("min") +
+          "," +
+          $(this).prop("max") +
+          "]"
       );
-    }
-    setcrosssectionsizes($("#" + linkedeid1));
-  });
-
-  $("#pos-x-view").on("click", function () {
-    setControlAngles((Math.PI * 90) / 180, (Math.PI * 90) / 180);
-    renderer.updateComplete = false;
-  });
-
-  $("#neg-x-view").on("click", function () {
-    setControlAngles((Math.PI * 90) / 180, (Math.PI * 270) / 180);
-  });
-
-  $("#pos-y-view").on("click", function () {
-    setControlAngles((Math.PI * 90) / 180, (Math.PI * 180) / 180);
-  });
-
-  $("#neg-y-view").on("click", function () {
-    setControlAngles((Math.PI * 90) / 180, (Math.PI * 0) / 180);
-  });
-
-  $("#pos-z-view").on("click", function () {
-    setControlAngles(0, 0);
-  });
-
-  $("#neg-z-view").on("click", function () {
-    setControlAngles((Math.PI * 180) / 180, 0);
-  });
+      if (lastvolume !== null && lastvolumedata !== undefined) {
+        let dim = lastvolumedim;
+        let offset =
+          Math.min($(this).val(), dim[3] - 2) * dim[0] * dim[1] * dim[2];
+        let texture = new THREE.Data3DTexture(
+          lastvolumedata.selection.data.slice(
+            offset - 1,
+            offset + dim[0] * dim[1] * dim[2] - 1
+          ),
+          dim[0],
+          dim[1],
+          dim[2]
+        );
+        texture.format = THREE.RedFormat;
+        texture.type = texture_dtype[lastvolumedata.dtype];
+        texture.minFilter = texture.magFilter = THREE.LinearFilter;
+        texture.unpackAlignment = 1;
+        texture.needsUpdate = true;
+        lastvolume.material.uniforms["u_data"].value = texture;
+        renderer.updateComplete = false;
+      }
+    });
 
   $("#cross-t").on("mouseup", function () {
     $(this).prop(

@@ -28,30 +28,14 @@ const PreviewModal: React.FC<{
   // fix end---------------------
 
   useEffect(() => {
-    if (!isOpen) return;
-    //add spinner
-    // if (!isOpen || isLoading) return;
-
-    // fix start-----------: Get the container element from the ref.
-    // const container = canvasContainerRef.current;
-    // if (!container) {
-    //   // This can happen briefly on the first render, so we just wait for the next render.
-    //   return;
-    // }
-    // // 3. Check for the required legacy functions on the window object.
-    // if (
-    //   typeof window.previewdata !== "function" ||
-    //   typeof window.initcanvas_with_container !== "function"
-    // ) {
-    //   console.error(
-    //     "❌ Legacy preview script functions are not available on the window object."
-    //   );
-    //   return;
-    // }
-
-    // window.previewdata(dataKey, previewIndex, isInternal, false);
-    // fix end---------------------------------
-    // clear old canvas
+    // if (!isOpen) return;
+    if (!isOpen) {
+      // Modal just closed — clean up Three.js immediately
+      if (typeof window.destroyPreview === "function") {
+        window.destroyPreview();
+      }
+      return;
+    }
     const canvasDiv = document.getElementById("canvas");
     if (canvasDiv)
       while (canvasDiv.firstChild) canvasDiv.removeChild(canvasDiv.firstChild);
@@ -69,6 +53,10 @@ const PreviewModal: React.FC<{
 
     return () => {
       clearInterval(interval);
+      // Component unmounting — clean up Three.js
+      if (typeof window.destroyPreview === "function") {
+        window.destroyPreview();
+      }
     };
   }, [isOpen, dataKey, previewIndex, isInternal]);
 

@@ -1,23 +1,12 @@
 import { generateId } from "./utils/fileProcessors";
-import { extractSubjectAnalysis } from "./utils/filenameTokenizer";
-//add
+import { LLMConfig } from "./utils/llm";
 import {
-  buildFileSummary,
-  analyzeFilePatterns,
-  getUserContext,
-  getFileAnnotations,
-  downloadJSON,
   buildEvidenceBundle,
-  extractSubjectsFromFiles,
   buildIngestInfo,
+  downloadJSON,
 } from "./utils/llmHelpers";
-import {
-  getDatasetDescriptionPrompt,
-  getReadmePrompt,
-  getParticipantsPrompt,
-  getConversionScriptPrompt,
-  getBIDSPlanPrompt,
-} from "./utils/llmPrompts";
+import { buildBidsPlan } from "./utils/plannerHelpers";
+import { generateTrioFiles } from "./utils/trioHelpers";
 import {
   Close,
   ContentCopy,
@@ -40,10 +29,12 @@ import {
   Alert,
 } from "@mui/material";
 import { Colors } from "design/theme";
+import { dump as yamlDump } from "js-yaml";
 import JSZip from "jszip";
 import React, { useState, useEffect } from "react";
 import { FileItem } from "redux/projects/types/projects.interface";
-import { OllamaService } from "services/ollama.service";
+
+// import { OllamaService } from "services/ollama.service";
 
 interface LLMPanelProps {
   files: FileItem[];
@@ -158,6 +149,16 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   const [panelHeight, setPanelHeight] = useState<number>(450);
   const [isResizing, setIsResizing] = useState(false);
 
+  // Build LLMConfig for all helper calls — mirrors autobidsify CLI arg assembly
+  const buildLLMConfig = (): LLMConfig => ({
+    provider,
+    model,
+    apiKey,
+    baseUrl: currentProvider.baseUrl,
+    isAnthropic: currentProvider.isAnthropic,
+    noApiKey: currentProvider.noApiKey,
+  });
+
   // ========================================================================
   // BUTTON 1: GENERATE EVIDENCE BUNDLE
   // ========================================================================
@@ -184,6 +185,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       });
 
       setEvidenceBundle(bundle);
+      setSubjectAnalysis(null); // ← add this line
       downloadJSON(bundle, "evidence_bundle.json");
       setStatus("✓ Evidence bundle generated and downloaded!");
     } catch (err: any) {
@@ -201,291 +203,27 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       setError("Please generate evidence bundle first");
       return;
     }
-
     if (!currentProvider.noApiKey && !apiKey.trim()) {
       setError("Please enter an API key");
       return;
     }
 
-    // Create abort controller
     const controller = new AbortController();
     setAbortController(controller);
-
     setGeneratingTrio(true);
     setError(null);
     setStatus("Generating BIDS trio files...");
 
     try {
-      const userText = evidenceBundle.user_hints.user_text || "";
+      const { datasetDesc, readmeContent, participantsTsv, skipped } =
+        await generateTrioFiles({
+          evidenceBundle,
+          files,
+          llmConfig: buildLLMConfig(),
+          signal: controller.signal,
+          onStatus: setStatus,
+        });
 
-      // ==========================================
-      // Call 1: Generate dataset_description.json
-      // ==========================================
-      let datasetDesc: any;
-      if (evidenceBundle.trio_found?.["dataset_description.json"]) {
-        setStatus("1/3 dataset_description.json already exists, skipping...");
-        const existing = files.find(
-          (f) => f.source === "user" && f.name === "dataset_description.json"
-        );
-        datasetDesc = existing?.content ? JSON.parse(existing.content) : {};
-      } else {
-        setStatus("1/3 Generating dataset_description.json...");
-        const ddPrompt = getDatasetDescriptionPrompt(userText, evidenceBundle);
-
-        let ddResponse;
-        if (currentProvider.isAnthropic) {
-          ddResponse = await fetch(currentProvider.baseUrl, {
-            method: "POST",
-            signal: controller.signal,
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": apiKey,
-              "anthropic-version": "2023-06-01",
-            },
-            body: JSON.stringify({
-              model,
-              max_tokens: 2048,
-              messages: [{ role: "user", content: ddPrompt }],
-            }),
-          });
-        } else if (provider === "ollama") {
-          // const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-          // ddResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-          //   method: "POST",
-          //   signal: controller.signal,
-          //   headers: { "Content-Type": "application/json" },
-          //   body: JSON.stringify({
-          //     model,
-          //     messages: [{ role: "user", content: ddPrompt }],
-          //     stream: false,
-          //   }),
-          // });
-          ddResponse = await OllamaService.chat(model, [
-            { role: "user", content: ddPrompt },
-          ]);
-        } else {
-          ddResponse = await fetch(currentProvider.baseUrl, {
-            method: "POST",
-            signal: controller.signal,
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-              model,
-              messages: [{ role: "user", content: ddPrompt }],
-              max_tokens: 2048,
-            }),
-          });
-        }
-
-        // const ddData = await ddResponse.json();
-        const ddData =
-          provider === "ollama" ? ddResponse : await ddResponse.json();
-        let ddText = currentProvider.isAnthropic
-          ? ddData.content[0].text
-          : ddData.choices[0].message.content;
-
-        // Clean up markdown fences
-        ddText = ddText
-          .replace(/^```json\n?/g, "")
-          .replace(/\n?```$/g, "")
-          .trim();
-        datasetDesc = JSON.parse(ddText);
-      }
-
-      // ==========================================
-      // Call 2: Generate README.md
-      // ==========================================
-      let readmeContent: string;
-      if (evidenceBundle.trio_found?.["README.md"]) {
-        setStatus("2/3 README.md already exists, skipping...");
-        const existing = files.find(
-          (f) =>
-            f.source === "user" &&
-            ["README.md", "README.txt", "README.rst", "readme.md"].includes(
-              f.name
-            )
-        );
-        readmeContent = existing?.content || "";
-      } else {
-        setStatus("2/3 Generating README.md...");
-        const readmePrompt = getReadmePrompt(userText);
-
-        let readmeResponse;
-        if (currentProvider.isAnthropic) {
-          readmeResponse = await fetch(currentProvider.baseUrl, {
-            method: "POST",
-            signal: controller.signal,
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": apiKey,
-              "anthropic-version": "2023-06-01",
-            },
-            body: JSON.stringify({
-              model,
-              max_tokens: 2048,
-              messages: [{ role: "user", content: readmePrompt }],
-            }),
-          });
-        } else if (provider === "ollama") {
-          // const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-          // readmeResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-          //   method: "POST",
-          //   signal: controller.signal,
-          //   headers: { "Content-Type": "application/json" },
-          //   body: JSON.stringify({
-          //     model,
-          //     messages: [{ role: "user", content: readmePrompt }],
-          //     stream: false,
-          //   }),
-          // });
-          readmeResponse = await OllamaService.chat(model, [
-            { role: "user", content: readmePrompt },
-          ]);
-        } else {
-          readmeResponse = await fetch(currentProvider.baseUrl, {
-            method: "POST",
-            signal: controller.signal,
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-              model,
-              messages: [{ role: "user", content: readmePrompt }],
-              max_tokens: 2048,
-            }),
-          });
-        }
-
-        // const readmeData = await readmeResponse.json();
-        const readmeData =
-          provider === "ollama" ? readmeResponse : await readmeResponse.json();
-        readmeContent = currentProvider.isAnthropic
-          ? readmeData.content[0].text
-          : readmeData.choices[0].message.content;
-      }
-      // ==========================================
-      // Call 3: Generate participants.tsv
-      // ==========================================
-      let participantsContent: string;
-      if (evidenceBundle.trio_found?.["participants.tsv"]) {
-        setStatus("3/3 participants.tsv already exists, skipping...");
-        const existing = files.find(
-          (f) => f.source === "user" && f.name === "participants.tsv"
-        );
-        participantsContent = existing?.content || "";
-      } else {
-        setStatus("3/3 Generating participants.tsv...");
-        const partsPrompt = getParticipantsPrompt(userText);
-
-        let partsResponse;
-        if (currentProvider.isAnthropic) {
-          partsResponse = await fetch(currentProvider.baseUrl, {
-            method: "POST",
-            signal: controller.signal,
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": apiKey,
-              "anthropic-version": "2023-06-01",
-            },
-            body: JSON.stringify({
-              model,
-              max_tokens: 1024,
-              messages: [{ role: "user", content: partsPrompt }],
-            }),
-          });
-        } else if (provider === "ollama") {
-          // const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-          // partsResponse = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-          //   method: "POST",
-          //   signal: controller.signal,
-          //   headers: { "Content-Type": "application/json" },
-          //   body: JSON.stringify({
-          //     model,
-          //     messages: [{ role: "user", content: partsPrompt }],
-          //     stream: false,
-          //   }),
-          // });
-          partsResponse = await OllamaService.chat(model, [
-            { role: "user", content: partsPrompt },
-          ]);
-        } else {
-          partsResponse = await fetch(currentProvider.baseUrl, {
-            method: "POST",
-            signal: controller.signal,
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-              model,
-              messages: [{ role: "user", content: partsPrompt }],
-              max_tokens: 1024,
-            }),
-          });
-        }
-
-        // const partsData = await partsResponse.json();
-        const partsData =
-          provider === "ollama" ? partsResponse : await partsResponse.json();
-        const participantsRaw = currentProvider.isAnthropic
-          ? partsData.content[0].text
-          : partsData.choices[0].message.content;
-
-        // Build TSV from schema
-        try {
-          const schemaText = participantsRaw
-            .replace(/^```json\n?/g, "")
-            .replace(/\n?```$/g, "")
-            .trim();
-          const schema = JSON.parse(schemaText);
-          const columns: string[] = schema.columns.map((c: any) => c.name);
-
-          // Get subject IDs from evidence bundle (extracted by Python-style analysis)
-          // const idMapping =
-          //   evidenceBundle?.subject_analysis?.id_mapping?.id_mapping;
-          // const subjectLabels: string[] = idMapping
-          //   ? Object.values(idMapping).map((id) => `sub-${id}`)
-          //   : ["sub-01"]; // fallback if no subject analysis
-          // Get subject IDs from subjectAnalysis state (computed at plan stage)
-          // Fall back to computing fresh if plan hasn't been run yet
-          const currentSubjectAnalysis =
-            subjectAnalysis ||
-            extractSubjectAnalysis(
-              evidenceBundle?.all_files || [],
-              evidenceBundle?.user_hints?.n_subjects,
-              evidenceBundle?.filename_analysis?.python_statistics
-                ?.dominant_prefixes
-            );
-          const idMap = currentSubjectAnalysis?.id_mapping?.id_mapping;
-          const subjectLabels: string[] =
-            idMap && Object.keys(idMap).length > 0
-              ? Object.values(idMap).map((id) => `sub-${id}`)
-              : Array.from(
-                  { length: evidenceBundle?.user_hints?.n_subjects || 1 },
-                  (_, i) => `sub-${String(i + 1).padStart(2, "0")}`
-                );
-
-          const header = columns.join("\t");
-          const rows = subjectLabels.map((subId) =>
-            columns
-              .map((col: string) => (col === "participant_id" ? subId : "n/a"))
-              .join("\t")
-          );
-          participantsContent = [header, ...rows].join("\n");
-        } catch (e) {
-          // Fallback: LLM didn't return valid JSON schema, use raw content
-          participantsContent = participantsRaw
-            .replace(/^```\n?/g, "")
-            .replace(/\n?```$/g, "")
-            .trim();
-        }
-      }
-      // ==========================================
-      // Add trio files to Virtual File System
-      // ==========================================
       const timestamp = new Date().toLocaleString();
       const trioFiles: FileItem[] = [
         {
@@ -505,10 +243,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           name: "README.md",
           type: "file",
           fileType: "meta",
-          content: readmeContent
-            .replace(/^```markdown\n?/g, "")
-            .replace(/\n?```$/g, "")
-            .trim(),
+          content: readmeContent,
           contentType: "text",
           isUserMeta: true,
           parentId: null,
@@ -520,10 +255,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           name: "participants.tsv",
           type: "file",
           fileType: "meta",
-          content: participantsContent
-            .replace(/^```\n?/g, "")
-            .replace(/\n?```$/g, "")
-            .trim(),
+          content: participantsTsv,
           contentType: "text",
           isUserMeta: true,
           parentId: null,
@@ -531,32 +263,27 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           generatedAt: timestamp,
         },
       ];
-      // replace existing trio files, add if not exist
+
       updateFiles((prev) => {
         const trioNames = [
           "dataset_description.json",
           "README.md",
           "participants.tsv",
         ];
-
-        // Remove old AI generated trio files
         const withoutOldTrio = prev.filter(
           (f) => !(f.source === "ai" && trioNames.includes(f.name))
         );
-
-        // Add new trio files
-        // return [...withoutOldTrio, ...trioFiles];
-
-        // Only add AI-generated files for ones that weren't user-uploaded
-        const newTrioFiles = trioFiles.filter(
-          (tf) =>
-            !evidenceBundle.trio_found?.[
-              tf.name as keyof typeof evidenceBundle.trio_found
-            ]
-        );
-
+        // Only add AI files for ones that weren't user-uploaded (skipped=true means user-uploaded)
+        const newTrioFiles = trioFiles.filter((tf) => {
+          if (tf.name === "dataset_description.json")
+            return !skipped.datasetDesc;
+          if (tf.name === "README.md") return !skipped.readme;
+          if (tf.name === "participants.tsv") return !skipped.participants;
+          return true;
+        });
         return [...withoutOldTrio, ...newTrioFiles];
       });
+
       setTrioGenerated(true);
       setStatus(
         "✓ BIDS trio files generated and added to Virtual File System!"
@@ -570,9 +297,469 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       }
     } finally {
       setGeneratingTrio(false);
-      setAbortController(null); // Clear controller
+      setAbortController(null);
     }
   };
+  // const handleGenerateTrio = async () => {
+  //   if (!evidenceBundle) {
+  //     setError("Please generate evidence bundle first");
+  //     return;
+  //   }
+
+  //   if (!currentProvider.noApiKey && !apiKey.trim()) {
+  //     setError("Please enter an API key");
+  //     return;
+  //   }
+
+  //   // Create abort controller
+  //   const controller = new AbortController();
+  //   setAbortController(controller);
+
+  //   setGeneratingTrio(true);
+  //   setError(null);
+  //   setStatus("Generating BIDS trio files...");
+
+  //   try {
+  //     const userText = evidenceBundle.user_hints.user_text || "";
+
+  //     // ==========================================
+  //     // Call 1: Generate dataset_description.json
+  //     // ==========================================
+  //     let datasetDesc: any;
+  //     if (evidenceBundle.trio_found?.["dataset_description.json"]) {
+  //       setStatus("1/3 dataset_description.json already exists, skipping...");
+  //       const existing = files.find(
+  //         (f) => f.source === "user" && f.name === "dataset_description.json"
+  //       );
+  //       datasetDesc = existing?.content ? JSON.parse(existing.content) : {};
+  //     } else {
+  //       setStatus("1/3 Generating dataset_description.json...");
+  //       const ddPrompt = getDatasetDescriptionPrompt(userText, evidenceBundle);
+
+  //       let ddResponse;
+  //       if (currentProvider.isAnthropic) {
+  //         ddResponse = await fetch(currentProvider.baseUrl, {
+  //           method: "POST",
+  //           signal: controller.signal,
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //             "x-api-key": apiKey,
+  //             "anthropic-version": "2023-06-01",
+  //           },
+  //           body: JSON.stringify({
+  //             model,
+  //             max_tokens: 2048,
+  //             messages: [{ role: "user", content: ddPrompt }],
+  //           }),
+  //         });
+  //       } else if (provider === "ollama") {
+
+  //         ddResponse = await OllamaService.chat(model, [
+  //           { role: "user", content: ddPrompt },
+  //         ]);
+  //       } else {
+  //         ddResponse = await fetch(currentProvider.baseUrl, {
+  //           method: "POST",
+  //           signal: controller.signal,
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //             Authorization: `Bearer ${apiKey}`,
+  //           },
+  //           body: JSON.stringify({
+  //             model,
+  //             messages: [{ role: "user", content: ddPrompt }],
+  //             max_tokens: 2048,
+  //           }),
+  //         });
+  //       }
+
+  //       // const ddData = await ddResponse.json();
+  //       const ddData =
+  //         provider === "ollama" ? ddResponse : await ddResponse.json();
+  //       let ddText = currentProvider.isAnthropic
+  //         ? ddData.content[0].text
+  //         : ddData.choices[0].message.content;
+
+  //       // Clean up markdown fences
+  //       ddText = ddText
+  //         .replace(/^```json\n?/g, "")
+  //         .replace(/\n?```$/g, "")
+  //         .trim();
+  //       datasetDesc = JSON.parse(ddText);
+  //     }
+
+  //     // ==========================================
+  //     // Call 2: Generate README.md
+  //     // ==========================================
+  //     let readmeContent: string;
+  //     if (evidenceBundle.trio_found?.["README.md"]) {
+  //       setStatus("2/3 README.md already exists, skipping...");
+  //       const existing = files.find(
+  //         (f) =>
+  //           f.source === "user" &&
+  //           ["README.md", "README.txt", "README.rst", "readme.md"].includes(
+  //             f.name
+  //           )
+  //       );
+  //       readmeContent = existing?.content || "";
+  //     } else {
+  //       setStatus("2/3 Generating README.md...");
+  //       const readmePrompt = getReadmePrompt(userText);
+
+  //       let readmeResponse;
+  //       if (currentProvider.isAnthropic) {
+  //         readmeResponse = await fetch(currentProvider.baseUrl, {
+  //           method: "POST",
+  //           signal: controller.signal,
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //             "x-api-key": apiKey,
+  //             "anthropic-version": "2023-06-01",
+  //           },
+  //           body: JSON.stringify({
+  //             model,
+  //             max_tokens: 2048,
+  //             messages: [{ role: "user", content: readmePrompt }],
+  //           }),
+  //         });
+  //       } else if (provider === "ollama") {
+
+  //         readmeResponse = await OllamaService.chat(model, [
+  //           { role: "user", content: readmePrompt },
+  //         ]);
+  //       } else {
+  //         readmeResponse = await fetch(currentProvider.baseUrl, {
+  //           method: "POST",
+  //           signal: controller.signal,
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //             Authorization: `Bearer ${apiKey}`,
+  //           },
+  //           body: JSON.stringify({
+  //             model,
+  //             messages: [{ role: "user", content: readmePrompt }],
+  //             max_tokens: 2048,
+  //           }),
+  //         });
+  //       }
+
+  //       const readmeData =
+  //         provider === "ollama" ? readmeResponse : await readmeResponse.json();
+  //       readmeContent = currentProvider.isAnthropic
+  //         ? readmeData.content[0].text
+  //         : readmeData.choices[0].message.content;
+  //     }
+  //     // ==========================================
+  //     // Call 3: Generate participants.tsv
+  //     // ==========================================
+  //     let participantsContent: string;
+  //     if (evidenceBundle.trio_found?.["participants.tsv"]) {
+  //       setStatus("3/3 participants.tsv already exists, skipping...");
+  //       const existing = files.find(
+  //         (f) => f.source === "user" && f.name === "participants.tsv"
+  //       );
+  //       participantsContent = existing?.content || "";
+  //     } else {
+  //       setStatus("3/3 Generating participants.tsv...");
+  //       const partsPrompt = getParticipantsPrompt(userText);
+
+  //       const currentSubjectAnalysis = extractSubjectAnalysis(
+  //         evidenceBundle?.all_files || [],
+  //         evidenceBundle?.user_hints?.n_subjects,
+  //         evidenceBundle?.filename_analysis?.python_statistics
+  //           ?.dominant_prefixes
+  //       );
+
+  //       console.log("=== PARTICIPANTS DEBUG ===");
+  //       console.log("method:", currentSubjectAnalysis?.method);
+  //       console.log("subject_count:", currentSubjectAnalysis?.subject_count);
+  //       console.log(
+  //         "id_mapping:",
+  //         currentSubjectAnalysis?.id_mapping?.id_mapping
+  //       );
+  //       console.log(
+  //         "reverse_mapping:",
+  //         currentSubjectAnalysis?.id_mapping?.reverse_mapping
+  //       );
+  //       console.log(
+  //         "subject_records sample:",
+  //         currentSubjectAnalysis?.subject_records?.slice(0, 3)
+  //       );
+  //       const idMap = currentSubjectAnalysis?.id_mapping?.id_mapping;
+  //       const expectedCount = evidenceBundle?.user_hints?.n_subjects;
+  //       const subjectLabels: string[] =
+  //         idMap &&
+  //         Object.keys(idMap).length > 0 &&
+  //         (!expectedCount || Object.keys(idMap).length === expectedCount)
+  //           ? Object.values(idMap).map((id: string) => `sub-${id}`)
+  //           : Array.from(
+  //               {
+  //                 length: expectedCount || Object.keys(idMap || {}).length || 1,
+  //               },
+  //               (_, i) => `sub-${String(i + 1).padStart(2, "0")}`
+  //             );
+
+  //       let partsResponse;
+  //       if (currentProvider.isAnthropic) {
+  //         partsResponse = await fetch(currentProvider.baseUrl, {
+  //           method: "POST",
+  //           signal: controller.signal,
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //             "x-api-key": apiKey,
+  //             "anthropic-version": "2023-06-01",
+  //           },
+  //           body: JSON.stringify({
+  //             model,
+  //             max_tokens: 1024,
+  //             messages: [{ role: "user", content: partsPrompt }],
+  //           }),
+  //         });
+  //       } else if (provider === "ollama") {
+
+  //         partsResponse = await OllamaService.chat(model, [
+  //           { role: "user", content: partsPrompt },
+  //         ]);
+  //       } else {
+  //         partsResponse = await fetch(currentProvider.baseUrl, {
+  //           method: "POST",
+  //           signal: controller.signal,
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //             Authorization: `Bearer ${apiKey}`,
+  //           },
+  //           body: JSON.stringify({
+  //             model,
+  //             messages: [{ role: "user", content: partsPrompt }],
+  //             max_tokens: 1024,
+  //           }),
+  //         });
+  //       }
+
+  //       // const partsData = await partsResponse.json();
+  //       const partsData =
+  //         provider === "ollama" ? partsResponse : await partsResponse.json();
+  //       const participantsRaw = currentProvider.isAnthropic
+  //         ? partsData.content[0].text
+  //         : partsData.choices[0].message.content;
+
+  //       // Build TSV from schema
+  //       // try {
+  //       //   const schemaText = participantsRaw
+  //       //     .replace(/^```json\n?/g, "")
+  //       //     .replace(/\n?```$/g, "")
+  //       //     .trim();
+  //       //   const schema = JSON.parse(schemaText);
+  //       //   const columns: string[] = schema.columns.map((c: any) => c.name);
+
+  //       //   // Get subject IDs from evidence bundle (extracted by Python-style analysis)
+  //       //   // const idMapping =
+  //       //   //   evidenceBundle?.subject_analysis?.id_mapping?.id_mapping;
+  //       //   // const subjectLabels: string[] = idMapping
+  //       //   //   ? Object.values(idMapping).map((id) => `sub-${id}`)
+  //       //   //   : ["sub-01"]; // fallback if no subject analysis
+  //       //   // Get subject IDs from subjectAnalysis state (computed at plan stage)
+  //       //   // Fall back to computing fresh if plan hasn't been run yet
+  //       //   const currentSubjectAnalysis =
+  //       //     subjectAnalysis ||
+  //       //     extractSubjectAnalysis(
+  //       //       evidenceBundle?.all_files || [],
+  //       //       evidenceBundle?.user_hints?.n_subjects,
+  //       //       evidenceBundle?.filename_analysis?.python_statistics
+  //       //         ?.dominant_prefixes
+  //       //     );
+  //       //   const idMap = currentSubjectAnalysis?.id_mapping?.id_mapping;
+  //       //   const subjectLabels: string[] =
+  //       //     idMap && Object.keys(idMap).length > 0
+  //       //       ? Object.values(idMap).map((id) => `sub-${id}`)
+  //       //       : Array.from(
+  //       //           { length: evidenceBundle?.user_hints?.n_subjects || 1 },
+  //       //           (_, i) => `sub-${String(i + 1).padStart(2, "0")}`
+  //       //         );
+
+  //       //   const header = columns.join("\t");
+  //       //   // ====origin====
+  //       //   // const rows = subjectLabels.map((subId) =>
+  //       //   //   columns
+  //       //   //     .map((col: string) => (col === "participant_id" ? subId : "n/a"))
+  //       //   //     .join("\t")
+  //       //   // );
+  //       //   //====== end ======
+  //       //   // =====update start=====
+  //       //   const reverseMap =
+  //       //     currentSubjectAnalysis?.id_mapping?.reverse_mapping || {};
+  //       //   const subjectRecords = currentSubjectAnalysis?.subject_records || [];
+
+  //       //   const rows = subjectLabels.map((subId) => {
+  //       //     const bareId = subId.replace(/^sub-/, "");
+  //       //     const originalId = reverseMap[bareId];
+  //       //     const record = subjectRecords.find(
+  //       //       (r: any) => r.original_id === originalId
+  //       //     );
+  //       //     return columns
+  //       //       .map((col: string) => {
+  //       //         if (col === "participant_id") return subId;
+  //       //         if (col === "original_id") return originalId || "n/a";
+  //       //         if (col === "group") return (record as any)?.group || "n/a";
+  //       //         return "n/a";
+  //       //       })
+  //       //       .join("\t");
+  //       //   });
+  //       //   //====update end======
+  //       //   participantsContent = [header, ...rows].join("\n");
+  //       // } catch (e) {
+  //       //   // Fallback: LLM didn't return valid JSON schema, use raw content
+  //       //   participantsContent = participantsRaw
+  //       //     .replace(/^```\n?/g, "")
+  //       //     .replace(/\n?```$/g, "")
+  //       //     .trim();
+  //       // }
+  //       // Build TSV from schema + subject analysis
+  //       // Mirrors _generate_participants_tsv_from_python() in planner.py
+  //       try {
+  //         const schemaText = participantsRaw
+  //           .replace(/^```json\n?/g, "")
+  //           .replace(/\n?```$/g, "")
+  //           .trim();
+  //         const schema = JSON.parse(schemaText);
+
+  //         // LLM decides extra demographic columns (sex, age, group etc.)
+  //         // but we always add participant_id and original_id ourselves
+  //         const extraColumns: string[] = schema.columns
+  //           .map((c: any) => c.name)
+  //           .filter(
+  //             (name: string) =>
+  //               name !== "participant_id" && name !== "original_id"
+  //           );
+
+  //         // Always start with participant_id and original_id
+  //         const columns = ["participant_id", "original_id", ...extraColumns];
+
+  //         const reverseMap =
+  //           currentSubjectAnalysis?.id_mapping?.reverse_mapping || {};
+  //         const subjectRecords = currentSubjectAnalysis?.subject_records || [];
+
+  //         const header = columns.join("\t");
+  //         const rows = subjectLabels.map((subId) => {
+  //           const bareId = subId.replace(/^sub-/, "");
+  //           const originalId = reverseMap[bareId] || "n/a";
+  //           const record = subjectRecords.find(
+  //             (r: any) => r.original_id === originalId
+  //           );
+  //           return columns
+  //             .map((col: string) => {
+  //               if (col === "participant_id") return subId;
+  //               if (col === "original_id") return originalId;
+  //               if (col === "group") return (record as any)?.group || "n/a";
+  //               return "n/a";
+  //             })
+  //             .join("\t");
+  //         });
+
+  //         participantsContent = [header, ...rows].join("\n");
+  //       } catch (e) {
+  //         // Fallback: generate minimal TSV directly from subject analysis
+  //         const reverseMap =
+  //           currentSubjectAnalysis?.id_mapping?.reverse_mapping || {};
+  //         const header = "participant_id\toriginal_id";
+  //         const rows = subjectLabels.map((subId) => {
+  //           const bareId = subId.replace(/^sub-/, "");
+  //           const originalId = reverseMap[bareId] || "n/a";
+  //           return `${subId}\t${originalId}`;
+  //         });
+  //         participantsContent = [header, ...rows].join("\n");
+  //       }
+  //     }
+  //     // ==========================================
+  //     // Add trio files to Virtual File System
+  //     // ==========================================
+  //     const timestamp = new Date().toLocaleString();
+  //     const trioFiles: FileItem[] = [
+  //       {
+  //         id: generateId(),
+  //         name: "dataset_description.json",
+  //         type: "file",
+  //         fileType: "meta",
+  //         content: JSON.stringify(datasetDesc, null, 2),
+  //         contentType: "text",
+  //         isUserMeta: true,
+  //         parentId: null,
+  //         source: "ai",
+  //         generatedAt: timestamp,
+  //       },
+  //       {
+  //         id: generateId(),
+  //         name: "README.md",
+  //         type: "file",
+  //         fileType: "meta",
+  //         content: readmeContent
+  //           .replace(/^```markdown\n?/g, "")
+  //           .replace(/\n?```$/g, "")
+  //           .trim(),
+  //         contentType: "text",
+  //         isUserMeta: true,
+  //         parentId: null,
+  //         source: "ai",
+  //         generatedAt: timestamp,
+  //       },
+  //       {
+  //         id: generateId(),
+  //         name: "participants.tsv",
+  //         type: "file",
+  //         fileType: "meta",
+  //         content: participantsContent
+  //           .replace(/^```\n?/g, "")
+  //           .replace(/\n?```$/g, "")
+  //           .trim(),
+  //         contentType: "text",
+  //         isUserMeta: true,
+  //         parentId: null,
+  //         source: "ai",
+  //         generatedAt: timestamp,
+  //       },
+  //     ];
+  //     // replace existing trio files, add if not exist
+  //     updateFiles((prev) => {
+  //       const trioNames = [
+  //         "dataset_description.json",
+  //         "README.md",
+  //         "participants.tsv",
+  //       ];
+
+  //       // Remove old AI generated trio files
+  //       const withoutOldTrio = prev.filter(
+  //         (f) => !(f.source === "ai" && trioNames.includes(f.name))
+  //       );
+
+  //       // Add new trio files
+  //       // return [...withoutOldTrio, ...trioFiles];
+
+  //       // Only add AI-generated files for ones that weren't user-uploaded
+  //       const newTrioFiles = trioFiles.filter(
+  //         (tf) =>
+  //           !evidenceBundle.trio_found?.[
+  //             tf.name as keyof typeof evidenceBundle.trio_found
+  //           ]
+  //       );
+
+  //       return [...withoutOldTrio, ...newTrioFiles];
+  //     });
+  //     setTrioGenerated(true);
+  //     setStatus(
+  //       "✓ BIDS trio files generated and added to Virtual File System!"
+  //     );
+  //   } catch (err: any) {
+  //     if (err.name === "AbortError") {
+  //       setStatus("❌ Generation cancelled");
+  //     } else {
+  //       setError(err.message || "Failed to generate trio files");
+  //       setStatus("❌ Error generating trio files");
+  //     }
+  //   } finally {
+  //     setGeneratingTrio(false);
+  //     setAbortController(null); // Clear controller
+  //   }
+  // };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsResizing(true);
@@ -609,158 +796,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
 
   const currentProvider = llmProviders[provider];
 
-  const handleGenerate = async () => {
-    if (!currentProvider.noApiKey && !apiKey.trim()) {
-      setError("Please enter an API key");
-      return;
-    }
-
-    if (!baseDirectoryPath.trim()) {
-      setError("Please enter a base directory path");
-      return;
-    }
-
-    // Create abort controller
-    const controller = new AbortController();
-    setAbortController(controller);
-
-    setLoading(true);
-    setError(null);
-    setStatus(`Generating script using ${currentProvider.name}...`);
-
-    const fileSummary = buildFileSummary(files);
-    const filePatterns = analyzeFilePatterns(files);
-    const userContext = getUserContext(files);
-    const annotations = getFileAnnotations(files);
-    // console.log("=== PROMPT BEING SENT TO LLM ===");
-    // console.log(fileSummary);
-    // console.log(filePatterns);
-    // console.log(userContext);
-    // console.log("=================================");
-
-    // UPDATED: Improved prompt that uses trio files
-    const prompt = getConversionScriptPrompt(
-      baseDirectoryPath,
-      fileSummary,
-      filePatterns,
-      userContext,
-      annotations
-    );
-
-    try {
-      let response;
-
-      if (provider === "ollama") {
-        // const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-        // response = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-        //   method: "POST",
-        //   signal: controller.signal,
-        //   headers: {
-        //     "Content-Type": "application/json",
-        //   },
-        //   body: JSON.stringify({
-        //     model,
-        //     messages: [
-        //       {
-        //         role: "system",
-        //         content:
-        //           "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code without markdown fences or explanations.",
-        //       },
-        //       { role: "user", content: prompt },
-        //     ],
-        //     stream: false,
-        //   }),
-        // });
-        response = await OllamaService.chat(model, [
-          {
-            role: "system",
-            content:
-              "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code without markdown fences or explanations.",
-          },
-          { role: "user", content: prompt },
-        ]);
-      } else if (currentProvider.isAnthropic) {
-        response = await fetch(currentProvider.baseUrl, {
-          method: "POST",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model,
-            max_tokens: 4096,
-            messages: [{ role: "user", content: prompt }],
-          }),
-        });
-      } else {
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-
-        if (!currentProvider.noApiKey) {
-          headers["Authorization"] = `Bearer ${apiKey}`;
-        }
-
-        response = await fetch(currentProvider.baseUrl, {
-          method: "POST",
-          signal: controller.signal,
-          headers,
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You are a neuroimaging data expert specializing in BIDS format conversion. Output only Python code without markdown fences or explanations.",
-              },
-              { role: "user", content: prompt },
-            ],
-            max_tokens: 4096,
-            temperature: 0.7,
-          }),
-        });
-      }
-
-      // const data = await response.json();
-      const data = provider === "ollama" ? response : await response.json();
-
-      // if (!response.ok) {
-      //   throw new Error(data.error?.message || "Failed to generate script");
-      // }
-      if (!response.ok && provider !== "ollama") {
-        throw new Error(data.error?.message || "Failed to generate script");
-      }
-
-      // let script = "";
-      // if (currentProvider.isAnthropic) {
-      //   script = data.content[0].text;
-      // } else {
-      //   script = data.choices[0].message.content;
-      // }
-      let script = currentProvider.isAnthropic
-        ? data.content[0].text
-        : data.choices[0].message.content;
-
-      // Clean up markdown fences if AI included them anyway
-      script = script.replace(/^```python\n?/g, "").replace(/\n?```$/g, "");
-
-      setGeneratedScript(script);
-      setStatus(`✓ Script generated using ${currentProvider.name}`);
-    } catch (err: any) {
-      if (err.name === "AbortError") {
-        setStatus("❌ Generation cancelled");
-      } else {
-        setError(err.message || "Failed to generate script");
-        setStatus("❌ Error generating script");
-      }
-    } finally {
-      setLoading(false);
-      setAbortController(null); // Clear controller
-    }
-  };
-
   const handleGeneratePlan = async () => {
     if (!currentProvider.noApiKey && !apiKey.trim()) {
       setError("Please enter an API key");
@@ -777,141 +812,57 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     setError(null);
     setStatus(`Generating BIDSPlan.yaml using ${currentProvider.name}...`);
 
-    // ── Compute subject analysis (mirrors planner.py Step 1)
-    const allFiles = evidenceBundle?.all_files || [];
-    const userNSubjects = evidenceBundle?.user_hints?.n_subjects;
-    const dominantPrefixes =
-      evidenceBundle?.filename_analysis?.python_statistics?.dominant_prefixes;
-
-    const computedSubjectAnalysis = extractSubjectAnalysis(
-      allFiles,
-      userNSubjects,
-      dominantPrefixes
-    );
-    setSubjectAnalysis(computedSubjectAnalysis);
-
-    const fileSummary = buildFileSummary(files);
-    const filePatterns = analyzeFilePatterns(files);
-    const userContext = getUserContext(files);
-    // const subjectInfo = extractSubjectsFromFiles(files);
-    const subjectInfo = computedSubjectAnalysis;
-    const sampleFiles =
-      evidenceBundle?.samples
-        ?.slice(0, 10)
-        .map((s: any) => `  - ${s.relpath}`)
-        .join("\n") || "";
-
-    // console.log("=== SAMPLE FILES ===");
-    // console.log(sampleFiles);
-    // console.log("=== COUNTS BY EXT ===");
-    // console.log(evidenceBundle?.counts_by_ext);
-
-    const prompt = getBIDSPlanPrompt(
-      fileSummary,
-      filePatterns,
-      userContext,
-      {
-        subjects: Object.entries(
-          computedSubjectAnalysis.id_mapping.id_mapping
-        ).map(([originalId, bidsId]) => ({ originalId, bidsId })),
-        strategy: computedSubjectAnalysis.id_mapping.strategy_used,
-      },
-      evidenceBundle?.counts_by_ext || {},
-      sampleFiles,
-      evidenceBundle
-    );
-
     try {
-      let response;
+      const {
+        planYaml,
+        subjectAnalysis: sa,
+        participantsTsv,
+        coverageWarnings,
+      } = await buildBidsPlan({
+        evidenceBundle,
+        llmConfig: buildLLMConfig(),
+        signal: controller.signal,
+        onStatus: setStatus,
+      });
 
-      if (provider === "ollama") {
-        // const ollamaBaseUrl = ollamaUrl || "http://localhost:11434";
-        // response = await fetch(`${ollamaBaseUrl}/v1/chat/completions`, {
-        //   method: "POST",
-        //   signal: controller.signal,
-        //   headers: { "Content-Type": "application/json" },
-        //   body: JSON.stringify({
-        //     model,
-        //     messages: [
-        //       {
-        //         role: "system",
-        //         content:
-        //           "You are a BIDS dataset architect. Output only valid YAML without markdown fences or explanations.",
-        //       },
-        //       { role: "user", content: prompt },
-        //     ],
-        //     stream: false,
-        //   }),
-        // });
-        response = await OllamaService.chat(model, [
-          {
-            role: "system",
-            content:
-              "You are a BIDS dataset architect. Output only valid YAML without markdown fences or explanations.",
-          },
-          { role: "user", content: prompt },
-        ]);
-      } else if (currentProvider.isAnthropic) {
-        response = await fetch(currentProvider.baseUrl, {
-          method: "POST",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": apiKey,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model,
-            max_tokens: 2048,
-            messages: [{ role: "user", content: prompt }],
-          }),
+      // Store subject analysis for ZIP packaging
+      setSubjectAnalysis(sa);
+
+      // Dump final YAML string (planYaml is raw string from LLM, already cleaned)
+      setBidsPlan(planYaml);
+
+      // Update participants.tsv in VFS with the full version from the plan stage
+      if (participantsTsv) {
+        const timestamp = new Date().toLocaleString();
+        updateFiles((prev) => {
+          const withoutOld = prev.filter(
+            (f) => !(f.source === "ai" && f.name === "participants.tsv")
+          );
+          return [
+            ...withoutOld,
+            {
+              id: generateId(),
+              name: "participants.tsv",
+              type: "file" as const,
+              fileType: "meta",
+              content: participantsTsv,
+              contentType: "text",
+              isUserMeta: true,
+              parentId: null,
+              source: "ai" as const,
+              generatedAt: timestamp,
+            },
+          ];
         });
+      }
+
+      if (coverageWarnings.length > 0) {
+        setStatus(
+          `✓ BIDSPlan.yaml generated (${coverageWarnings.length} coverage warning(s) — check console)`
+        );
       } else {
-        response = await fetch(currentProvider.baseUrl, {
-          method: "POST",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You are a BIDS dataset architect. Output only valid YAML without markdown fences or explanations.",
-              },
-              { role: "user", content: prompt },
-            ],
-            max_tokens: 2048,
-            temperature: 0.15,
-          }),
-        });
+        setStatus(`✓ BIDSPlan.yaml generated using ${currentProvider.name}`);
       }
-
-      // const data = await response.json();
-
-      // if (!response.ok) {
-      //   throw new Error(data.error?.message || "Failed to generate BIDSPlan");
-      // }
-      const data = provider === "ollama" ? response : await response.json();
-      if (!response.ok && provider !== "ollama") {
-        throw new Error(data.error?.message || "Failed to generate BIDSPlan");
-      }
-
-      let plan = currentProvider.isAnthropic
-        ? data.content[0].text
-        : data.choices[0].message.content;
-
-      // Clean up markdown fences if present
-      plan = plan
-        .replace(/^```yaml\n?/g, "")
-        .replace(/\n?```$/g, "")
-        .trim();
-
-      setBidsPlan(plan);
-      setStatus(`✓ BIDSPlan.yaml generated using ${currentProvider.name}`);
     } catch (err: any) {
       if (err.name === "AbortError") {
         setStatus("❌ Generation cancelled");
@@ -924,6 +875,143 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       setAbortController(null);
     }
   };
+  // const handleGeneratePlan = async () => {
+  //   if (!currentProvider.noApiKey && !apiKey.trim()) {
+  //     setError("Please enter an API key");
+  //     return;
+  //   }
+  //   if (!baseDirectoryPath.trim()) {
+  //     setError("Please enter a base directory path");
+  //     return;
+  //   }
+
+  //   const controller = new AbortController();
+  //   setAbortController(controller);
+  //   setLoading(true);
+  //   setError(null);
+  //   setStatus(`Generating BIDSPlan.yaml using ${currentProvider.name}...`);
+
+  //   // ── Compute subject analysis (mirrors planner.py Step 1)
+  //   const allFiles = evidenceBundle?.all_files || [];
+  //   const userNSubjects = evidenceBundle?.user_hints?.n_subjects;
+  //   const dominantPrefixes =
+  //     evidenceBundle?.filename_analysis?.python_statistics?.dominant_prefixes;
+
+  //   const computedSubjectAnalysis = extractSubjectAnalysis(
+  //     allFiles,
+  //     userNSubjects,
+  //     dominantPrefixes
+  //   );
+
+  //   setSubjectAnalysis(computedSubjectAnalysis);
+
+  //   const fileSummary = buildFileSummary(files);
+  //   const filePatterns = analyzeFilePatterns(files);
+  //   const userContext = getUserContext(files);
+  //   // const subjectInfo = extractSubjectsFromFiles(files);
+  //   const subjectInfo = computedSubjectAnalysis;
+  //   const sampleFiles =
+  //     evidenceBundle?.samples
+  //       ?.slice(0, 10)
+  //       .map((s: any) => `  - ${s.relpath}`)
+  //       .join("\n") || "";
+
+  //   const prompt = getBIDSPlanPrompt(
+  //     fileSummary,
+  //     filePatterns,
+  //     userContext,
+  //     {
+  //       subjects: Object.entries(
+  //         computedSubjectAnalysis.id_mapping.id_mapping
+  //       ).map(([originalId, bidsId]) => ({ originalId, bidsId })),
+  //       strategy: computedSubjectAnalysis.id_mapping.strategy_used,
+  //     },
+  //     evidenceBundle?.counts_by_ext || {},
+  //     sampleFiles,
+  //     evidenceBundle
+  //   );
+
+  //   try {
+  //     let response;
+
+  //     if (provider === "ollama") {
+
+  //       response = await OllamaService.chat(model, [
+  //         {
+  //           role: "system",
+  //           content:
+  //             "You are a BIDS dataset architect. Output only valid YAML without markdown fences or explanations.",
+  //         },
+  //         { role: "user", content: prompt },
+  //       ]);
+  //     } else if (currentProvider.isAnthropic) {
+  //       response = await fetch(currentProvider.baseUrl, {
+  //         method: "POST",
+  //         signal: controller.signal,
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           "x-api-key": apiKey,
+  //           "anthropic-version": "2023-06-01",
+  //         },
+  //         body: JSON.stringify({
+  //           model,
+  //           max_tokens: 2048,
+  //           messages: [{ role: "user", content: prompt }],
+  //         }),
+  //       });
+  //     } else {
+  //       response = await fetch(currentProvider.baseUrl, {
+  //         method: "POST",
+  //         signal: controller.signal,
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Authorization: `Bearer ${apiKey}`,
+  //         },
+  //         body: JSON.stringify({
+  //           model,
+  //           messages: [
+  //             {
+  //               role: "system",
+  //               content:
+  //                 "You are a BIDS dataset architect. Output only valid YAML without markdown fences or explanations.",
+  //             },
+  //             { role: "user", content: prompt },
+  //           ],
+  //           max_tokens: 2048,
+  //           temperature: 0.15,
+  //         }),
+  //       });
+  //     }
+
+  //     const data = provider === "ollama" ? response : await response.json();
+  //     if (!response.ok && provider !== "ollama") {
+  //       throw new Error(data.error?.message || "Failed to generate BIDSPlan");
+  //     }
+
+  //     let plan = currentProvider.isAnthropic
+  //       ? data.content[0].text
+  //       : data.choices[0].message.content;
+
+  //     // Clean up markdown fences if present
+  //     plan = plan
+  //       .replace(/^```yaml\n?/g, "")
+  //       .replace(/\n?```$/g, "")
+  //       .trim();
+
+  //     setBidsPlan(plan);
+  //     setStatus(`✓ BIDSPlan.yaml generated using ${currentProvider.name}`);
+  //   } catch (err: any) {
+  //     if (err.name === "AbortError") {
+  //       setStatus("❌ Generation cancelled");
+  //     } else {
+  //       setError(err.message || "Failed to generate BIDSPlan");
+  //       setStatus("❌ Error generating BIDSPlan");
+  //     }
+  //   } finally {
+  //     setLoading(false);
+  //     setAbortController(null);
+  //   }
+  // };
 
   const handleDownloadPlan = () => {
     const blob = new Blob([bidsPlan], { type: "text/yaml" });
@@ -1411,7 +1499,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 )}
               </FormControl>
 
-              {/* <TextField
+              <TextField
                 label="Describe your dataset (optional)"
                 placeholder='e.g. "DICOM files from 2 subjects, one male one female"'
                 value={describeText}
@@ -1419,7 +1507,8 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 size="small"
                 multiline
                 rows={2}
-              /> */}
+                sx={{ mb: 1 }}
+              />
               <Button
                 fullWidth
                 size="small"
