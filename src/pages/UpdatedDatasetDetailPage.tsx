@@ -1568,7 +1568,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           style={{
             display: "none",
             marginTop: "16px",
-            background: Colors.darkGray,
+            background: Colors.lightGray,
             color: Colors.black,
             padding: "12px",
             borderRadius: "8px",

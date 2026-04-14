@@ -396,7 +396,7 @@ function dopreview(key, idx, isinternal, hastime) {
     $("#chartpanel").css("padding", "10px");
     $("#chartpanel").show();
     $("#chartpanel").html(
-      '<h4>Data preview</h4><a href="javascript:void(0)" class="closebtn" onclick="$(\'#chartpanel\').hide()" title="Close">&times;</a><div id="plotchart"></div>'
+      '<h4>Data preview</h4><a href="javascript:void(0)" class="closebtn" style="color: black;" onclick="$(\'#chartpanel\').hide()" title="Close">&times;</a><div id="plotchart"></div>'
     );
     if (dataroot instanceof nj.NdArray) {
       // console.log("dataroot", dataroot);
@@ -445,6 +445,15 @@ function dopreview(key, idx, isinternal, hastime) {
         plotdata,
         document.getElementById("plotchart")
       );
+      // Reset all series on double-click (works on both Mac and Windows)
+      uplotInstance.root.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        uplotInstance.series.forEach((s, i) => {
+          if (i === 0) return; // skip x-axis
+          uplotInstance.setSeries(i, { show: true });
+        });
+      });
     } else {
       // let u = new uPlot(
       //   opts,
