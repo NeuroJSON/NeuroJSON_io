@@ -335,7 +335,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               : "Unknown Size";
 
             const parts = currentPath.split("/");
-            const subpath = parts.slice(-3).join("/");
+            const subpath = parts.slice(-6).join("/");
             const label = parentKey || "ExternalData";
 
             links.push({

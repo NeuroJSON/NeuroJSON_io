@@ -396,7 +396,18 @@ function dopreview(key, idx, isinternal, hastime) {
     $("#chartpanel").css("padding", "10px");
     $("#chartpanel").show();
     $("#chartpanel").html(
-      '<h4>Data preview</h4><a href="javascript:void(0)" class="closebtn" style="color: black;" onclick="$(\'#chartpanel\').hide()" title="Close">&times;</a><div id="plotchart"></div>'
+      '<h4>Data preview</h4><a href="javascript:void(0)" class="closebtn" style="color: black;" onclick="$(\'#chartpanel\').hide()" title="Close">&times;</a>' +
+        '<div style="font-size:0.78rem; color:#555; margin:6px 0 4px 0; padding:6px 10px; background:#f0f0f0; border-radius:4px;">' +
+        "<b>Tips:</b> " +
+        "<b>Click</b> a item to toggle a signal &nbsp;|&nbsp;<br> " +
+        "<b>⌘+Click</b> (Mac) / <b>Ctrl+Click</b> (Windows) to isolate one signal &nbsp;|&nbsp; " +
+        "<b>Shift+Click</b> to add more signals to the selection &nbsp;|&nbsp; " +
+        "<b>Click and drag</b> on the plot to zoom into a region &nbsp;|&nbsp;" +
+        "<b>Double-click</b> to restore selected signals (Mac) &nbsp;|&nbsp; " +
+        "<b>Double-click</b> to restore all signals (Windows) &nbsp;|&nbsp; " +
+        "<b>⌘+Click</b> the same selected item to restore all signals (Mac)" +
+        "</div>" +
+        '<div id="plotchart"></div>'
     );
 
     if (dataroot instanceof nj.NdArray) {
