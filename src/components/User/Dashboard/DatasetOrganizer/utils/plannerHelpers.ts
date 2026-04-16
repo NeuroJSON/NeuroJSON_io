@@ -858,7 +858,14 @@ export const buildBidsPlan = async (
   }
 
   // Preserve raw YAML string for saving
-  const planYamlStr = raw.startsWith("```") ? planYaml._raw ?? raw : raw;
+  //   const planYamlStr = raw.startsWith("```") ? planYaml._raw ?? raw : raw;
+  // Preserve raw YAML string for saving — strip markdown fences if present (mirrors planner.py Step 3)
+  let planYamlStr = raw.trim();
+  if (planYamlStr.startsWith("```yaml")) planYamlStr = planYamlStr.slice(7);
+  else if (planYamlStr.startsWith("```"))
+    planYamlStr = planYamlStr.split("\n").slice(1).join("\n");
+  if (planYamlStr.endsWith("```")) planYamlStr = planYamlStr.slice(0, -3);
+  planYamlStr = planYamlStr.trim();
 
   log("✓ BIDSPlan complete");
   return {

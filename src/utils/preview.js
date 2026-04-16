@@ -398,6 +398,7 @@ function dopreview(key, idx, isinternal, hastime) {
     $("#chartpanel").html(
       '<h4>Data preview</h4><a href="javascript:void(0)" class="closebtn" style="color: black;" onclick="$(\'#chartpanel\').hide()" title="Close">&times;</a><div id="plotchart"></div>'
     );
+
     if (dataroot instanceof nj.NdArray) {
       // console.log("dataroot", dataroot);
       if (dataroot.shape[0] > dataroot.shape[1])
@@ -445,15 +446,16 @@ function dopreview(key, idx, isinternal, hastime) {
         plotdata,
         document.getElementById("plotchart")
       );
+
       // Reset all series on double-click (works on both Mac and Windows)
-      uplotInstance.root.addEventListener("dblclick", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        uplotInstance.series.forEach((s, i) => {
-          if (i === 0) return; // skip x-axis
-          uplotInstance.setSeries(i, { show: true });
-        });
-      });
+      // uplotInstance.root.addEventListener("dblclick", (e) => {
+      //   e.preventDefault();
+      //   e.stopPropagation();
+      //   uplotInstance.series.forEach((s, i) => {
+      //     if (i === 0) return; // skip x-axis
+      //     uplotInstance.setSeries(i, { show: true });
+      //   });
+      // });
     } else {
       // let u = new uPlot(
       //   opts,
@@ -469,6 +471,15 @@ function dopreview(key, idx, isinternal, hastime) {
         [[...Array(dataroot.length).keys()], dataroot],
         document.getElementById("plotchart")
       );
+
+      // uplotInstance.root.addEventListener("dblclick", (e) => {
+      //   e.preventDefault();
+      //   e.stopPropagation();
+      //   uplotInstance.series.forEach((s, i) => {
+      //     if (i === 0) return;
+      //     uplotInstance.setSeries(i, { show: true });
+      //   });
+      // });
     }
 
     // for spinner
