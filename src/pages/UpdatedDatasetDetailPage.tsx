@@ -68,6 +68,7 @@ import {
   fetchDbInfoByDatasetId,
 } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
+import { resetDocument } from "redux/neurojson/neurojson.slice";
 // import { NeurojsonService } from "services/neurojson.service";
 import RoutesEnum from "types/routes.enum";
 
@@ -486,6 +487,12 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     };
   }, []);
 
+  // clean old dataset detail and metadata panel(include rev)
+  useEffect(() => {
+    dispatch(resetDocument()); // clear redux state
+    setRevsList([]); // clear local state
+  }, [dbName, docId, dispatch]);
+
   useEffect(() => {
     if (!dbName || !docId) return;
 
@@ -501,10 +508,10 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     const fromDoc = Array.isArray(datasetDocument?._revs_info)
       ? (datasetDocument._revs_info as { rev: string }[])
       : [];
-    if (fromDoc.length && revsList.length === 0) {
-      setRevsList(fromDoc);
+    if (fromDoc.length > 0) {
+      setRevsList(fromDoc); // only update when we have revisions
     }
-  }, [datasetDocument, revsList.length]);
+  }, [datasetDocument]);
 
   useEffect(() => {
     if (datasetDocument) {
