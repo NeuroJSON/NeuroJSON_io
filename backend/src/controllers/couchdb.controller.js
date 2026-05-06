@@ -1,8 +1,8 @@
 const axios = require("axios");
-const COUCHDB_BASE_URL =
-  process.env.COUCHDB_BASE_URL ||
-  "https://cors.redoc.ly/https://neurojson.io:7777";
-
+// const COUCHDB_BASE_URL =
+//   process.env.COUCHDB_BASE_URL ||
+//   "https://cors.redoc.ly/https://neurojson.io:7777";
+const COUCHDB_BASE_URL = "https://neurojson.io:7777";
 // get all dbs list (registry)
 const getDbList = async (req, res) => {
   try {

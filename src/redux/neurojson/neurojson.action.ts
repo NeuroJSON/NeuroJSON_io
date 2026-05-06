@@ -45,7 +45,7 @@ export const loadPaginatedData = createAsyncThunk(
         return rejectWithValue("No more data to load.");
       }
 
-      response.rows = response.rows.map((row) => ({
+      response.rows = response.rows.map((row: any) => ({
         ...row,
         dbName,
       }));
