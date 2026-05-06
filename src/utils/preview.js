@@ -387,7 +387,16 @@ function dopreview(key, idx, isinternal, hastime) {
       width: 1100,
       height: 400,
       series: [{}, {}],
-      axes: [{}, {}],
+      axes: [
+        {
+          label: "Sample", // ← x axis
+          labelSize: 20,
+        },
+        {
+          label: "a.u.", // ← y axis
+          labelSize: 20,
+        },
+      ],
       scales: {
         x: {
           time: false,
