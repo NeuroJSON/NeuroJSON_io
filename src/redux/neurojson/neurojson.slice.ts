@@ -43,6 +43,10 @@ const neurojsonSlice = createSlice({
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
+    resetDocument: (state) => {
+      state.selectedDocument = null;
+      state.datasetViewInfo = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -169,6 +173,6 @@ const neurojsonSlice = createSlice({
   },
 });
 
-export const { resetData, setLoading } = neurojsonSlice.actions;
+export const { resetData, setLoading, resetDocument } = neurojsonSlice.actions;
 
 export default neurojsonSlice.reducer;

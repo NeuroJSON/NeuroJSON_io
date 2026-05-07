@@ -16,7 +16,7 @@ router.get("/", getDbList);
 router.get("/stats", getDbStats);
 
 // cross-database search
-router.get("/search", searchAllDatabases);
+router.post("/search", searchAllDatabases);
 
 // Specific database routes
 router.get("/:dbName", getDbInfo);

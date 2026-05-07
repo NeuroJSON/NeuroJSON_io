@@ -381,12 +381,22 @@ function dopreview(key, idx, isinternal, hastime) {
     const opts = {
       // title: "Preview for " + (isinternal ? intdata[idx][3] : extdata[idx][3]),
       title:
-        "Preview for " +
-        (isinternal ? intdata[idx][3] : window.extdata[idx][3]),
+        // "Preview for " +
+        // (isinternal ? intdata[idx][3] : window.extdata[idx][3]),
+        "Data Preview",
       width: 1100,
       height: 400,
       series: [{}, {}],
-      axes: [{}, {}],
+      axes: [
+        {
+          label: "Sample", // ← x axis
+          labelSize: 20,
+        },
+        {
+          label: "a.u.", // ← y axis
+          labelSize: 20,
+        },
+      ],
       scales: {
         x: {
           time: false,
@@ -396,8 +406,24 @@ function dopreview(key, idx, isinternal, hastime) {
     $("#chartpanel").css("padding", "10px");
     $("#chartpanel").show();
     $("#chartpanel").html(
-      '<h4>Data preview</h4><a href="javascript:void(0)" class="closebtn" onclick="$(\'#chartpanel\').hide()" title="Close">&times;</a><div id="plotchart"></div>'
+      // '<h4>Data preview</h4><a href="javascript:void(0)" class="closebtn" style="color: black;" onclick="$(\'#chartpanel\').hide()" title="Close">&times;</a>' +
+      "<h4></h4>" +
+        '<a href="javascript:void(0)" class="closebtn" style="color: black;" ' +
+        "onclick=\"$('#chartpanel').hide(); window.__clear2DPath && window.__clear2DPath();\" " +
+        'title="Close">&times;</a>' +
+        '<div style="font-size:0.78rem; color:#555; margin:6px 0 4px 0; padding:6px 10px; background:#f0f0f0; border-radius:4px;">' +
+        "<b>Tips:</b> " +
+        "<b>Click</b> a item to toggle a signal &nbsp;|&nbsp;<br> " +
+        "<b>⌘+Click</b> (Mac) / <b>Ctrl+Click</b> (Windows) to isolate one signal &nbsp;|&nbsp; " +
+        "<b>Shift+Click</b> to add more signals to the selection &nbsp;|&nbsp; " +
+        "<b>Click and drag</b> on the plot to zoom into a region &nbsp;|&nbsp;" +
+        "<b>Double-click</b> to restore selected signals (Mac) &nbsp;|&nbsp; " +
+        "<b>Double-click</b> to restore all signals (Windows) &nbsp;|&nbsp; " +
+        "<b>⌘+Click</b> the same selected item to restore all signals (Mac)" +
+        "</div>" +
+        '<div id="plotchart"></div>'
     );
+
     if (dataroot instanceof nj.NdArray) {
       // console.log("dataroot", dataroot);
       if (dataroot.shape[0] > dataroot.shape[1])
@@ -445,6 +471,16 @@ function dopreview(key, idx, isinternal, hastime) {
         plotdata,
         document.getElementById("plotchart")
       );
+
+      // Reset all series on double-click (works on both Mac and Windows)
+      // uplotInstance.root.addEventListener("dblclick", (e) => {
+      //   e.preventDefault();
+      //   e.stopPropagation();
+      //   uplotInstance.series.forEach((s, i) => {
+      //     if (i === 0) return; // skip x-axis
+      //     uplotInstance.setSeries(i, { show: true });
+      //   });
+      // });
     } else {
       // let u = new uPlot(
       //   opts,
@@ -460,6 +496,15 @@ function dopreview(key, idx, isinternal, hastime) {
         [[...Array(dataroot.length).keys()], dataroot],
         document.getElementById("plotchart")
       );
+
+      // uplotInstance.root.addEventListener("dblclick", (e) => {
+      //   e.preventDefault();
+      //   e.stopPropagation();
+      //   uplotInstance.series.forEach((s, i) => {
+      //     if (i === 0) return;
+      //     uplotInstance.setSeries(i, { show: true });
+      //   });
+      // });
     }
 
     // for spinner

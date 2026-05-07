@@ -68,6 +68,7 @@ import {
   fetchDbInfoByDatasetId,
 } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
+import { resetDocument } from "redux/neurojson/neurojson.slice";
 // import { NeurojsonService } from "services/neurojson.service";
 import RoutesEnum from "types/routes.enum";
 
@@ -262,7 +263,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const focus = searchParams.get("focus") || undefined; // get highlight from url
   const rev = searchParams.get("rev") || undefined; // get revision from url
-
+  const [chart2DPreviewPath, setChart2DPreviewPath] = useState<string>("");
   const [externalLinks, setExternalLinks] = useState<ExternalDataLink[]>([]);
   const [internalLinks, setInternalLinks] = useState<InternalDataLink[]>([]);
   const [isInternalExpanded, setIsInternalExpanded] = useState(true);
@@ -284,6 +285,14 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     ? rawSummary
     : Object.values(rawSummary).filter(Boolean).join("\n\n");
   const readme = datasetDocument?.["README"] ?? "";
+
+  useEffect(() => {
+    window.__clear2DPath = () => setChart2DPreviewPath("");
+    return () => {
+      delete window.__clear2DPath;
+    };
+  }, []);
+
   const handleSelectRevision = (newRev?: string | null) => {
     setSearchParams((prev) => {
       const p = new URLSearchParams(prev); // copy of the query url
@@ -335,7 +344,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               : "Unknown Size";
 
             const parts = currentPath.split("/");
-            const subpath = parts.slice(-3).join("/");
+            const subpath = parts.slice(-6).join("/");
             const label = parentKey || "ExternalData";
 
             links.push({
@@ -478,6 +487,12 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     };
   }, []);
 
+  // clean old dataset detail and metadata panel(include rev)
+  useEffect(() => {
+    dispatch(resetDocument()); // clear redux state
+    setRevsList([]); // clear local state
+  }, [dbName, docId, dispatch]);
+
   useEffect(() => {
     if (!dbName || !docId) return;
 
@@ -493,10 +508,10 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     const fromDoc = Array.isArray(datasetDocument?._revs_info)
       ? (datasetDocument._revs_info as { rev: string }[])
       : [];
-    if (fromDoc.length && revsList.length === 0) {
-      setRevsList(fromDoc);
+    if (fromDoc.length > 0) {
+      setRevsList(fromDoc); // only update when we have revisions
     }
-  }, [datasetDocument, revsList.length]);
+  }, [datasetDocument]);
 
   useEffect(() => {
     if (datasetDocument) {
@@ -625,7 +640,9 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const handlePreview = (
     dataOrUrl: string | any,
     idx: number,
-    isInternal: boolean = false
+    isInternal: boolean = false,
+    previewPath: string = "",
+    displayNumber?: number
   ) => {
     // console.log(
     //   "🟢 Preview button clicked for:",
@@ -635,6 +652,9 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     //   "Is Internal:",
     //   isInternal
     // );
+    setChart2DPreviewPath(
+      displayNumber ? `[${displayNumber}] ${previewPath}` : previewPath
+    );
 
     // Clear any stale preview type from last run
     delete (window as any).__previewType;
@@ -783,14 +803,14 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     // Try internal data first
     const internal = internalMap.get(previewPath);
     if (internal) {
-      handlePreview(internal.data, internal.index, true);
+      handlePreview(internal.data, internal.index, true, previewPath);
       return;
     }
 
     // Then try external data by JSON path
     const external = linkMap.get(previewPath);
     if (external) {
-      handlePreview(external.url, external.index, false);
+      handlePreview(external.url, external.index, false, previewPath);
     }
   }, [
     datasetDocument,
@@ -1324,7 +1344,12 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                               },
                             }}
                             onClick={() =>
-                              handlePreview(link.data, link.index, true)
+                              handlePreview(
+                                link.data,
+                                link.index,
+                                true,
+                                link.path
+                              )
                             }
                           >
                             Preview
@@ -1463,7 +1488,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                           }}
                           title={link.name}
                         >
-                          {link.name}
+                          {index + 1}. {link.name}
                         </Typography>
                         <Box sx={{ display: "flex", flexShrink: 0, gap: 1 }}>
                           <Button
@@ -1500,7 +1525,13 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                                 },
                               }}
                               onClick={() =>
-                                handlePreview(link.url, link.index, false)
+                                handlePreview(
+                                  link.url,
+                                  link.index,
+                                  false,
+                                  link.path,
+                                  index + 1
+                                )
                               }
                             >
                               Preview
@@ -1563,12 +1594,24 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           </Box>
         </Box>
 
+        {chart2DPreviewPath && (
+          <Typography
+            sx={{
+              mt: 2,
+              mb: 0.5,
+              fontSize: "0.85rem",
+              color: Colors.lightBlue,
+            }}
+          >
+            Previewing: {chart2DPreviewPath}
+          </Typography>
+        )}
         <div
           id="chartpanel"
           style={{
             display: "none",
             marginTop: "16px",
-            background: Colors.darkGray,
+            background: Colors.lightGray,
             color: Colors.black,
             padding: "12px",
             borderRadius: "8px",
