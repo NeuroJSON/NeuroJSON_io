@@ -13,7 +13,7 @@ module.exports = {
     database: "neurojson_dev",
     username: process.env.DB_USER_LOCAL,
     password: process.env.DB_PASSWORD_LOCAL,
-    logging: console.log,
+    logging: false,
   },
   test: {
     dialect: "sqlite",
