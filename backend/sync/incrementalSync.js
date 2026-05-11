@@ -580,7 +580,12 @@ async function runSync() {
   console.log(`CouchDB: ${COUCHDB_URL}`);
 
   // change to await getDatabases() when ready for full sync
-  const databases = ["bfnirs"]; // testing with small database first
+  const databases = [
+    "bfnirs",           // NIRS — .snirf, .jdb
+    "brainmeshlibrary", // mesh + atlas — .jmsh, .jnii (318 datasets)
+    "cotilab",          // JData — small (6 datasets)
+    "abide",            // BIDS MRI — .nii.gz, .tsv, .json (25 datasets)
+  ];
   console.log(`Databases: ${databases.length}`);
 
   for (const db of databases) {
