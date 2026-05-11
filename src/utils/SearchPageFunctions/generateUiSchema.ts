@@ -151,9 +151,10 @@ export const generateUiSchema = (
       : hiddenStyle,
 
     task_name: showSubjectFilters
-      ? formData["task_name"]
-        ? activeStyle
-        : {}
+      ? {
+          "ui:placeholder": "e.g. rest, motor",
+          ...(formData["task_name"] ? activeStyle : {}),
+        }
       : hiddenStyle,
     type_name: showSubjectFilters
       ? {
@@ -167,14 +168,16 @@ export const generateUiSchema = (
         }
       : hiddenStyle,
     session_name: showSubjectFilters
-      ? formData["session_name"]
-        ? activeStyle
-        : {}
+      ? {
+          "ui:placeholder": "e.g. 01, pre, baseline",
+          ...(formData["session_name"] ? activeStyle : {}),
+        }
       : hiddenStyle,
     run_name: showSubjectFilters
-      ? formData["run_name"]
-        ? activeStyle
-        : {}
+      ? {
+          "ui:placeholder": "e.g. 01, 02",
+          ...(formData["run_name"] ? activeStyle : {}),
+        }
       : hiddenStyle,
 
     "ui:submitButtonOptions": {
