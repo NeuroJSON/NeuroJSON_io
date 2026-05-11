@@ -61,7 +61,7 @@ export const baseSchema: JSONSchema7 = {
     gender: {
       title: "Subject gender",
       type: "string",
-      enum: ["male", "female", "unknown", "any"],
+      enum: ["male", "female", "any"],
       default: "any",
     },
     age_range_slider: {
