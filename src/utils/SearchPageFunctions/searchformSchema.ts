@@ -64,6 +64,10 @@ export const baseSchema: JSONSchema7 = {
       enum: ["male", "female", "unknown", "any"],
       default: "any",
     },
+    age_range_slider: {
+      type: "null",
+      title: "Age range",
+    },
     age_min: {
       title: "Minimum age",
       type: "number",

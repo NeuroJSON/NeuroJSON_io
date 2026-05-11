@@ -52,10 +52,11 @@ export const generateUiSchema = (
       "database",
       "keyword",
       "subject_filters_toggle",
+      "age_range_slider", // top of subject filters — range slider for age
       "modality",
       "type_name", // sits right after modality — its options depend on it
       "gender",
-      "age_min",
+      "age_min", // hidden via invisibleStyle; written by the slider above
       "age_max",
       "sess_min",
       "sess_max",
@@ -101,16 +102,14 @@ export const generateUiSchema = (
         : {}
       : hiddenStyle,
 
-    age_min: showSubjectFilters
-      ? formData["age_min"]
-        ? activeStyle
-        : {}
+    // Age range — slider lives inside the form via the AgeRangeSliderField
+    // stable component. age_min/age_max stay in the schema (so the backend
+    // gets them on submit) but their default numeric inputs are hidden.
+    age_range_slider: showSubjectFilters
+      ? { "ui:field": "ageRangeSlider" }
       : hiddenStyle,
-    age_max: showSubjectFilters
-      ? formData["age_max"]
-        ? activeStyle
-        : {}
-      : hiddenStyle,
+    age_min: invisibleStyle,
+    age_max: invisibleStyle,
 
     gender: showSubjectFilters
       ? formData["gender"] && formData["gender"] !== "any"

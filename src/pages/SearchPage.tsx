@@ -13,6 +13,7 @@ import {
   Tooltip,
   IconButton,
   Alert,
+  Slider,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -44,6 +45,60 @@ type RegistryItem = {
   datatype?: string[];
   datasets?: number;
   logo?: string;
+};
+
+// Module-scope so the component identity is stable across SearchPage renders.
+// An inline arrow function inside customFields was getting a new identity each
+// render, which made RJSF remount the slider mid-drag.
+const AGE_MIN_BOUND = 0;
+const AGE_MAX_BOUND = 100;
+
+const AgeRangeSliderField = (props: any) => {
+  const ctx = props?.registry?.formContext as
+    | {
+        formData: Record<string, any>;
+        setFormData: React.Dispatch<React.SetStateAction<Record<string, any>>>;
+      }
+    | undefined;
+  if (!ctx) return null;
+  const { formData, setFormData } = ctx;
+  const lo =
+    typeof formData.age_min === "number" ? formData.age_min : AGE_MIN_BOUND;
+  const hi =
+    typeof formData.age_max === "number" ? formData.age_max : AGE_MAX_BOUND;
+  const isAny = lo === AGE_MIN_BOUND && hi === AGE_MAX_BOUND;
+  return (
+    <Box sx={{ px: 2, mt: 2, mb: 1, width: "100%" }}>
+      <Typography variant="body2" sx={{ mb: 1 }}>
+        Age: {isAny ? "Any" : `${lo} – ${hi}`}
+      </Typography>
+      <Slider
+        value={[lo, hi]}
+        onChange={(_, v) => {
+          const [newLo, newHi] = v as number[];
+          setFormData((prev) => {
+            const atFull =
+              newLo === AGE_MIN_BOUND && newHi === AGE_MAX_BOUND;
+            const next = { ...prev };
+            if (atFull) {
+              delete next.age_min;
+              delete next.age_max;
+            } else {
+              next.age_min = newLo;
+              next.age_max = newHi;
+            }
+            return next;
+          });
+        }}
+        valueLabelDisplay="auto"
+        min={AGE_MIN_BOUND}
+        max={AGE_MAX_BOUND}
+        step={1}
+        disableSwap
+        sx={{ color: Colors.purple }}
+      />
+    </Box>
+  );
 };
 
 const matchesKeyword = (item: RegistryItem, keyword: string) => {
@@ -252,6 +307,7 @@ const SearchPage: React.FC = () => {
         </Button>
       </Box>
     ),
+    ageRangeSlider: AgeRangeSliderField,
   };
 
   // determine the results are subject-level or dataset-level
@@ -406,6 +462,7 @@ const SearchPage: React.FC = () => {
         uiSchema={uiSchema}
         fields={customFields}
         widgets={customWidgets}
+        formContext={{ formData, setFormData }}
       />
     </>
   );
@@ -847,6 +904,7 @@ const SearchPage: React.FC = () => {
                                   {...item}
                                   parsedJson={parsedJson}
                                   onChipClick={handleChipClick}
+                                  age={parsedJson?.key?.[0]}
                                 />
                               );
                             } catch (e) {
