@@ -377,23 +377,34 @@ async function deleteDataset(dbname, dsname, transaction) {
 
 // === First-time sync (fetch all three views once) ===
 
+// Fetch a view, treating 404 as "view doesn't exist on this DB" (returns []).
+// Non-BIDS DBs (e.g. brainmeshlibrary) only have the dbinfo view.
+async function fetchView(dbname, viewName) {
+  try {
+    const res = await axios.get(
+      `${COUCHDB_URL}/${dbname}/_design/qq/_view/${viewName}`
+    );
+    return res.data.rows || [];
+  } catch (err) {
+    if (err.response?.status === 404) {
+      console.log(`  ${dbname}: view '${viewName}' not present, skipping`);
+      return [];
+    }
+    throw err;
+  }
+}
+
 async function firstSync(dbname) {
   console.log(`  ${dbname}: first sync, fetching all views...`);
 
-  const dbinfoRes = await axios.get(
-    `${COUCHDB_URL}/${dbname}/_design/qq/_view/dbinfo`
-  );
-  const dbinfoRows = dbinfoRes.data.rows || [];
+  const dbinfoRows = await fetchView(dbname, "dbinfo");
   for (const row of dbinfoRows) {
     const subj = String(row.value?.subj?.length || 0);
     await upsertIoview(dbname, row.id, subj, "dbinfo", row.value);
   }
   console.log(`  ${dbname}: dbinfo synced (${dbinfoRows.length} rows)`);
 
-  const subjectsRes = await axios.get(
-    `${COUCHDB_URL}/${dbname}/_design/qq/_view/subjects`
-  );
-  const subjectRows = subjectsRes.data.rows || [];
+  const subjectRows = await fetchView(dbname, "subjects");
   for (const row of subjectRows) {
     const subj = String(row.key?.[6] || "");
     await upsertIoview(dbname, row.id, subj, "subjects", {
@@ -403,10 +414,7 @@ async function firstSync(dbname) {
   }
   console.log(`  ${dbname}: subjects synced (${subjectRows.length} rows)`);
 
-  const linksRes = await axios.get(
-    `${COUCHDB_URL}/${dbname}/_design/qq/_view/links`
-  );
-  const linkRows = linksRes.data.rows || [];
+  const linkRows = await fetchView(dbname, "links");
   for (const row of linkRows) {
     const fileType = row.key?.[0];
     const subjId = String(row.key?.[1] || "");
