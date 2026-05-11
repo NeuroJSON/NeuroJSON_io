@@ -1,4 +1,5 @@
 import { Colors } from "design/theme";
+import { getTypeSuggestions } from "./typesByModality";
 
 // Controls the background highlight of selected fields
 // Controls the visibility of subject-level filters
@@ -52,6 +53,7 @@ export const generateUiSchema = (
       "keyword",
       "subject_filters_toggle",
       "modality",
+      "type_name", // sits right after modality — its options depend on it
       "gender",
       "age_min",
       "age_max",
@@ -62,7 +64,6 @@ export const generateUiSchema = (
       "run_min",
       "run_max",
       "task_name",
-      "type_name",
       "session_name",
       "run_name",
       "limit",
@@ -156,9 +157,15 @@ export const generateUiSchema = (
         : {}
       : hiddenStyle,
     type_name: showSubjectFilters
-      ? formData["type_name"]
-        ? activeStyle
-        : {}
+      ? {
+          "ui:widget": "typeAutocomplete",
+          "ui:options": {
+            suggestions: getTypeSuggestions(formData.modality),
+            ...(formData["type_name"]
+              ? { style: { backgroundColor: Colors.lightBlue } }
+              : {}),
+          },
+        }
       : hiddenStyle,
     session_name: showSubjectFilters
       ? formData["session_name"]

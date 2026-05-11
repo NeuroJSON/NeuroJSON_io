@@ -22,6 +22,7 @@ import ClickTooltip from "components/SearchPage/ClickTooltip";
 import DatabaseCard from "components/SearchPage/DatabaseCard";
 import DatasetCard from "components/SearchPage/DatasetCard";
 import SubjectCard from "components/SearchPage/SubjectCard";
+import { TypeAutocompleteWidget } from "components/SearchPage/widgets/TypeAutocompleteWidget";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -212,6 +213,9 @@ const SearchPage: React.FC = () => {
     [formData, showSubjectFilters, showDatasetFilters]
   );
 
+  // Custom RJSF widgets — combobox for the "Data type keywords" field.
+  const customWidgets = { typeAutocomplete: TypeAutocompleteWidget };
+
   // Create the "Subject-level Filters" button as a custom field
   const customFields = {
     subjectFiltersToggle: () => (
@@ -401,6 +405,7 @@ const SearchPage: React.FC = () => {
         onChange={({ formData }) => setFormData(formData)}
         uiSchema={uiSchema}
         fields={customFields}
+        widgets={customWidgets}
       />
     </>
   );

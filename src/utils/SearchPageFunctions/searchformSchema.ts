@@ -118,7 +118,7 @@ export const baseSchema: JSONSchema7 = {
       type: "string",
     },
     type_name: {
-      title: "Data type keywords",
+      title: "Data type",
       type: "string",
     },
     session_name: {
