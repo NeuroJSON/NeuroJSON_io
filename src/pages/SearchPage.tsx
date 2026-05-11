@@ -14,6 +14,8 @@ import {
   IconButton,
   Alert,
   Slider,
+  Stack,
+  TextField,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -98,6 +100,63 @@ const AgeRangeSliderField = (props: any) => {
         sx={{ color: Colors.purple }}
       />
     </Box>
+  );
+};
+
+// Pairs a "<key>_min" + "<key>_max" into a single row of two number inputs.
+// Reads target field names + label from uiSchema's ui:options:
+//   { minKey: "sess_min", maxKey: "sess_max", label: "sessions" }
+const CountRangePairField = (props: any) => {
+  const ctx = props?.registry?.formContext as
+    | {
+        formData: Record<string, any>;
+        setFormData: React.Dispatch<React.SetStateAction<Record<string, any>>>;
+      }
+    | undefined;
+  const opts = props?.uiSchema?.["ui:options"] || {};
+  const minKey = opts.minKey as string;
+  const maxKey = opts.maxKey as string;
+  const label = (opts.label as string) || "";
+  if (!ctx || !minKey || !maxKey) return null;
+  const { formData, setFormData } = ctx;
+  const minVal = formData[minKey] ?? "";
+  const maxVal = formData[maxKey] ?? "";
+
+  const update = (key: string, raw: string) => {
+    setFormData((prev) => {
+      const next = { ...prev };
+      if (raw === "" || raw === undefined) {
+        delete next[key];
+      } else {
+        const n = Number(raw);
+        if (Number.isNaN(n)) delete next[key];
+        else next[key] = n;
+      }
+      return next;
+    });
+  };
+
+  return (
+    <Stack direction="row" spacing={2} sx={{ mt: 1, mb: 1 }}>
+      <TextField
+        label={`Min ${label}`}
+        type="number"
+        size="small"
+        value={minVal}
+        onChange={(e) => update(minKey, e.target.value)}
+        fullWidth
+        inputProps={{ min: 0 }}
+      />
+      <TextField
+        label={`Max ${label}`}
+        type="number"
+        size="small"
+        value={maxVal}
+        onChange={(e) => update(maxKey, e.target.value)}
+        fullWidth
+        inputProps={{ min: 0 }}
+      />
+    </Stack>
   );
 };
 
@@ -308,6 +367,7 @@ const SearchPage: React.FC = () => {
       </Box>
     ),
     ageRangeSlider: AgeRangeSliderField,
+    countRangePair: CountRangePairField,
   };
 
   // determine the results are subject-level or dataset-level

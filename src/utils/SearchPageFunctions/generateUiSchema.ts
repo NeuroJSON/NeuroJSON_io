@@ -16,13 +16,11 @@ export const generateUiSchema = (
     },
   };
 
-  // hide subject-level filter
+  // Fully remove a field from the rendered DOM (keeps its value in formData).
+  // Using ui:widget: "hidden" produces just an <input type="hidden">, so no
+  // empty Grid row + margin is left behind — fixes the big gap between rows.
   const invisibleStyle = {
-    "ui:options": {
-      style: {
-        display: "none",
-      },
-    },
+    "ui:widget": "hidden",
   };
 
   const hiddenStyle = {
@@ -58,10 +56,13 @@ export const generateUiSchema = (
       "gender",
       "age_min", // hidden via invisibleStyle; written by the slider above
       "age_max",
+      "sess_count_range", // sessions min/max on one row
       "sess_min",
       "sess_max",
+      "task_count_range", // tasks min/max on one row
       "task_min",
       "task_max",
+      "run_count_range", // runs min/max on one row
       "run_min",
       "run_max",
       "task_name",
@@ -117,38 +118,47 @@ export const generateUiSchema = (
         : {}
       : hiddenStyle,
 
-    sess_min: showSubjectFilters
-      ? formData["sess_min"]
-        ? activeStyle
-        : {}
+    // Session / task / run min+max pairs are rendered by a single
+    // CountRangePairField each. The raw integer inputs are hidden but stay in
+    // formData so the backend still receives them on submit.
+    sess_count_range: showSubjectFilters
+      ? {
+          "ui:field": "countRangePair",
+          "ui:options": {
+            minKey: "sess_min",
+            maxKey: "sess_max",
+            label: "sessions",
+          },
+        }
       : hiddenStyle,
-    sess_max: showSubjectFilters
-      ? formData["sess_max"]
-        ? activeStyle
-        : {}
-      : hiddenStyle,
+    sess_min: invisibleStyle,
+    sess_max: invisibleStyle,
 
-    task_min: showSubjectFilters
-      ? formData["task_min"]
-        ? activeStyle
-        : {}
+    task_count_range: showSubjectFilters
+      ? {
+          "ui:field": "countRangePair",
+          "ui:options": {
+            minKey: "task_min",
+            maxKey: "task_max",
+            label: "tasks",
+          },
+        }
       : hiddenStyle,
-    task_max: showSubjectFilters
-      ? formData["task_max"]
-        ? activeStyle
-        : {}
-      : hiddenStyle,
+    task_min: invisibleStyle,
+    task_max: invisibleStyle,
 
-    run_min: showSubjectFilters
-      ? formData["run_min"]
-        ? activeStyle
-        : {}
+    run_count_range: showSubjectFilters
+      ? {
+          "ui:field": "countRangePair",
+          "ui:options": {
+            minKey: "run_min",
+            maxKey: "run_max",
+            label: "runs",
+          },
+        }
       : hiddenStyle,
-    run_max: showSubjectFilters
-      ? formData["run_max"]
-        ? activeStyle
-        : {}
-      : hiddenStyle,
+    run_min: invisibleStyle,
+    run_max: invisibleStyle,
 
     task_name: showSubjectFilters
       ? {

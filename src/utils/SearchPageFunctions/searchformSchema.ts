@@ -81,6 +81,7 @@ export const baseSchema: JSONSchema7 = {
       maximum: 1000,
     },
 
+    sess_count_range: { type: "null", title: "Sessions" },
     sess_min: {
       title: "Minimum session count",
       type: "integer",
@@ -93,6 +94,7 @@ export const baseSchema: JSONSchema7 = {
       minimum: 0,
       maximum: 1000,
     },
+    task_count_range: { type: "null", title: "Tasks" },
     task_min: {
       title: "Minimum task count",
       type: "integer",
@@ -105,6 +107,7 @@ export const baseSchema: JSONSchema7 = {
       minimum: 0,
       maximum: 1000,
     },
+    run_count_range: { type: "null", title: "Runs" },
     run_min: {
       title: "Minimum runs",
       type: "integer",
