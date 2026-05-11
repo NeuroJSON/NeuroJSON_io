@@ -91,9 +91,10 @@ const SearchPage: React.FC = () => {
 
   const placement = upMd ? "right" : "top";
 
-  // for database card
-  const keywordInput = String(formData?.keyword ?? "").trim();
-  const selectedDbId = String(formData?.database ?? "").trim();
+  // inputs for the "Suggested databases" memo — read from appliedFilters so
+  // the suggestion list refreshes only on Search click, matching the results.
+  const keywordInput = String(appliedFilters?.keyword ?? "").trim();
+  const selectedDbId = String(appliedFilters?.database ?? "").trim();
 
   const registryMatches: RegistryItem[] = React.useMemo(() => {
     if (!Array.isArray(registry)) return [];
@@ -635,10 +636,9 @@ const SearchPage: React.FC = () => {
                     }}
                     title={
                       <Typography variant="body2">
-                        Live preview based on your keyword or selected database.
-                        This list updates as you type or change the dropdown.
-                        It’s <strong>separate from the results</strong>—you’ll
-                        see datasets/subjects after you click <em>Search</em>.
+                        Databases that match your keyword or selected database
+                        filter. This list refreshes when you click{" "}
+                        <em>Search</em>, alongside the datasets/subjects below.
                       </Typography>
                     }
                   >
@@ -668,7 +668,7 @@ const SearchPage: React.FC = () => {
                       datasets={db.datasets}
                       modalities={db.datatype}
                       logo={db.logo}
-                      keyword={formData.keyword} // for keyword highlight
+                      keyword={appliedFilters.keyword} // highlight the searched keyword, not the live input
                       onChipClick={handleChipClick}
                     />
                   ))}
