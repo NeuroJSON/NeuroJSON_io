@@ -6,6 +6,7 @@ const {
   getDbInfo,
   getDbDatasets,
   searchAllDatabases,
+  getFileTypes,
   //   searchDatabase,
 } = require("../controllers/couchdb.controller");
 
@@ -14,6 +15,11 @@ const router = express.Router();
 // Database list and stats
 router.get("/", getDbList);
 router.get("/stats", getDbStats);
+
+// distinct file extensions across all iolinks rows (drives the file-type
+// filter on the search page). Must come BEFORE the /:dbName route, otherwise
+// Express treats "file-types" as a dbName.
+router.get("/file-types", getFileTypes);
 
 // cross-database search
 router.post("/search", searchAllDatabases);

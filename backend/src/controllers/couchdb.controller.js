@@ -227,6 +227,20 @@ const searchAllDatabases = async (req, res) => {
       repl.keyword = String(f.keyword);
     }
 
+    // File-type filter — array of extensions like [".jdb", ".snirf"].
+    // Dataset-level: include rows whose (dbname, dsname) has at least one
+    // iolinks file with a matching view (extension). Per-subject filtering
+    // isn't possible here because iolinks.subj stores file size, not subj id.
+    if (Array.isArray(f.file_type) && f.file_type.length > 0) {
+      where.push(`EXISTS (
+        SELECT 1 FROM iolinks l
+        WHERE l.dbname = ioviews.dbname
+          AND l.dsname = ioviews.dsname
+          AND l.view = ANY(:fileTypes)
+      )`);
+      repl.fileTypes = f.file_type.map((t) => String(t));
+    }
+
     const limit = Math.min(parseInt(f.limit) || 100, 1000);
     const offset = parseInt(f.skip) || 0;
     repl.limit = limit;
@@ -392,6 +406,27 @@ const getDatasetMeta = async (req, res) => {
 
 // }
 
+// distinct file extensions present in iolinks across all synced DBs.
+// Drives the multi-select "File types" filter on the search page.
+const getFileTypes = async (req, res) => {
+  try {
+    const rows = await sequelize.query(
+      `SELECT DISTINCT view AS type
+       FROM iolinks
+       WHERE view IS NOT NULL AND view <> ''
+       ORDER BY view`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
+    res.status(200).json(rows.map((r) => r.type));
+  } catch (error) {
+    console.error("Error fetching file types:", error.message);
+    res.status(500).json({
+      message: "Error fetching file types",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getDbList,
   getDbStats,
@@ -400,4 +435,5 @@ module.exports = {
   searchAllDatabases,
   getDatasetDetail,
   getDatasetMeta,
+  getFileTypes,
 };
