@@ -7,6 +7,7 @@ import {
   fetchDbStats,
   fetchMetadataSearchResults,
   fetchDbInfoByDatasetId,
+  fetchFileTypes,
 } from "./neurojson.action";
 import { DBDatafields, INeuroJsonState } from "./types/neurojson.interface";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
@@ -26,6 +27,7 @@ const initialState: INeuroJsonState = {
   dbStats: null,
   searchResults: null,
   datasetViewInfo: null,
+  fileTypes: null,
 };
 
 const neurojsonSlice = createSlice({
@@ -153,6 +155,17 @@ const neurojsonSlice = createSlice({
       )
       .addCase(fetchMetadataSearchResults.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload as string;
+      })
+      // fetchFileTypes runs once on mount; no pending case so it doesn't
+      // clobber the shared `loading` spinner used by the search button.
+      .addCase(
+        fetchFileTypes.fulfilled,
+        (state, action: PayloadAction<string[]>) => {
+          state.fileTypes = action.payload;
+        }
+      )
+      .addCase(fetchFileTypes.rejected, (state, action) => {
         state.error = action.payload as string;
       })
       .addCase(fetchDbInfoByDatasetId.pending, (state) => {

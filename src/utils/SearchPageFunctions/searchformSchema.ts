@@ -128,6 +128,12 @@ export const baseSchema: JSONSchema7 = {
       title: "Data type",
       type: "string",
     },
+    file_type: {
+      title: "File types",
+      type: "array",
+      items: { type: "string" },
+      uniqueItems: true,
+    },
     session_name: {
       title: "Session keywords",
       type: "string",

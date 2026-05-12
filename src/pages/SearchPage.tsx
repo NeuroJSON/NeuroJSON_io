@@ -25,6 +25,7 @@ import ClickTooltip from "components/SearchPage/ClickTooltip";
 import DatabaseCard from "components/SearchPage/DatabaseCard";
 import DatasetCard from "components/SearchPage/DatasetCard";
 import SubjectCard from "components/SearchPage/SubjectCard";
+import { FileTypeAutocompleteWidget } from "components/SearchPage/widgets/FileTypeAutocompleteWidget";
 import { TypeAutocompleteWidget } from "components/SearchPage/widgets/TypeAutocompleteWidget";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
@@ -33,6 +34,7 @@ import pako from "pako";
 import React from "react";
 import { useState, useEffect, useMemo } from "react";
 import {
+  fetchFileTypes,
   fetchMetadataSearchResults,
   fetchRegistry,
 } from "redux/neurojson/neurojson.action";
@@ -186,6 +188,9 @@ const SearchPage: React.FC = () => {
   const registry = useAppSelector(
     (state: RootState) => state.neurojson.registry
   );
+  const fileTypes = useAppSelector(
+    (state: RootState) => state.neurojson.fileTypes
+  );
   const loading = useAppSelector((state: RootState) => state.neurojson.loading);
 
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -323,12 +328,21 @@ const SearchPage: React.FC = () => {
 
   // form UI
   const uiSchema = useMemo(
-    () => generateUiSchema(formData, showSubjectFilters, showDatasetFilters),
-    [formData, showSubjectFilters, showDatasetFilters]
+    () =>
+      generateUiSchema(
+        formData,
+        showSubjectFilters,
+        showDatasetFilters,
+        fileTypes || []
+      ),
+    [formData, showSubjectFilters, showDatasetFilters, fileTypes]
   );
 
-  // Custom RJSF widgets — combobox for the "Data type keywords" field.
-  const customWidgets = { typeAutocomplete: TypeAutocompleteWidget };
+  // Custom RJSF widgets — comboboxes for the Data type and File types fields.
+  const customWidgets = {
+    typeAutocomplete: TypeAutocompleteWidget,
+    fileTypeAutocomplete: FileTypeAutocompleteWidget,
+  };
 
   // Create the "Subject-level Filters" button as a custom field
   const customFields = {
@@ -385,6 +399,11 @@ const SearchPage: React.FC = () => {
   // get the database list from registry
   useEffect(() => {
     dispatch(fetchRegistry());
+  }, [dispatch]);
+
+  // get the distinct file extensions for the "File types" multi-select.
+  useEffect(() => {
+    dispatch(fetchFileTypes());
   }, [dispatch]);
 
   // dynamically add database enum to schema

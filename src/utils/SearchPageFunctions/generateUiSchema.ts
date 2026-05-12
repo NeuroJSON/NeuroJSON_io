@@ -6,7 +6,8 @@ import { getTypeSuggestions } from "./typesByModality";
 export const generateUiSchema = (
   formData: Record<string, any>,
   showSubjectFilters: boolean,
-  showDatasetFilters: boolean
+  showDatasetFilters: boolean,
+  fileTypeOptions: string[] = []
 ) => {
   const activeStyle = {
     "ui:options": {
@@ -49,6 +50,7 @@ export const generateUiSchema = (
       "dataset_filters_toggle", // button first
       "database",
       "keyword",
+      "file_type", // dataset-level: filters by file extensions in iolinks
       "subject_filters_toggle",
       "age_range_slider", // top of subject filters — range slider for age
       "modality",
@@ -90,6 +92,20 @@ export const generateUiSchema = (
     //   dataset: formData["dataset"] ? activeStyle : {},
     //   limit: formData["limit"] ? activeStyle : {},
     //   skip: formData["skip"] ? activeStyle : {},
+    // File-type filter — dataset-level. Multi-select of file extensions
+    // present in iolinks (fetched dynamically via /api/v1/dbs/file-types).
+    file_type: showDatasetFilters
+      ? {
+          "ui:widget": "fileTypeAutocomplete",
+          "ui:options": {
+            fileTypes: fileTypeOptions,
+            ...(Array.isArray(formData["file_type"]) &&
+            formData["file_type"].length > 0
+              ? { style: { backgroundColor: Colors.lightBlue } }
+              : {}),
+          },
+        }
+      : datasetHiddenStyle,
     limit: invisibleStyle,
     skip: invisibleStyle,
 

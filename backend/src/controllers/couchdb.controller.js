@@ -231,12 +231,14 @@ const searchAllDatabases = async (req, res) => {
     // Dataset-level: include rows whose (dbname, dsname) has at least one
     // iolinks file with a matching view (extension). Per-subject filtering
     // isn't possible here because iolinks.subj stores file size, not subj id.
+    // Use IN (:array) — Sequelize replacements expand arrays as 'a','b','c',
+    // which fits IN(...) but NOT ANY(...).
     if (Array.isArray(f.file_type) && f.file_type.length > 0) {
       where.push(`EXISTS (
         SELECT 1 FROM iolinks l
         WHERE l.dbname = ioviews.dbname
           AND l.dsname = ioviews.dsname
-          AND l.view = ANY(:fileTypes)
+          AND l.view IN (:fileTypes)
       )`);
       repl.fileTypes = f.file_type.map((t) => String(t));
     }
