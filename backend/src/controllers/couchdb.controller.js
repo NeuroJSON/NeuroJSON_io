@@ -221,10 +221,19 @@ const searchAllDatabases = async (req, res) => {
       repl.subj = String(f.subject);
     }
 
-    // Keyword full-text search
+    // Keyword search — match anywhere relevant.
+    // tsquery covers stemmed tokens inside the JSON content (name, readme,
+    // info, modality, subj). ILIKE on dbname/dsname adds substring matching
+    // so "fnirs" finds "bfnirs", "openfnirs", and any dataset id containing it.
+    // The whole group is parenthesised so it ANDs cleanly with other filters.
     if (isFilter(f.keyword)) {
-      where.push(`search_vector @@ websearch_to_tsquery('english', :keyword)`);
+      where.push(`(
+        search_vector @@ websearch_to_tsquery('english', :keyword)
+        OR dbname ILIKE :keywordLike
+        OR dsname ILIKE :keywordLike
+      )`);
       repl.keyword = String(f.keyword);
+      repl.keywordLike = `%${String(f.keyword)}%`;
     }
 
     // File-type filter — array of extensions like [".jdb", ".snirf"].

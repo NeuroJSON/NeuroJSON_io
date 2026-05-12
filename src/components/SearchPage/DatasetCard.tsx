@@ -35,11 +35,21 @@ const normalize = (s: string) =>
     ?.replace(/[\u201C\u201D\u2033]/g, '"') ?? // curly → straight
   "";
 
+// Multi-word keyword support: backend tsquery treats "head brain" as AND of
+// independent tokens. Highlighting should match the same logic — split on
+// whitespace and treat each word independently.
+const splitKeyword = (kw?: string): string[] => {
+  if (!kw) return [];
+  return normalize(kw).trim().split(/\s+/).filter(Boolean);
+};
+
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const containsKeyword = (text?: string, kw?: string) => {
   if (!text || !kw) return false;
   const t = normalize(text).toLowerCase();
-  const k = normalize(kw).toLowerCase();
-  return t.includes(k);
+  const words = splitKeyword(kw.toLowerCase());
+  return words.some((w) => t.includes(w));
 };
 
 /** Find a short snippet in secondary fields if not already visible */
@@ -62,24 +72,41 @@ function findMatchSnippet(
     ["ReferencesAndLinks", (v) => v?.info?.ReferencesAndLinks],
   ];
 
-  const k = normalize(kw).toLowerCase();
+  const words = splitKeyword(kw.toLowerCase());
+  if (words.length === 0) return null;
 
   for (const [label, getter] of CANDIDATE_FIELDS) {
     const raw = getter(v); // v = parsedJson.value
     if (!raw) continue;
     const text = normalize(String(raw));
-    const i = text.toLowerCase().indexOf(k); // k is the lowercase version of keyword
-    if (i >= 0) {
-      const start = Math.max(0, i - 40);
-      const end = Math.min(text.length, i + k.length + 40);
-      const before = text.slice(start, i);
-      const hit = text.slice(i, i + k.length);
-      const after = text.slice(i + k.length, end);
-      const html = `${
-        start > 0 ? "…" : ""
-      }${before}<mark>${hit}</mark>${after}${end < text.length ? "…" : ""}`;
-      return { label, html };
+    const lower = text.toLowerCase();
+
+    // Find the earliest occurrence of ANY matching word — that's the snippet anchor.
+    let anchor = -1;
+    let anchorLen = 0;
+    for (const w of words) {
+      const i = lower.indexOf(w);
+      if (i >= 0 && (anchor < 0 || i < anchor)) {
+        anchor = i;
+        anchorLen = w.length;
+      }
     }
+    if (anchor < 0) continue;
+
+    const start = Math.max(0, anchor - 40);
+    const end = Math.min(text.length, anchor + anchorLen + 40);
+    const slice = text.slice(start, end);
+
+    // Highlight every matching word inside the snippet, not just the first.
+    const regex = new RegExp(
+      `(${words.map(escapeRegex).join("|")})`,
+      "gi"
+    );
+    const highlighted = slice.replace(regex, "<mark>$1</mark>");
+    const html = `${start > 0 ? "…" : ""}${highlighted}${
+      end < text.length ? "…" : ""
+    }`;
+    return { label, html };
   }
   return null;
 }
@@ -122,19 +149,25 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
     [parsedJson.value, keyword, visibleHasKeyword]
   );
 
-  // keyword highlight functional component (only for visible fields)
+  // keyword highlight functional component (only for visible fields).
+  // Splits the keyword on whitespace and highlights each word independently
+  // so "head brain" highlights both words wherever they appear.
   const highlightKeyword = (text: string, keyword?: string) => {
-    if (!keyword || !text?.toLowerCase().includes(keyword.toLowerCase())) {
-      return text;
-    }
-
-    const regex = new RegExp(`(${keyword})`, "gi"); // for case-insensitive and global
+    const words = splitKeyword(keyword);
+    if (words.length === 0 || !text) return text;
+    const lowerWordSet = new Set(words.map((w) => w.toLowerCase()));
+    const regex = new RegExp(
+      `(${words.map(escapeRegex).join("|")})`,
+      "gi"
+    );
+    if (!regex.test(text)) return text;
+    // Reset lastIndex because test() advances on /g regexes; safer to use split.
     const parts = text.split(regex);
 
     return (
       <>
         {parts.map((part, i) =>
-          part.toLowerCase() === keyword.toLowerCase() ? (
+          lowerWordSet.has(part.toLowerCase()) ? (
             <mark
               key={i}
               style={{ backgroundColor: "yellow", fontWeight: 600 }}
