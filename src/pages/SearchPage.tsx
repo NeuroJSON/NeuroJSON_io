@@ -81,16 +81,15 @@ const AgeRangeSliderField = (props: any) => {
         onChange={(_, v) => {
           const [newLo, newHi] = v as number[];
           setFormData((prev) => {
-            const atFull =
-              newLo === AGE_MIN_BOUND && newHi === AGE_MAX_BOUND;
             const next = { ...prev };
-            if (atFull) {
-              delete next.age_min;
-              delete next.age_max;
-            } else {
-              next.age_min = newLo;
-              next.age_max = newHi;
-            }
+            // Each handle is its own filter. A handle at the bound means
+            // "no constraint on that side", so we leave it out of formData
+            // (otherwise age_min=0 silently excludes unknown-age subjects
+            // whose stored key is "000-1", lexicographically below "00000").
+            if (newLo === AGE_MIN_BOUND) delete next.age_min;
+            else next.age_min = newLo;
+            if (newHi === AGE_MAX_BOUND) delete next.age_max;
+            else next.age_max = newHi;
             return next;
           });
         }}
@@ -560,6 +559,35 @@ const SearchPage: React.FC = () => {
     !loading &&
     // !hasDbMatches &&
     (!hasDatasetMatches || backendEmpty);
+
+  // Tailored empty-state message: when the user combined a file_type filter
+  // with any subject-level filter and got nothing back, it's almost certainly
+  // because the file extension lives in non-BIDS datasets (which have no
+  // subject rows in ioviews). The generic "adjust filters" message hides this.
+  const SUBJECT_FILTER_KEYS = [
+    "age_min",
+    "age_max",
+    "gender",
+    "task_min",
+    "task_max",
+    "task_name",
+    "run_min",
+    "run_max",
+    "run_name",
+    "sess_min",
+    "sess_max",
+    "session_name",
+    "type_name",
+    "modality",
+    "subject",
+  ];
+  const isAppliedFilter = (v: any) =>
+    v !== "" && v !== "any" && v !== undefined && v !== null;
+  const showFileTypeNonBidsHint =
+    showNoResults &&
+    Array.isArray(appliedFilters.file_type) &&
+    appliedFilters.file_type.length > 0 &&
+    SUBJECT_FILTER_KEYS.some((k) => isAppliedFilter(appliedFilters[k]));
   return (
     <Container
       maxWidth={false}
@@ -1011,10 +1039,20 @@ const SearchPage: React.FC = () => {
                           Search Results
                         </Typography>
 
-                        <Typography sx={{ color: Colors.error }}>
-                          No datasets or subjects found. Please adjust the
-                          filters and try again.
-                        </Typography>
+                        {showFileTypeNonBidsHint ? (
+                          <Typography sx={{ color: Colors.error }}>
+                            No matching subjects found. The selected file type
+                            may only exist in non-BIDS datasets (e.g. mesh or
+                            atlas libraries), which have no subject-level
+                            records. Try removing subject-level filters
+                            (modality, age, gender, etc.) and search again.
+                          </Typography>
+                        ) : (
+                          <Typography sx={{ color: Colors.error }}>
+                            No datasets or subjects found. Please adjust the
+                            filters and try again.
+                          </Typography>
+                        )}
                       </Box>
                     )}
 
