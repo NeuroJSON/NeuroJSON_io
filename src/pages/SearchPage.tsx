@@ -1002,7 +1002,7 @@ const SearchPage: React.FC = () => {
                                   dsname={item.dsname}
                                   parsedJson={parsedJson}
                                   onChipClick={handleChipClick}
-                                  keyword={formData.keyword} // for keyword highlight
+                                  keyword={appliedFilters.keyword} // highlight what was searched, not the live form
                                 />
                               ) : (
                                 <SubjectCard
