@@ -7,6 +7,7 @@ const {
   getDbDatasets,
   searchAllDatabases,
   getFileTypes,
+  getDatasetFilesManifest,
   //   searchDatabase,
 } = require("../controllers/couchdb.controller");
 
@@ -23,6 +24,10 @@ router.get("/file-types", getFileTypes);
 
 // cross-database search
 router.post("/search", searchAllDatabases);
+
+// downloadable manifest (plain text) of all iolinks URLs for a dataset
+// filtered by extension(s). e.g. /dbs/bfnirs/Motion-Yucel2014-I/files/manifest?ext=.jdb
+router.get("/:dbName/:dsName/files/manifest", getDatasetFilesManifest);
 
 // Specific database routes
 router.get("/:dbName", getDbInfo);

@@ -257,6 +257,32 @@ const searchAllDatabases = async (req, res) => {
     repl.limit = limit;
     repl.offset = offset;
 
+    // When file_type filter is active, also return a sample of the actual
+    // matching iolinks rows (filename, url, path, suffix) per dataset, plus
+    // a total count. Frontend shows up to 20 as clickable filenames and a
+    // "Download manifest" button for the full list via a separate endpoint.
+    const matchingFilesActive =
+      Array.isArray(f.file_type) && f.file_type.length > 0;
+    const matchingFilesColumn = matchingFilesActive
+      ? `,
+        COALESCE((
+          SELECT jsonb_agg(t.json)
+          FROM (
+            SELECT l.json
+            FROM iolinks l
+            WHERE l.dbname = ioviews.dbname
+              AND l.dsname = ioviews.dsname
+              AND l.view IN (:fileTypes)
+            ORDER BY l.id
+            LIMIT 20
+          ) t
+        ), '[]'::jsonb)::text AS matching_files,
+        (SELECT COUNT(*) FROM iolinks l
+         WHERE l.dbname = ioviews.dbname
+           AND l.dsname = ioviews.dsname
+           AND l.view IN (:fileTypes))::int AS matching_files_total`
+      : "";
+
     // dbinfo was stored flat ({name, subj, ...}); subjects was stored wrapped
     // ({key, value}). Frontend expects parsed.value.subj for datasets, so we
     // wrap dbinfo on the way out.
@@ -268,7 +294,7 @@ const searchAllDatabases = async (req, res) => {
         CASE
           WHEN view = 'dbinfo' THEN jsonb_build_object('value', json)::text
           ELSE json::text
-        END AS json
+        END AS json${matchingFilesColumn}
       FROM ioviews
       WHERE ${where.join(" AND ")}
       ORDER BY dbname, dsname, subj
@@ -417,6 +443,53 @@ const getDatasetMeta = async (req, res) => {
 
 // }
 
+// Plain-text manifest of every matching iolinks URL for a dataset, served
+// as a downloadable .txt. The user pipes it into wget/aria2c to fetch
+// everything: `wget -i manifest.txt`. Avoids server-side zipping and gives
+// resumable, parallel downloads.
+const getDatasetFilesManifest = async (req, res) => {
+  try {
+    const { dbName, dsName } = req.params;
+    const rawExt = req.query.ext;
+    const exts = Array.isArray(rawExt)
+      ? rawExt
+      : typeof rawExt === "string" && rawExt.length > 0
+      ? rawExt.split(",")
+      : [];
+
+    if (exts.length === 0) {
+      res.status(400).send("ext query parameter required (e.g. ?ext=.jdb)");
+      return;
+    }
+
+    const rows = await sequelize.query(
+      `SELECT json->'value'->>'url' AS url
+       FROM iolinks
+       WHERE dbname = :dbname
+         AND dsname = :dsname
+         AND view IN (:exts)
+       ORDER BY id`,
+      {
+        replacements: { dbname: dbName, dsname: dsName, exts },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    const urls = rows.map((r) => r.url).filter(Boolean);
+    const filename = `${dbName}_${dsName}_${exts.join("_")}_manifest.txt`;
+
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filename}"`
+    );
+    res.send(urls.join("\n") + "\n");
+  } catch (error) {
+    console.error("Error generating manifest:", error.message);
+    res.status(500).send(`Error generating manifest: ${error.message}`);
+  }
+};
+
 // distinct file extensions present in iolinks across all synced DBs.
 // Drives the multi-select "File types" filter on the search page.
 const getFileTypes = async (req, res) => {
@@ -447,4 +520,5 @@ module.exports = {
   getDatasetDetail,
   getDatasetMeta,
   getFileTypes,
+  getDatasetFilesManifest,
 };
