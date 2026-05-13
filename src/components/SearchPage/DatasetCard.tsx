@@ -1,9 +1,30 @@
-import { Typography, Card, CardContent, Stack, Chip } from "@mui/material";
+import DownloadIcon from "@mui/icons-material/Download";
+import {
+  Typography,
+  Card,
+  CardContent,
+  Stack,
+  Chip,
+  Button,
+  Link as MuiLink,
+} from "@mui/material";
+import { baseURL } from "services/instance";
 import { Colors } from "design/theme";
 import React from "react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import RoutesEnum from "types/routes.enum";
+
+interface MatchingFile {
+  key?: any;
+  value?: {
+    file?: string;
+    url?: string;
+    path?: string;
+    suffix?: string;
+    ref?: string;
+  };
+}
 
 interface DatasetCardProps {
   dbname: string;
@@ -26,6 +47,9 @@ interface DatasetCardProps {
   index: number;
   onChipClick: (key: string, value: string) => void;
   keyword?: string; // for keyword highlight
+  matchingFiles?: MatchingFile[]; // sample of iolinks rows matching file_type
+  matchingFilesTotal?: number; // total count across all matches
+  fileTypes?: string[]; // the active file_type filter, used to build manifest URL
 }
 
 /** ---------- utility helpers ---------- **/
@@ -119,9 +143,40 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
   index,
   onChipClick,
   keyword,
+  matchingFiles,
+  matchingFilesTotal,
+  fileTypes,
 }) => {
   const { name, readme, modality, subj, info } = parsedJson.value;
   const datasetLink = `${RoutesEnum.DATABASES}/${dbname}/${dsname}`;
+
+  // Manifest URL — backend serves a plain-text list of all matching URLs.
+  const manifestUrl = useMemo(() => {
+    if (!fileTypes || fileTypes.length === 0) return null;
+    const ext = fileTypes
+      .map((e) => encodeURIComponent(e))
+      .join(",");
+    return `${baseURL}/dbs/${encodeURIComponent(
+      dbname
+    )}/${encodeURIComponent(dsname)}/files/manifest?ext=${ext}`;
+  }, [dbname, dsname, fileTypes]);
+
+  // Extract a short "sub-XXX" tag from a BIDS path like
+  // "$.sub-019.ses-1.nirs.sub-019_ses-1_task-MA_run-01_nirs.snirf.SNIRFData..."
+  const subjectFromPath = (p?: string): string => {
+    if (!p) return "";
+    const m = p.match(/sub-[^.]+/);
+    return m ? m[0] : "";
+  };
+
+  // File size stored in key[1] of each iolinks row (bytes). Format for humans.
+  const formatBytes = (n?: number): string => {
+    if (typeof n !== "number" || !Number.isFinite(n) || n < 0) return "";
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
+    return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  };
 
   // prepare DOI URL
   const rawDOI = info?.DatasetDOI?.replace(/^doi:/, "");
@@ -338,6 +393,94 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
               </Stack>
             )}
           </Stack>
+
+          {/* Matching files section — only shown when file_type filter is active */}
+          {Array.isArray(matchingFiles) && matchingFiles.length > 0 && (
+            <Stack
+              spacing={1}
+              sx={{
+                mt: 2,
+                pt: 1.5,
+                borderTop: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                flexWrap="wrap"
+                gap={1}
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  Matching files
+                  {typeof matchingFilesTotal === "number" &&
+                    ` (${
+                      matchingFiles.length < matchingFilesTotal
+                        ? `${matchingFiles.length} of ${matchingFilesTotal}`
+                        : matchingFilesTotal
+                    })`}
+                </Typography>
+                {manifestUrl && (
+                  <Button
+                    component="a"
+                    href={manifestUrl}
+                    size="small"
+                    variant="outlined"
+                    startIcon={<DownloadIcon />}
+                    sx={{
+                      color: Colors.purple,
+                      borderColor: Colors.purple,
+                      textTransform: "none",
+                    }}
+                  >
+                    Download manifest
+                    {typeof matchingFilesTotal === "number" &&
+                      ` (${matchingFilesTotal} files)`}
+                  </Button>
+                )}
+              </Stack>
+              <Stack spacing={0.5} component="ul" sx={{ pl: 2, m: 0 }}>
+                {matchingFiles.slice(0, 10).map((f, i) => {
+                  const v = f.value || {};
+                  const subjTag = subjectFromPath(v.path);
+                  const sizeBytes =
+                    Array.isArray(f.key) && typeof f.key[1] === "number"
+                      ? f.key[1]
+                      : undefined;
+                  const sizeTag = formatBytes(sizeBytes);
+                  const meta = [subjTag, sizeTag].filter(Boolean).join(" · ");
+                  return (
+                    <li key={i}>
+                      <MuiLink
+                        href={v.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        underline="hover"
+                        sx={{
+                          color: Colors.purple,
+                          fontFamily: "monospace",
+                          fontSize: "0.8rem",
+                          wordBreak: "break-all",
+                        }}
+                      >
+                        {v.file || v.url}
+                      </MuiLink>
+                      {meta && (
+                        <Typography
+                          component="span"
+                          variant="caption"
+                          sx={{ ml: 1, color: "text.secondary" }}
+                        >
+                          ({meta})
+                        </Typography>
+                      )}
+                    </li>
+                  );
+                })}
+              </Stack>
+            </Stack>
+          )}
         </Stack>
       </CardContent>
     </Card>

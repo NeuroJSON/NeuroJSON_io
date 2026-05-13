@@ -259,7 +259,7 @@ const searchAllDatabases = async (req, res) => {
 
     // When file_type filter is active, also return a sample of the actual
     // matching iolinks rows (filename, url, path, suffix) per dataset, plus
-    // a total count. Frontend shows up to 20 as clickable filenames and a
+    // a total count. Frontend shows up to 10 as clickable filenames and a
     // "Download manifest" button for the full list via a separate endpoint.
     const matchingFilesActive =
       Array.isArray(f.file_type) && f.file_type.length > 0;
@@ -274,7 +274,7 @@ const searchAllDatabases = async (req, res) => {
               AND l.dsname = ioviews.dsname
               AND l.view IN (:fileTypes)
             ORDER BY l.id
-            LIMIT 20
+            LIMIT 10
           ) t
         ), '[]'::jsonb)::text AS matching_files,
         (SELECT COUNT(*) FROM iolinks l

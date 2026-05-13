@@ -1003,6 +1003,13 @@ const SearchPage: React.FC = () => {
                                   parsedJson={parsedJson}
                                   onChipClick={handleChipClick}
                                   keyword={appliedFilters.keyword} // highlight what was searched, not the live form
+                                  matchingFiles={
+                                    item.matching_files
+                                      ? JSON.parse(item.matching_files)
+                                      : undefined
+                                  }
+                                  matchingFilesTotal={item.matching_files_total}
+                                  fileTypes={appliedFilters.file_type}
                                 />
                               ) : (
                                 <SubjectCard
