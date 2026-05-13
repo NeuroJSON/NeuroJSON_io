@@ -227,15 +227,19 @@ const searchAllDatabases = async (req, res) => {
     // (e.g. "ABIDE - CMU_a") don't get parsed as NOT clauses.
     // ILIKE on dbname/dsname adds substring matching so "fnirs" finds
     // "bfnirs", "openfnirs", and any dataset id containing it.
-    // ILIKE pattern normalizes whitespace/hyphens to % wildcards so the
-    // user's "ABIDE - CMU_a" matches stored names like "abide_cmu_a" or
-    // "ABIDE_-_CMU_a" regardless of separator style.
+    // ILIKE on json->>'name' covers the human-readable name from
+    // dataset_description.json (e.g. "ABIDE - CMU_a"), which is where the
+    // user-visible dataset titles live — dsname column often stores just
+    // an opaque id like "CMU_a" without the prefix.
+    // ILIKE pattern normalizes whitespace/hyphens to % wildcards so
+    // "ABIDE - CMU_a" matches stored names regardless of separator style.
     // The whole group is parenthesised so it ANDs cleanly with other filters.
     if (isFilter(f.keyword)) {
       where.push(`(
         search_vector @@ plainto_tsquery('english', :keyword)
         OR dbname ILIKE :keywordLike
         OR dsname ILIKE :keywordLike
+        OR (json->>'name') ILIKE :keywordLike
       )`);
       repl.keyword = String(f.keyword);
       repl.keywordLike = `%${String(f.keyword).replace(/[\s-]+/g, "%")}%`;
