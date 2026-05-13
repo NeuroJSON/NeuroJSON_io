@@ -222,18 +222,23 @@ const searchAllDatabases = async (req, res) => {
     }
 
     // Keyword search — match anywhere relevant.
-    // tsquery covers stemmed tokens inside the JSON content (name, readme,
-    // info, modality, subj). ILIKE on dbname/dsname adds substring matching
-    // so "fnirs" finds "bfnirs", "openfnirs", and any dataset id containing it.
+    // plainto_tsquery treats input as plain words AND'd together; ignores
+    // operator chars like "-" and "OR" so dataset names with hyphens
+    // (e.g. "ABIDE - CMU_a") don't get parsed as NOT clauses.
+    // ILIKE on dbname/dsname adds substring matching so "fnirs" finds
+    // "bfnirs", "openfnirs", and any dataset id containing it.
+    // ILIKE pattern normalizes whitespace/hyphens to % wildcards so the
+    // user's "ABIDE - CMU_a" matches stored names like "abide_cmu_a" or
+    // "ABIDE_-_CMU_a" regardless of separator style.
     // The whole group is parenthesised so it ANDs cleanly with other filters.
     if (isFilter(f.keyword)) {
       where.push(`(
-        search_vector @@ websearch_to_tsquery('english', :keyword)
+        search_vector @@ plainto_tsquery('english', :keyword)
         OR dbname ILIKE :keywordLike
         OR dsname ILIKE :keywordLike
       )`);
       repl.keyword = String(f.keyword);
-      repl.keywordLike = `%${String(f.keyword)}%`;
+      repl.keywordLike = `%${String(f.keyword).replace(/[\s-]+/g, "%")}%`;
     }
 
     // File-type filter — array of extensions like [".jdb", ".snirf"].
