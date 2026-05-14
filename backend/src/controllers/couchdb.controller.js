@@ -452,14 +452,18 @@ const getDatasetMeta = async (req, res) => {
 
 // }
 
-// Plain-text manifest of every matching iolinks URL for a dataset, served
-// as a downloadable .txt. The user pipes it into wget/aria2c to fetch
-// everything: `wget -i manifest.txt`. Avoids server-side zipping and gives
-// resumable, parallel downloads.
+// Downloadable list of every matching iolinks URL for a dataset.
+// Three formats via ?format=:
+//   - txt (default) → plain URL list (use with `wget -i`)
+//   - sh             → bash script with curl commands (Mac/Linux)
+//   - bat            → Windows batch script with curl commands
+// All three avoid server-side zipping — the user's machine pulls files
+// directly from neurojson.org/io, so this Express server stays light.
 const getDatasetFilesManifest = async (req, res) => {
   try {
     const { dbName, dsName } = req.params;
     const rawExt = req.query.ext;
+    const format = String(req.query.format || "txt").toLowerCase();
     const exts = Array.isArray(rawExt)
       ? rawExt
       : typeof rawExt === "string" && rawExt.length > 0
@@ -472,7 +476,8 @@ const getDatasetFilesManifest = async (req, res) => {
     }
 
     const rows = await sequelize.query(
-      `SELECT json->'value'->>'url' AS url
+      `SELECT json->'value'->>'url'  AS url,
+              json->'value'->>'file' AS file
        FROM iolinks
        WHERE dbname = :dbname
          AND dsname = :dsname
@@ -484,15 +489,78 @@ const getDatasetFilesManifest = async (req, res) => {
       }
     );
 
-    const urls = rows.map((r) => r.url).filter(Boolean);
-    const filename = `${dbName}_${dsName}_${exts.join("_")}_manifest.txt`;
+    const files = rows.filter((r) => r.url);
+    const urls = files.map((r) => r.url);
+    const baseName = `${dbName}_${dsName}_${exts.join("_")}`;
+    const extLabel = exts.join(", ");
 
-    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    // Strip any path separators or quote chars from the parsed filename
+    // before using it in shell commands — file names come from iolinks
+    // and are usually content hashes, but defensive belt-and-suspenders.
+    const safeName = (s) =>
+      (s || "").replace(/["\\\/\r\n]/g, "").trim();
+
+    let body;
+    let contentType;
+    let filename;
+
+    if (format === "sh") {
+      // Bash script — curl is preinstalled on macOS and most Linux distros.
+      // -L follows redirects, -C - resumes interrupted downloads, -o saves
+      // with our parsed filename (the URL is a CGI query — using -O would
+      // save files as literal `stat.cgi?...`).
+      body =
+        `#!/bin/bash\n` +
+        `# Downloads ${extLabel} files from ${dbName}/${dsName}\n` +
+        `# Usage: bash ${baseName}_download.sh\n` +
+        `set -e\n` +
+        `mkdir -p "neurojson_downloads"\n` +
+        `cd "neurojson_downloads" || exit 1\n` +
+        files
+          .map((r) => {
+            const fn = safeName(r.file);
+            return fn
+              ? `curl -L -C - -o "${fn}" "${r.url}"`
+              : `curl -L -C - -O "${r.url}"`;
+          })
+          .join("\n") +
+        `\necho "Done. Files saved to $(pwd)"\n`;
+      contentType = "application/x-sh; charset=utf-8";
+      filename = `${baseName}_download.sh`;
+    } else if (format === "bat") {
+      // Windows batch — curl ships with Windows 10+. Uses CRLF line endings
+      // for proper rendering in CMD. /d on cd handles cross-drive paths.
+      body =
+        `@echo off\r\n` +
+        `REM Downloads ${extLabel} files from ${dbName}/${dsName}\r\n` +
+        `REM Usage: double-click or run ${baseName}_download.bat\r\n` +
+        `if not exist "neurojson_downloads" mkdir "neurojson_downloads"\r\n` +
+        `cd /d "neurojson_downloads"\r\n` +
+        files
+          .map((r) => {
+            const fn = safeName(r.file);
+            return fn
+              ? `curl -L -C - -o "${fn}" "${r.url}"`
+              : `curl -L -C - -O "${r.url}"`;
+          })
+          .join("\r\n") +
+        `\r\necho Done. Files saved to %cd%\r\n` +
+        `pause\r\n`;
+      contentType = "text/plain; charset=utf-8";
+      filename = `${baseName}_download.bat`;
+    } else {
+      // Default: plain URL list, one per line (advanced users with wget).
+      body = urls.join("\n") + "\n";
+      contentType = "text/plain; charset=utf-8";
+      filename = `${baseName}_manifest.txt`;
+    }
+
+    res.setHeader("Content-Type", contentType);
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="${filename}"`
     );
-    res.send(urls.join("\n") + "\n");
+    res.send(body);
   } catch (error) {
     console.error("Error generating manifest:", error.message);
     res.status(500).send(`Error generating manifest: ${error.message}`);

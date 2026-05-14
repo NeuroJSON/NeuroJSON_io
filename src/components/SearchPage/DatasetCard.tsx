@@ -1,4 +1,5 @@
 import DownloadIcon from "@mui/icons-material/Download";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import {
   Typography,
   Card,
@@ -7,11 +8,16 @@ import {
   Chip,
   Button,
   Link as MuiLink,
+  Menu,
+  MenuItem,
+  Box,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { baseURL } from "services/instance";
 import { Colors } from "design/theme";
 import React from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import RoutesEnum from "types/routes.enum";
 
@@ -150,16 +156,44 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
   const { name, readme, modality, subj, info } = parsedJson.value;
   const datasetLink = `${RoutesEnum.DATABASES}/${dbname}/${dsname}`;
 
-  // Manifest URL — backend serves a plain-text list of all matching URLs.
-  const manifestUrl = useMemo(() => {
+  // Build manifest URL for any of the three formats. Backend serves
+  // text/plain for .txt, application/x-sh for .sh, text/plain for .bat —
+  // each with a Content-Disposition header so the browser saves them.
+  const buildManifestUrl = (format: "txt" | "sh" | "bat") => {
     if (!fileTypes || fileTypes.length === 0) return null;
-    const ext = fileTypes
-      .map((e) => encodeURIComponent(e))
-      .join(",");
+    const ext = fileTypes.map((e) => encodeURIComponent(e)).join(",");
     return `${baseURL}/dbs/${encodeURIComponent(
       dbname
-    )}/${encodeURIComponent(dsname)}/files/manifest?ext=${ext}`;
-  }, [dbname, dsname, fileTypes]);
+    )}/${encodeURIComponent(
+      dsname
+    )}/files/manifest?ext=${ext}&format=${format}`;
+  };
+
+  const hasManifest = Array.isArray(fileTypes) && fileTypes.length > 0;
+
+  // Dropdown state for the download format menu.
+  const [downloadMenuEl, setDownloadMenuEl] = useState<HTMLElement | null>(
+    null
+  );
+  // Post-download instruction snackbar. Stays open until user dismisses it
+  // (no autoHideDuration) so researchers have time to read multi-step
+  // instructions.
+  const [downloadHint, setDownloadHint] = useState<
+    "sh" | "bat" | "txt" | null
+  >(null);
+  const handleDownload = (format: "txt" | "sh" | "bat") => {
+    const url = buildManifestUrl(format);
+    setDownloadMenuEl(null);
+    if (!url) return;
+    // Programmatic anchor click triggers the browser's normal download flow
+    // without leaving the current page (window.location would navigate away).
+    const a = document.createElement("a");
+    a.href = url;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setDownloadHint(format);
+  };
 
   // Extract a short "sub-XXX" tag from a BIDS path like
   // "$.sub-019.ses-1.nirs.sub-019_ses-1_task-MA_run-01_nirs.snirf.SNIRFData..."
@@ -421,23 +455,40 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
                         : matchingFilesTotal
                     })`}
                 </Typography>
-                {manifestUrl && (
-                  <Button
-                    component="a"
-                    href={manifestUrl}
-                    size="small"
-                    variant="outlined"
-                    startIcon={<DownloadIcon />}
-                    sx={{
-                      color: Colors.purple,
-                      borderColor: Colors.purple,
-                      textTransform: "none",
-                    }}
-                  >
-                    Download manifest
-                    {typeof matchingFilesTotal === "number" &&
-                      ` (${matchingFilesTotal} files)`}
-                  </Button>
+                {hasManifest && (
+                  <>
+                    <Button
+                      onClick={(e) => setDownloadMenuEl(e.currentTarget)}
+                      size="small"
+                      variant="outlined"
+                      startIcon={<DownloadIcon />}
+                      endIcon={<KeyboardArrowDownIcon />}
+                      sx={{
+                        color: Colors.purple,
+                        borderColor: Colors.purple,
+                        textTransform: "none",
+                      }}
+                    >
+                      Download all
+                      {typeof matchingFilesTotal === "number" &&
+                        ` (${matchingFilesTotal})`}
+                    </Button>
+                    <Menu
+                      anchorEl={downloadMenuEl}
+                      open={Boolean(downloadMenuEl)}
+                      onClose={() => setDownloadMenuEl(null)}
+                    >
+                      <MenuItem onClick={() => handleDownload("sh")}>
+                        For Mac / Linux (.sh)
+                      </MenuItem>
+                      <MenuItem onClick={() => handleDownload("bat")}>
+                        For Windows (.bat)
+                      </MenuItem>
+                      <MenuItem onClick={() => handleDownload("txt")}>
+                        URL list (.txt, advanced)
+                      </MenuItem>
+                    </Menu>
+                  </>
                 )}
               </Stack>
               <Stack spacing={0.5} component="ul" sx={{ pl: 2, m: 0 }}>
@@ -483,6 +534,82 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
           )}
         </Stack>
       </CardContent>
+
+      {/* Post-download instructions. No auto-hide so users can read at their
+       *  own pace; dismiss with the ✕ when finished. */}
+      <Snackbar
+        open={Boolean(downloadHint)}
+        onClose={() => setDownloadHint(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="success"
+          onClose={() => setDownloadHint(null)}
+          sx={{ maxWidth: 520 }}
+        >
+          {downloadHint === "sh" && (
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Downloaded the Mac / Linux script
+              </Typography>
+              <Typography variant="body2">
+                To fetch your data files:
+              </Typography>
+              <Box component="ol" sx={{ pl: 2.5, mt: 0.5, mb: 0 }}>
+                <li>Open Terminal</li>
+                <li>Go to the folder where the script was saved</li>
+                <li>
+                  Run:{" "}
+                  <Box
+                    component="code"
+                    sx={{
+                      fontFamily: "monospace",
+                      backgroundColor: "rgba(0,0,0,0.06)",
+                      px: 0.5,
+                      borderRadius: 0.5,
+                    }}
+                  >
+                    bash &lt;script-name&gt;.sh
+                  </Box>
+                </li>
+              </Box>
+            </Box>
+          )}
+          {downloadHint === "bat" && (
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Downloaded the Windows script
+              </Typography>
+              <Typography variant="body2">
+                Open the folder where the script was saved and{" "}
+                <strong>double-click the .bat file</strong>. A command window
+                opens and the files download next to it.
+              </Typography>
+            </Box>
+          )}
+          {downloadHint === "txt" && (
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Downloaded the URL list
+              </Typography>
+              <Typography variant="body2">
+                In Terminal (Mac/Linux) or PowerShell (Windows), run:{" "}
+                <Box
+                  component="code"
+                  sx={{
+                    fontFamily: "monospace",
+                    backgroundColor: "rgba(0,0,0,0.06)",
+                    px: 0.5,
+                    borderRadius: 0.5,
+                  }}
+                >
+                  wget -i &lt;file-name&gt;.txt
+                </Box>
+              </Typography>
+            </Box>
+          )}
+        </Alert>
+      </Snackbar>
     </Card>
   );
 };
