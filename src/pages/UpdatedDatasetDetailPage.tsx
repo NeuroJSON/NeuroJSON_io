@@ -577,8 +577,17 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       //   });
       //   setJsonSize(blob.size);
 
-      //  Construct download script dynamically
-      let script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"\n`;
+      //  Construct download script dynamically — everything lands in a
+      //  ./<docId>/ folder next to where the user runs the script, so the
+      //  JSON and the data files stay together (was split between cwd and
+      //  ~/.neurojson/io/... previously, hard to find).
+      let script = `#!/bin/bash\n`;
+      script += `# Downloads ${docId} from ${dbName}\n`;
+      script += `# Usage: bash ${docId}.sh\n`;
+      script += `set -e\n`;
+      script += `mkdir -p "${docId}"\n`;
+      script += `cd "${docId}" || exit 1\n`;
+      script += `curl -L -C - -o "${docId}.json" "https://neurojson.io:7777/${dbName}/${docId}"\n`;
 
       links.forEach((link) => {
         const url = link.url;
@@ -594,10 +603,10 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             })()
           : `file-${link.index}`;
 
-        const outputPath = `$HOME/.neurojson/io/${dbName}/${docId}/${filename}`;
-
-        script += `curl -L --create-dirs "${url}" -o "${outputPath}"\n`;
+        script += `curl -L -C - -o "${filename}" "${url}"\n`;
       });
+
+      script += `echo "Done. Files saved to $(pwd)"\n`;
       setDownloadScript(script);
       // Calculate and set script size
       const scriptBlob = new Blob([script], { type: "text/plain" });
