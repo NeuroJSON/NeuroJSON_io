@@ -8,34 +8,13 @@ const COUCHDB_URL = process.env.COUCHDB_URL || "https://neurojson.io:7777";
 const CONCURRENCY = 5;
 
 // fetch database list dynamically from registry
+// registry doc shape: { database: [{ id, name, ... }, ...] }
 async function getDatabases() {
-  try {
-    const response = await axios.get(`${COUCHDB_URL}/sys/registry`);
-    const databases = response.data
-      .map((db) => db.id)
-      .filter((id) => id && id !== "sys");
-    console.log(`Found ${databases.length} databases in registry`);
-    return databases;
-  } catch (err) {
-    console.error("Failed to fetch registry:", err.message);
-    return [
-      "openneuro",
-      "abide",
-      "abide2",
-      "datalad-registry",
-      "adhd200",
-      "bfnirs",
-      "mcx",
-      "mmc",
-      "ucl-4d-neonatal-head-model",
-      "unc-012-infant-atlas",
-      "unc-infant-cortical-surface-atlas",
-      "cotilab",
-      "emnist",
-      "nemo-bids",
-      "openfnirs",
-    ];
-  }
+  const response = await axios.get(`${COUCHDB_URL}/sys/registry`);
+  const entries = response.data?.database || [];
+  const databases = entries.map((db) => db.id).filter(Boolean);
+  console.log(`Found ${databases.length} databases in registry`);
+  return databases;
 }
 
 // === Local ports of CouchDB _design/qq map functions ===
@@ -43,8 +22,7 @@ async function getDatabases() {
 // these drift silently.
 
 function transformDbinfo(doc) {
-  const txt =
-    doc["README"] || doc["README.md"] || doc["README.rst"] || "";
+  const txt = doc["README"] || doc["README.md"] || doc["README.rst"] || "";
   const rawtext = JSON.stringify(doc);
   const datainfo = doc["dataset_description.json"] || { Name: doc._id };
   const subjlist = [];
@@ -541,9 +519,7 @@ async function incrementalSync(dbname, lastSeq) {
             await processDatasetUpdate(dbname, change.id);
           }
         } catch (err) {
-          console.error(
-            `  ${dbname}/${change.id}: failed - ${err.message}`
-          );
+          console.error(`  ${dbname}/${change.id}: failed - ${err.message}`);
         }
       })
     );
@@ -587,13 +563,7 @@ async function runSync() {
   console.log(new Date().toISOString());
   console.log(`CouchDB: ${COUCHDB_URL}`);
 
-  // change to await getDatabases() when ready for full sync
-  const databases = [
-    "bfnirs",           // NIRS — .snirf, .jdb
-    "brainmeshlibrary", // mesh + atlas — .jmsh, .jnii (318 datasets)
-    "cotilab",          // JData — small (6 datasets)
-    "abide",            // BIDS MRI — .nii.gz, .tsv, .json (25 datasets)
-  ];
+  const databases = await getDatabases();
   console.log(`Databases: ${databases.length}`);
 
   for (const db of databases) {
