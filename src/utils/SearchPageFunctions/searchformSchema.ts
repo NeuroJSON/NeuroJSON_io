@@ -134,6 +134,21 @@ export const baseSchema: JSONSchema7 = {
       items: { type: "string" },
       uniqueItems: true,
     },
+    dataset_modality_filter: {
+      type: "null",
+      title: "",
+    },
+    modalities: {
+      type: "array",
+      title: "Dataset modalities",
+      items: { type: "string" },
+      uniqueItems: true,
+    },
+    modality_mode: {
+      type: "string",
+      title: "Modality match mode",
+      default: "or",
+    },
     session_name: {
       title: "Session keywords",
       type: "string",

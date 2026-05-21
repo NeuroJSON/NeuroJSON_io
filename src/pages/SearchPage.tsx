@@ -16,6 +16,11 @@ import {
   Slider,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -56,6 +61,80 @@ type RegistryItem = {
 // render, which made RJSF remount the slider mid-drag.
 const AGE_MIN_BOUND = 0;
 const AGE_MAX_BOUND = 100;
+
+const DATASET_MODALITIES = [
+  "anat", "func", "dwi", "fmap", "perf",
+  "meg", "eeg", "ieeg", "beh", "pet",
+  "micr", "nirs", "motion", "ephys", "atlas",
+  "JMesh", "JNIFTI", "JSNIRF", "JData",
+];
+
+const DatasetModalityFilterField = (props: any) => {
+  const ctx = props?.registry?.formContext as
+    | { formData: Record<string, any>; setFormData: React.Dispatch<React.SetStateAction<Record<string, any>>> }
+    | undefined;
+  if (!ctx) return null;
+  const { formData, setFormData } = ctx;
+  const selected: string[] = Array.isArray(formData.modalities) ? formData.modalities : [];
+  const mode: string = formData.modality_mode || "or";
+
+  const toggle = (code: string) => {
+    setFormData((prev) => {
+      const cur: string[] = Array.isArray(prev.modalities) ? prev.modalities : [];
+      const next = cur.includes(code) ? cur.filter((m) => m !== code) : [...cur, code];
+      const updated = { ...prev };
+      if (next.length === 0) {
+        delete updated.modalities;
+        delete updated.modality_mode;
+      } else {
+        updated.modalities = next;
+        if (!updated.modality_mode) updated.modality_mode = "or";
+      }
+      return updated;
+    });
+  };
+
+  const handleModeChange = (_: any, val: string | null) => {
+    if (!val) return;
+    setFormData((prev) => ({ ...prev, modality_mode: val }));
+  };
+
+  return (
+    <Box sx={{ mt: 1, mb: 1, p: 1, borderRadius: 1, backgroundColor: selected.length > 0 ? "#e8f4fd" : "transparent" }}>
+      <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
+        Dataset modalities
+      </Typography>
+      <FormGroup row>
+        {DATASET_MODALITIES.map((code) => (
+          <FormControlLabel
+            key={code}
+            control={
+              <Checkbox
+                size="small"
+                checked={selected.includes(code)}
+                onChange={() => toggle(code)}
+                sx={{ py: 0.25 }}
+              />
+            }
+            label={<Typography variant="body2">{code}</Typography>}
+            sx={{ mr: 1 }}
+          />
+        ))}
+      </FormGroup>
+      {selected.length > 1 && (
+        <Box sx={{ mt: 1, display: "flex", alignItems: "center", gap: 1 }}>
+          <ToggleButtonGroup size="small" value={mode} exclusive onChange={handleModeChange}>
+            <ToggleButton value="or" sx={{ px: 2, py: 0.25 }}>OR</ToggleButton>
+            <ToggleButton value="and" sx={{ px: 2, py: 0.25 }}>AND</ToggleButton>
+          </ToggleButtonGroup>
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            {mode === "and" ? "must have all selected" : "must have any selected"}
+          </Typography>
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 const AgeRangeSliderField = (props: any) => {
   const ctx = props?.registry?.formContext as
@@ -239,10 +318,12 @@ const SearchPage: React.FC = () => {
     ([key, value]) =>
       key !== "skip" &&
       key !== "limit" &&
+      key !== "modality_mode" &&
       value !== undefined &&
       value !== null &&
       value !== "" &&
-      value !== "any"
+      value !== "any" &&
+      !(Array.isArray(value) && value.length === 0)
   );
 
   useEffect(() => {
@@ -381,6 +462,7 @@ const SearchPage: React.FC = () => {
     ),
     ageRangeSlider: AgeRangeSliderField,
     countRangePair: CountRangePairField,
+    datasetModalityFilter: DatasetModalityFilterField,
   };
 
   // determine the results are subject-level or dataset-level
@@ -685,10 +767,16 @@ const SearchPage: React.FC = () => {
                 mt: 1,
               }}
             >
-              {activeFilters.map(([key, value]) => (
+              {activeFilters.map(([key, value]) => {
+                let label = `${String(key)}: ${String(value)}`;
+                if (key === "modalities" && Array.isArray(value)) {
+                  const mode = appliedFilters.modality_mode || "or";
+                  label = `modalities (${mode}): ${value.join(", ")}`;
+                }
+                return (
                 <Chip
                   key={key}
-                  label={`${String(key)}: ${String(value)}`}
+                  label={label}
                   variant="outlined"
                   sx={{
                     color: Colors.darkPurple,
@@ -736,7 +824,8 @@ const SearchPage: React.FC = () => {
                     }
                   }}
                 />
-              ))}
+                );
+              })}
             </Box>
           )}
 

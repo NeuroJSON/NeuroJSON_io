@@ -51,6 +51,9 @@ export const generateUiSchema = (
       "database",
       "keyword",
       "file_type", // dataset-level: filters by file extensions in iolinks
+      "dataset_modality_filter", // dataset-level: modality multi-select + AND/OR
+      "modalities",
+      "modality_mode",
       "subject_filters_toggle",
       "age_range_slider", // top of subject filters — range slider for age
       "modality",
@@ -106,6 +109,11 @@ export const generateUiSchema = (
           },
         }
       : datasetHiddenStyle,
+    dataset_modality_filter: showDatasetFilters
+      ? { "ui:field": "datasetModalityFilter" }
+      : datasetHiddenStyle,
+    modalities: invisibleStyle,
+    modality_mode: invisibleStyle,
     limit: invisibleStyle,
     skip: invisibleStyle,
 

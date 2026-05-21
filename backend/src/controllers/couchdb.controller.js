@@ -207,6 +207,30 @@ const searchAllDatabases = async (req, res) => {
       repl.modality = mod;
     }
 
+    // Dataset-level modality filter (multi-select + AND/OR).
+    // Queries json->'modality' on dbinfo rows, not subjects rows.
+    if (Array.isArray(f.modalities) && f.modalities.length > 0) {
+      const op = f.modality_mode === "and" ? " AND " : " OR ";
+      const parts = f.modalities.map((m, i) => {
+        repl[`dmod${i}`] = String(m);
+        return isSubjectSearch
+          ? `dsi.json->'modality' ? :dmod${i}`
+          : `json->'modality' ? :dmod${i}`;
+      });
+      const condition = `(${parts.join(op)})`;
+      if (isSubjectSearch) {
+        where.push(`EXISTS (
+          SELECT 1 FROM ioviews dsi
+          WHERE dsi.dbname = ioviews.dbname
+            AND dsi.dsname = ioviews.dsname
+            AND dsi.view = 'dbinfo'
+            AND ${condition}
+        )`);
+      } else {
+        where.push(condition);
+      }
+    }
+
     // db / ds / subj filters
     if (isFilter(f.database)) {
       where.push(`dbname = :dbname`);

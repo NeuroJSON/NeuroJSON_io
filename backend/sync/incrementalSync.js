@@ -303,7 +303,15 @@ async function saveLastSeq(dbname, seq) {
   );
 }
 
+// Postgres jsonb rejects the null-byte escape with "unsupported Unicode
+// escape sequence", so strip it from the serialized JSON before insert.
+// Seen in openneuro README/TSV fields containing stray null bytes.
+function safeStringify(obj) {
+  return JSON.stringify(obj).replace(/\\u0000/g, "");
+}
+
 async function upsertIoview(dbname, dsname, subj, view, json, transaction) {
+  const payload = safeStringify(json);
   await sequelize.query(
     `INSERT INTO ioviews (dbname, dsname, subj, view, json, search_vector, updated_at)
      VALUES (:dbname, :dsname, :subj, :view, :json, to_tsvector('english', :text), NOW())
@@ -317,8 +325,8 @@ async function upsertIoview(dbname, dsname, subj, view, json, transaction) {
         dsname,
         subj: String(subj),
         view,
-        json: JSON.stringify(json),
-        text: JSON.stringify(json),
+        json: payload,
+        text: payload,
       },
       transaction,
     }
@@ -335,7 +343,7 @@ async function insertIolink(dbname, dsname, subj, view, json, transaction) {
         dsname,
         subj: String(subj),
         view,
-        json: JSON.stringify(json),
+        json: safeStringify(json),
       },
       transaction,
     }
