@@ -310,6 +310,19 @@ function safeStringify(obj) {
   return JSON.stringify(obj).replace(/\\u0000/g, "");
 }
 
+// A valid file type is a dot-prefixed extension with no slashes and
+// a reasonable length. Some CouchDB links view rows (e.g. openneuro)
+// emit paths like ".0/libraries/FID-A/..." where the version number
+// gets parsed as a fake extension — reject those.
+function isValidFileType(ext) {
+  return (
+    typeof ext === "string" &&
+    ext.startsWith(".") &&
+    !ext.includes("/") &&
+    ext.length <= 20
+  );
+}
+
 async function upsertIoview(dbname, dsname, subj, view, json, transaction) {
   const payload = safeStringify(json);
   await sequelize.query(
@@ -401,15 +414,18 @@ async function firstSync(dbname) {
   console.log(`  ${dbname}: subjects synced (${subjectRows.length} rows)`);
 
   const linkRows = await fetchView(dbname, "links");
+  let linkCount = 0;
   for (const row of linkRows) {
     const fileType = row.key?.[0];
+    if (!isValidFileType(fileType)) continue;
     const subjId = String(row.key?.[1] || "");
     await insertIolink(dbname, row.id, subjId, fileType, {
       key: row.key,
       value: row.value,
     });
+    linkCount++;
   }
-  console.log(`  ${dbname}: links synced (${linkRows.length} rows)`);
+  console.log(`  ${dbname}: links synced (${linkCount}/${linkRows.length} rows)`);
 }
 
 // === Process one changed dataset (Option A: 2 HTTP requests + local transforms) ===
