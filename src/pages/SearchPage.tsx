@@ -427,7 +427,7 @@ const SearchPage: React.FC = () => {
   // Create the "Subject-level Filters" button as a custom field
   const customFields = {
     subjectFiltersToggle: () => (
-      <Box sx={{ mt: 2, mb: 1 }}>
+      <Box sx={{ mt: 2, mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
         <Button
           variant="outlined"
           onClick={() => setShowSubjectFilters((prev) => !prev)}
@@ -442,6 +442,22 @@ const SearchPage: React.FC = () => {
         >
           Subject-Level Filters
         </Button>
+        <Tooltip
+          title="Applying any filter here returns subject-level results."
+          componentsProps={{
+            tooltip: {
+              sx: {
+                backgroundColor: "white",
+                color: Colors.darkPurple,
+                boxShadow: 1,
+              },
+            },
+          }}
+        >
+          <IconButton size="small" sx={{ color: Colors.purple }}>
+            <InfoOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </Box>
     ),
     datasetFiltersToggle: () => (
