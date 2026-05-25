@@ -18,9 +18,7 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
+  Autocomplete,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -78,10 +76,8 @@ const DatasetModalityFilterField = (props: any) => {
   const selected: string[] = Array.isArray(formData.modalities) ? formData.modalities : [];
   const mode: string = formData.modality_mode || "or";
 
-  const toggle = (code: string) => {
+  const handleChange = (_: any, next: string[]) => {
     setFormData((prev) => {
-      const cur: string[] = Array.isArray(prev.modalities) ? prev.modalities : [];
-      const next = cur.includes(code) ? cur.filter((m) => m !== code) : [...cur, code];
       const updated = { ...prev };
       if (next.length === 0) {
         delete updated.modalities;
@@ -100,27 +96,33 @@ const DatasetModalityFilterField = (props: any) => {
   };
 
   return (
-    <Box sx={{ mt: 1, mb: 1, p: 1, borderRadius: 1, backgroundColor: selected.length > 0 ? "#e8f4fd" : "transparent" }}>
-      <Typography variant="body2" sx={{ fontWeight: 500, mb: 0.5 }}>
-        Dataset modalities
-      </Typography>
-      <FormGroup row>
-        {DATASET_MODALITIES.map((code) => (
-          <FormControlLabel
-            key={code}
-            control={
-              <Checkbox
-                size="small"
-                checked={selected.includes(code)}
-                onChange={() => toggle(code)}
-                sx={{ py: 0.25 }}
-              />
-            }
-            label={<Typography variant="body2">{code}</Typography>}
-            sx={{ mr: 1 }}
+    <Box sx={{ mt: 1, mb: 1 }}>
+      <Autocomplete
+        multiple
+        options={DATASET_MODALITIES}
+        value={selected}
+        onChange={handleChange}
+        renderTags={(items, getTagProps) =>
+          items.map((item, index) => (
+            <Chip
+              variant="outlined"
+              label={item}
+              size="small"
+              {...getTagProps({ index })}
+              key={item}
+            />
+          ))
+        }
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Dataset modalities"
+            placeholder={selected.length === 0 ? "e.g. eeg, nirs" : ""}
+            size="small"
+            fullWidth
           />
-        ))}
-      </FormGroup>
+        )}
+      />
       {selected.length > 1 && (
         <Box sx={{ mt: 1, display: "flex", alignItems: "center", gap: 1 }}>
           <ToggleButtonGroup size="small" value={mode} exclusive onChange={handleModeChange}>
