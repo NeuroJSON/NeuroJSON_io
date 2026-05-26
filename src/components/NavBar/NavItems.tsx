@@ -319,6 +319,7 @@ const NavItems: React.FC = () => {
             { text: "Wiki", url: "https://neurojson.org/Wiki" },
             { text: "Search", url: RoutesEnum.SEARCH },
             { text: "Databases", url: RoutesEnum.DATABASES },
+            { text: "BIDS Converter", url: RoutesEnum.BIDS_CONVERTER },
           ].map(({ text, url }) => (
             <Grid item key={text}>
               {url?.startsWith("https") ? (
