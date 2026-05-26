@@ -1,15 +1,43 @@
 import DropZone from "components/User/Dashboard/DatasetOrganizer/DropZone";
 import FileTree from "components/User/Dashboard/DatasetOrganizer/FileTree";
 import LLMPanel from "components/User/Dashboard/DatasetOrganizer/LLMPanel";
-import { ArrowBack, GetApp, Psychology } from "@mui/icons-material";
-import { Box, Button, Typography, Alert } from "@mui/material";
+import UserLogin from "components/User/UserLogin";
+import UserSignup from "components/User/UserSignup";
+import {
+  ArrowBack,
+  GetApp,
+  Psychology,
+  LockOutlined,
+  CloudUpload,
+} from "@mui/icons-material";
+import {
+  Box,
+  Button,
+  Typography,
+  Alert,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  ToggleButton,
+  ToggleButtonGroup,
+} from "@mui/material";
 import { Colors } from "design/theme";
-import React, { useState } from "react";
+import { useAppSelector } from "hooks/useAppSelector";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthSelector } from "redux/auth/auth.selector";
 import { FileItem } from "redux/projects/types/projects.interface";
+
+type Mode = "private" | "save";
 
 const BidsConverterPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isLoggedIn } = useAppSelector(AuthSelector);
+
+  const [modeChosen, setModeChosen] = useState(false);
+  const [mode, setMode] = useState<Mode>("private");
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [signupOpen, setSignupOpen] = useState(false);
 
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -20,15 +48,42 @@ const BidsConverterPage: React.FC = () => {
   const [evidenceBundle, setEvidenceBundle] = useState<any>(null);
   const [trioGenerated, setTrioGenerated] = useState(false);
 
+  // After login succeeds in save mode, redirect to dashboard to create a project
+  useEffect(() => {
+    if (isLoggedIn && mode === "save") {
+      navigate("/dashboard");
+    }
+  }, [isLoggedIn, mode, navigate]);
+
+  const handleChoosePrivate = () => {
+    setMode("private");
+    setModeChosen(true);
+  };
+
+  const handleChooseSave = () => {
+    setMode("save");
+    if (isLoggedIn) {
+      navigate("/dashboard");
+    } else {
+      setLoginOpen(true);
+    }
+  };
+
+  const handleModeBarChange = (_: React.MouseEvent, next: Mode | null) => {
+    if (!next || next === mode) return;
+    if (next === "save") {
+      handleChooseSave();
+    } else {
+      setMode("private");
+    }
+  };
+
   const updateFiles = (updater: React.SetStateAction<FileItem[]>) =>
     setFiles(updater);
-
   const updateSelectedIds = (updater: React.SetStateAction<Set<string>>) =>
     setSelectedIds(updater);
-
   const updateExpandedIds = (updater: React.SetStateAction<Set<string>>) =>
     setExpandedIds(updater);
-
   const updateBaseDirectoryPath = (path: string) => setBaseDirectoryPath(path);
 
   const handleExportJSON = () => {
@@ -148,6 +203,63 @@ const BidsConverterPage: React.FC = () => {
         </Box>
       </Box>
 
+      {/* Mode indicator bar */}
+      <Box
+        sx={{
+          px: 3,
+          py: 1,
+          borderBottom: 1,
+          borderColor: "divider",
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
+          backgroundColor: "white",
+        }}
+      >
+        <ToggleButtonGroup
+          value={mode}
+          exclusive
+          onChange={handleModeBarChange}
+          size="small"
+        >
+          <ToggleButton
+            value="private"
+            sx={{
+              gap: 0.5,
+              textTransform: "none",
+              "&.Mui-selected": {
+                backgroundColor: Colors.purple,
+                color: Colors.white,
+                "&:hover": { backgroundColor: Colors.secondaryPurple },
+              },
+            }}
+          >
+            <LockOutlined fontSize="small" />
+            Private Mode
+          </ToggleButton>
+          <ToggleButton
+            value="save"
+            sx={{
+              gap: 0.5,
+              textTransform: "none",
+              "&.Mui-selected": {
+                backgroundColor: Colors.lightBlue,
+                color: Colors.darkPurple,
+              },
+            }}
+          >
+            <CloudUpload fontSize="small" />
+            Save to Account
+          </ToggleButton>
+        </ToggleButtonGroup>
+
+        <Typography variant="caption" color="text.secondary">
+          {mode === "private"
+            ? "Files are processed locally. Nothing is uploaded. All data is lost when you close this page."
+            : "Log in to save your work to a project on your account."}
+        </Typography>
+      </Box>
+
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ m: 2 }}>
           {error}
@@ -191,6 +303,116 @@ const BidsConverterPage: React.FC = () => {
           setExpandedIds={updateExpandedIds}
         />
       </Box>
+
+      {/* Welcome dialog — shown on first load before user starts working */}
+      <Dialog open={!modeChosen} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ textAlign: "center", pt: 4 }}>
+          How would you like to use BIDS Converter?
+        </DialogTitle>
+        <DialogContent>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              mt: 1,
+              mb: 2,
+              flexDirection: { xs: "column", sm: "row" },
+            }}
+          >
+            {/* Private Mode card */}
+            <Box
+              onClick={handleChoosePrivate}
+              sx={{
+                flex: 1,
+                border: `2px solid ${Colors.purple}`,
+                borderRadius: 2,
+                p: 3,
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 1.5,
+                transition: "background 0.2s",
+                "&:hover": { backgroundColor: Colors.lightBlue },
+              }}
+            >
+              <LockOutlined sx={{ fontSize: 40, color: Colors.purple }} />
+              <Typography variant="h6" fontWeight={600}>
+                Private Mode
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                textAlign="center"
+              >
+                Work entirely in your browser. No files are uploaded to any
+                server. All data will be lost when you close the page.
+              </Typography>
+            </Box>
+
+            {/* Save to Account card */}
+            <Box
+              onClick={handleChooseSave}
+              sx={{
+                flex: 1,
+                border: `2px solid ${Colors.darkGreen}`,
+                borderRadius: 2,
+                p: 3,
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 1.5,
+                transition: "background 0.2s",
+                "&:hover": { backgroundColor: "#e8f5e9" },
+              }}
+            >
+              <CloudUpload sx={{ fontSize: 40, color: Colors.darkGreen }} />
+              <Typography variant="h6" fontWeight={600}>
+                Save to Account
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                textAlign="center"
+              >
+                Log in to save your work to a project. You can resume it any
+                time from your dashboard.
+              </Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      <UserLogin
+        open={loginOpen}
+        onClose={() => {
+          setLoginOpen(false);
+          // If user closes login without logging in, fall back to private mode
+          if (!isLoggedIn) {
+            setMode("private");
+            setModeChosen(true);
+          }
+        }}
+        onSwitchToSignup={() => {
+          setLoginOpen(false);
+          setSignupOpen(true);
+        }}
+      />
+      <UserSignup
+        open={signupOpen}
+        onClose={() => {
+          setSignupOpen(false);
+          if (!isLoggedIn) {
+            setMode("private");
+            setModeChosen(true);
+          }
+        }}
+        onSwitchToLogin={() => {
+          setSignupOpen(false);
+          setLoginOpen(true);
+        }}
+      />
     </Box>
   );
 };
