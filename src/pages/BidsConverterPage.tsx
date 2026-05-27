@@ -142,7 +142,9 @@ const BidsConverterPage: React.FC = () => {
         display: "flex",
         flexDirection: "column",
         height: "100vh",
-        background: "linear-gradient(180deg,#f6f7fb 0%, #aeb6e8 100%)",
+        background: mode === "private"
+          ? "linear-gradient(180deg, #eceff1 0%, #90a4ae 100%)"
+          : "linear-gradient(180deg,#f6f7fb 0%, #aeb6e8 100%)",
       }}
     >
       {/* Header */}
@@ -213,7 +215,7 @@ const BidsConverterPage: React.FC = () => {
           display: "flex",
           alignItems: "center",
           gap: 2,
-          backgroundColor: "white",
+          backgroundColor: mode === "private" ? "#eceff1" : "white",
         }}
       >
         <ToggleButtonGroup
