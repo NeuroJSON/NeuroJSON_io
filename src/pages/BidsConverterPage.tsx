@@ -51,7 +51,7 @@ const BidsConverterPage: React.FC = () => {
   // After login succeeds in save mode, redirect to dashboard to create a project
   useEffect(() => {
     if (isLoggedIn && mode === "save") {
-      navigate("/dashboard");
+      navigate("/dashboard?tab=projects");
     }
   }, [isLoggedIn, mode, navigate]);
 
@@ -63,7 +63,7 @@ const BidsConverterPage: React.FC = () => {
   const handleChooseSave = () => {
     setMode("save");
     if (isLoggedIn) {
-      navigate("/dashboard");
+      navigate("/dashboard?tab=projects");
     } else {
       setLoginOpen(true);
     }
