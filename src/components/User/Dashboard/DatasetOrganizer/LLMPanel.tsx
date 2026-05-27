@@ -293,7 +293,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
 
       setTrioGenerated(true);
       setStatus(
-        "✓ BIDS trio files generated and added to Virtual File System!"
+        "✓ BIDS metadata files generated and added to file tree!"
       );
     } catch (err: any) {
       if (err.name === "AbortError") {
@@ -1705,7 +1705,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         {/* Right: Generated Script */}
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", p: 2 }}>
           <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-            <Button
+            {/* <Button
               size="small"
               startIcon={<ContentCopy />}
               onClick={() =>
@@ -1714,12 +1714,17 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               disabled={!bidsPlan && !generatedScript}
             >
               Copy
-            </Button>
+            </Button> */}
             <Button
               size="small"
               startIcon={<Download />}
               onClick={handleDownloadPackage}
               disabled={!bidsPlan && !generatingTrio}
+              sx={{
+                color: Colors.purple,
+                borderColor: Colors.purple,
+                "&:hover": { borderColor: Colors.purple },
+              }}
             >
               Download zip file for convert
             </Button>
@@ -1728,9 +1733,13 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               startIcon={<DriveFileMove />}
               onClick={handleSaveZip}
               disabled={!bidsPlan || !trioGenerated}
-              sx={{ color: Colors.darkGreen, borderColor: Colors.darkGreen }}
+              sx={{
+                color: Colors.purple,
+                borderColor: Colors.purple,
+                "&:hover": { borderColor: Colors.purple },
+              }}
             >
-              Preview in File Tree
+              Preview Conversion Package in File Tree
             </Button>
           </Box>
 

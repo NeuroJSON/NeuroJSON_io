@@ -522,7 +522,7 @@ const FileTree: React.FC<FileTreeProps> = ({
           }}
         >
           <Box>
-            <Typography variant="subtitle2" fontWeight="600">
+            <Typography variant="subtitle2" fontWeight={800}>
               Virtual File System
             </Typography>
             <Typography variant="caption" color="text.secondary">
@@ -631,10 +631,9 @@ const FileTree: React.FC<FileTreeProps> = ({
                   borderColor: "divider",
                 }}
               >
-                <FolderSpecial sx={{ color: Colors.darkGreen, fontSize: 16 }} />
                 <Typography
-                  variant="caption"
-                  sx={{ color: Colors.darkGreen, fontWeight: 600 }}
+                  variant="body2"
+                  sx={{ color: Colors.darkPurple, fontWeight: 400 }}
                 >
                   BIDS Conversion Package Preview
                 </Typography>
