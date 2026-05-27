@@ -1106,7 +1106,10 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   const handleSaveZip = async () => {
     // Add output files to VFS
     const timestamp = new Date().toLocaleString();
-    const zipLabel = `bids_output_${new Date().toISOString().slice(0, 10)}`;
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, "-");
+    const zipLabel = `bids_output_${dateStr}_${timeStr}`;
     const outputFiles: FileItem[] = [];
 
     const folderId = generateId();
@@ -1214,7 +1217,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     });
 
     updateFiles((prev) => [...prev, ...outputFiles]);
-    setStatus(isPrivateMode ? "✓ Saved to VFS." : "✓ Saved to VFS. Click 'Save Changes' to persist to database.");
+    setStatus(isPrivateMode ? "✓ Added to file tree." : "✓ Added to file tree. Click 'Save Changes' to persist to database.");
   };
   // const handleSaveZip = async () => {
   //   const zip = new JSZip();
@@ -1704,8 +1707,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             <Button
               size="small"
               startIcon={<ContentCopy />}
-              // onClick={handleCopy}
-              // disabled={!generatedScript}
               onClick={() =>
                 navigator.clipboard.writeText(bidsPlan || generatedScript)
               }
@@ -1713,23 +1714,12 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             >
               Copy
             </Button>
-            {/* <Button
-              size="small"
-              startIcon={<Download />}
-              // onClick={handleDownload}
-              // disabled={!generatedScript}
-              onClick={bidsPlan ? handleDownloadPlan : handleDownload}
-              disabled={!bidsPlan && !generatedScript}
-            >
-              {bidsPlan ? "Download BIDSPlan.yaml" : "Download Script"}
-            </Button> */}
             <Button
               size="small"
               startIcon={<Download />}
               onClick={handleDownloadPackage}
               disabled={!bidsPlan && !generatingTrio}
             >
-              {/* Download */}
               Download zip file for convert
             </Button>
             <Button
@@ -1739,7 +1729,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               disabled={!bidsPlan || !trioGenerated}
               sx={{ color: Colors.darkGreen, borderColor: Colors.darkGreen }}
             >
-              Save to Virtual File System
+              Preview in File Tree
             </Button>
           </Box>
 
@@ -1755,11 +1745,13 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               color: "#d4d4d4",
             }}
           >
-            {/* {generatedScript ||
-              'Configure your LLM provider and click "Generate Script"...'} */}
-            {bidsPlan ||
-              generatedScript ||
-              'Configure your LLM provider and click "Generate BIDSPlan.yaml"...'}
+            {bidsPlan || generatedScript || (
+              <span style={{ color: status && !error ? "#9cdcfe" : "#aaaaaa" }}>
+                {status && !error
+                  ? status
+                  : 'Fill in the fields on the left and follow the steps to generate your conversion package...'}
+              </span>
+            )}
           </Paper>
         </Box>
       </Box>
