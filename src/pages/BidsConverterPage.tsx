@@ -9,6 +9,7 @@ import {
   Psychology,
   LockOutlined,
   CloudUpload,
+  InfoOutlined,
 } from "@mui/icons-material";
 import {
   Box,
@@ -20,6 +21,8 @@ import {
   DialogTitle,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
+  IconButton,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -168,7 +171,48 @@ const BidsConverterPage: React.FC = () => {
             Back
           </Button>
           <Box>
-            <Typography variant="h5">BIDS Converter</Typography>
+            <Box display="flex" alignItems="center" gap={0.5}>
+              <Typography variant="h5">BIDS Converter</Typography>
+              <Tooltip
+                title={
+                  <Box>
+                    <Typography variant="body2" fontWeight={600} mb={0.5}>How to use:</Typography>
+                    <Typography variant="body2" component="ol" sx={{ pl: 2, m: 0 }}>
+                      <li>Drop your dataset files into the workspace.</li>
+                      <li>Enter the number of subjects, modality, and base directory path.</li>
+                      <li>The AI will analyze your files and generate a BIDS conversion plan.</li>
+                      <li>Download and run the script locally to reorganize your data into BIDS format.</li>
+                    </Typography>
+                  </Box>
+                }
+                placement="bottom-start"
+                arrow
+                componentsProps={{
+                  tooltip: {
+                    sx: {
+                      backgroundColor: "white",
+                      color: Colors.darkPurple,
+                      border: `1px solid ${Colors.lightGray}`,
+                      boxShadow: 3,
+                      fontSize: "0.875rem",
+                      lineHeight: 1.5,
+                      p: 1.5,
+                      maxWidth: 320,
+                    },
+                  },
+                  arrow: {
+                    sx: {
+                      color: "white",
+                      "&::before": { border: `1px solid ${Colors.lightGray}` },
+                    },
+                  },
+                }}
+              >
+                <IconButton size="small" sx={{ color: Colors.purple, p: 0 }}>
+                  <InfoOutlined fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
             <Typography variant="body2" color="text.secondary">
               Organize and rename your dataset files into BIDS format
             </Typography>
@@ -180,14 +224,13 @@ const BidsConverterPage: React.FC = () => {
             variant="contained"
             startIcon={<Psychology />}
             onClick={() => setShowLLMPanel(!showLLMPanel)}
-            disabled={files.length === 0}
             sx={{
               backgroundColor: Colors.purple,
               color: Colors.lightGray,
               "&:hover": { backgroundColor: Colors.purple, border: "none" },
             }}
           >
-            Generate BIDS Plan
+            AI Assistant
           </Button>
           <Button
             variant="contained"
@@ -292,6 +335,7 @@ const BidsConverterPage: React.FC = () => {
               setTrioGenerated={setTrioGenerated}
               updateFiles={updateFiles}
               onClose={() => setShowLLMPanel(false)}
+              isPrivateMode={mode === "private"}
             />
           )}
         </Box>

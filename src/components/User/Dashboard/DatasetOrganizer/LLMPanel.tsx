@@ -13,6 +13,7 @@ import {
   Download,
   AutoAwesome,
   DriveFileMove,
+  InfoOutlined,
 } from "@mui/icons-material";
 import {
   Box,
@@ -27,6 +28,7 @@ import {
   CircularProgress,
   IconButton,
   Alert,
+  Tooltip,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import { dump as yamlDump } from "js-yaml";
@@ -46,6 +48,7 @@ interface LLMPanelProps {
   setTrioGenerated: (value: boolean) => void; // ✅ Add
   updateFiles: (updater: React.SetStateAction<FileItem[]>) => void; // ✅ Add
   onClose: () => void;
+  isPrivateMode?: boolean;
 }
 
 interface LLMProvider {
@@ -77,28 +80,27 @@ const llmProviders: Record<string, LLMProvider> = {
     baseUrl: "https://api.groq.com/openai/v1/chat/completions",
     models: [
       { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B" },
+      { id: "llama-3.1-70b-versatile", name: "Llama 3.1 70B" },
       { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B (Fast)" },
-      { id: "mixtral-8x7b-32768", name: "Mixtral 8x7B" },
+      { id: "gemma2-9b-it", name: "Gemma 2 9B" },
     ],
   },
   openrouter: {
     name: "OpenRouter (Free models available)",
     baseUrl: "https://openrouter.ai/api/v1/chat/completions",
     models: [
-      {
-        id: "meta-llama/llama-3.1-8b-instruct:free",
-        name: "Llama 3.1 8B (Free)",
-      },
-      { id: "google/gemma-2-9b-it:free", name: "Gemma 2 9B (Free)" },
-      { id: "mistralai/mistral-7b-instruct:free", name: "Mistral 7B (Free)" },
+      { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B (Free)" },
+      { id: "google/gemma-3n-e4b-it:free", name: "Gemma 3n 4B (Free)" },
+      { id: "mistralai/mistral-small-3.2-24b-instruct:free", name: "Mistral Small 3.2 24B (Free)" },
     ],
   },
   anthropic: {
     name: "Anthropic Claude (Paid)",
     baseUrl: "https://api.anthropic.com/v1/messages",
     models: [
-      { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" },
-      { id: "claude-3-5-haiku-20241022", name: "Claude 3.5 Haiku" },
+      { id: "claude-opus-4-7", name: "Claude Opus 4.7" },
+      { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6" },
+      { id: "claude-haiku-4-5-20251001", name: "Claude Haiku 4.5" },
     ],
     isAnthropic: true,
   },
@@ -106,8 +108,11 @@ const llmProviders: Record<string, LLMProvider> = {
     name: "OpenAI (Paid)",
     baseUrl: "https://api.openai.com/v1/chat/completions",
     models: [
-      { id: "gpt-4o-mini", name: "GPT-4o Mini" },
+      { id: "gpt-5.5", name: "GPT-5.5" },
+      { id: "gpt-5.4", name: "GPT-5.4" },
+      { id: "gpt-5.4-mini", name: "GPT-5.4 Mini" },
       { id: "gpt-4o", name: "GPT-4o" },
+      { id: "gpt-4o-mini", name: "GPT-4o Mini" },
     ],
   },
 };
@@ -122,9 +127,10 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   setTrioGenerated, // ✅ Add
   updateFiles, // ✅ Add
   onClose,
+  isPrivateMode = false,
 }) => {
-  const [provider, setProvider] = useState<string>("ollama");
-  const [model, setModel] = useState<string>("qwen3-coder-next:latest");
+  const [provider, setProvider] = useState<string>(isPrivateMode ? "groq" : "ollama");
+  const [model, setModel] = useState<string>(isPrivateMode ? "llama-3.3-70b-versatile" : "qwen3-coder-next:latest");
   // const [ollamaUrl, setOllamaUrl] = useState<string>(
   //   "http://jin.neu.edu:11434"
   // );
@@ -1208,7 +1214,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     });
 
     updateFiles((prev) => [...prev, ...outputFiles]);
-    setStatus("✓ Saved to VFS. Click 'Save Changes' to persist to database.");
+    setStatus(isPrivateMode ? "✓ Saved to VFS." : "✓ Saved to VFS. Click 'Save Changes' to persist to database.");
   };
   // const handleSaveZip = async () => {
   //   const zip = new JSZip();
@@ -1350,7 +1356,38 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           sx={{ display: "flex", alignItems: "center", gap: 1 }}
         >
           <AutoAwesome sx={{ color: Colors.purple }} />
-          AI-Generated BIDS Conversion Script
+          AI Assistant
+          <Tooltip
+            title="Fill in the required fields and follow the steps to get a downloadable BIDS conversion plan."
+            placement="bottom-start"
+            arrow
+            componentsProps={{
+              tooltip: {
+                sx: {
+                  backgroundColor: "white",
+                  color: Colors.darkPurple,
+                  border: `1px solid ${Colors.lightGray}`,
+                  boxShadow: 3,
+                  fontSize: "0.875rem",
+                  lineHeight: 1.5,
+                  p: 1.5,
+                  maxWidth: 320,
+                },
+              },
+              arrow: {
+                sx: {
+                  color: "white",
+                  "&::before": {
+                    border: `1px solid ${Colors.lightGray}`,
+                  },
+                },
+              },
+            }}
+          >
+            <IconButton size="small" sx={{ color: Colors.purple, p: 0 }}>
+              <InfoOutlined fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Typography>
         <IconButton onClick={onClose} size="small">
           <Close />
@@ -1379,11 +1416,13 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 setModel(llmProviders[e.target.value].models[0].id);
               }}
             >
-              {Object.entries(llmProviders).map(([key, p]) => (
-                <MenuItem key={key} value={key}>
-                  {p.name}
-                </MenuItem>
-              ))}
+              {Object.entries(llmProviders)
+                .filter(([key]) => !(isPrivateMode && key === "ollama"))
+                .map(([key, p]) => (
+                  <MenuItem key={key} value={key}>
+                    {p.name}
+                  </MenuItem>
+                ))}
             </Select>
           </FormControl>
 
@@ -1567,8 +1606,8 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 {generatingTrio
                   ? "Generating..."
                   : trioGenerated
-                  ? "✓  2. Generate BIDS Trio"
-                  : "2. Generate BIDS Trio"}
+                  ? "✓  2. Generate BIDS Metadata Files"
+                  : "2. Generate BIDS Metadata Files"}
               </Button>
               {/* <Typography
                 variant="body2"
@@ -1599,7 +1638,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               "&.Mui-disabled": { background: "#e0e0e0", color: "#9e9e9e" },
             }}
           >
-            {loading ? "Generating..." : "3. Generate BIDSPlan.yaml"}
+            {loading ? "Generating..." : "3. Generate Conversion Package"}
           </Button>
 
           {/* <Button

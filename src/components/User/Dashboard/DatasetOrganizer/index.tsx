@@ -271,7 +271,6 @@ const DatasetOrganizer: React.FC = () => {
             variant="contained"
             startIcon={<Psychology />}
             onClick={() => setShowLLMPanel(!showLLMPanel)}
-            disabled={files.length === 0}
             sx={{
               backgroundColor: Colors.purple,
               color: Colors.lightGray,
@@ -281,7 +280,7 @@ const DatasetOrganizer: React.FC = () => {
               },
             }}
           >
-            Generate BIDS Plan
+            AI Assistant
           </Button>
           {/* <Button
             variant="contained"
