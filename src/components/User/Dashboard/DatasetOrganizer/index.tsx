@@ -282,7 +282,7 @@ const DatasetOrganizer: React.FC = () => {
           >
             AI Assistant
           </Button>
-          {/* <Button
+          <Button
             variant="contained"
             startIcon={<GetApp />}
             onClick={handleExportJSON}
@@ -297,7 +297,7 @@ const DatasetOrganizer: React.FC = () => {
             }}
           >
             Export JSON
-          </Button> */}
+          </Button>
           <Button
             variant="contained"
             startIcon={<Save />}

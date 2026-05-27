@@ -218,6 +218,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     setAbortController(controller);
     setGeneratingTrio(true);
     setError(null);
+    setBidsPlan("");
     setStatus("Generating BIDS trio files...");
 
     try {
