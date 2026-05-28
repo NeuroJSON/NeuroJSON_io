@@ -61,8 +61,12 @@ export const baseSchema: JSONSchema7 = {
     gender: {
       title: "Subject gender",
       type: "string",
-      enum: ["male", "female", "unknown", "any"],
+      enum: ["male", "female", "any"],
       default: "any",
+    },
+    age_range_slider: {
+      type: "null",
+      title: "Age range",
     },
     age_min: {
       title: "Minimum age",
@@ -77,6 +81,7 @@ export const baseSchema: JSONSchema7 = {
       maximum: 1000,
     },
 
+    sess_count_range: { type: "null", title: "Sessions" },
     sess_min: {
       title: "Minimum session count",
       type: "integer",
@@ -89,6 +94,7 @@ export const baseSchema: JSONSchema7 = {
       minimum: 0,
       maximum: 1000,
     },
+    task_count_range: { type: "null", title: "Tasks" },
     task_min: {
       title: "Minimum task count",
       type: "integer",
@@ -101,6 +107,7 @@ export const baseSchema: JSONSchema7 = {
       minimum: 0,
       maximum: 1000,
     },
+    run_count_range: { type: "null", title: "Runs" },
     run_min: {
       title: "Minimum runs",
       type: "integer",
@@ -118,8 +125,29 @@ export const baseSchema: JSONSchema7 = {
       type: "string",
     },
     type_name: {
-      title: "Data type keywords",
+      title: "Data type",
       type: "string",
+    },
+    file_type: {
+      title: "File types",
+      type: "array",
+      items: { type: "string" },
+      uniqueItems: true,
+    },
+    dataset_modality_filter: {
+      type: "null",
+      title: "",
+    },
+    modalities: {
+      type: "array",
+      title: "Dataset modalities",
+      items: { type: "string" },
+      uniqueItems: true,
+    },
+    modality_mode: {
+      type: "string",
+      title: "Modality match mode",
+      default: "or",
     },
     session_name: {
       title: "Session keywords",

@@ -109,6 +109,19 @@ export const fetchMetadataSearchResults = createAsyncThunk(
   }
 );
 
+// distinct iolinks file extensions — populates the "File types" multi-select
+export const fetchFileTypes = createAsyncThunk(
+  "neurojson/fetchFileTypes",
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await NeurojsonService.getFileTypes();
+      return data;
+    } catch (error: any) {
+      return rejectWithValue("Failed to fetch file types");
+    }
+  }
+);
+
 // fetch data for metadata panel in dataset detail page
 export const fetchDbInfoByDatasetId = createAsyncThunk(
   "neurojson/fetchDbInfoByDatasetId",

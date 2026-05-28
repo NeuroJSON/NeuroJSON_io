@@ -150,6 +150,13 @@ export const NeurojsonService = {
     return response.data;
   },
 
+  // GET /api/v1/dbs/file-types  → distinct iolinks.view values
+  // Drives the multi-select "File types" filter on the search page.
+  getFileTypes: async (): Promise<string[]> => {
+    const response = await api.get(`/dbs/file-types`);
+    return response.data;
+  },
+
   // getDbInfoByDatasetId: async (dbName: string, dsId: string): Promise<any> => {
   //   const response = await api.get(
   //     `${baseURL}/${dbName}/_design/qq/_view/dbinfo`,

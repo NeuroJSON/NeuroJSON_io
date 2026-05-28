@@ -16,6 +16,7 @@ interface SubjectCardProps {
       modalities?: string[];
       tasks?: string[];
       sessions?: string[];
+      runs?: string[];
       types?: string[];
     };
   };
@@ -32,7 +33,8 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
   index,
   onChipClick,
 }) => {
-  const { modalities, tasks, sessions, types } = parsedJson.value;
+  const { modalities, tasks, sessions, runs, types } = parsedJson.value;
+  const runCount = Array.isArray(runs) ? runs.length : 0;
   const subjectLink = `${RoutesEnum.DATABASES}/${dbname}/${dsname}`;
   const formattedSubj = /^sub-/i.test(subj) ? subj : `sub-${String(subj)}`;
 
@@ -227,6 +229,11 @@ const SubjectCard: React.FC<SubjectCardProps> = ({
             <Typography variant="body2" mt={1}>
               <strong>Sessions:</strong>{" "}
               {sessions?.length === 0 ? 1 : sessions?.length}
+            </Typography>
+          </Stack>
+          <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+            <Typography variant="body2" mt={1}>
+              <strong>Runs:</strong> {runCount}
             </Typography>
           </Stack>
         </Stack>

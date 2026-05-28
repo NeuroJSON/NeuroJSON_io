@@ -7,6 +7,7 @@ import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import HomeIcon from "@mui/icons-material/Home";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import {
   Box,
   Typography,
@@ -17,6 +18,9 @@ import {
   Collapse,
   Tooltip,
   IconButton,
+  Menu,
+  MenuItem,
+  Snackbar,
 } from "@mui/material";
 import DatasetActions from "components/DatasetDetailPage/DatasetAction";
 import FileTree from "components/DatasetDetailPage/FileTree/FileTree";
@@ -267,8 +271,23 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   const [externalLinks, setExternalLinks] = useState<ExternalDataLink[]>([]);
   const [internalLinks, setInternalLinks] = useState<InternalDataLink[]>([]);
   const [isInternalExpanded, setIsInternalExpanded] = useState(true);
-  const [downloadScript, setDownloadScript] = useState<string>("");
+  // Three script formats generated client-side: bash (Mac/Linux), batch
+  // (Windows), and a plain URL list. Same files in all three; only the
+  // wrapper syntax differs.
+  const [downloadScripts, setDownloadScripts] = useState<{
+    sh: string;
+    bat: string;
+    txt: string;
+  }>({ sh: "", bat: "", txt: "" });
   const [downloadScriptSize, setDownloadScriptSize] = useState<number>(0);
+  // Dropdown state for the download format menu.
+  const [downloadMenuEl, setDownloadMenuEl] = useState<HTMLElement | null>(
+    null
+  );
+  // Post-download instruction snackbar. Stays open until user dismisses.
+  const [downloadHint, setDownloadHint] = useState<
+    "sh" | "bat" | "txt" | null
+  >(null);
   const [totalFileSize, setTotalFileSize] = useState<number>(0);
   const [previewIsInternal, setPreviewIsInternal] = useState(false);
   const [isExternalExpanded, setIsExternalExpanded] = useState(true);
@@ -577,31 +596,62 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       //   });
       //   setJsonSize(blob.size);
 
-      //  Construct download script dynamically
-      let script = `curl -L --create-dirs "https://neurojson.io:7777/${dbName}/${docId}" -o "${docId}.json"\n`;
+      //  Construct download scripts (three formats) dynamically — everything
+      //  lands in a ./<docId>/ folder next to where the user runs the script.
+      //  JSON metadata and data files stay together (was split between cwd
+      //  and ~/.neurojson/io/... previously, hard to find).
+      const docUrl = `https://neurojson.io:7777/${dbName}/${docId}`;
+      type DlItem = { url: string; filename: string };
+      const items: DlItem[] = [
+        { url: docUrl, filename: `${docId}.json` },
+        ...links.map((link) => {
+          const match = link.url.match(/file=([^&]+)/);
+          const filename = match
+            ? (() => {
+                try {
+                  return decodeURIComponent(match[1]);
+                } catch {
+                  return match[1];
+                }
+              })()
+            : `file-${link.index}`;
+          return { url: link.url, filename };
+        }),
+      ];
 
-      links.forEach((link) => {
-        const url = link.url;
-        const match = url.match(/file=([^&]+)/);
+      // Bash script (Mac/Linux)
+      const sh =
+        `#!/bin/bash\n` +
+        `# Downloads ${docId} from ${dbName}\n` +
+        `# Usage: bash ${docId}.sh\n` +
+        `set -e\n` +
+        `mkdir -p "${docId}"\n` +
+        `cd "${docId}" || exit 1\n` +
+        items
+          .map((it) => `curl -L -C - -o "${it.filename}" "${it.url}"`)
+          .join("\n") +
+        `\necho "Done. Files saved to $(pwd)"\n`;
 
-        const filename = match
-          ? (() => {
-              try {
-                return decodeURIComponent(match[1]);
-              } catch {
-                return match[1]; // fallback if decode fails
-              }
-            })()
-          : `file-${link.index}`;
+      // Batch script (Windows) — curl ships with Windows 10+. CRLF endings.
+      const bat =
+        `@echo off\r\n` +
+        `REM Downloads ${docId} from ${dbName}\r\n` +
+        `REM Usage: double-click or run ${docId}.bat\r\n` +
+        `if not exist "${docId}" mkdir "${docId}"\r\n` +
+        `cd /d "${docId}"\r\n` +
+        items
+          .map((it) => `curl -L -C - -o "${it.filename}" "${it.url}"`)
+          .join("\r\n") +
+        `\r\necho Done. Files saved to %cd%\r\n` +
+        `pause\r\n`;
 
-        const outputPath = `$HOME/.neurojson/io/${dbName}/${docId}/${filename}`;
+      // Plain URL list — for advanced users with wget.
+      const txt = items.map((it) => it.url).join("\n") + "\n";
 
-        script += `curl -L --create-dirs "${url}" -o "${outputPath}"\n`;
-      });
-      setDownloadScript(script);
-      // Calculate and set script size
-      const scriptBlob = new Blob([script], { type: "text/plain" });
-      setDownloadScriptSize(scriptBlob.size);
+      setDownloadScripts({ sh, bat, txt });
+      // Size shown on the button is the .sh script size (representative).
+      const shBlob = new Blob([sh], { type: "text/plain" });
+      setDownloadScriptSize(shBlob.size);
     }
   }, [datasetDocument, docId]);
 
@@ -627,14 +677,25 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const handleDownloadScript = () => {
-    const blob = new Blob([downloadScript], { type: "text/plain" });
+  // Trigger download of the selected script format. Programmatic anchor
+  // click triggers the browser's normal download flow without navigating.
+  const handleDownloadScript = (format: "sh" | "bat" | "txt") => {
+    const content = downloadScripts[format];
+    if (!content) return;
+    const mime =
+      format === "sh" ? "application/x-sh" : "text/plain";
+    const filename =
+      format === "txt" ? `${docId}_manifest.txt` : `${docId}.${format}`;
+    const blob = new Blob([content], { type: `${mime}; charset=utf-8` });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `${docId}.sh`;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    setDownloadMenuEl(null);
+    setDownloadHint(format);
   };
 
   const handlePreview = (
@@ -1118,20 +1179,35 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             <Button
               variant="contained"
               startIcon={<DescriptionIcon />}
-              onClick={handleDownloadScript}
+              endIcon={<KeyboardArrowDownIcon />}
+              onClick={(e) => setDownloadMenuEl(e.currentTarget)}
               sx={{
                 backgroundColor: Colors.purple,
                 color: Colors.lightGray,
                 "&:hover": { backgroundColor: Colors.secondaryPurple },
               }}
             >
-              {/* Script to Download All Files ({downloadScript.length} Bytes) */}
               Script to Download All Files ({formatSize(downloadScriptSize)})
               {externalLinks.length > 0 &&
                 ` (links: ${externalLinks.length}, total: ${formatSize(
                   totalFileSize
                 )})`}
             </Button>
+            <Menu
+              anchorEl={downloadMenuEl}
+              open={Boolean(downloadMenuEl)}
+              onClose={() => setDownloadMenuEl(null)}
+            >
+              <MenuItem onClick={() => handleDownloadScript("sh")}>
+                For Mac / Linux (.sh)
+              </MenuItem>
+              <MenuItem onClick={() => handleDownloadScript("bat")}>
+                For Windows (.bat)
+              </MenuItem>
+              <MenuItem onClick={() => handleDownloadScript("txt")}>
+                URL list (.txt, advanced)
+              </MenuItem>
+            </Menu>
           </Box>
         </Box>
 
@@ -1658,6 +1734,82 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           key={`${previewIndex}-${previewOpen}`} // react will destroy the existing component and create a new one for mount
         />
       </Box>
+
+      {/* Post-download instructions. No auto-hide so users can read at
+       *  their own pace; dismiss with the ✕ when finished. */}
+      <Snackbar
+        open={Boolean(downloadHint)}
+        onClose={() => setDownloadHint(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="success"
+          onClose={() => setDownloadHint(null)}
+          sx={{ maxWidth: 520 }}
+        >
+          {downloadHint === "sh" && (
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Downloaded the Mac / Linux script
+              </Typography>
+              <Typography variant="body2">
+                To fetch your data files:
+              </Typography>
+              <Box component="ol" sx={{ pl: 2.5, mt: 0.5, mb: 0 }}>
+                <li>Open Terminal</li>
+                <li>Go to the folder where the script was saved</li>
+                <li>
+                  Run:{" "}
+                  <Box
+                    component="code"
+                    sx={{
+                      fontFamily: "monospace",
+                      backgroundColor: "rgba(0,0,0,0.06)",
+                      px: 0.5,
+                      borderRadius: 0.5,
+                    }}
+                  >
+                    bash &lt;script-name&gt;.sh
+                  </Box>
+                </li>
+              </Box>
+            </Box>
+          )}
+          {downloadHint === "bat" && (
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Downloaded the Windows script
+              </Typography>
+              <Typography variant="body2">
+                Open the folder where the script was saved and{" "}
+                <strong>double-click the .bat file</strong>. A command
+                window opens and the files download next to it.
+              </Typography>
+            </Box>
+          )}
+          {downloadHint === "txt" && (
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Downloaded the URL list
+              </Typography>
+              <Typography variant="body2">
+                In Terminal (Mac/Linux) or PowerShell (Windows), run:{" "}
+                <Box
+                  component="code"
+                  sx={{
+                    fontFamily: "monospace",
+                    backgroundColor: "rgba(0,0,0,0.06)",
+                    px: 0.5,
+                    borderRadius: 0.5,
+                  }}
+                >
+                  wget -i &lt;file-name&gt;.txt
+                </Box>
+              </Typography>
+            </Box>
+          )}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

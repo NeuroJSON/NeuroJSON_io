@@ -1,9 +1,36 @@
-import { Typography, Card, CardContent, Stack, Chip } from "@mui/material";
+import DownloadIcon from "@mui/icons-material/Download";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import {
+  Typography,
+  Card,
+  CardContent,
+  Stack,
+  Chip,
+  Button,
+  Link as MuiLink,
+  Menu,
+  MenuItem,
+  Box,
+  Snackbar,
+  Alert,
+} from "@mui/material";
+import { baseURL } from "services/instance";
 import { Colors } from "design/theme";
 import React from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import RoutesEnum from "types/routes.enum";
+
+interface MatchingFile {
+  key?: any;
+  value?: {
+    file?: string;
+    url?: string;
+    path?: string;
+    suffix?: string;
+    ref?: string;
+  };
+}
 
 interface DatasetCardProps {
   dbname: string;
@@ -26,6 +53,9 @@ interface DatasetCardProps {
   index: number;
   onChipClick: (key: string, value: string) => void;
   keyword?: string; // for keyword highlight
+  matchingFiles?: MatchingFile[]; // sample of iolinks rows matching file_type
+  matchingFilesTotal?: number; // total count across all matches
+  fileTypes?: string[]; // the active file_type filter, used to build manifest URL
 }
 
 /** ---------- utility helpers ---------- **/
@@ -35,11 +65,21 @@ const normalize = (s: string) =>
     ?.replace(/[\u201C\u201D\u2033]/g, '"') ?? // curly → straight
   "";
 
+// Multi-word keyword support: backend tsquery treats "head brain" as AND of
+// independent tokens. Highlighting should match the same logic — split on
+// whitespace and treat each word independently.
+const splitKeyword = (kw?: string): string[] => {
+  if (!kw) return [];
+  return normalize(kw).trim().split(/\s+/).filter(Boolean);
+};
+
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const containsKeyword = (text?: string, kw?: string) => {
   if (!text || !kw) return false;
   const t = normalize(text).toLowerCase();
-  const k = normalize(kw).toLowerCase();
-  return t.includes(k);
+  const words = splitKeyword(kw.toLowerCase());
+  return words.some((w) => t.includes(w));
 };
 
 /** Find a short snippet in secondary fields if not already visible */
@@ -62,24 +102,41 @@ function findMatchSnippet(
     ["ReferencesAndLinks", (v) => v?.info?.ReferencesAndLinks],
   ];
 
-  const k = normalize(kw).toLowerCase();
+  const words = splitKeyword(kw.toLowerCase());
+  if (words.length === 0) return null;
 
   for (const [label, getter] of CANDIDATE_FIELDS) {
     const raw = getter(v); // v = parsedJson.value
     if (!raw) continue;
     const text = normalize(String(raw));
-    const i = text.toLowerCase().indexOf(k); // k is the lowercase version of keyword
-    if (i >= 0) {
-      const start = Math.max(0, i - 40);
-      const end = Math.min(text.length, i + k.length + 40);
-      const before = text.slice(start, i);
-      const hit = text.slice(i, i + k.length);
-      const after = text.slice(i + k.length, end);
-      const html = `${
-        start > 0 ? "…" : ""
-      }${before}<mark>${hit}</mark>${after}${end < text.length ? "…" : ""}`;
-      return { label, html };
+    const lower = text.toLowerCase();
+
+    // Find the earliest occurrence of ANY matching word — that's the snippet anchor.
+    let anchor = -1;
+    let anchorLen = 0;
+    for (const w of words) {
+      const i = lower.indexOf(w);
+      if (i >= 0 && (anchor < 0 || i < anchor)) {
+        anchor = i;
+        anchorLen = w.length;
+      }
     }
+    if (anchor < 0) continue;
+
+    const start = Math.max(0, anchor - 40);
+    const end = Math.min(text.length, anchor + anchorLen + 40);
+    const slice = text.slice(start, end);
+
+    // Highlight every matching word inside the snippet, not just the first.
+    const regex = new RegExp(
+      `(${words.map(escapeRegex).join("|")})`,
+      "gi"
+    );
+    const highlighted = slice.replace(regex, "<mark>$1</mark>");
+    const html = `${start > 0 ? "…" : ""}${highlighted}${
+      end < text.length ? "…" : ""
+    }`;
+    return { label, html };
   }
   return null;
 }
@@ -92,9 +149,68 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
   index,
   onChipClick,
   keyword,
+  matchingFiles,
+  matchingFilesTotal,
+  fileTypes,
 }) => {
   const { name, readme, modality, subj, info } = parsedJson.value;
   const datasetLink = `${RoutesEnum.DATABASES}/${dbname}/${dsname}`;
+
+  // Build manifest URL for any of the three formats. Backend serves
+  // text/plain for .txt, application/x-sh for .sh, text/plain for .bat —
+  // each with a Content-Disposition header so the browser saves them.
+  const buildManifestUrl = (format: "txt" | "sh" | "bat") => {
+    if (!fileTypes || fileTypes.length === 0) return null;
+    const ext = fileTypes.map((e) => encodeURIComponent(e)).join(",");
+    return `${baseURL}/dbs/${encodeURIComponent(
+      dbname
+    )}/${encodeURIComponent(
+      dsname
+    )}/files/manifest?ext=${ext}&format=${format}`;
+  };
+
+  const hasManifest = Array.isArray(fileTypes) && fileTypes.length > 0;
+
+  // Dropdown state for the download format menu.
+  const [downloadMenuEl, setDownloadMenuEl] = useState<HTMLElement | null>(
+    null
+  );
+  // Post-download instruction snackbar. Stays open until user dismisses it
+  // (no autoHideDuration) so researchers have time to read multi-step
+  // instructions.
+  const [downloadHint, setDownloadHint] = useState<
+    "sh" | "bat" | "txt" | null
+  >(null);
+  const handleDownload = (format: "txt" | "sh" | "bat") => {
+    const url = buildManifestUrl(format);
+    setDownloadMenuEl(null);
+    if (!url) return;
+    // Programmatic anchor click triggers the browser's normal download flow
+    // without leaving the current page (window.location would navigate away).
+    const a = document.createElement("a");
+    a.href = url;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setDownloadHint(format);
+  };
+
+  // Extract a short "sub-XXX" tag from a BIDS path like
+  // "$.sub-019.ses-1.nirs.sub-019_ses-1_task-MA_run-01_nirs.snirf.SNIRFData..."
+  const subjectFromPath = (p?: string): string => {
+    if (!p) return "";
+    const m = p.match(/sub-[^.]+/);
+    return m ? m[0] : "";
+  };
+
+  // File size stored in key[1] of each iolinks row (bytes). Format for humans.
+  const formatBytes = (n?: number): string => {
+    if (typeof n !== "number" || !Number.isFinite(n) || n < 0) return "";
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
+    return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  };
 
   // prepare DOI URL
   const rawDOI = info?.DatasetDOI?.replace(/^doi:/, "");
@@ -122,19 +238,25 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
     [parsedJson.value, keyword, visibleHasKeyword]
   );
 
-  // keyword highlight functional component (only for visible fields)
+  // keyword highlight functional component (only for visible fields).
+  // Splits the keyword on whitespace and highlights each word independently
+  // so "head brain" highlights both words wherever they appear.
   const highlightKeyword = (text: string, keyword?: string) => {
-    if (!keyword || !text?.toLowerCase().includes(keyword.toLowerCase())) {
-      return text;
-    }
-
-    const regex = new RegExp(`(${keyword})`, "gi"); // for case-insensitive and global
+    const words = splitKeyword(keyword);
+    if (words.length === 0 || !text) return text;
+    const lowerWordSet = new Set(words.map((w) => w.toLowerCase()));
+    const regex = new RegExp(
+      `(${words.map(escapeRegex).join("|")})`,
+      "gi"
+    );
+    if (!regex.test(text)) return text;
+    // Reset lastIndex because test() advances on /g regexes; safer to use split.
     const parts = text.split(regex);
 
     return (
       <>
         {parts.map((part, i) =>
-          part.toLowerCase() === keyword.toLowerCase() ? (
+          lowerWordSet.has(part.toLowerCase()) ? (
             <mark
               key={i}
               style={{ backgroundColor: "yellow", fontWeight: 600 }}
@@ -305,8 +427,189 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
               </Stack>
             )}
           </Stack>
+
+          {/* Matching files section — only shown when file_type filter is active */}
+          {Array.isArray(matchingFiles) && matchingFiles.length > 0 && (
+            <Stack
+              spacing={1}
+              sx={{
+                mt: 2,
+                pt: 1.5,
+                borderTop: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                flexWrap="wrap"
+                gap={1}
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                  Matching files
+                  {typeof matchingFilesTotal === "number" &&
+                    ` (${
+                      matchingFiles.length < matchingFilesTotal
+                        ? `${matchingFiles.length} of ${matchingFilesTotal}`
+                        : matchingFilesTotal
+                    })`}
+                </Typography>
+                {hasManifest && (
+                  <>
+                    <Button
+                      onClick={(e) => setDownloadMenuEl(e.currentTarget)}
+                      size="small"
+                      variant="outlined"
+                      startIcon={<DownloadIcon />}
+                      endIcon={<KeyboardArrowDownIcon />}
+                      sx={{
+                        color: Colors.purple,
+                        borderColor: Colors.purple,
+                        textTransform: "none",
+                      }}
+                    >
+                      Download all
+                      {typeof matchingFilesTotal === "number" &&
+                        ` (${matchingFilesTotal})`}
+                    </Button>
+                    <Menu
+                      anchorEl={downloadMenuEl}
+                      open={Boolean(downloadMenuEl)}
+                      onClose={() => setDownloadMenuEl(null)}
+                    >
+                      <MenuItem onClick={() => handleDownload("sh")}>
+                        For Mac / Linux (.sh)
+                      </MenuItem>
+                      <MenuItem onClick={() => handleDownload("bat")}>
+                        For Windows (.bat)
+                      </MenuItem>
+                      <MenuItem onClick={() => handleDownload("txt")}>
+                        URL list (.txt, advanced)
+                      </MenuItem>
+                    </Menu>
+                  </>
+                )}
+              </Stack>
+              <Stack spacing={0.5} component="ul" sx={{ pl: 2, m: 0 }}>
+                {matchingFiles.slice(0, 10).map((f, i) => {
+                  const v = f.value || {};
+                  const subjTag = subjectFromPath(v.path);
+                  const sizeBytes =
+                    Array.isArray(f.key) && typeof f.key[1] === "number"
+                      ? f.key[1]
+                      : undefined;
+                  const sizeTag = formatBytes(sizeBytes);
+                  const meta = [subjTag, sizeTag].filter(Boolean).join(" · ");
+                  return (
+                    <li key={i}>
+                      <MuiLink
+                        href={v.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        underline="hover"
+                        sx={{
+                          color: Colors.purple,
+                          fontFamily: "monospace",
+                          fontSize: "0.8rem",
+                          wordBreak: "break-all",
+                        }}
+                      >
+                        {v.file || v.url}
+                      </MuiLink>
+                      {meta && (
+                        <Typography
+                          component="span"
+                          variant="caption"
+                          sx={{ ml: 1, color: "text.secondary" }}
+                        >
+                          ({meta})
+                        </Typography>
+                      )}
+                    </li>
+                  );
+                })}
+              </Stack>
+            </Stack>
+          )}
         </Stack>
       </CardContent>
+
+      {/* Post-download instructions. No auto-hide so users can read at their
+       *  own pace; dismiss with the ✕ when finished. */}
+      <Snackbar
+        open={Boolean(downloadHint)}
+        onClose={() => setDownloadHint(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="success"
+          onClose={() => setDownloadHint(null)}
+          sx={{ maxWidth: 520 }}
+        >
+          {downloadHint === "sh" && (
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Downloaded the Mac / Linux script
+              </Typography>
+              <Typography variant="body2">
+                To fetch your data files:
+              </Typography>
+              <Box component="ol" sx={{ pl: 2.5, mt: 0.5, mb: 0 }}>
+                <li>Open Terminal</li>
+                <li>Go to the folder where the script was saved</li>
+                <li>
+                  Run:{" "}
+                  <Box
+                    component="code"
+                    sx={{
+                      fontFamily: "monospace",
+                      backgroundColor: "rgba(0,0,0,0.06)",
+                      px: 0.5,
+                      borderRadius: 0.5,
+                    }}
+                  >
+                    bash &lt;script-name&gt;.sh
+                  </Box>
+                </li>
+              </Box>
+            </Box>
+          )}
+          {downloadHint === "bat" && (
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Downloaded the Windows script
+              </Typography>
+              <Typography variant="body2">
+                Open the folder where the script was saved and{" "}
+                <strong>double-click the .bat file</strong>. A command window
+                opens and the files download next to it.
+              </Typography>
+            </Box>
+          )}
+          {downloadHint === "txt" && (
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                Downloaded the URL list
+              </Typography>
+              <Typography variant="body2">
+                In Terminal (Mac/Linux) or PowerShell (Windows), run:{" "}
+                <Box
+                  component="code"
+                  sx={{
+                    fontFamily: "monospace",
+                    backgroundColor: "rgba(0,0,0,0.06)",
+                    px: 0.5,
+                    borderRadius: 0.5,
+                  }}
+                >
+                  wget -i &lt;file-name&gt;.txt
+                </Box>
+              </Typography>
+            </Box>
+          )}
+        </Alert>
+      </Snackbar>
     </Card>
   );
 };
