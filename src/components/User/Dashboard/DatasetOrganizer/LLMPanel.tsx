@@ -73,7 +73,18 @@ const llmProviders: Record<string, LLMProvider> = {
       { id: "qwen2.5-coder:7b", name: "Qwen 2.5 Coder 7B" },
     ],
     noApiKey: true,
-    // customUrl: true,
+  },
+  "local-ollama": {
+    name: "Ollama (Your Local Machine)",
+    baseUrl: "http://localhost:11434/v1/chat/completions",
+    models: [
+      { id: "llama3.2:latest", name: "Llama 3.2" },
+      { id: "llama3.1:latest", name: "Llama 3.1" },
+      { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder" },
+      { id: "mistral:latest", name: "Mistral" },
+      { id: "gemma3:latest", name: "Gemma 3" },
+    ],
+    noApiKey: true,
   },
   groq: {
     name: "Groq (Free API Key - 14,400 req/day)",
@@ -129,8 +140,9 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   onClose,
   isPrivateMode = false,
 }) => {
-  const [provider, setProvider] = useState<string>(isPrivateMode ? "groq" : "ollama");
-  const [model, setModel] = useState<string>(isPrivateMode ? "llama-3.3-70b-versatile" : "qwen3-coder-next:latest");
+  const [provider, setProvider] = useState<string>(isPrivateMode ? "local-ollama" : "ollama");
+  const [model, setModel] = useState<string>(isPrivateMode ? "llama3.2:latest" : "qwen3-coder-next:latest");
+  const [localOllamaUrl, setLocalOllamaUrl] = useState<string>("http://localhost:11434");
   // const [ollamaUrl, setOllamaUrl] = useState<string>(
   //   "http://jin.neu.edu:11434"
   // );
@@ -160,7 +172,9 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     provider,
     model,
     apiKey,
-    baseUrl: currentProvider.baseUrl,
+    baseUrl: provider === "local-ollama"
+      ? `${localOllamaUrl}/v1/chat/completions`
+      : currentProvider.baseUrl,
     isAnthropic: currentProvider.isAnthropic,
     noApiKey: currentProvider.noApiKey,
   });
@@ -1421,7 +1435,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               }}
             >
               {Object.entries(llmProviders)
-                .filter(([key]) => !(isPrivateMode && key === "ollama"))
+                .filter(([key]) => isPrivateMode ? key !== "ollama" : key !== "local-ollama")
                 .map(([key, p]) => (
                   <MenuItem key={key} value={key}>
                     {p.name}
@@ -1445,17 +1459,17 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             </Select>
           </FormControl>
 
-          {/* Ollama Server URL field */}
-          {/* {provider === "ollama" && (
+          {provider === "local-ollama" && (
             <TextField
               fullWidth
-              label="Ollama Server URL"
-              value={ollamaUrl}
-              onChange={(e) => setOllamaUrl(e.target.value)}
+              label="Ollama URL"
+              value={localOllamaUrl}
+              onChange={(e) => setLocalOllamaUrl(e.target.value)}
               placeholder="http://localhost:11434"
+              helperText="Default port is 11434. Change if your Ollama runs on a different port."
               sx={{ mb: 2 }}
             />
-          )} */}
+          )}
           {/* Base Directory Path field (shows for ALL providers) */}
           <TextField
             fullWidth
