@@ -75,14 +75,19 @@ const llmProviders: Record<string, LLMProvider> = {
     noApiKey: true,
   },
   "local-ollama": {
-    name: "Ollama (Your Local Machine)",
+    name: "Local AI (Ollama / LM Studio / Jan)",
     baseUrl: "http://localhost:11434/v1/chat/completions",
     models: [
-      { id: "llama3.2:latest", name: "Llama 3.2" },
-      { id: "llama3.1:latest", name: "Llama 3.1" },
-      { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder" },
-      { id: "mistral:latest", name: "Mistral" },
-      { id: "gemma3:latest", name: "Gemma 3" },
+      { id: "llama3.2:latest", name: "Llama 3.2 (Ollama)" },
+      { id: "llama3.1:latest", name: "Llama 3.1 (Ollama)" },
+      { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder (Ollama)" },
+      { id: "mistral:latest", name: "Mistral (Ollama)" },
+      { id: "gemma3:latest", name: "Gemma 3 (Ollama)" },
+      { id: "llama-3.2-3b-instruct", name: "Llama 3.2 3B (LM Studio)" },
+      { id: "llama-3.1-8b-instruct", name: "Llama 3.1 8B (LM Studio)" },
+      { id: "mistral-7b-instruct-v0.3", name: "Mistral 7B (LM Studio)" },
+      { id: "llama3.2:3b", name: "Llama 3.2 3B (Jan)" },
+      { id: "mistral:7b", name: "Mistral 7B (Jan)" },
     ],
     noApiKey: true,
   },
@@ -1462,11 +1467,30 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           {provider === "local-ollama" && (
             <TextField
               fullWidth
+              label="Custom Model Name (optional)"
+              placeholder="e.g. llama3:8b, phi3:mini, qwen2.5:7b"
+              helperText="Overrides the model selected above."
+              sx={{ mb: 2 }}
+              onChange={(e) => {
+                if (e.target.value.trim()) setModel(e.target.value.trim());
+              }}
+            />
+          )}
+
+          {isPrivateMode && provider !== "local-ollama" && (
+            <Alert severity="warning" sx={{ mb: 2, fontSize: "0.8rem" }}>
+              Your file information will be sent to <strong>{currentProvider.name}</strong>, an external AI service. Switch to <strong>Local AI (Ollama / LM Studio / Jan)</strong> to keep everything local.
+            </Alert>
+          )}
+
+          {provider === "local-ollama" && (
+            <TextField
+              fullWidth
               label="Ollama URL"
               value={localOllamaUrl}
               onChange={(e) => setLocalOllamaUrl(e.target.value)}
               placeholder="http://localhost:11434"
-              helperText="Default port is 11434. Change if your Ollama runs on a different port."
+              helperText="Ollama: port 11434 · LM Studio: port 1234 · Jan: port 1337"
               sx={{ mb: 2 }}
             />
           )}
