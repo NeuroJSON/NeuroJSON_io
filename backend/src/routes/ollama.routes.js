@@ -4,6 +4,6 @@ const { proxyChat, getTags } = require("../controllers/ollama.controller");
 const { requireAuth } = require("../middleware/auth.middleware");
 
 router.post("/chat", requireAuth, proxyChat);
-router.get("/tags", requireAuth, getTags);
+// router.get("/tags", requireAuth, getTags);
 
 module.exports = router;

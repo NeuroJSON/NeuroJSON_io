@@ -62,15 +62,15 @@ interface LLMProvider {
 
 const llmProviders: Record<string, LLMProvider> = {
   ollama: {
-    name: "Ollama (Local Server)",
-    // baseUrl: "http://localhost:11434/v1/chat/completions",
+    name: "Ollama (NeuroJSON Server)",
     baseUrl: "",
     models: [
-      { id: "qwen3-coder-next:latest", name: "Qwen 3 Coder Next" },
-      { id: "qwen3-coder-careful:latest", name: "Qwen 3 Coder Careful" },
-      { id: "qwen3.5:9b", name: "Qwen 3.5 9B" },
-      { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder (7.6B)" },
-      { id: "qwen2.5-coder:7b", name: "Qwen 2.5 Coder 7B" },
+      { id: "qwen3.6:27b", name: "Qwen 3.6 27B" },
+      // { id: "qwen3-coder-next:latest", name: "Qwen 3 Coder Next" },
+      // { id: "qwen3-coder-careful:latest", name: "Qwen 3 Coder Careful" },
+      // { id: "qwen3.5:9b", name: "Qwen 3.5 9B" },
+      // { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder (7.6B)" },
+      // { id: "qwen2.5-coder:7b", name: "Qwen 2.5 Coder 7B" },
     ],
     noApiKey: true,
   },
@@ -1449,6 +1449,13 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             </Select>
           </FormControl>
 
+          {provider === "ollama" && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: -1, mb: 2, display: "block" }}>
+              Using qwen3.6:27b on NeuroJSON server
+            </Typography>
+          )}
+
+          {provider !== "ollama" && (
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Model</InputLabel>
             <Select
@@ -1463,6 +1470,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               ))}
             </Select>
           </FormControl>
+          )}
 
           {provider === "local-ollama" && (
             <TextField

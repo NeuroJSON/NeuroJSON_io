@@ -12,6 +12,6 @@ const dailyLimit = rateLimit({
 });
 
 router.post("/chat", dailyLimit, proxyChat);
-router.get("/tags", dailyLimit, getTags);
+// router.get("/tags", dailyLimit, getTags);
 
 module.exports = router;
