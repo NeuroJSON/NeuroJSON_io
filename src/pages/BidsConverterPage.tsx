@@ -353,9 +353,12 @@ const BidsConverterPage: React.FC = () => {
       {/* Welcome dialog — shown on first load before user starts working */}
       <Dialog open={!modeChosen} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ textAlign: "center", pt: 4 }}>
-          How would you like to use BIDS Converter?
+          How would you like to use AutoBIDSify?
         </DialogTitle>
         <DialogContent>
+          <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 2 }}>
+            An LLM-powered tool for automatically converting neuroimaging datasets into BIDS-compliant format.
+          </Typography>
           <Box
             sx={{
               display: "flex",

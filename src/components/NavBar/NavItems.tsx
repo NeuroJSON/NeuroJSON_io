@@ -35,10 +35,12 @@ const NavItems: React.FC = () => {
   const [signupOpen, setSignupOpen] = useState(false);
 
   // Resources dropdown state
-  const [resourcesAnchor, setResourcesAnchor] = useState<null | HTMLElement>(
-    null
-  );
+  const [resourcesAnchor, setResourcesAnchor] = useState<null | HTMLElement>(null);
   const resourcesOpen = Boolean(resourcesAnchor);
+
+  // AutoBIDSify dropdown state
+  const [autobidsifyAnchor, setAutobidsifyAnchor] = useState<null | HTMLElement>(null);
+  const autobidsifyOpen = Boolean(autobidsifyAnchor);
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -51,6 +53,14 @@ const NavItems: React.FC = () => {
 
   const handleResourcesClose = () => {
     setResourcesAnchor(null);
+  };
+
+  const handleAutobidsifyClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAutobidsifyAnchor(event.currentTarget);
+  };
+
+  const handleAutobidsifyClose = () => {
+    setAutobidsifyAnchor(null);
   };
 
   const resourcesMenu = [
@@ -319,7 +329,6 @@ const NavItems: React.FC = () => {
             { text: "Wiki", url: "https://neurojson.org/Wiki" },
             { text: "Search", url: RoutesEnum.SEARCH },
             { text: "Databases", url: RoutesEnum.DATABASES },
-            { text: "BIDS Converter", url: RoutesEnum.BIDS_CONVERTER },
           ].map(({ text, url }) => (
             <Grid item key={text}>
               {url?.startsWith("https") ? (
@@ -378,6 +387,38 @@ const NavItems: React.FC = () => {
               )}
             </Grid>
           ))}
+
+          {/* AutoBIDSify Dropdown */}
+          <Grid item>
+            <Box
+              onClick={handleAutobidsifyClick}
+              sx={{ display: "flex", alignItems: "center", gap: 0.5, cursor: "pointer" }}
+            >
+              <Typography
+                align="center"
+                fontWeight={600}
+                lineHeight={"1.5rem"}
+                letterSpacing={"0.05rem"}
+                sx={{
+                  fontSize: { xs: "0.8rem", sm: "1rem" },
+                  color: Colors.white,
+                  transition: "color 0.3s ease, transform 0.3s ease",
+                  textTransform: "uppercase",
+                  "&:hover": { transform: "scale(1.2)" },
+                }}
+              >
+                AutoBIDSify
+              </Typography>
+              <KeyboardArrowDownIcon
+                sx={{
+                  color: Colors.white,
+                  fontSize: "1.2rem",
+                  transition: "transform 0.3s ease",
+                  transform: autobidsifyOpen ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              />
+            </Box>
+          </Grid>
 
           {/* Resources Dropdown */}
           <Grid item>
@@ -512,6 +553,49 @@ const NavItems: React.FC = () => {
           </Box>
         ))}
       </Menu>
+
+      {/* AutoBIDSify Dropdown Menu */}
+      <Menu
+        anchorEl={autobidsifyAnchor}
+        open={autobidsifyOpen}
+        onClose={handleAutobidsifyClose}
+        PaperProps={{
+          sx: {
+            bgcolor: Colors.darkPurple,
+            color: Colors.white,
+            minWidth: "220px",
+            mt: 1,
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => {
+            window.open("https://github.com/COTILab/autobidsify", "_blank");
+            handleAutobidsifyClose();
+          }}
+          sx={{
+            fontSize: "0.9rem",
+            color: Colors.white,
+            "&:hover": { bgcolor: Colors.purpleGrey, color: Colors.darkPurple },
+          }}
+        >
+          AutoBIDSify (GitHub)
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate(RoutesEnum.BIDS_CONVERTER);
+            handleAutobidsifyClose();
+          }}
+          sx={{
+            fontSize: "0.9rem",
+            color: Colors.white,
+            "&:hover": { bgcolor: Colors.purpleGrey, color: Colors.darkPurple },
+          }}
+        >
+          AutoBIDSify Web
+        </MenuItem>
+      </Menu>
+
       <UserLogin
         open={loginOpen}
         onClose={() => setLoginOpen(false)}
