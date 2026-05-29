@@ -172,7 +172,7 @@ const BidsConverterPage: React.FC = () => {
           </Button>
           <Box>
             <Box display="flex" alignItems="center" gap={0.5}>
-              <Typography variant="h5">BIDS Converter</Typography>
+              <Typography variant="h5">AutoBIDSify</Typography>
               <Tooltip
                 title={
                   <Box>
@@ -214,7 +214,15 @@ const BidsConverterPage: React.FC = () => {
               </Tooltip>
             </Box>
             <Typography variant="body2" color="text.secondary">
-              Organize and rename your dataset files into BIDS format
+              An LLM-powered tool for automatically converting neuroimaging datasets into BIDS-compliant format.{" "}
+              <Typography
+                component="span"
+                variant="body2"
+                onClick={() => window.open("https://github.com/COTILab/autobidsify", "_blank")}
+                sx={{ color: Colors.purple, cursor: "pointer", textDecoration: "underline" }}
+              >
+                Learn more
+              </Typography>
             </Typography>
           </Box>
         </Box>
@@ -357,7 +365,15 @@ const BidsConverterPage: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 2 }}>
-            An LLM-powered tool for automatically converting neuroimaging datasets into BIDS-compliant format.
+            An LLM-powered tool for automatically converting neuroimaging datasets into BIDS-compliant format.{" "}
+            <Typography
+              component="span"
+              variant="body2"
+              onClick={() => window.open("https://github.com/COTILab/autobidsify", "_blank")}
+              sx={{ color: Colors.purple, cursor: "pointer", textDecoration: "underline" }}
+            >
+              Learn more
+            </Typography>
           </Typography>
           <Box
             sx={{

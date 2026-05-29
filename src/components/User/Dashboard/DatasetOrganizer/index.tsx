@@ -14,6 +14,8 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
+  Chip,
+  Tooltip,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
@@ -263,6 +265,55 @@ const DatasetOrganizer: React.FC = () => {
                 {currentProject.description}
               </Typography>
             )}
+            <Tooltip
+              title={
+                <Box>
+                  <Typography variant="body2">An LLM-powered tool for automatically converting neuroimaging datasets into BIDS-compliant format.</Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ color: Colors.purple, cursor: "pointer", mt: 0.5, textDecoration: "underline" }}
+                    onClick={() => window.open("https://github.com/COTILab/autobidsify", "_blank")}
+                  >
+                    Learn more
+                  </Typography>
+                </Box>
+              }
+              placement="bottom-start"
+              arrow
+              componentsProps={{
+                tooltip: {
+                  sx: {
+                    backgroundColor: "white",
+                    color: Colors.darkPurple,
+                    border: `1px solid ${Colors.lightGray}`,
+                    boxShadow: 3,
+                    fontSize: "0.875rem",
+                    p: 1.5,
+                    maxWidth: 320,
+                  },
+                },
+                arrow: {
+                  sx: {
+                    color: "white",
+                    "&::before": { border: `1px solid ${Colors.lightGray}` },
+                  },
+                },
+              }}
+            >
+              <Chip
+                label="Powered by AutoBIDSify"
+                size="small"
+                onClick={() => window.open("https://github.com/COTILab/autobidsify", "_blank")}
+                sx={{
+                  mt: 0.5,
+                  backgroundColor: Colors.purple,
+                  color: Colors.white,
+                  fontSize: "0.7rem",
+                  cursor: "pointer",
+                  "&:hover": { backgroundColor: Colors.secondaryPurple },
+                }}
+              />
+            </Tooltip>
           </Box>
         </Box>
 
