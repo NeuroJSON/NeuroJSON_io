@@ -34,6 +34,7 @@ var lastvolumedata = null;
 var lastvolumedim = [];
 var lastclim = 0;
 var uplotInstance = null;
+var uplotResizeObserver = null;
 var reqid = undefined;
 
 var canvas = null;
@@ -135,6 +136,10 @@ function destroyPreview() {
   lastvolumedata = null;
   texture = undefined;
 
+  if (uplotResizeObserver !== null) {
+    uplotResizeObserver.disconnect();
+    uplotResizeObserver = null;
+  }
   if (uplotInstance !== null) {
     uplotInstance.destroy();
     uplotInstance = null;
@@ -384,7 +389,7 @@ function dopreview(key, idx, isinternal, hastime) {
         // "Preview for " +
         // (isinternal ? intdata[idx][3] : window.extdata[idx][3]),
         "Data Preview",
-      width: 1100,
+      width: Math.max(300, $("#chartpanel").width() - 24),
       height: 400,
       series: [{}, {}],
       axes: [
@@ -506,6 +511,21 @@ function dopreview(key, idx, isinternal, hastime) {
       //   });
       // });
     }
+
+    if (uplotResizeObserver !== null) {
+      uplotResizeObserver.disconnect();
+    }
+    uplotResizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(() => {
+        if (uplotInstance) {
+          uplotInstance.setSize({
+            width: Math.max(300, $("#chartpanel").width() - 24),
+            height: 400,
+          });
+        }
+      });
+    });
+    uplotResizeObserver.observe(document.getElementById("chartpanel"));
 
     // for spinner
     // --- Signal React that 2D preview is ready ---
