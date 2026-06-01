@@ -6,14 +6,304 @@ import {
   getUserContextText,
 } from "./fileAnalyzers";
 import {
-  extractSubjectAnalysis,
+  analyzeFilenamesForSubjects,
   analyzeTokenStatistics,
 } from "./filenameTokenizer";
 import { FileItem } from "redux/projects/types/projects.interface";
 
-/**
- * Build structured file summary for LLM
- */
+// ============================================================================
+// FileStructureAnalyzer
+// Mirrors universal_core.py FileStructureAnalyzer
+// Works on allFiles: string[] (relative paths) from VFS
+// ============================================================================
+
+const analyzeDirectoryStructure = (allFiles: string[]): Record<string, any> => {
+  const depthCounter: Record<number, number> = {};
+  const uniqueDirs = new Set<string>();
+  const levelDirs: Record<number, Set<string>> = {};
+
+  for (const filepath of allFiles) {
+    const parts = filepath.split("/");
+    const depth = parts.length - 1;
+    depthCounter[depth] = (depthCounter[depth] || 0) + 1;
+
+    for (let level = 0; level < parts.length - 1; level++) {
+      uniqueDirs.add(parts[level]);
+      if (!levelDirs[level]) levelDirs[level] = new Set();
+      levelDirs[level].add(parts[level]);
+    }
+  }
+
+  // Infer structure template — mirrors _infer_structure_template()
+  const firstLevel = levelDirs[0] ? [...levelDirs[0]].slice(0, 10) : [];
+  const hasSubKeyword = firstLevel.some((d) => d.toLowerCase().includes("sub"));
+  const nLevels = Object.keys(levelDirs).length;
+
+  let template = "flat";
+  if (hasSubKeyword) {
+    if (nLevels === 1) template = "{subject}";
+    else if (nLevels === 2) template = "{subject}/{scantype}";
+    else if (nLevels === 3) template = "{subject}/{scantype}/{format}";
+    else template = "{subject}/nested";
+  } else if (nLevels > 0) {
+    template = `custom_${nLevels}_levels`;
+  }
+
+  return {
+    max_depth: Math.max(0, ...Object.keys(depthCounter).map(Number)),
+    depth_distribution: depthCounter,
+    unique_dir_names: [...uniqueDirs].sort().slice(0, 100),
+    dir_level_patterns: Object.fromEntries(
+      Object.entries(levelDirs).map(([k, v]) => [k, [...v].sort().slice(0, 20)])
+    ),
+    total_unique_dirs: uniqueDirs.size,
+    structure_template: template,
+  };
+};
+
+const detectSubjectIdentifiers = (
+  allFiles: string[],
+  userHint: number | null
+): Record<string, any> => {
+  const firstLevelDirs = new Set<string>();
+  for (const filepath of allFiles) {
+    const parts = filepath.split("/");
+    if (parts.length > 1) firstLevelDirs.add(parts[0]);
+  }
+
+  const candidates: any[] = [];
+  const totalFiles = allFiles.length;
+
+  // Pattern 1: Site_subID (e.g. Beijing_sub82352)
+  const p1Matches: Record<string, any> = {};
+  for (const dir of firstLevelDirs) {
+    const m = dir.match(/^([A-Za-z]+)_sub(\d+)$/i);
+    if (m) p1Matches[m[2]] = { site: m[1], original: dir };
+  }
+  if (Object.keys(p1Matches).length > 0) {
+    candidates.push({
+      type: "directory_pattern",
+      pattern_name: "site_sub_id",
+      pattern_display: "{site}_sub{id}",
+      extraction_regex: `([A-Za-z]+)_sub(\\d+)`,
+      subject_group: 2,
+      site_group: 1,
+      count: Object.keys(p1Matches).length,
+      sample_ids: Object.keys(p1Matches).sort().slice(0, 10),
+      metadata: { has_site: true },
+      avg_files_per_subject:
+        Object.keys(p1Matches).length > 0
+          ? totalFiles / Object.keys(p1Matches).length
+          : 0,
+    });
+  }
+
+  // Pattern 2: sub-ID or subID (BIDS standard)
+  const p2Matches = new Set<string>();
+  for (const dir of firstLevelDirs) {
+    const m = dir.match(/^sub-?(\w+)$/i);
+    if (m) p2Matches.add(m[1]);
+  }
+  if (p2Matches.size > 0) {
+    candidates.push({
+      type: "directory_pattern",
+      pattern_name: "bids_standard",
+      pattern_display: "sub-{id}",
+      extraction_regex: `sub-?(\\w+)`,
+      subject_group: 1,
+      site_group: null,
+      count: p2Matches.size,
+      sample_ids: [...p2Matches].sort().slice(0, 10),
+      metadata: { has_site: false },
+      avg_files_per_subject:
+        p2Matches.size > 0 ? totalFiles / p2Matches.size : 0,
+    });
+  }
+
+  // Pattern 3: Numeric directories (e.g. 001, 025)
+  const p3Matches = new Set<string>();
+  for (const dir of firstLevelDirs) {
+    if (/^\d{2,6}$/.test(dir)) p3Matches.add(dir);
+  }
+  if (p3Matches.size > 0) {
+    candidates.push({
+      type: "directory_pattern",
+      pattern_name: "numeric_only",
+      pattern_display: "{id}",
+      extraction_regex: `^(\\d+)$`,
+      subject_group: 1,
+      site_group: null,
+      count: p3Matches.size,
+      sample_ids: [...p3Matches].sort().slice(0, 10),
+      metadata: { numeric_only: true },
+      avg_files_per_subject:
+        p3Matches.size > 0 ? totalFiles / p3Matches.size : 0,
+    });
+  }
+
+  // Pattern 4: patient_ID or subject_ID in filenames
+  const p4Matches = new Set<string>();
+  for (const filepath of allFiles) {
+    const filename = filepath.split("/").pop()!;
+    const m = filename.match(/(?:patient|subject)[_-]?(\d+)/i);
+    if (m) p4Matches.add(m[1]);
+  }
+  if (p4Matches.size > 0) {
+    candidates.push({
+      type: "filename_pattern",
+      pattern_name: "patient_or_subject_id",
+      pattern_display: "{prefix}_{id}",
+      extraction_regex: `(?:patient|subject)[_-]?(\\d+)`,
+      subject_group: 1,
+      site_group: null,
+      count: p4Matches.size,
+      sample_ids: [...p4Matches].sort().slice(0, 10),
+      metadata: {},
+      avg_files_per_subject:
+        p4Matches.size > 0 ? totalFiles / p4Matches.size : 0,
+    });
+  }
+
+  // Pattern 5: Alphanumeric IDs (PD01, Control01, HC03)
+  const p5Matches = new Set<string>();
+  for (const dir of firstLevelDirs) {
+    if (/^[A-Za-z]+\d+$/.test(dir)) p5Matches.add(dir);
+  }
+  if (p5Matches.size > 0) {
+    candidates.push({
+      type: "directory_pattern",
+      pattern_name: "alphanum_id",
+      pattern_display: "{prefix}{id}",
+      extraction_regex: `^([A-Za-z]+)(\\d+)$`,
+      subject_group: 2,
+      site_group: null,
+      count: p5Matches.size,
+      sample_ids: [...p5Matches].sort().slice(0, 10),
+      metadata: {},
+      avg_files_per_subject:
+        p5Matches.size > 0 ? totalFiles / p5Matches.size : 0,
+    });
+  }
+
+  if (candidates.length === 0) {
+    return {
+      best_candidate: null,
+      confidence: "none",
+      candidates: [],
+      total_candidates_evaluated: 0,
+    };
+  }
+
+  // Score candidates — mirrors _score_identifier_candidate()
+  for (const c of candidates) {
+    let score = 0;
+    const count = c.count;
+
+    if (userHint) {
+      if (count === userHint) score += 50;
+      else if (Math.abs(count - userHint) <= 2) score += 30;
+      else if (Math.abs(count - userHint) <= 5) score += 10;
+    }
+
+    const avg = c.avg_files_per_subject;
+    if (avg >= 5) score += 20;
+    else if (avg >= 2) score += 15;
+    else if (avg >= 1) score += 5;
+
+    if (count >= 2 && count <= 200) score += 15;
+    else if (count > 200 && count <= 500) score += 5;
+
+    if (c.type === "directory_pattern") score += 10;
+    if (c.metadata?.has_site) score += 5;
+    c.score = score;
+  }
+
+  candidates.sort((a, b) => b.score - a.score);
+  const best = candidates[0];
+
+  let confidence: "high" | "medium" | "low" | "none" = "none";
+  if (best.score > 80) confidence = "high";
+  else if (best.score > 60) confidence = "medium";
+  else confidence = "low";
+
+  return {
+    candidates: candidates.slice(0, 5),
+    best_candidate: best,
+    confidence,
+    total_candidates_evaluated: candidates.length,
+  };
+};
+
+const detectDuplicateFilenames = (
+  allFiles: string[]
+): Record<string, string[]> => {
+  const filenameToPaths: Record<string, string[]> = {};
+  for (const filepath of allFiles) {
+    const filename = filepath.split("/").pop()!;
+    if (!filenameToPaths[filename]) filenameToPaths[filename] = [];
+    filenameToPaths[filename].push(filepath);
+  }
+  return Object.fromEntries(
+    Object.entries(filenameToPaths).filter(([, paths]) => paths.length > 1)
+  );
+};
+
+const buildDirectoryTreeSummary = (
+  allFiles: string[],
+  maxSubjects: number = 50
+): Record<string, any> => {
+  const subjectToStructure: Record<string, Record<string, string[]>> = {};
+
+  for (const filepath of allFiles) {
+    const parts = filepath.split("/");
+    if (parts.length < 2) continue;
+    const subjectDir = parts[0];
+    const remainingPath = parts.slice(1, -1).join("/") || "root";
+    const filename = parts[parts.length - 1];
+    const pattern = filename.replace(/\d+/g, "N").replace(/\s*\([^)]*\)/g, "");
+
+    if (!subjectToStructure[subjectDir]) subjectToStructure[subjectDir] = {};
+    if (!subjectToStructure[subjectDir][remainingPath])
+      subjectToStructure[subjectDir][remainingPath] = [];
+    if (!subjectToStructure[subjectDir][remainingPath].includes(pattern))
+      subjectToStructure[subjectDir][remainingPath].push(pattern);
+  }
+
+  const allSubjects = Object.keys(subjectToStructure).sort();
+  let sampledSubjects = allSubjects;
+  if (allSubjects.length > maxSubjects) {
+    const mid = Math.floor(allSubjects.length / 2);
+    sampledSubjects = [
+      ...allSubjects.slice(0, 15),
+      ...allSubjects.slice(mid - 10, mid + 10),
+      ...allSubjects.slice(-15),
+    ]
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .slice(0, maxSubjects);
+  }
+
+  const summary: Record<string, any> = {};
+  for (const subject of sampledSubjects) {
+    summary[subject] = Object.fromEntries(
+      Object.entries(subjectToStructure[subject]).map(([path, patterns]) => [
+        path,
+        patterns.slice(0, 5),
+      ])
+    );
+  }
+
+  return {
+    subject_structure_samples: summary,
+    total_subjects_detected: allSubjects.length,
+    sampled_subjects: sampledSubjects.length,
+  };
+};
+
+// ============================================================================
+// TS-only UI helpers
+// ============================================================================
+
+// Build structured file summary for LLM
 export const buildFileSummary = (files: FileItem[]): string => {
   let summary = "";
 
@@ -66,14 +356,6 @@ export const buildFileSummary = (files: FileItem[]): string => {
     hdf5: "format: SNIRF → format_ready: true",
   };
 
-  // dataFiles.forEach((f) => {
-  //   const category = categorizeFile(f);
-  //   const fmt = formatLabel[f.fileType || ""] || ""; // add
-  //   summary += `  - ${f.name} [${category}]`;
-  //   if (fmt) summary += ` <${fmt}>`; // add
-  //   if (f.sourcePath) summary += ` (${f.sourcePath})`;
-  //   summary += "\n";
-  // });
   const byType: Record<string, typeof dataFiles> = {};
   dataFiles.forEach((f) => {
     const key = f.fileType || "other";
@@ -107,75 +389,71 @@ export const buildFileSummary = (files: FileItem[]): string => {
 /**
  * Analyze file patterns
  */
-export const analyzeFilePatterns = (files: FileItem[]): string => {
-  const dataFiles = files.filter((f) => f.type === "file" && !f.isUserMeta);
-  const filenames = dataFiles.map((f) => f.name);
+// export const analyzeFilePatterns = (files: FileItem[]): string => {
+//   const dataFiles = files.filter((f) => f.type === "file" && !f.isUserMeta);
+//   const filenames = dataFiles.map((f) => f.name);
 
-  const extensions = [
-    ...new Set(
-      filenames.map((name) => {
-        const parts = name.toLowerCase().split(".");
-        return parts.length > 1 ? parts[parts.length - 1] : "none";
-      })
-    ),
-  ];
+//   const extensions = [
+//     ...new Set(
+//       filenames.map((name) => {
+//         const parts = name.toLowerCase().split(".");
+//         return parts.length > 1 ? parts[parts.length - 1] : "none";
+//       })
+//     ),
+//   ];
 
-  // Categorize files
-  const categorized: Record<string, string[]> = {
-    anatomical: [],
-    functional: [],
-    diffusion: [],
-    other: [],
-  };
+//   // Categorize files
+//   const categorized: Record<string, string[]> = {
+//     anatomical: [],
+//     functional: [],
+//     diffusion: [],
+//     other: [],
+//   };
 
-  dataFiles.forEach((f) => {
-    const category = categorizeFile(f);
-    if (category.startsWith("anatomical")) {
-      categorized.anatomical.push(f.name);
-    } else if (category.startsWith("functional")) {
-      categorized.functional.push(f.name);
-    } else if (category.includes("diffusion")) {
-      categorized.diffusion.push(f.name);
-    } else {
-      categorized.other.push(f.name);
-    }
-  });
+//   dataFiles.forEach((f) => {
+//     const category = categorizeFile(f);
+//     if (category === "mri" || category === "jnifti") {
+//       categorized.anatomical.push(f.name);
+//     } else if (category === "nirs") {
+//       categorized.functional.push(f.name);
+//     } else if (category === "array") {
+//       categorized.diffusion.push(f.name);
+//     } else {
+//       categorized.other.push(f.name);
+//     }
+//   });
 
-  return `
-FILENAME ANALYSIS:
-${"=".repeat(70)}
-Total data files: ${dataFiles.length}
-File types: ${extensions.join(", ")}
+//   return `
+// FILENAME ANALYSIS:
+// ${"=".repeat(70)}
+// Total data files: ${dataFiles.length}
+// File types: ${extensions.join(", ")}
 
-File Categories:
-  Anatomical scans: ${categorized.anatomical.length}
-  Functional scans: ${categorized.functional.length}
-  Diffusion scans: ${categorized.diffusion.length}
-  Other files: ${categorized.other.length}
+// File Categories:
+//   Anatomical scans: ${categorized.anatomical.length}
+//   Functional scans: ${categorized.functional.length}
+//   Diffusion scans: ${categorized.diffusion.length}
+//   Other files: ${categorized.other.length}
 
-Sample filenames (first 10):
-${filenames
-  .slice(0, 10)
-  .map((name) => `  - ${name}`)
-  .join("\n")}
-${
-  filenames.length > 10 ? `\n  ... and ${filenames.length - 10} more files` : ""
-}
-`;
-};
+// Sample filenames (first 10):
+// ${filenames
+//   .slice(0, 10)
+//   .map((name) => `  - ${name}`)
+//   .join("\n")}
+// ${
+//   filenames.length > 10 ? `\n  ... and ${filenames.length - 10} more files` : ""
+// }
+// `;
+// };
 
-/**
- * Get user context (README, instructions, participant info)
- */
-export const getUserContext = (files: FileItem[]): string => {
-  const userText = getUserContextText(files);
-  if (!userText) return "No user-provided context available.";
-  return `USER-PROVIDED CONTEXT:\n${"=".repeat(70)}\n${userText}`;
-};
+// Get user context (README, instructions, participant info)
+// export const getUserContext = (files: FileItem[]): string => {
+//   const userText = getUserContextText(files);
+//   if (!userText) return "No user-provided context available.";
+//   return `USER-PROVIDED CONTEXT:\n${"=".repeat(70)}\n${userText}`;
+// };
 
-/**
- * Get file annotations (notes)
- */
+// Get file annotations (notes)
 export const getFileAnnotations = (files: FileItem[]): string => {
   const filesWithNotes = files.filter((f) => f.note);
   if (filesWithNotes.length === 0) return "";
@@ -201,225 +479,90 @@ export const downloadJSON = (data: any, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-/**
- * Download text file(not using this function yet)
- */
-export const downloadText = (text: string, filename: string) => {
-  const blob = new Blob([text], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-};
+// ============================================================================
+// functions mirror to evidence.py
+// ============================================================================
 
-/**
- * Build evidence bundle structure
- */
-export const buildEvidenceBundle = (
-  files: FileItem[],
-  baseDirectoryPath: string,
-  userOverrides?: {
-    nSubjects: number | null;
-    modalityHint: string;
-    describeText: string;
-  }
-): any => {
-  const counts = getCountsByExtension(files);
-  const userText = getUserContextText(files);
+// ============================================================================
+// detect_kind from evidence.py maps to categorizeFile in fileAnalyzers.ts
+// ============================================================================
 
-  // add for samples ---start---
-  const dataFiles = files.filter(
-    (f) => f.source === "user" && f.type === "file"
-  );
+// ============================================================================
+// Intelligent file sampling — mirrors _intelligent_file_sampling() in evidence.py
+// Groups files by extension then by filename pattern, samples up to 5 per extension.
+// ============================================================================
 
-  // Mirror autobidsify's _intelligent_file_sampling()
-  // Group by file type, take up to 5 samples per type
-  const samplesByType: Record<string, FileItem[]> = {};
+const intelligentFileSampling = (
+  dataFiles: FileItem[],
+  targetSamplesPerExt: number = 5
+): FileItem[] => {
+  // Group by extension — mirrors by_ext in Python
+  const byExt: Record<string, FileItem[]> = {};
   dataFiles.forEach((f) => {
-    const key = f.fileType || "other";
-    if (!samplesByType[key]) samplesByType[key] = [];
-    if (samplesByType[key].length < 5) {
-      samplesByType[key].push(f);
-    }
+    const name = f.name.toLowerCase();
+    const ext = name.endsWith(".nii.gz")
+      ? ".nii.gz"
+      : "." + (name.split(".").pop() || "other");
+    if (!byExt[ext]) byExt[ext] = [];
+    byExt[ext].push(f);
   });
 
-  const samples = Object.values(samplesByType)
-    .flat()
-    .map((f) => ({
-      relpath: f.sourcePath || f.name,
-      filename: f.name,
-      suffix: f.name.split(".").pop() || "",
-      kind: f.fileType || "other",
-      size: 0,
-    }));
+  const sampledFiles: FileItem[] = [];
 
-  // ----end---
-
-  // add this for subject_analysis.json
-  // const allFiles = files
-  //   .filter((f) => f.source === "user" && f.type === "file")
-  //   .map((f) => f.sourcePath || f.name);
-  const allFiles = files
-    .filter((f) => f.source === "user" && f.type === "file")
-    .map((f) => {
-      const path = f.sourcePath || f.name;
-      // Strip leading folder name — mirrors Python's relative-to-data_root paths
-      // "1-FRESH-Motor-snirf/sub-01_ses-..." → "sub-01_ses-..."
-      const parts = path.split("/");
-      return parts.length > 1 ? parts.slice(1).join("/") : path;
+  Object.entries(byExt).forEach(([ext, fileList]) => {
+    // Group by filename pattern — mirrors pattern_groups in Python
+    const patternGroups: Record<string, FileItem[]> = {};
+    fileList.forEach((f) => {
+      const pattern = f.name.replace(/\d+/g, "N").replace(/\s*\([^)]*\)/g, "");
+      if (!patternGroups[pattern]) patternGroups[pattern] = [];
+      patternGroups[pattern].push(f);
     });
 
-  const subjectAnalysis = extractSubjectAnalysis(allFiles);
-  // ← end
+    const nPatterns = Object.keys(patternGroups).length;
+    const spp = Math.max(1, Math.floor(targetSamplesPerExt / nPatterns));
 
-  // ── filename analysis (must come AFTER subjectAnalysis)
-  const justFilenames = allFiles.map((f) =>
-    f.includes("/") ? f.split("/").pop()! : f
-  );
-  const tokenStats = analyzeTokenStatistics(justFilenames);
-  const dominantCount = tokenStats.dominantPrefixes.length;
-  const userNSubjects = subjectAnalysis.subject_count || null;
-  let filenameConfidence: "high" | "medium" | "low" | "none" = "none";
-  if (dominantCount > 0) {
-    if (userNSubjects && dominantCount === userNSubjects)
-      filenameConfidence = "high";
-    else if (dominantCount >= 2 && dominantCount <= 10)
-      filenameConfidence = "medium";
-    else filenameConfidence = "low";
-  }
-  const filenameAnalysis = {
-    python_statistics: {
-      total_files: tokenStats.totalFiles,
-      token_frequency: tokenStats.tokenFrequency,
-      prefix_frequency: tokenStats.prefixFrequency,
-      dominant_prefixes: tokenStats.dominantPrefixes,
-      unique_token_count: Object.keys(tokenStats.tokenFrequency).length,
-      unique_prefix_count: Object.keys(tokenStats.prefixFrequency).length,
-    },
-    confidence: filenameConfidence,
-    recommendation: buildFilenameRecommendation(
-      tokenStats.dominantPrefixes,
-      userNSubjects
-    ),
-  };
+    let extSamples: FileItem[] = [];
+    const extSampledSet = new Set<string>();
 
-  // subject count decision logic:
-  const finalSubjectCount =
-    userOverrides?.nSubjects ?? // user wins
-    subjectAnalysis.subject_count ??
-    tokenStats.dominantPrefixes.length ??
-    null;
+    // Take spp files from each pattern group
+    Object.values(patternGroups).forEach((group) => {
+      group.slice(0, spp).forEach((f) => {
+        extSamples.push(f);
+        extSampledSet.add(f.id);
+      });
+    });
 
-  const participantEvidence = buildParticipantMetadataEvidence(
-    allFiles,
-    // pass the already-built documents array
-    files
-      .filter(
-        (f) => f.source === "user" && f.content && f.content.trim().length > 0
-      )
-      .map((f) => ({
-        relpath: f.sourcePath || f.name,
-        filename: f.name,
-        content: f.content || "",
-      }))
-  );
+    // Top-up to targetSamplesPerExt if under
+    if (extSamples.length < targetSamplesPerExt) {
+      const sorted = [...Object.values(patternGroups)].sort(
+        (a, b) => b.length - a.length
+      );
+      for (const group of sorted) {
+        if (extSamples.length >= targetSamplesPerExt) break;
+        for (const f of group) {
+          if (extSamples.length >= targetSamplesPerExt) break;
+          if (!extSampledSet.has(f.id)) {
+            extSamples.push(f);
+            extSampledSet.add(f.id);
+          }
+        }
+      }
+    }
 
-  return {
-    root: baseDirectoryPath,
-    counts_by_ext: counts,
-    samples,
-    all_files: allFiles,
-    filename_analysis: filenameAnalysis, // NEW
-    participant_metadata_evidence: participantEvidence, // NEW
-    subject_detection: {
-      method: "hybrid_analysis",
-      path_based_count: subjectAnalysis.subject_count,
-      path_based_confidence: subjectAnalysis.success ? "medium" : "none",
-      filename_based_count: tokenStats.dominantPrefixes.length,
-      filename_based_confidence: filenameConfidence,
-      final_count: finalSubjectCount,
-      count_source:
-        userOverrides?.nSubjects != null
-          ? "user_provided"
-          : subjectAnalysis.success
-          ? subjectAnalysis.method
-          : "filename_based",
-      best_pattern: subjectAnalysis.subject_records[0]?.pattern_name || "none",
-    },
-    documents: files
-      .filter((f) => {
-        if (f.source !== "user") return false; // exclude AI files
-        if (!f.content || f.content.trim().length === 0) return false;
+    sampledFiles.push(...extSamples);
+  });
 
-        // ✅ Text files - primary source
-        if (["text", "office", "meta"].includes(f.fileType || "")) return true;
-
-        // ✅ NIfTI headers - useful for LLM to understand scan parameters
-        if (f.fileType === "nifti" && f.contentType === "nifti") return true;
-
-        // ✅ HDF5/SNIRF structure - useful for fNIRS datasets
-        if (f.fileType === "hdf5" && f.contentType === "hdf5") return true;
-
-        // ✅ NeuroJSON - already JSON text
-        if (f.fileType === "neurojsonText") return true;
-
-        // ✅ Catch undefined fileType but has content (your current bug)
-        if (f.fileType === undefined && f.content) return true;
-
-        return false;
-      })
-      .map((f) => ({
-        relpath: f.sourcePath || f.name,
-        filename: f.name,
-        type: f.fileType || "unknown",
-        content: f.content || "",
-        purpose: "experimental_protocol_or_metadata",
-      })),
-    user_hints: {
-      user_text: userText,
-      modality_hint: userOverrides?.modalityHint || detectModality(files),
-      n_subjects: finalSubjectCount,
-    },
-    // subject_analysis: subjectAnalysis,
-    trio_found: {
-      "dataset_description.json": files.some(
-        (f) => f.source === "user" && f.name === "dataset_description.json"
-      ),
-      "README.md": files.some(
-        (f) =>
-          f.source === "user" &&
-          (f.name === "README.md" ||
-            f.name === "README.txt" ||
-            f.name === "README.rst" ||
-            f.name === "readme.md")
-      ),
-      "participants.tsv": files.some(
-        (f) => f.source === "user" && f.name === "participants.tsv"
-      ),
-    },
-  };
+  return sampledFiles;
 };
 
-const buildFilenameRecommendation = (
-  dominantPrefixes: { prefix: string; count: number; percentage: number }[],
-  userNSubjects: number | null
-): string => {
-  if (dominantPrefixes.length === 0)
-    return "No clear filename patterns detected. Recommend user describe subject identification.";
-  if (userNSubjects && dominantPrefixes.length === userNSubjects) {
-    const prefixStr = dominantPrefixes.map((p) => p.prefix).join(", ");
-    return `HIGH CONFIDENCE: Detected ${dominantPrefixes.length} dominant prefixes (${prefixStr}) matching user hint of ${userNSubjects} subjects.`;
-  }
-  if (dominantPrefixes.length >= 2 && dominantPrefixes.length <= 5)
-    return `MEDIUM CONFIDENCE: Detected ${dominantPrefixes.length} potential subject groups. Will send to LLM for validation.`;
-  return `LOW CONFIDENCE: Found ${dominantPrefixes.length} prefix patterns, which may or may not represent subjects. LLM will analyze.`;
-};
+// ============================================================================
+// mirror _collect_participant_metadata_evidence() in evidence.py
+// ============================================================================
 
 const buildParticipantMetadataEvidence = (
   allFiles: string[],
-  documents: { relpath: string; filename: string; content: string }[]
+  documents: { relpath: string; filename: string; content: string }[],
+  files: FileItem[]
 ): Record<string, any> => {
   const evidence: Record<string, any> = {};
 
@@ -456,6 +599,25 @@ const buildParticipantMetadataEvidence = (
 
   // Evidence 2: DICOM headers (already extracted into documents content)
   // Skip re-reading — not feasible client-side
+
+  const dicomFiles = files.filter(
+    (f) => f.source === "user" && f.fileType === "dicom" && f.content
+  );
+  if (dicomFiles.length > 0) {
+    const dicomSamples = dicomFiles.slice(0, 10).map((f) => ({
+      filename: f.name,
+      extracted_header: f.content?.slice(0, 300) || "",
+    }));
+    evidence.dicom_headers = {
+      found: true,
+      sampled_count: dicomSamples.length,
+      total_dicom_files: dicomFiles.length,
+      samples: dicomSamples,
+      note: "DICOM headers extracted client-side",
+    };
+  } else {
+    evidence.dicom_headers = { found: false };
+  }
 
   // Evidence 3: filename semantic patterns
   const genderKws = [
@@ -606,80 +768,199 @@ const buildParticipantMetadataEvidence = (
   return evidence;
 };
 
-/**
- * Extract subject identifiers from file list
- * Mirrors autobidsify's _extract_subjects_from_flat_filenames()
- */
-export const extractSubjectsFromFiles = (
-  files: FileItem[]
-): {
-  subjects: { originalId: string; bidsId: string }[];
-  strategy: string;
-} => {
+// ============================================================================
+// Build evidence bundle structure
+// mirror _build_evidence_bundle_internal() and build_evidence_bundle() in evidence.py
+// ============================================================================
+
+export const buildEvidenceBundle = (
+  files: FileItem[],
+  baseDirectoryPath: string,
+  userOverrides?: {
+    nSubjects: number | null;
+    modalityHint: string;
+    describeText: string;
+  }
+): any => {
+  const counts = getCountsByExtension(files);
+  // const userText = getUserContextText(files);
+  const fileContextText = getUserContextText(files);
+  const userText = [userOverrides?.describeText?.trim(), fileContextText]
+    .filter(Boolean)
+    .join("\n\n");
+
+  // add for samples ---start---
   const dataFiles = files.filter(
     (f) => f.source === "user" && f.type === "file"
   );
 
-  // Count occurrences of each base identifier
-  const identifierCounts: Record<string, number> = {};
-  // dataFiles.forEach((f) => {
-  //   const nameNoExt = f.name.replace(/\.[^/.]+$/, "").replace(/\.nii$/, "");
-  //   const match = nameNoExt.match(/^([A-Za-z0-9\-]+)/);
-  //   if (match) {
-  //     const id = match[1];
-  //     identifierCounts[id] = (identifierCounts[id] || 0) + 1;
-  //   }
-  // });
-  dataFiles.forEach((f) => {
-    const nameNoExt = f.name
-      .replace(/\.nii\.gz$/i, "")
-      .replace(/\.[^/.]+$/, "")
-      .replace(/\s*\([^)]*\)/, ""); // remove (309) etc.
-
-    // Split on first digit sequence or underscore — take prefix only
-    // VHMCT1mm → VHMCT, sub-01 → sub-01, BZZ003 → BZZ
-    const match = nameNoExt.match(/^([A-Za-z]+(?:-[A-Za-z]+)*)/);
-    if (match) {
-      const id = match[1];
-      identifierCounts[id] = (identifierCounts[id] || 0) + 1;
-    }
-  });
-
-  // Sort by frequency — most common identifiers are likely subjects
-  // const sorted = Object.entries(identifierCounts).sort((a, b) => b[1] - a[1]);
-
-  // Step 2: Keep only identifiers that appear in multiple files
-  // (single-file identifiers are likely body parts, not subjects)
-  const totalFiles = dataFiles.length;
-  const threshold = Math.max(2, Math.floor(totalFiles * 0.05)); // at least 5% of files
-
-  const filtered = Object.entries(identifierCounts)
-    .filter(([, count]) => count >= threshold)
-    .sort((a, b) => b[1] - a[1]);
-
-  // If filtering leaves nothing, fall back to all identifiers
-  const candidates =
-    filtered.length > 0
-      ? filtered
-      : Object.entries(identifierCounts).sort((a, b) => b[1] - a[1]);
-  // Step 3: Use numeric strategy for >10 subjects
-  const strategy = candidates.length > 10 ? "numeric" : "numeric";
-  // const strategy = sorted.length > 10 ? "numeric" : "semantic";
-
-  // const subjects = sorted.map(([originalId], i) => ({
-  //   originalId,
-  //   bidsId:
-  //     strategy === "numeric"
-  //       ? String(i + 1)
-  //       : originalId.replace(/[^a-zA-Z0-9]/g, ""),
-  // }));
-  const subjects = candidates.map(([originalId], i) => ({
-    originalId,
-    bidsId: String(i + 1),
+  const sampledFiles = intelligentFileSampling(dataFiles);
+  const samples = sampledFiles.map((f) => ({
+    relpath: f.sourcePath || f.name,
+    filename: f.name,
+    suffix: f.name.split(".").pop() || "",
+    kind: categorizeFile(f),
+    size: 0,
+    header_info: f.content ? { raw: f.content.slice(0, 500) } : undefined,
   }));
 
-  return { subjects, strategy };
+  const allFiles = files
+    .filter((f) => f.source === "user" && f.type === "file")
+    .map((f) => {
+      const path = f.sourcePath || f.name;
+      // Strip leading folder name — mirrors Python's relative-to-data_root paths
+      // "1-FRESH-Motor-snirf/sub-01_ses-..." → "sub-01_ses-..."
+      const parts = path.split("/");
+      return parts.length > 1 ? parts.slice(1).join("/") : path;
+    });
+
+  // ── FileStructureAnalyzer — mirrors universal_core.py
+  const dirStructure = analyzeDirectoryStructure(allFiles);
+  const subjectDetectionResult = detectSubjectIdentifiers(
+    allFiles,
+    userOverrides?.nSubjects ?? null
+  );
+  const duplicates = detectDuplicateFilenames(allFiles);
+  const treeSummary = buildDirectoryTreeSummary(allFiles, 50);
+  const pathBasedCount = subjectDetectionResult.best_candidate?.count ?? 0;
+  const pathBasedConfidence = subjectDetectionResult.confidence;
+
+  const filenameAnalysisRaw = analyzeFilenamesForSubjects(allFiles, {
+    n_subjects: userOverrides?.nSubjects ?? null,
+    user_text: userOverrides?.describeText ?? "",
+  });
+  const { llm_payload, ...filenameAnalysis } = filenameAnalysisRaw;
+  const tokenStats = filenameAnalysis.python_statistics;
+  const filenameConfidence = filenameAnalysis.confidence;
+
+  // subject count decision logic:
+  let finalSubjectCount: number | null;
+  let countSource: string;
+
+  if (userOverrides?.nSubjects != null) {
+    finalSubjectCount = userOverrides.nSubjects;
+    countSource = "user_provided";
+  } else if (pathBasedConfidence === "high") {
+    finalSubjectCount = pathBasedCount;
+    countSource = "path_based_high_confidence";
+  } else if (
+    (filenameConfidence === "high" || filenameConfidence === "medium") &&
+    pathBasedCount === 0
+  ) {
+    finalSubjectCount = tokenStats.dominantPrefixes.length;
+    countSource = "filename_based";
+  } else if (pathBasedCount > 0) {
+    finalSubjectCount = pathBasedCount;
+    countSource = "path_based";
+  } else {
+    finalSubjectCount = 1;
+    countSource = "fallback";
+  }
+
+  const documents = files
+    .filter((f) => {
+      if (f.source !== "user") return false;
+      if (!f.content || f.content.trim().length === 0) return false;
+      if (["text", "office", "meta"].includes(f.fileType || "")) return true;
+      if (f.fileType === "nifti" && f.contentType === "nifti") return true;
+      if (f.fileType === "hdf5" && f.contentType === "hdf5") return true;
+      if (f.fileType === "neurojsonText") return true;
+      if (f.fileType === undefined && f.content) return true;
+      return false;
+    })
+    .map((f) => ({
+      relpath: f.sourcePath || f.name,
+      filename: f.name,
+      type: f.fileType || "unknown",
+      content: f.content || "",
+      purpose: "experimental_protocol_or_metadata",
+    }));
+
+  const participantEvidence = buildParticipantMetadataEvidence(
+    allFiles,
+    documents,
+    files
+  );
+
+  return {
+    root: baseDirectoryPath,
+    counts_by_ext: counts,
+    samples,
+    all_files: allFiles,
+    filename_analysis: filenameAnalysis, // NEW
+    participant_metadata_evidence: participantEvidence, // NEW
+    subject_detection: {
+      method: "hybrid_analysis",
+      path_based_count: pathBasedCount,
+      path_based_confidence: pathBasedConfidence,
+      filename_based_count: tokenStats.dominantPrefixes.length,
+      filename_based_confidence: filenameConfidence,
+      final_count: finalSubjectCount,
+      count_source: countSource,
+      best_pattern:
+        subjectDetectionResult.best_candidate?.pattern_display || "none",
+    },
+    structure_analysis: {
+      directory_structure: dirStructure,
+      subject_detection: subjectDetectionResult,
+      duplicate_files: Object.fromEntries(
+        Object.entries(duplicates).slice(0, 20)
+      ),
+      tree_summary_for_llm: treeSummary,
+      analyzer_confidence: subjectDetectionResult.confidence,
+    },
+
+    documents: documents,
+    document_summary: {
+      total_documents: documents.length,
+      document_types: [...new Set(documents.map((d) => d.type))],
+      total_text_length: documents.reduce(
+        (sum, d) => sum + d.content.length,
+        0
+      ),
+    },
+    sampling_strategy: {
+      method: "pattern_based",
+      target_per_ext: 5,
+      total_files_sampled: sampledFiles.length,
+    },
+    user_hints: {
+      user_text: userText,
+      modality_hint: userOverrides?.modalityHint || detectModality(files),
+      n_subjects: finalSubjectCount,
+    },
+    trio_found: {
+      "dataset_description.json": files.some(
+        (f) => f.source === "user" && f.name === "dataset_description.json"
+      ),
+      "README.md": files.some(
+        (f) =>
+          f.source === "user" &&
+          (f.name === "README.md" ||
+            f.name === "README.txt" ||
+            f.name === "README.rst" ||
+            f.name === "readme.md")
+      ),
+      "participants.tsv": files.some(
+        (f) => f.source === "user" && f.name === "participants.tsv"
+      ),
+    },
+    trio_promoted: {
+      dataset_description: [],
+      readme: [],
+      participants: [],
+    },
+    data_source: {
+      type: "directory",
+      original_path: baseDirectoryPath,
+      actual_path: baseDirectoryPath,
+    },
+  };
 };
+
+// ============================================================================
+// mirror ingest_data() in ingest.py
+// ============================================================================
 
 export const buildIngestInfo = (
   baseDirectoryPath: string

@@ -1,10 +1,19 @@
 require("dotenv").config();
 
 module.exports = {
+  // development: {
+  //   dialect: "sqlite",
+  //   storage: "./database.sqlite",
+  //   logging: console.log,
+  // },
   development: {
-    dialect: "sqlite",
-    storage: "./database.sqlite",
-    logging: console.log,
+    dialect: "postgres",
+    host: "localhost",
+    port: 5432,
+    database: "neurojson_dev",
+    username: process.env.DB_USER_LOCAL,
+    password: process.env.DB_PASSWORD_LOCAL,
+    logging: false,
   },
   test: {
     dialect: "sqlite",

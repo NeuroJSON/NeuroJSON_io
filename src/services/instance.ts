@@ -1,18 +1,19 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 
-// export const baseURL =
-// 	process.env.REACT_APP_BACK_URL ??
-// 	"https://cors.redoc.ly/https://neurojson.io:7777";
+// ==========not mapping neurojson.org and CouchDB requests to backend api yet==============
+// const needsCorsProxy =
+//   process.env.REACT_APP_USE_CORS === "true" ||
+//   process.env.NODE_ENV === "development";
 
-const needsCorsProxy =
-  process.env.REACT_APP_USE_CORS === "true" ||
-  process.env.NODE_ENV === "development";
+// const backendURL = "https://neurojson.io:7777";
 
-const backendURL = "https://neurojson.io:7777";
+// export const baseURL = needsCorsProxy
+//   ? `https://cors.redoc.ly/${backendURL}`
+//   : backendURL;
+//==========================================================================================
 
-export const baseURL = needsCorsProxy
-  ? `https://cors.redoc.ly/${backendURL}`
-  : backendURL;
+export const baseURL =
+  process.env.REACT_APP_API_URL || "http://localhost:5000/api/v1";
 
 export const api: AxiosInstance = axios.create({
   baseURL,

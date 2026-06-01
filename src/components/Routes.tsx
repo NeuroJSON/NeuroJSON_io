@@ -1,3 +1,4 @@
+import BidsConverterPage from "pages/BidsConverterPage";
 import ScrollToTop from "./ScrollToTop";
 import CompleteProfile from "./User/CompleteProfile";
 import CollectionDetailPage from "./User/Dashboard/CollectionDetailPage";
@@ -68,6 +69,7 @@ const Routes = () => (
           element={<CollectionDetailPage />}
         />
         <Route path="/projects/:projectId" element={<DatasetOrganizer />} />
+        <Route path={RoutesEnum.BIDS_CONVERTER} element={<BidsConverterPage />} />
       </Route>
     </RouterRoutes>
   </>

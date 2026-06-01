@@ -13,6 +13,12 @@ import {
   Tooltip,
   IconButton,
   Alert,
+  Slider,
+  Stack,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Autocomplete,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -22,6 +28,8 @@ import ClickTooltip from "components/SearchPage/ClickTooltip";
 import DatabaseCard from "components/SearchPage/DatabaseCard";
 import DatasetCard from "components/SearchPage/DatasetCard";
 import SubjectCard from "components/SearchPage/SubjectCard";
+import { FileTypeAutocompleteWidget } from "components/SearchPage/widgets/FileTypeAutocompleteWidget";
+import { TypeAutocompleteWidget } from "components/SearchPage/widgets/TypeAutocompleteWidget";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -29,6 +37,7 @@ import pako from "pako";
 import React from "react";
 import { useState, useEffect, useMemo } from "react";
 import {
+  fetchFileTypes,
   fetchMetadataSearchResults,
   fetchRegistry,
 } from "redux/neurojson/neurojson.action";
@@ -43,6 +52,194 @@ type RegistryItem = {
   datatype?: string[];
   datasets?: number;
   logo?: string;
+};
+
+// Module-scope so the component identity is stable across SearchPage renders.
+// An inline arrow function inside customFields was getting a new identity each
+// render, which made RJSF remount the slider mid-drag.
+const AGE_MIN_BOUND = 0;
+const AGE_MAX_BOUND = 100;
+
+const DATASET_MODALITIES = [
+  "anat", "func", "dwi", "fmap", "perf",
+  "meg", "eeg", "ieeg", "beh", "pet",
+  "micr", "nirs", "motion", "ephys", "atlas",
+  "JMesh", "JNIFTI", "JSNIRF", "JData",
+];
+
+const DatasetModalityFilterField = (props: any) => {
+  const ctx = props?.registry?.formContext as
+    | { formData: Record<string, any>; setFormData: React.Dispatch<React.SetStateAction<Record<string, any>>> }
+    | undefined;
+  if (!ctx) return null;
+  const { formData, setFormData } = ctx;
+  const selected: string[] = Array.isArray(formData.modalities) ? formData.modalities : [];
+  const mode: string = formData.modality_mode || "or";
+
+  const handleChange = (_: any, next: string[]) => {
+    setFormData((prev) => {
+      const updated = { ...prev };
+      if (next.length === 0) {
+        delete updated.modalities;
+        delete updated.modality_mode;
+      } else {
+        updated.modalities = next;
+        if (!updated.modality_mode) updated.modality_mode = "or";
+      }
+      return updated;
+    });
+  };
+
+  const handleModeChange = (_: any, val: string | null) => {
+    if (!val) return;
+    setFormData((prev) => ({ ...prev, modality_mode: val }));
+  };
+
+  return (
+    <Box sx={{ mt: 1, mb: 1 }}>
+      <Autocomplete
+        multiple
+        options={DATASET_MODALITIES}
+        value={selected}
+        onChange={handleChange}
+        renderTags={(items, getTagProps) =>
+          items.map((item, index) => (
+            <Chip
+              variant="outlined"
+              label={item}
+              size="small"
+              {...getTagProps({ index })}
+              key={item}
+            />
+          ))
+        }
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Dataset modalities"
+            placeholder={selected.length === 0 ? "e.g. eeg, nirs" : ""}
+            size="small"
+            fullWidth
+          />
+        )}
+      />
+      {selected.length > 1 && (
+        <Box sx={{ mt: 1, display: "flex", alignItems: "center", gap: 1 }}>
+          <ToggleButtonGroup size="small" value={mode} exclusive onChange={handleModeChange}>
+            <ToggleButton value="or" sx={{ px: 2, py: 0.25 }}>OR</ToggleButton>
+            <ToggleButton value="and" sx={{ px: 2, py: 0.25 }}>AND</ToggleButton>
+          </ToggleButtonGroup>
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+            {mode === "and" ? "must have all selected" : "must have any selected"}
+          </Typography>
+        </Box>
+      )}
+    </Box>
+  );
+};
+
+const AgeRangeSliderField = (props: any) => {
+  const ctx = props?.registry?.formContext as
+    | {
+        formData: Record<string, any>;
+        setFormData: React.Dispatch<React.SetStateAction<Record<string, any>>>;
+      }
+    | undefined;
+  if (!ctx) return null;
+  const { formData, setFormData } = ctx;
+  const lo =
+    typeof formData.age_min === "number" ? formData.age_min : AGE_MIN_BOUND;
+  const hi =
+    typeof formData.age_max === "number" ? formData.age_max : AGE_MAX_BOUND;
+  const isAny = lo === AGE_MIN_BOUND && hi === AGE_MAX_BOUND;
+  return (
+    <Box sx={{ px: 2, mt: 2, mb: 1, width: "100%" }}>
+      <Typography variant="body2" sx={{ mb: 1 }}>
+        Age: {isAny ? "Any" : `${lo} – ${hi}`}
+      </Typography>
+      <Slider
+        value={[lo, hi]}
+        onChange={(_, v) => {
+          const [newLo, newHi] = v as number[];
+          setFormData((prev) => {
+            const next = { ...prev };
+            // Each handle is its own filter. A handle at the bound means
+            // "no constraint on that side", so we leave it out of formData
+            // (otherwise age_min=0 silently excludes unknown-age subjects
+            // whose stored key is "000-1", lexicographically below "00000").
+            if (newLo === AGE_MIN_BOUND) delete next.age_min;
+            else next.age_min = newLo;
+            if (newHi === AGE_MAX_BOUND) delete next.age_max;
+            else next.age_max = newHi;
+            return next;
+          });
+        }}
+        valueLabelDisplay="auto"
+        min={AGE_MIN_BOUND}
+        max={AGE_MAX_BOUND}
+        step={1}
+        disableSwap
+        sx={{ color: Colors.purple }}
+      />
+    </Box>
+  );
+};
+
+// Pairs a "<key>_min" + "<key>_max" into a single row of two number inputs.
+// Reads target field names + label from uiSchema's ui:options:
+//   { minKey: "sess_min", maxKey: "sess_max", label: "sessions" }
+const CountRangePairField = (props: any) => {
+  const ctx = props?.registry?.formContext as
+    | {
+        formData: Record<string, any>;
+        setFormData: React.Dispatch<React.SetStateAction<Record<string, any>>>;
+      }
+    | undefined;
+  const opts = props?.uiSchema?.["ui:options"] || {};
+  const minKey = opts.minKey as string;
+  const maxKey = opts.maxKey as string;
+  const label = (opts.label as string) || "";
+  if (!ctx || !minKey || !maxKey) return null;
+  const { formData, setFormData } = ctx;
+  const minVal = formData[minKey] ?? "";
+  const maxVal = formData[maxKey] ?? "";
+
+  const update = (key: string, raw: string) => {
+    setFormData((prev) => {
+      const next = { ...prev };
+      if (raw === "" || raw === undefined) {
+        delete next[key];
+      } else {
+        const n = Number(raw);
+        if (Number.isNaN(n)) delete next[key];
+        else next[key] = n;
+      }
+      return next;
+    });
+  };
+
+  return (
+    <Stack direction="row" spacing={2} sx={{ mt: 1, mb: 1 }}>
+      <TextField
+        label={`Min ${label}`}
+        type="number"
+        size="small"
+        value={minVal}
+        onChange={(e) => update(minKey, e.target.value)}
+        fullWidth
+        inputProps={{ min: 0 }}
+      />
+      <TextField
+        label={`Max ${label}`}
+        type="number"
+        size="small"
+        value={maxVal}
+        onChange={(e) => update(maxKey, e.target.value)}
+        fullWidth
+        inputProps={{ min: 0 }}
+      />
+    </Stack>
+  );
 };
 
 const matchesKeyword = (item: RegistryItem, keyword: string) => {
@@ -71,6 +268,9 @@ const SearchPage: React.FC = () => {
   const registry = useAppSelector(
     (state: RootState) => state.neurojson.registry
   );
+  const fileTypes = useAppSelector(
+    (state: RootState) => state.neurojson.fileTypes
+  );
   const loading = useAppSelector((state: RootState) => state.neurojson.loading);
 
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -91,9 +291,10 @@ const SearchPage: React.FC = () => {
 
   const placement = upMd ? "right" : "top";
 
-  // for database card
-  const keywordInput = String(formData?.keyword ?? "").trim();
-  const selectedDbId = String(formData?.database ?? "").trim();
+  // inputs for the "Suggested databases" memo — read from appliedFilters so
+  // the suggestion list refreshes only on Search click, matching the results.
+  const keywordInput = String(appliedFilters?.keyword ?? "").trim();
+  const selectedDbId = String(appliedFilters?.database ?? "").trim();
 
   const registryMatches: RegistryItem[] = React.useMemo(() => {
     if (!Array.isArray(registry)) return [];
@@ -119,10 +320,12 @@ const SearchPage: React.FC = () => {
     ([key, value]) =>
       key !== "skip" &&
       key !== "limit" &&
+      key !== "modality_mode" &&
       value !== undefined &&
       value !== null &&
       value !== "" &&
-      value !== "any"
+      value !== "any" &&
+      !(Array.isArray(value) && value.length === 0)
   );
 
   useEffect(() => {
@@ -207,14 +410,26 @@ const SearchPage: React.FC = () => {
 
   // form UI
   const uiSchema = useMemo(
-    () => generateUiSchema(formData, showSubjectFilters, showDatasetFilters),
-    [formData, showSubjectFilters, showDatasetFilters]
+    () =>
+      generateUiSchema(
+        formData,
+        showSubjectFilters,
+        showDatasetFilters,
+        fileTypes || []
+      ),
+    [formData, showSubjectFilters, showDatasetFilters, fileTypes]
   );
+
+  // Custom RJSF widgets — comboboxes for the Data type and File types fields.
+  const customWidgets = {
+    typeAutocomplete: TypeAutocompleteWidget,
+    fileTypeAutocomplete: FileTypeAutocompleteWidget,
+  };
 
   // Create the "Subject-level Filters" button as a custom field
   const customFields = {
     subjectFiltersToggle: () => (
-      <Box sx={{ mt: 2, mb: 1 }}>
+      <Box sx={{ mt: 2, mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
         <Button
           variant="outlined"
           onClick={() => setShowSubjectFilters((prev) => !prev)}
@@ -229,6 +444,22 @@ const SearchPage: React.FC = () => {
         >
           Subject-Level Filters
         </Button>
+        <Tooltip
+          title="Applying any filter here returns subject-level results."
+          componentsProps={{
+            tooltip: {
+              sx: {
+                backgroundColor: "white",
+                color: Colors.darkPurple,
+                boxShadow: 1,
+              },
+            },
+          }}
+        >
+          <IconButton size="small" sx={{ color: Colors.purple }}>
+            <InfoOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </Box>
     ),
     datasetFiltersToggle: () => (
@@ -247,6 +478,9 @@ const SearchPage: React.FC = () => {
         </Button>
       </Box>
     ),
+    ageRangeSlider: AgeRangeSliderField,
+    countRangePair: CountRangePairField,
+    datasetModalityFilter: DatasetModalityFilterField,
   };
 
   // determine the results are subject-level or dataset-level
@@ -264,6 +498,11 @@ const SearchPage: React.FC = () => {
   // get the database list from registry
   useEffect(() => {
     dispatch(fetchRegistry());
+  }, [dispatch]);
+
+  // get the distinct file extensions for the "File types" multi-select.
+  useEffect(() => {
+    dispatch(fetchFileTypes());
   }, [dispatch]);
 
   // dynamically add database enum to schema
@@ -400,6 +639,8 @@ const SearchPage: React.FC = () => {
         onChange={({ formData }) => setFormData(formData)}
         uiSchema={uiSchema}
         fields={customFields}
+        widgets={customWidgets}
+        formContext={{ formData, setFormData }}
       />
     </>
   );
@@ -418,6 +659,35 @@ const SearchPage: React.FC = () => {
     !loading &&
     // !hasDbMatches &&
     (!hasDatasetMatches || backendEmpty);
+
+  // Tailored empty-state message: when the user combined a file_type filter
+  // with any subject-level filter and got nothing back, it's almost certainly
+  // because the file extension lives in non-BIDS datasets (which have no
+  // subject rows in ioviews). The generic "adjust filters" message hides this.
+  const SUBJECT_FILTER_KEYS = [
+    "age_min",
+    "age_max",
+    "gender",
+    "task_min",
+    "task_max",
+    "task_name",
+    "run_min",
+    "run_max",
+    "run_name",
+    "sess_min",
+    "sess_max",
+    "session_name",
+    "type_name",
+    "modality",
+    "subject",
+  ];
+  const isAppliedFilter = (v: any) =>
+    v !== "" && v !== "any" && v !== undefined && v !== null;
+  const showFileTypeNonBidsHint =
+    showNoResults &&
+    Array.isArray(appliedFilters.file_type) &&
+    appliedFilters.file_type.length > 0 &&
+    SUBJECT_FILTER_KEYS.some((k) => isAppliedFilter(appliedFilters[k]));
   return (
     <Container
       maxWidth={false}
@@ -515,10 +785,16 @@ const SearchPage: React.FC = () => {
                 mt: 1,
               }}
             >
-              {activeFilters.map(([key, value]) => (
+              {activeFilters.map(([key, value]) => {
+                let label = `${String(key)}: ${String(value)}`;
+                if (key === "modalities" && Array.isArray(value)) {
+                  const mode = appliedFilters.modality_mode || "or";
+                  label = `modalities (${mode}): ${value.join(", ")}`;
+                }
+                return (
                 <Chip
                   key={key}
-                  label={`${String(key)}: ${String(value)}`}
+                  label={label}
                   variant="outlined"
                   sx={{
                     color: Colors.darkPurple,
@@ -566,7 +842,8 @@ const SearchPage: React.FC = () => {
                     }
                   }}
                 />
-              ))}
+                );
+              })}
             </Box>
           )}
 
@@ -635,10 +912,9 @@ const SearchPage: React.FC = () => {
                     }}
                     title={
                       <Typography variant="body2">
-                        Live preview based on your keyword or selected database.
-                        This list updates as you type or change the dropdown.
-                        It’s <strong>separate from the results</strong>—you’ll
-                        see datasets/subjects after you click <em>Search</em>.
+                        Databases that match your keyword or selected database
+                        filter. This list refreshes when you click{" "}
+                        <em>Search</em>, alongside the datasets/subjects below.
                       </Typography>
                     }
                   >
@@ -668,7 +944,7 @@ const SearchPage: React.FC = () => {
                       datasets={db.datasets}
                       modalities={db.datatype}
                       logo={db.logo}
-                      keyword={formData.keyword} // for keyword highlight
+                      keyword={appliedFilters.keyword} // highlight the searched keyword, not the live input
                       onChipClick={handleChipClick}
                     />
                   ))}
@@ -833,7 +1109,14 @@ const SearchPage: React.FC = () => {
                                   dsname={item.dsname}
                                   parsedJson={parsedJson}
                                   onChipClick={handleChipClick}
-                                  keyword={formData.keyword} // for keyword highlight
+                                  keyword={appliedFilters.keyword} // highlight what was searched, not the live form
+                                  matchingFiles={
+                                    item.matching_files
+                                      ? JSON.parse(item.matching_files)
+                                      : undefined
+                                  }
+                                  matchingFilesTotal={item.matching_files_total}
+                                  fileTypes={appliedFilters.file_type}
                                 />
                               ) : (
                                 <SubjectCard
@@ -842,6 +1125,7 @@ const SearchPage: React.FC = () => {
                                   {...item}
                                   parsedJson={parsedJson}
                                   onChipClick={handleChipClick}
+                                  age={parsedJson?.key?.[0]}
                                 />
                               );
                             } catch (e) {
@@ -869,10 +1153,20 @@ const SearchPage: React.FC = () => {
                           Search Results
                         </Typography>
 
-                        <Typography sx={{ color: Colors.error }}>
-                          No datasets or subjects found. Please adjust the
-                          filters and try again.
-                        </Typography>
+                        {showFileTypeNonBidsHint ? (
+                          <Typography sx={{ color: Colors.error }}>
+                            No matching subjects found. The selected file type
+                            may only exist in non-BIDS datasets (e.g. mesh or
+                            atlas libraries), which have no subject-level
+                            records. Try removing subject-level filters
+                            (modality, age, gender, etc.) and search again.
+                          </Typography>
+                        ) : (
+                          <Typography sx={{ color: Colors.error }}>
+                            No datasets or subjects found. Please adjust the
+                            filters and try again.
+                          </Typography>
+                        )}
                       </Box>
                     )}
 

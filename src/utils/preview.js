@@ -33,6 +33,8 @@ var lastvolume = null;
 var lastvolumedata = null;
 var lastvolumedim = [];
 var lastclim = 0;
+var uplotInstance = null;
+var uplotResizeObserver = null;
 var reqid = undefined;
 
 var canvas = null;
@@ -74,18 +76,55 @@ var typedfun = {
   BigUint64Array: null,
 };
 
+// function destroyPreview() {
+//   if (window.scene) {
+//     while (window.scene.children.length > 0) {
+//       const obj = window.scene.children[0];
+//       window.scene.remove(obj);
+//       if (obj.geometry) obj.geometry.dispose();
+//       if (obj.material) obj.material.dispose();
+//     }
+//   }
+
+//   if (window.renderer && window.renderer.domElement) {
+//     window.renderer.domElement.remove();
+//     window.renderer.dispose();
+//   }
+
+//   window.scene = undefined;
+//   window.camera = undefined;
+//   window.renderer = undefined;
+//   window.controls = undefined;
+//   window.reqid = undefined;
+// }
 function destroyPreview() {
+  // Cancel animation loop first
+  if (reqid !== undefined) {
+    cancelAnimationFrame(reqid);
+    reqid = undefined;
+    window.reqid = undefined;
+  }
+
   if (window.scene) {
     while (window.scene.children.length > 0) {
       const obj = window.scene.children[0];
       window.scene.remove(obj);
       if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) obj.material.dispose();
+      if (obj.material) {
+        // Dispose any textures stored in shader uniforms
+        if (obj.material.uniforms) {
+          Object.values(obj.material.uniforms).forEach((u) => {
+            if (u.value && u.value.isTexture) u.value.dispose();
+          });
+        }
+        obj.material.dispose();
+      }
     }
   }
 
   if (window.renderer && window.renderer.domElement) {
     window.renderer.domElement.remove();
+    window.renderer.forceContextLoss();
     window.renderer.dispose();
   }
 
@@ -93,7 +132,19 @@ function destroyPreview() {
   window.camera = undefined;
   window.renderer = undefined;
   window.controls = undefined;
-  window.reqid = undefined;
+  lastvolume = null;
+  lastvolumedata = null;
+  texture = undefined;
+
+  if (uplotResizeObserver !== null) {
+    uplotResizeObserver.disconnect();
+    uplotResizeObserver = null;
+  }
+  if (uplotInstance !== null) {
+    uplotInstance.destroy();
+    uplotInstance = null;
+  }
+  $("#chartpanel").hide().html("");
 }
 
 function drawpreview(cfg) {
@@ -335,12 +386,22 @@ function dopreview(key, idx, isinternal, hastime) {
     const opts = {
       // title: "Preview for " + (isinternal ? intdata[idx][3] : extdata[idx][3]),
       title:
-        "Preview for " +
-        (isinternal ? intdata[idx][3] : window.extdata[idx][3]),
-      width: 1100,
+        // "Preview for " +
+        // (isinternal ? intdata[idx][3] : window.extdata[idx][3]),
+        "Data Preview",
+      width: Math.max(300, $("#chartpanel").width() - 24),
       height: 400,
       series: [{}, {}],
-      axes: [{}, {}],
+      axes: [
+        {
+          label: "Sample", // ← x axis
+          labelSize: 20,
+        },
+        {
+          label: "a.u.", // ← y axis
+          labelSize: 20,
+        },
+      ],
       scales: {
         x: {
           time: false,
@@ -350,8 +411,24 @@ function dopreview(key, idx, isinternal, hastime) {
     $("#chartpanel").css("padding", "10px");
     $("#chartpanel").show();
     $("#chartpanel").html(
-      '<h4>Data preview</h4><a href="javascript:void(0)" class="closebtn" onclick="$(\'#chartpanel\').hide()" title="Close">&times;</a><div id="plotchart"></div>'
+      // '<h4>Data preview</h4><a href="javascript:void(0)" class="closebtn" style="color: black;" onclick="$(\'#chartpanel\').hide()" title="Close">&times;</a>' +
+      "<h4></h4>" +
+        '<a href="javascript:void(0)" class="closebtn" style="color: black;" ' +
+        "onclick=\"$('#chartpanel').hide(); window.__clear2DPath && window.__clear2DPath();\" " +
+        'title="Close">&times;</a>' +
+        '<div style="font-size:0.78rem; color:#555; margin:6px 0 4px 0; padding:6px 10px; background:#f0f0f0; border-radius:4px;">' +
+        "<b>Tips:</b> " +
+        "<b>Click</b> a item to toggle a signal &nbsp;|&nbsp;<br> " +
+        "<b>⌘+Click</b> (Mac) / <b>Ctrl+Click</b> (Windows) to isolate one signal &nbsp;|&nbsp; " +
+        "<b>Shift+Click</b> to add more signals to the selection &nbsp;|&nbsp; " +
+        "<b>Click and drag</b> on the plot to zoom into a region &nbsp;|&nbsp;" +
+        "<b>Double-click</b> to restore selected signals (Mac) &nbsp;|&nbsp; " +
+        "<b>Double-click</b> to restore all signals (Windows) &nbsp;|&nbsp; " +
+        "<b>⌘+Click</b> the same selected item to restore all signals (Mac)" +
+        "</div>" +
+        '<div id="plotchart"></div>'
     );
+
     if (dataroot instanceof nj.NdArray) {
       // console.log("dataroot", dataroot);
       if (dataroot.shape[0] > dataroot.shape[1])
@@ -389,22 +466,66 @@ function dopreview(key, idx, isinternal, hastime) {
             ? "y" + i
             : hastime[i];
       }
-      let u = new uPlot(opts, plotdata, document.getElementById("plotchart"));
+      // let u = new uPlot(opts, plotdata, document.getElementById("plotchart"));
+      if (uplotInstance !== null) {
+        uplotInstance.destroy();
+        uplotInstance = null;
+      }
+      uplotInstance = new uPlot(
+        opts,
+        plotdata,
+        document.getElementById("plotchart")
+      );
+
+      // Reset all series on double-click (works on both Mac and Windows)
+      // uplotInstance.root.addEventListener("dblclick", (e) => {
+      //   e.preventDefault();
+      //   e.stopPropagation();
+      //   uplotInstance.series.forEach((s, i) => {
+      //     if (i === 0) return; // skip x-axis
+      //     uplotInstance.setSeries(i, { show: true });
+      //   });
+      // });
     } else {
-      let u = new uPlot(
+      // let u = new uPlot(
+      //   opts,
+      //   [[...Array(dataroot.length).keys()], dataroot],
+      //   document.getElementById("plotchart")
+      // );
+      if (uplotInstance !== null) {
+        uplotInstance.destroy();
+        uplotInstance = null;
+      }
+      uplotInstance = new uPlot(
         opts,
         [[...Array(dataroot.length).keys()], dataroot],
         document.getElementById("plotchart")
       );
+
+      // uplotInstance.root.addEventListener("dblclick", (e) => {
+      //   e.preventDefault();
+      //   e.stopPropagation();
+      //   uplotInstance.series.forEach((s, i) => {
+      //     if (i === 0) return;
+      //     uplotInstance.setSeries(i, { show: true });
+      //   });
+      // });
     }
-    // add spinner
-    // --- NEW LOGIC for 2D plot ---
-    // Signal that the 2D plot has just been created and is now visible.
-    // if (typeof window.__onPreviewReady === "function") {
-    //   window.__onPreviewReady();
-    //   window.__onPreviewReady = null; // Clean up to prevent accidental re-firing
-    // }
-    // --- END NEW LOGIC ---
+
+    if (uplotResizeObserver !== null) {
+      uplotResizeObserver.disconnect();
+    }
+    uplotResizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(() => {
+        if (uplotInstance) {
+          uplotInstance.setSize({
+            width: Math.max(300, $("#chartpanel").width() - 24),
+            height: 400,
+          });
+        }
+      });
+    });
+    uplotResizeObserver.observe(document.getElementById("chartpanel"));
 
     // for spinner
     // --- Signal React that 2D preview is ready ---
@@ -967,183 +1088,428 @@ function initcanvas() {
     panel.appendChild(stats.domElement);
   }
 
-  $("#camera-near").on("input", function () {
-    camera.near = parseFloat($(this).val());
-    renderer.render(scene, camera);
-    controls.update();
-    renderer.updateComplete = false;
-  });
+  // $("#camera-near").on("input", function () {
+  //   camera.near = parseFloat($(this).val());
+  //   renderer.render(scene, camera);
+  //   controls.update();
+  //   renderer.updateComplete = false;
+  // });
 
-  $("#camera-far").on("input", function () {
-    camera.far = parseFloat($(this).val());
-    renderer.render(scene, camera);
-    controls.update();
-    renderer.updateComplete = false;
-  });
+  // $("#camera-far").on("input", function () {
+  //   camera.far = parseFloat($(this).val());
+  //   renderer.render(scene, camera);
+  //   controls.update();
+  //   renderer.updateComplete = false;
+  // });
 
-  $("#clim-low").on("input", function () {
-    $(this).prop(
-      "title",
-      "" +
-        $(this).val() +
-        " [" +
-        $(this).prop("min") +
-        "," +
-        $(this).prop("max") +
-        "]"
-    );
-    if (lastvolume !== null) {
-      let val = lastvolume.material.uniforms["u_clim"].value;
-      lastvolume.material.uniforms["u_clim"].value.set(
-        parseFloat($(this).val()),
-        val.y
+  // $("#clim-low").on("input", function () {
+  //   $(this).prop(
+  //     "title",
+  //     "" +
+  //       $(this).val() +
+  //       " [" +
+  //       $(this).prop("min") +
+  //       "," +
+  //       $(this).prop("max") +
+  //       "]"
+  //   );
+  //   if (lastvolume !== null) {
+  //     let val = lastvolume.material.uniforms["u_clim"].value;
+  //     lastvolume.material.uniforms["u_clim"].value.set(
+  //       parseFloat($(this).val()),
+  //       val.y
+  //     );
+  //     renderer.updateComplete = false;
+  //   }
+  // });
+
+  // $("#clim-hi").on("input", function () {
+  //   $(this).prop(
+  //     "title",
+  //     "" +
+  //       $(this).val() +
+  //       " [" +
+  //       $(this).prop("min") +
+  //       "," +
+  //       $(this).prop("max") +
+  //       "]"
+  //   );
+  //   if (lastvolume !== null) {
+  //     let val = lastvolume.material.uniforms["u_clim"].value;
+  //     lastvolume.material.uniforms["u_clim"].value.set(
+  //       val.x,
+  //       parseFloat($(this).val())
+  //     );
+  //     renderer.updateComplete = false;
+  //   }
+  // });
+
+  // $("#isothreshold").on("input", function () {
+  //   $(this).prop(
+  //     "title",
+  //     "" +
+  //       $(this).val() +
+  //       " [" +
+  //       $(this).prop("min") +
+  //       "," +
+  //       $(this).prop("max") +
+  //       "]"
+  //   );
+  //   if (lastvolume !== null) {
+  //     let val = lastvolume.material.uniforms["u_renderthreshold"].value;
+  //     lastvolume.material.uniforms["u_renderthreshold"].value = parseFloat(
+  //       $(this).val()
+  //     );
+  //     renderer.updateComplete = false;
+  //   }
+  // });
+
+  // $("#mip-radio-button").on("change", function () {
+  //   if (lastvolume !== null) {
+  //     const unfs = lastvolume.material.uniforms;
+  //     lastvolume.material = new THREE.ShaderMaterial({
+  //       uniforms: THREE.UniformsUtils.clone(MipRenderShader.uniforms),
+  //       vertexShader: MipRenderShader.vertexShader,
+  //       fragmentShader: MipRenderShader.fragmentShader,
+  //       side: THREE.BackSide,
+  //     });
+  //     lastvolume.material.uniforms = unfs;
+  //     renderer.updateComplete = false;
+  //   }
+  // });
+
+  // $("#iso-radio-button").on("change", function () {
+  //   if (lastvolume !== null) {
+  //     const unfs = lastvolume.material.uniforms;
+  //     lastvolume.material = new THREE.ShaderMaterial({
+  //       uniforms: THREE.UniformsUtils.clone(IsoRenderShader.uniforms),
+  //       vertexShader: IsoRenderShader.vertexShader,
+  //       fragmentShader: IsoRenderShader.fragmentShader,
+  //       side: THREE.BackSide,
+  //     });
+  //     lastvolume.material.uniforms = unfs;
+  //     renderer.updateComplete = false;
+  //   }
+  // });
+
+  // $("#interp-radio-button").on("change", function () {
+  //   if (lastvolume !== null) {
+  //     const unfs = lastvolume.material.uniforms;
+  //     lastvolume.material = new THREE.RawShaderMaterial(InterpRenderShader());
+  //     lastvolume.material.uniforms = unfs;
+  //     lastvolume.material.uniforms.cameraPos.value.copy(camera.position);
+  //     renderer.updateComplete = false;
+  //   }
+  // });
+
+  // $("#cross-x-low").on("input", function () {
+  //   setcrosssectionsizes(this);
+  // });
+
+  // $("#cross-y-low").on("input", function () {
+  //   setcrosssectionsizes(this);
+  // });
+
+  // $("#cross-z-low").on("input", function () {
+  //   setcrosssectionsizes(this);
+  // });
+
+  // $("#cross-x-hi").on("input", function () {
+  //   setcrosssectionsizes(this);
+  // });
+
+  // $("#cross-y-hi").on("input", function () {
+  //   setcrosssectionsizes(this);
+  // });
+
+  // $("#cross-z-hi").on("input", function () {
+  //   setcrosssectionsizes(this);
+  // });
+
+  // $("#x_thickness, #y_thickness, #z_thickness").on("input", function () {
+  //   let eid = $(this).attr("id");
+  //   let linkedeid1 = eid.replace(/_thickness/, "-low").replace(/^/, "cross-");
+  //   let linkedeid2 = eid.replace(/_thickness/, "-hi").replace(/^/, "cross-");
+  //   if ($(this).val() == 0) {
+  //     $("#" + linkedeid1).val(0);
+  //     $("#" + linkedeid2).val(1);
+  //   } else {
+  //     $("#" + linkedeid1).val(
+  //       ($("#" + linkedeid1).val() + $("#" + linkedeid2).val()) * 0.5
+  //     );
+  //   }
+  //   setcrosssectionsizes($("#" + linkedeid1));
+  // });
+
+  // $("#pos-x-view").on("click", function () {
+  //   setControlAngles((Math.PI * 90) / 180, (Math.PI * 90) / 180);
+  //   renderer.updateComplete = false;
+  // });
+
+  // $("#neg-x-view").on("click", function () {
+  //   setControlAngles((Math.PI * 90) / 180, (Math.PI * 270) / 180);
+  // });
+
+  // $("#pos-y-view").on("click", function () {
+  //   setControlAngles((Math.PI * 90) / 180, (Math.PI * 180) / 180);
+  // });
+
+  // $("#neg-y-view").on("click", function () {
+  //   setControlAngles((Math.PI * 90) / 180, (Math.PI * 0) / 180);
+  // });
+
+  // $("#pos-z-view").on("click", function () {
+  //   setControlAngles(0, 0);
+  // });
+
+  // $("#neg-z-view").on("click", function () {
+  //   setControlAngles((Math.PI * 180) / 180, 0);
+  // });
+
+  $("#camera-near")
+    .off("input")
+    .on("input", function () {
+      camera.near = parseFloat($(this).val());
+      renderer.render(scene, camera);
+      controls.update();
+      renderer.updateComplete = false;
+    });
+
+  $("#camera-far")
+    .off("input")
+    .on("input", function () {
+      camera.far = parseFloat($(this).val());
+      renderer.render(scene, camera);
+      controls.update();
+      renderer.updateComplete = false;
+    });
+
+  $("#clim-low")
+    .off("input")
+    .on("input", function () {
+      $(this).prop(
+        "title",
+        "" +
+          $(this).val() +
+          " [" +
+          $(this).prop("min") +
+          "," +
+          $(this).prop("max") +
+          "]"
       );
-      renderer.updateComplete = false;
-    }
-  });
+      if (lastvolume !== null) {
+        let val = lastvolume.material.uniforms["u_clim"].value;
+        lastvolume.material.uniforms["u_clim"].value.set(
+          parseFloat($(this).val()),
+          val.y
+        );
+        renderer.updateComplete = false;
+      }
+    });
 
-  $("#clim-hi").on("input", function () {
-    $(this).prop(
-      "title",
-      "" +
-        $(this).val() +
-        " [" +
-        $(this).prop("min") +
-        "," +
-        $(this).prop("max") +
-        "]"
-    );
-    if (lastvolume !== null) {
-      let val = lastvolume.material.uniforms["u_clim"].value;
-      lastvolume.material.uniforms["u_clim"].value.set(
-        val.x,
-        parseFloat($(this).val())
+  $("#clim-hi")
+    .off("input")
+    .on("input", function () {
+      $(this).prop(
+        "title",
+        "" +
+          $(this).val() +
+          " [" +
+          $(this).prop("min") +
+          "," +
+          $(this).prop("max") +
+          "]"
       );
-      renderer.updateComplete = false;
-    }
-  });
+      if (lastvolume !== null) {
+        let val = lastvolume.material.uniforms["u_clim"].value;
+        lastvolume.material.uniforms["u_clim"].value.set(
+          val.x,
+          parseFloat($(this).val())
+        );
+        renderer.updateComplete = false;
+      }
+    });
 
-  $("#isothreshold").on("input", function () {
-    $(this).prop(
-      "title",
-      "" +
-        $(this).val() +
-        " [" +
-        $(this).prop("min") +
-        "," +
-        $(this).prop("max") +
-        "]"
-    );
-    if (lastvolume !== null) {
-      let val = lastvolume.material.uniforms["u_renderthreshold"].value;
-      lastvolume.material.uniforms["u_renderthreshold"].value = parseFloat(
-        $(this).val()
+  $("#isothreshold")
+    .off("input")
+    .on("input", function () {
+      $(this).prop(
+        "title",
+        "" +
+          $(this).val() +
+          " [" +
+          $(this).prop("min") +
+          "," +
+          $(this).prop("max") +
+          "]"
       );
+      if (lastvolume !== null) {
+        lastvolume.material.uniforms["u_renderthreshold"].value = parseFloat(
+          $(this).val()
+        );
+        renderer.updateComplete = false;
+      }
+    });
+
+  $("#mip-radio-button")
+    .off("change")
+    .on("change", function () {
+      if (lastvolume !== null) {
+        const unfs = lastvolume.material.uniforms;
+        lastvolume.material = new THREE.ShaderMaterial({
+          uniforms: THREE.UniformsUtils.clone(MipRenderShader.uniforms),
+          vertexShader: MipRenderShader.vertexShader,
+          fragmentShader: MipRenderShader.fragmentShader,
+          side: THREE.BackSide,
+        });
+        lastvolume.material.uniforms = unfs;
+        renderer.updateComplete = false;
+      }
+    });
+
+  $("#iso-radio-button")
+    .off("change")
+    .on("change", function () {
+      if (lastvolume !== null) {
+        const unfs = lastvolume.material.uniforms;
+        lastvolume.material = new THREE.ShaderMaterial({
+          uniforms: THREE.UniformsUtils.clone(IsoRenderShader.uniforms),
+          vertexShader: IsoRenderShader.vertexShader,
+          fragmentShader: IsoRenderShader.fragmentShader,
+          side: THREE.BackSide,
+        });
+        lastvolume.material.uniforms = unfs;
+        renderer.updateComplete = false;
+      }
+    });
+
+  $("#interp-radio-button")
+    .off("change")
+    .on("change", function () {
+      if (lastvolume !== null) {
+        const unfs = lastvolume.material.uniforms;
+        lastvolume.material = new THREE.RawShaderMaterial(InterpRenderShader());
+        lastvolume.material.uniforms = unfs;
+        lastvolume.material.uniforms.cameraPos.value.copy(camera.position);
+        renderer.updateComplete = false;
+      }
+    });
+
+  $("#cross-x-low")
+    .off("input")
+    .on("input", function () {
+      setcrosssectionsizes(this);
+    });
+  $("#cross-y-low")
+    .off("input")
+    .on("input", function () {
+      setcrosssectionsizes(this);
+    });
+  $("#cross-z-low")
+    .off("input")
+    .on("input", function () {
+      setcrosssectionsizes(this);
+    });
+  $("#cross-x-hi")
+    .off("input")
+    .on("input", function () {
+      setcrosssectionsizes(this);
+    });
+  $("#cross-y-hi")
+    .off("input")
+    .on("input", function () {
+      setcrosssectionsizes(this);
+    });
+  $("#cross-z-hi")
+    .off("input")
+    .on("input", function () {
+      setcrosssectionsizes(this);
+    });
+
+  $("#x_thickness, #y_thickness, #z_thickness")
+    .off("input")
+    .on("input", function () {
+      let eid = $(this).attr("id");
+      let linkedeid1 = eid.replace(/_thickness/, "-low").replace(/^/, "cross-");
+      let linkedeid2 = eid.replace(/_thickness/, "-hi").replace(/^/, "cross-");
+      if ($(this).val() == 0) {
+        $("#" + linkedeid1).val(0);
+        $("#" + linkedeid2).val(1);
+      } else {
+        $("#" + linkedeid1).val(
+          ($("#" + linkedeid1).val() + $("#" + linkedeid2).val()) * 0.5
+        );
+      }
+      setcrosssectionsizes($("#" + linkedeid1));
+    });
+
+  $("#pos-x-view")
+    .off("click")
+    .on("click", function () {
+      setControlAngles((Math.PI * 90) / 180, (Math.PI * 90) / 180);
       renderer.updateComplete = false;
-    }
-  });
+    });
+  $("#neg-x-view")
+    .off("click")
+    .on("click", function () {
+      setControlAngles((Math.PI * 90) / 180, (Math.PI * 270) / 180);
+    });
+  $("#pos-y-view")
+    .off("click")
+    .on("click", function () {
+      setControlAngles((Math.PI * 90) / 180, (Math.PI * 180) / 180);
+    });
+  $("#neg-y-view")
+    .off("click")
+    .on("click", function () {
+      setControlAngles((Math.PI * 90) / 180, (Math.PI * 0) / 180);
+    });
+  $("#pos-z-view")
+    .off("click")
+    .on("click", function () {
+      setControlAngles(0, 0);
+    });
+  $("#neg-z-view")
+    .off("click")
+    .on("click", function () {
+      setControlAngles((Math.PI * 180) / 180, 0);
+    });
 
-  $("#mip-radio-button").on("change", function () {
-    if (lastvolume !== null) {
-      const unfs = lastvolume.material.uniforms;
-      lastvolume.material = new THREE.ShaderMaterial({
-        uniforms: THREE.UniformsUtils.clone(MipRenderShader.uniforms),
-        vertexShader: MipRenderShader.vertexShader,
-        fragmentShader: MipRenderShader.fragmentShader,
-        side: THREE.BackSide,
-      });
-      lastvolume.material.uniforms = unfs;
-      renderer.updateComplete = false;
-    }
-  });
-
-  $("#iso-radio-button").on("change", function () {
-    if (lastvolume !== null) {
-      const unfs = lastvolume.material.uniforms;
-      lastvolume.material = new THREE.ShaderMaterial({
-        uniforms: THREE.UniformsUtils.clone(IsoRenderShader.uniforms),
-        vertexShader: IsoRenderShader.vertexShader,
-        fragmentShader: IsoRenderShader.fragmentShader,
-        side: THREE.BackSide,
-      });
-      lastvolume.material.uniforms = unfs;
-      renderer.updateComplete = false;
-    }
-  });
-
-  $("#interp-radio-button").on("change", function () {
-    if (lastvolume !== null) {
-      const unfs = lastvolume.material.uniforms;
-      lastvolume.material = new THREE.RawShaderMaterial(InterpRenderShader());
-      lastvolume.material.uniforms = unfs;
-      lastvolume.material.uniforms.cameraPos.value.copy(camera.position);
-      renderer.updateComplete = false;
-    }
-  });
-
-  $("#cross-x-low").on("input", function () {
-    setcrosssectionsizes(this);
-  });
-
-  $("#cross-y-low").on("input", function () {
-    setcrosssectionsizes(this);
-  });
-
-  $("#cross-z-low").on("input", function () {
-    setcrosssectionsizes(this);
-  });
-
-  $("#cross-x-hi").on("input", function () {
-    setcrosssectionsizes(this);
-  });
-
-  $("#cross-y-hi").on("input", function () {
-    setcrosssectionsizes(this);
-  });
-
-  $("#cross-z-hi").on("input", function () {
-    setcrosssectionsizes(this);
-  });
-
-  $("#x_thickness, #y_thickness, #z_thickness").on("input", function () {
-    let eid = $(this).attr("id");
-    let linkedeid1 = eid.replace(/_thickness/, "-low").replace(/^/, "cross-");
-    let linkedeid2 = eid.replace(/_thickness/, "-hi").replace(/^/, "cross-");
-    if ($(this).val() == 0) {
-      $("#" + linkedeid1).val(0);
-      $("#" + linkedeid2).val(1);
-    } else {
-      $("#" + linkedeid1).val(
-        ($("#" + linkedeid1).val() + $("#" + linkedeid2).val()) * 0.5
+  $("#cross-t")
+    .off("mouseup")
+    .on("mouseup", function () {
+      $(this).prop(
+        "title",
+        "" +
+          $(this).val() +
+          " [" +
+          $(this).prop("min") +
+          "," +
+          $(this).prop("max") +
+          "]"
       );
-    }
-    setcrosssectionsizes($("#" + linkedeid1));
-  });
-
-  $("#pos-x-view").on("click", function () {
-    setControlAngles((Math.PI * 90) / 180, (Math.PI * 90) / 180);
-    renderer.updateComplete = false;
-  });
-
-  $("#neg-x-view").on("click", function () {
-    setControlAngles((Math.PI * 90) / 180, (Math.PI * 270) / 180);
-  });
-
-  $("#pos-y-view").on("click", function () {
-    setControlAngles((Math.PI * 90) / 180, (Math.PI * 180) / 180);
-  });
-
-  $("#neg-y-view").on("click", function () {
-    setControlAngles((Math.PI * 90) / 180, (Math.PI * 0) / 180);
-  });
-
-  $("#pos-z-view").on("click", function () {
-    setControlAngles(0, 0);
-  });
-
-  $("#neg-z-view").on("click", function () {
-    setControlAngles((Math.PI * 180) / 180, 0);
-  });
+      if (lastvolume !== null && lastvolumedata !== undefined) {
+        let dim = lastvolumedim;
+        let offset =
+          Math.min($(this).val(), dim[3] - 2) * dim[0] * dim[1] * dim[2];
+        let texture = new THREE.Data3DTexture(
+          lastvolumedata.selection.data.slice(
+            offset - 1,
+            offset + dim[0] * dim[1] * dim[2] - 1
+          ),
+          dim[0],
+          dim[1],
+          dim[2]
+        );
+        texture.format = THREE.RedFormat;
+        texture.type = texture_dtype[lastvolumedata.dtype];
+        texture.minFilter = texture.magFilter = THREE.LinearFilter;
+        texture.unpackAlignment = 1;
+        texture.needsUpdate = true;
+        lastvolume.material.uniforms["u_data"].value = texture;
+        renderer.updateComplete = false;
+      }
+    });
 
   $("#cross-t").on("mouseup", function () {
     $(this).prop(

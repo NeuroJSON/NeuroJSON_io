@@ -18,6 +18,9 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v3
 
+      - name: Check IP
+        run: curl https://api.ipify.org
+
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 

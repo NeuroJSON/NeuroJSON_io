@@ -1,11 +1,13 @@
 import { Colors } from "design/theme";
+import { getTypeSuggestions } from "./typesByModality";
 
 // Controls the background highlight of selected fields
 // Controls the visibility of subject-level filters
 export const generateUiSchema = (
   formData: Record<string, any>,
   showSubjectFilters: boolean,
-  showDatasetFilters: boolean
+  showDatasetFilters: boolean,
+  fileTypeOptions: string[] = []
 ) => {
   const activeStyle = {
     "ui:options": {
@@ -15,13 +17,11 @@ export const generateUiSchema = (
     },
   };
 
-  // hide subject-level filter
+  // Fully remove a field from the rendered DOM (keeps its value in formData).
+  // Using ui:widget: "hidden" produces just an <input type="hidden">, so no
+  // empty Grid row + margin is left behind — fixes the big gap between rows.
   const invisibleStyle = {
-    "ui:options": {
-      style: {
-        display: "none",
-      },
-    },
+    "ui:widget": "hidden",
   };
 
   const hiddenStyle = {
@@ -50,19 +50,27 @@ export const generateUiSchema = (
       "dataset_filters_toggle", // button first
       "database",
       "keyword",
+      "file_type", // dataset-level: filters by file extensions in iolinks
+      "dataset_modality_filter", // dataset-level: modality multi-select + AND/OR
+      "modalities",
+      "modality_mode",
       "subject_filters_toggle",
+      "age_range_slider", // top of subject filters — range slider for age
       "modality",
+      "type_name", // sits right after modality — its options depend on it
       "gender",
-      "age_min",
+      "age_min", // hidden via invisibleStyle; written by the slider above
       "age_max",
+      "sess_count_range", // sessions min/max on one row
       "sess_min",
       "sess_max",
+      "task_count_range", // tasks min/max on one row
       "task_min",
       "task_max",
+      "run_count_range", // runs min/max on one row
       "run_min",
       "run_max",
       "task_name",
-      "type_name",
       "session_name",
       "run_name",
       "limit",
@@ -87,6 +95,25 @@ export const generateUiSchema = (
     //   dataset: formData["dataset"] ? activeStyle : {},
     //   limit: formData["limit"] ? activeStyle : {},
     //   skip: formData["skip"] ? activeStyle : {},
+    // File-type filter — dataset-level. Multi-select of file extensions
+    // present in iolinks (fetched dynamically via /api/v1/dbs/file-types).
+    file_type: showDatasetFilters
+      ? {
+          "ui:widget": "fileTypeAutocomplete",
+          "ui:options": {
+            fileTypes: fileTypeOptions,
+            ...(Array.isArray(formData["file_type"]) &&
+            formData["file_type"].length > 0
+              ? { style: { backgroundColor: Colors.lightBlue } }
+              : {}),
+          },
+        }
+      : datasetHiddenStyle,
+    dataset_modality_filter: showDatasetFilters
+      ? { "ui:field": "datasetModalityFilter" }
+      : datasetHiddenStyle,
+    modalities: invisibleStyle,
+    modality_mode: invisibleStyle,
     limit: invisibleStyle,
     skip: invisibleStyle,
 
@@ -100,16 +127,14 @@ export const generateUiSchema = (
         : {}
       : hiddenStyle,
 
-    age_min: showSubjectFilters
-      ? formData["age_min"]
-        ? activeStyle
-        : {}
+    // Age range — slider lives inside the form via the AgeRangeSliderField
+    // stable component. age_min/age_max stay in the schema (so the backend
+    // gets them on submit) but their default numeric inputs are hidden.
+    age_range_slider: showSubjectFilters
+      ? { "ui:field": "ageRangeSlider" }
       : hiddenStyle,
-    age_max: showSubjectFilters
-      ? formData["age_max"]
-        ? activeStyle
-        : {}
-      : hiddenStyle,
+    age_min: invisibleStyle,
+    age_max: invisibleStyle,
 
     gender: showSubjectFilters
       ? formData["gender"] && formData["gender"] !== "any"
@@ -117,58 +142,76 @@ export const generateUiSchema = (
         : {}
       : hiddenStyle,
 
-    sess_min: showSubjectFilters
-      ? formData["sess_min"]
-        ? activeStyle
-        : {}
+    // Session / task / run min+max pairs are rendered by a single
+    // CountRangePairField each. The raw integer inputs are hidden but stay in
+    // formData so the backend still receives them on submit.
+    sess_count_range: showSubjectFilters
+      ? {
+          "ui:field": "countRangePair",
+          "ui:options": {
+            minKey: "sess_min",
+            maxKey: "sess_max",
+            label: "sessions",
+          },
+        }
       : hiddenStyle,
-    sess_max: showSubjectFilters
-      ? formData["sess_max"]
-        ? activeStyle
-        : {}
-      : hiddenStyle,
+    sess_min: invisibleStyle,
+    sess_max: invisibleStyle,
 
-    task_min: showSubjectFilters
-      ? formData["task_min"]
-        ? activeStyle
-        : {}
+    task_count_range: showSubjectFilters
+      ? {
+          "ui:field": "countRangePair",
+          "ui:options": {
+            minKey: "task_min",
+            maxKey: "task_max",
+            label: "tasks",
+          },
+        }
       : hiddenStyle,
-    task_max: showSubjectFilters
-      ? formData["task_max"]
-        ? activeStyle
-        : {}
-      : hiddenStyle,
+    task_min: invisibleStyle,
+    task_max: invisibleStyle,
 
-    run_min: showSubjectFilters
-      ? formData["run_min"]
-        ? activeStyle
-        : {}
+    run_count_range: showSubjectFilters
+      ? {
+          "ui:field": "countRangePair",
+          "ui:options": {
+            minKey: "run_min",
+            maxKey: "run_max",
+            label: "runs",
+          },
+        }
       : hiddenStyle,
-    run_max: showSubjectFilters
-      ? formData["run_max"]
-        ? activeStyle
-        : {}
-      : hiddenStyle,
+    run_min: invisibleStyle,
+    run_max: invisibleStyle,
 
     task_name: showSubjectFilters
-      ? formData["task_name"]
-        ? activeStyle
-        : {}
+      ? {
+          "ui:placeholder": "e.g. rest, motor",
+          ...(formData["task_name"] ? activeStyle : {}),
+        }
       : hiddenStyle,
     type_name: showSubjectFilters
-      ? formData["type_name"]
-        ? activeStyle
-        : {}
+      ? {
+          "ui:widget": "typeAutocomplete",
+          "ui:options": {
+            suggestions: getTypeSuggestions(formData.modality),
+            ...(formData["type_name"]
+              ? { style: { backgroundColor: Colors.lightBlue } }
+              : {}),
+          },
+        }
       : hiddenStyle,
     session_name: showSubjectFilters
-      ? formData["session_name"]
-        ? activeStyle
-        : {}
+      ? {
+          "ui:placeholder": "e.g. 01, pre, baseline",
+          ...(formData["session_name"] ? activeStyle : {}),
+        }
       : hiddenStyle,
     run_name: showSubjectFilters
-      ? formData["run_name"]
-        ? activeStyle
-        : {}
+      ? {
+          "ui:placeholder": "e.g. 01, 02",
+          ...(formData["run_name"] ? activeStyle : {}),
+        }
       : hiddenStyle,
 
     "ui:submitButtonOptions": {

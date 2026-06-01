@@ -45,7 +45,7 @@ export const loadPaginatedData = createAsyncThunk(
         return rejectWithValue("No more data to load.");
       }
 
-      response.rows = response.rows.map((row) => ({
+      response.rows = response.rows.map((row: any) => ({
         ...row,
         dbName,
       }));
@@ -105,6 +105,19 @@ export const fetchMetadataSearchResults = createAsyncThunk(
       return data;
     } catch (error: any) {
       return rejectWithValue("Failed to fetch metadata search results");
+    }
+  }
+);
+
+// distinct iolinks file extensions — populates the "File types" multi-select
+export const fetchFileTypes = createAsyncThunk(
+  "neurojson/fetchFileTypes",
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await NeurojsonService.getFileTypes();
+      return data;
+    } catch (error: any) {
+      return rejectWithValue("Failed to fetch file types");
     }
   }
 );
