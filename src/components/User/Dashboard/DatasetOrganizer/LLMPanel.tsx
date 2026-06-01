@@ -13,6 +13,7 @@ import {
   Download,
   AutoAwesome,
   DriveFileMove,
+  InfoOutlined,
 } from "@mui/icons-material";
 import {
   Box,
@@ -27,6 +28,7 @@ import {
   CircularProgress,
   IconButton,
   Alert,
+  Tooltip,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import { dump as yamlDump } from "js-yaml";
@@ -46,6 +48,7 @@ interface LLMPanelProps {
   setTrioGenerated: (value: boolean) => void; // ✅ Add
   updateFiles: (updater: React.SetStateAction<FileItem[]>) => void; // ✅ Add
   onClose: () => void;
+  isPrivateMode?: boolean;
 }
 
 interface LLMProvider {
@@ -59,46 +62,61 @@ interface LLMProvider {
 
 const llmProviders: Record<string, LLMProvider> = {
   ollama: {
-    name: "Ollama (Local Server)",
-    // baseUrl: "http://localhost:11434/v1/chat/completions",
+    name: "Ollama (NeuroJSON Server)",
     baseUrl: "",
     models: [
-      { id: "qwen3-coder-next:latest", name: "Qwen 3 Coder Next" },
-      { id: "qwen3-coder-careful:latest", name: "Qwen 3 Coder Careful" },
-      { id: "qwen3.5:9b", name: "Qwen 3.5 9B" },
-      { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder (7.6B)" },
-      { id: "qwen2.5-coder:7b", name: "Qwen 2.5 Coder 7B" },
+      { id: "qwen3.6:27b", name: "Qwen 3.6 27B" },
+      // { id: "qwen3-coder-next:latest", name: "Qwen 3 Coder Next" },
+      // { id: "qwen3-coder-careful:latest", name: "Qwen 3 Coder Careful" },
+      // { id: "qwen3.5:9b", name: "Qwen 3.5 9B" },
+      // { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder (7.6B)" },
+      // { id: "qwen2.5-coder:7b", name: "Qwen 2.5 Coder 7B" },
     ],
     noApiKey: true,
-    // customUrl: true,
+  },
+  "local-ollama": {
+    name: "Local AI (Ollama / LM Studio / Jan)",
+    baseUrl: "http://localhost:11434/v1/chat/completions",
+    models: [
+      { id: "llama3.2:latest", name: "Llama 3.2 (Ollama)" },
+      { id: "llama3.1:latest", name: "Llama 3.1 (Ollama)" },
+      { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder (Ollama)" },
+      { id: "mistral:latest", name: "Mistral (Ollama)" },
+      { id: "gemma3:latest", name: "Gemma 3 (Ollama)" },
+      { id: "llama-3.2-3b-instruct", name: "Llama 3.2 3B (LM Studio)" },
+      { id: "llama-3.1-8b-instruct", name: "Llama 3.1 8B (LM Studio)" },
+      { id: "mistral-7b-instruct-v0.3", name: "Mistral 7B (LM Studio)" },
+      { id: "llama3.2:3b", name: "Llama 3.2 3B (Jan)" },
+      { id: "mistral:7b", name: "Mistral 7B (Jan)" },
+    ],
+    noApiKey: true,
   },
   groq: {
     name: "Groq (Free API Key - 14,400 req/day)",
     baseUrl: "https://api.groq.com/openai/v1/chat/completions",
     models: [
       { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B" },
+      { id: "llama-3.1-70b-versatile", name: "Llama 3.1 70B" },
       { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B (Fast)" },
-      { id: "mixtral-8x7b-32768", name: "Mixtral 8x7B" },
+      { id: "gemma2-9b-it", name: "Gemma 2 9B" },
     ],
   },
   openrouter: {
     name: "OpenRouter (Free models available)",
     baseUrl: "https://openrouter.ai/api/v1/chat/completions",
     models: [
-      {
-        id: "meta-llama/llama-3.1-8b-instruct:free",
-        name: "Llama 3.1 8B (Free)",
-      },
-      { id: "google/gemma-2-9b-it:free", name: "Gemma 2 9B (Free)" },
-      { id: "mistralai/mistral-7b-instruct:free", name: "Mistral 7B (Free)" },
+      { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B (Free)" },
+      { id: "google/gemma-3n-e4b-it:free", name: "Gemma 3n 4B (Free)" },
+      { id: "mistralai/mistral-small-3.2-24b-instruct:free", name: "Mistral Small 3.2 24B (Free)" },
     ],
   },
   anthropic: {
     name: "Anthropic Claude (Paid)",
     baseUrl: "https://api.anthropic.com/v1/messages",
     models: [
-      { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4" },
-      { id: "claude-3-5-haiku-20241022", name: "Claude 3.5 Haiku" },
+      { id: "claude-opus-4-7", name: "Claude Opus 4.7" },
+      { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6" },
+      { id: "claude-haiku-4-5-20251001", name: "Claude Haiku 4.5" },
     ],
     isAnthropic: true,
   },
@@ -106,8 +124,11 @@ const llmProviders: Record<string, LLMProvider> = {
     name: "OpenAI (Paid)",
     baseUrl: "https://api.openai.com/v1/chat/completions",
     models: [
-      { id: "gpt-4o-mini", name: "GPT-4o Mini" },
+      { id: "gpt-5.5", name: "GPT-5.5" },
+      { id: "gpt-5.4", name: "GPT-5.4" },
+      { id: "gpt-5.4-mini", name: "GPT-5.4 Mini" },
       { id: "gpt-4o", name: "GPT-4o" },
+      { id: "gpt-4o-mini", name: "GPT-4o Mini" },
     ],
   },
 };
@@ -122,9 +143,11 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   setTrioGenerated, // ✅ Add
   updateFiles, // ✅ Add
   onClose,
+  isPrivateMode = false,
 }) => {
-  const [provider, setProvider] = useState<string>("ollama");
-  const [model, setModel] = useState<string>("qwen3-coder-next:latest");
+  const [provider, setProvider] = useState<string>(isPrivateMode ? "local-ollama" : "ollama");
+  const [model, setModel] = useState<string>(isPrivateMode ? "llama3.2:latest" : "qwen3-coder-next:latest");
+  const [localOllamaUrl, setLocalOllamaUrl] = useState<string>("http://localhost:11434");
   // const [ollamaUrl, setOllamaUrl] = useState<string>(
   //   "http://jin.neu.edu:11434"
   // );
@@ -154,7 +177,9 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     provider,
     model,
     apiKey,
-    baseUrl: currentProvider.baseUrl,
+    baseUrl: provider === "local-ollama"
+      ? `${localOllamaUrl}/v1/chat/completions`
+      : currentProvider.baseUrl,
     isAnthropic: currentProvider.isAnthropic,
     noApiKey: currentProvider.noApiKey,
   });
@@ -212,6 +237,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     setAbortController(controller);
     setGeneratingTrio(true);
     setError(null);
+    setBidsPlan("");
     setStatus("Generating BIDS trio files...");
 
     try {
@@ -286,7 +312,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
 
       setTrioGenerated(true);
       setStatus(
-        "✓ BIDS trio files generated and added to Virtual File System!"
+        "✓ BIDS metadata files generated and added to file tree!"
       );
     } catch (err: any) {
       if (err.name === "AbortError") {
@@ -1100,7 +1126,10 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   const handleSaveZip = async () => {
     // Add output files to VFS
     const timestamp = new Date().toLocaleString();
-    const zipLabel = `bids_output_${new Date().toISOString().slice(0, 10)}`;
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, "-");
+    const zipLabel = `bids_output_${dateStr}_${timeStr}`;
     const outputFiles: FileItem[] = [];
 
     const folderId = generateId();
@@ -1208,7 +1237,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     });
 
     updateFiles((prev) => [...prev, ...outputFiles]);
-    setStatus("✓ Saved to VFS. Click 'Save Changes' to persist to database.");
+    setStatus(isPrivateMode ? "✓ Added to file tree." : "✓ Added to file tree. Click 'Save Changes' to persist to database.");
   };
   // const handleSaveZip = async () => {
   //   const zip = new JSZip();
@@ -1350,7 +1379,38 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           sx={{ display: "flex", alignItems: "center", gap: 1 }}
         >
           <AutoAwesome sx={{ color: Colors.purple }} />
-          AI-Generated BIDS Conversion Script
+          AI Assistant
+          <Tooltip
+            title="Fill in the required fields and follow the steps to get a downloadable BIDS conversion plan."
+            placement="bottom-start"
+            arrow
+            componentsProps={{
+              tooltip: {
+                sx: {
+                  backgroundColor: "white",
+                  color: Colors.darkPurple,
+                  border: `1px solid ${Colors.lightGray}`,
+                  boxShadow: 3,
+                  fontSize: "0.875rem",
+                  lineHeight: 1.5,
+                  p: 1.5,
+                  maxWidth: 320,
+                },
+              },
+              arrow: {
+                sx: {
+                  color: "white",
+                  "&::before": {
+                    border: `1px solid ${Colors.lightGray}`,
+                  },
+                },
+              },
+            }}
+          >
+            <IconButton size="small" sx={{ color: Colors.purple, p: 0 }}>
+              <InfoOutlined fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Typography>
         <IconButton onClick={onClose} size="small">
           <Close />
@@ -1379,14 +1439,23 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 setModel(llmProviders[e.target.value].models[0].id);
               }}
             >
-              {Object.entries(llmProviders).map(([key, p]) => (
-                <MenuItem key={key} value={key}>
-                  {p.name}
-                </MenuItem>
-              ))}
+              {Object.entries(llmProviders)
+                .filter(([key]) => isPrivateMode ? key !== "ollama" : key !== "local-ollama")
+                .map(([key, p]) => (
+                  <MenuItem key={key} value={key}>
+                    {p.name}
+                  </MenuItem>
+                ))}
             </Select>
           </FormControl>
 
+          {provider === "ollama" && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: -1, mb: 2, display: "block" }}>
+              Using qwen3.6:27b on NeuroJSON server
+            </Typography>
+          )}
+
+          {provider !== "ollama" && (
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Model</InputLabel>
             <Select
@@ -1401,18 +1470,38 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               ))}
             </Select>
           </FormControl>
+          )}
 
-          {/* Ollama Server URL field */}
-          {/* {provider === "ollama" && (
+          {provider === "local-ollama" && (
             <TextField
               fullWidth
-              label="Ollama Server URL"
-              value={ollamaUrl}
-              onChange={(e) => setOllamaUrl(e.target.value)}
+              label="Custom Model Name (optional)"
+              placeholder="e.g. llama3:8b, phi3:mini, qwen2.5:7b"
+              helperText="Overrides the model selected above."
+              sx={{ mb: 2 }}
+              onChange={(e) => {
+                if (e.target.value.trim()) setModel(e.target.value.trim());
+              }}
+            />
+          )}
+
+          {isPrivateMode && provider !== "local-ollama" && (
+            <Alert severity="warning" sx={{ mb: 2, fontSize: "0.8rem" }}>
+              Your file information will be sent to <strong>{currentProvider.name}</strong>, an external AI service. Switch to <strong>Local AI (Ollama / LM Studio / Jan)</strong> to keep everything local.
+            </Alert>
+          )}
+
+          {provider === "local-ollama" && (
+            <TextField
+              fullWidth
+              label="Ollama URL"
+              value={localOllamaUrl}
+              onChange={(e) => setLocalOllamaUrl(e.target.value)}
               placeholder="http://localhost:11434"
+              helperText="Ollama: port 11434 · LM Studio: port 1234 · Jan: port 1337"
               sx={{ mb: 2 }}
             />
-          )} */}
+          )}
           {/* Base Directory Path field (shows for ALL providers) */}
           <TextField
             fullWidth
@@ -1567,8 +1656,8 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 {generatingTrio
                   ? "Generating..."
                   : trioGenerated
-                  ? "✓  2. Generate BIDS Trio"
-                  : "2. Generate BIDS Trio"}
+                  ? "✓  2. Generate BIDS Metadata Files"
+                  : "2. Generate BIDS Metadata Files"}
               </Button>
               {/* <Typography
                 variant="body2"
@@ -1599,7 +1688,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               "&.Mui-disabled": { background: "#e0e0e0", color: "#9e9e9e" },
             }}
           >
-            {loading ? "Generating..." : "3. Generate BIDSPlan.yaml"}
+            {loading ? "Generating..." : "3. Generate Conversion Package"}
           </Button>
 
           {/* <Button
@@ -1662,35 +1751,27 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         {/* Right: Generated Script */}
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", p: 2 }}>
           <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-            <Button
+            {/* <Button
               size="small"
               startIcon={<ContentCopy />}
-              // onClick={handleCopy}
-              // disabled={!generatedScript}
               onClick={() =>
                 navigator.clipboard.writeText(bidsPlan || generatedScript)
               }
               disabled={!bidsPlan && !generatedScript}
             >
               Copy
-            </Button>
-            {/* <Button
-              size="small"
-              startIcon={<Download />}
-              // onClick={handleDownload}
-              // disabled={!generatedScript}
-              onClick={bidsPlan ? handleDownloadPlan : handleDownload}
-              disabled={!bidsPlan && !generatedScript}
-            >
-              {bidsPlan ? "Download BIDSPlan.yaml" : "Download Script"}
             </Button> */}
             <Button
               size="small"
               startIcon={<Download />}
               onClick={handleDownloadPackage}
               disabled={!bidsPlan && !generatingTrio}
+              sx={{
+                color: Colors.purple,
+                borderColor: Colors.purple,
+                "&:hover": { borderColor: Colors.purple },
+              }}
             >
-              {/* Download */}
               Download zip file for convert
             </Button>
             <Button
@@ -1698,9 +1779,13 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               startIcon={<DriveFileMove />}
               onClick={handleSaveZip}
               disabled={!bidsPlan || !trioGenerated}
-              sx={{ color: Colors.darkGreen, borderColor: Colors.darkGreen }}
+              sx={{
+                color: Colors.purple,
+                borderColor: Colors.purple,
+                "&:hover": { borderColor: Colors.purple },
+              }}
             >
-              Save to Virtual File System
+              Preview Conversion Package in File Tree
             </Button>
           </Box>
 
@@ -1716,11 +1801,13 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               color: "#d4d4d4",
             }}
           >
-            {/* {generatedScript ||
-              'Configure your LLM provider and click "Generate Script"...'} */}
-            {bidsPlan ||
-              generatedScript ||
-              'Configure your LLM provider and click "Generate BIDSPlan.yaml"...'}
+            {bidsPlan || generatedScript || (
+              <span style={{ color: status && !error ? "#9cdcfe" : "#aaaaaa" }}>
+                {status && !error
+                  ? status
+                  : 'Fill in the fields on the left and follow the steps to generate your conversion package...'}
+              </span>
+            )}
           </Paper>
         </Box>
       </Box>

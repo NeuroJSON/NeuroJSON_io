@@ -199,10 +199,10 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({ userId }) => {
       >
         <Box>
           <Typography variant="h6" gutterBottom>
-            Dataset Organizer Projects
+            AutoBIDSify Projects
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Organize and convert your neuroimaging datasets to BIDS format
+            Organize and convert your neuroimaging datasets to BIDS format using AutoBIDSify
           </Typography>
         </Box>
         <Button

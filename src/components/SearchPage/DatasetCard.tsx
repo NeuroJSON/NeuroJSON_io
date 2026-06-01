@@ -59,6 +59,18 @@ interface DatasetCardProps {
 }
 
 /** ---------- utility helpers ---------- **/
+// Some iolinks records (older openneuro links view) store a relative path like
+// "file=sub-01/anat/sub-01_T1w.nii&size=1" instead of a full stat.cgi URL.
+// Reconstruct the full URL so the browser can follow it.
+const resolveFileUrl = (
+  dbname: string,
+  dsname: string,
+  url?: string
+): string => {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  return `https://neurojson.org/io/stat.cgi?action=get&db=${dbname}&doc=${dsname}&${url}`;
+};
 const normalize = (s: string) =>
   s
     ?.replace(/[\u2018\u2019\u2032]/g, "'") // curly → straight
@@ -504,7 +516,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
                   return (
                     <li key={i}>
                       <MuiLink
-                        href={v.url}
+                        href={resolveFileUrl(dbname, dsname, v.url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         underline="hover"

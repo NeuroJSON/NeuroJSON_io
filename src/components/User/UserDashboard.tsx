@@ -24,6 +24,7 @@ import {
 import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AuthSelector } from "redux/auth/auth.selector";
 
 interface TabPanelProps {
@@ -48,12 +49,29 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+const TAB_INDEX: Record<string, number> = {
+  profile: 0,
+  security: 1,
+  collections: 2,
+  liked: 3,
+  projects: 4,
+  settings: 5,
+};
+
+const TAB_NAME = Object.fromEntries(
+  Object.entries(TAB_INDEX).map(([k, v]) => [v, k])
+) as Record<number, string>;
+
 const UserDashboard: React.FC = () => {
-  const [tabValue, setTabValue] = useState(0);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tabParam = new URLSearchParams(location.search).get("tab") ?? "";
+  const [tabValue, setTabValue] = useState(TAB_INDEX[tabParam] ?? 0);
   const { user } = useAppSelector(AuthSelector);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+    navigate(`/dashboard?tab=${TAB_NAME[newValue]}`, { replace: true });
   };
 
   if (!user) {

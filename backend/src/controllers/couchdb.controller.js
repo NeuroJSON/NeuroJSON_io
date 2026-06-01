@@ -513,7 +513,11 @@ const getDatasetFilesManifest = async (req, res) => {
       }
     );
 
-    const files = rows.filter((r) => r.url);
+    const resolveUrl = (url) => {
+      if (!url || url.startsWith("http")) return url;
+      return `https://neurojson.org/io/stat.cgi?action=get&db=${dbName}&doc=${dsName}&${url}`;
+    };
+    const files = rows.filter((r) => r.url).map((r) => ({ ...r, url: resolveUrl(r.url) }));
     const urls = files.map((r) => r.url);
     const baseName = `${dbName}_${dsName}_${exts.join("_")}`;
     const extLabel = exts.join(", ");
