@@ -8,7 +8,7 @@ import { FileItem } from "redux/projects/types/projects.interface";
 import * as XLSX from "xlsx";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js";
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
 
 export const generateId = (): string => {
   return Math.random().toString(36).substr(2, 9);
