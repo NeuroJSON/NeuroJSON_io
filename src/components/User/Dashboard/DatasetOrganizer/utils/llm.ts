@@ -123,11 +123,10 @@ export const callLLM = async (
 ): Promise<string> => {
   const { provider, model, apiKey, baseUrl, isAnthropic, noApiKey } = llmConfig;
 
-  // ── Qwen via Ollama proxy ─────────────────────────────────────────
-  // Mirrors _call_qwen() → _call_qwen_ollama() / _call_qwen_rest_api()
-  // Python supports local Ollama + REST API + DashScope.
-  // TS only supports the REST API proxy (OllamaService routes to jin.neu.edu:11434).
-  if (provider === "ollama" || isQwenModel(model)) {
+  // ── Backend Ollama proxy (save mode only) ─────────────────────────
+  // Routes to OllamaService → jin.neu.edu:11434.
+  // "local-ollama" falls through to the OpenAI-compatible block below.
+  if (provider === "ollama") {
     const temp = inferQwenTemperature(model, temperature);
     try {
       const res = await OllamaService.chat(
