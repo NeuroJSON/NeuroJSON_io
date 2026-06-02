@@ -14,6 +14,7 @@ import {
   AutoAwesome,
   DriveFileMove,
   InfoOutlined,
+  Refresh,
 } from "@mui/icons-material";
 import {
   Box,
@@ -172,6 +173,10 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   const [panelHeight, setPanelHeight] = useState<number>(450);
   const [isResizing, setIsResizing] = useState(false);
 
+  const [localModels, setLocalModels] = useState<Array<{ id: string; name: string }>>([]);
+  const [fetchingModels, setFetchingModels] = useState(false);
+  const [fetchModelsError, setFetchModelsError] = useState<string | null>(null);
+
   // Build LLMConfig for all helper calls — mirrors autobidsify CLI arg assembly
   const buildLLMConfig = (): LLMConfig => ({
     provider,
@@ -183,6 +188,27 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     isAnthropic: currentProvider.isAnthropic,
     noApiKey: currentProvider.noApiKey,
   });
+
+  const fetchLocalModels = async () => {
+    setFetchingModels(true);
+    setFetchModelsError(null);
+    try {
+      const res = await fetch(`${localOllamaUrl}/v1/models`);
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      const data = await res.json();
+      const models: Array<{ id: string; name: string }> = (data.data ?? []).map((m: any) => ({
+        id: m.id,
+        name: m.id,
+      }));
+      if (models.length === 0) throw new Error("No models found");
+      setLocalModels(models);
+      setModel(models[0].id);
+    } catch (e: any) {
+      setFetchModelsError("Could not fetch models — is your local AI running?");
+    } finally {
+      setFetchingModels(false);
+    }
+  };
 
   // ========================================================================
   // BUTTON 1: GENERATE EVIDENCE BUNDLE
@@ -1456,20 +1482,48 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           )}
 
           {provider !== "ollama" && (
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Model</InputLabel>
-            <Select
-              value={model}
-              label="Model"
-              onChange={(e) => setModel(e.target.value)}
-            >
-              {currentProvider.models.map((m) => (
-                <MenuItem key={m.id} value={m.id}>
-                  {m.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+            <FormControl fullWidth>
+              <InputLabel>Model</InputLabel>
+              <Select
+                value={model}
+                label="Model"
+                onChange={(e) => setModel(e.target.value)}
+              >
+                {(provider === "local-ai" && localModels.length > 0
+                  ? localModels
+                  : currentProvider.models
+                ).map((m) => (
+                  <MenuItem key={m.id} value={m.id}>
+                    {m.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {provider === "local-ai" && (
+              <Tooltip
+                title="Fetch installed models from your local AI"
+                componentsProps={{
+                  tooltip: {
+                    sx: {
+                      bgcolor: "white",
+                      color: Colors.darkPurple,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                    },
+                  },
+                }}
+              >
+                <span>
+                  <IconButton onClick={fetchLocalModels} disabled={fetchingModels} size="small">
+                    {fetchingModels ? <CircularProgress size={18} /> : <Refresh />}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+          </Box>
+          )}
+          {fetchModelsError && provider === "local-ai" && (
+            <Alert severity="warning" sx={{ mb: 2, fontSize: "0.8rem" }}>{fetchModelsError}</Alert>
           )}
 
           {provider === "local-ai" && (
