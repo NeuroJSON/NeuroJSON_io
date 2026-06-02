@@ -1494,7 +1494,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           {provider === "local-ollama" && (
             <TextField
               fullWidth
-              label="Ollama URL"
+              label="Local AI Base URL"
               value={localOllamaUrl}
               onChange={(e) => setLocalOllamaUrl(e.target.value)}
               placeholder="http://localhost:11434"
