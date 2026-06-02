@@ -125,7 +125,7 @@ export const callLLM = async (
 
   // ── Backend Ollama proxy (save mode only) ─────────────────────────
   // Routes to OllamaService → jin.neu.edu:11434.
-  // "local-ollama" falls through to the OpenAI-compatible block below.
+  // "local-ai" falls through to the OpenAI-compatible block below.
   if (provider === "ollama") {
     const temp = inferQwenTemperature(model, temperature);
     try {

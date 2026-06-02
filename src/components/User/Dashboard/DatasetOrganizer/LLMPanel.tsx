@@ -74,7 +74,7 @@ const llmProviders: Record<string, LLMProvider> = {
     ],
     noApiKey: true,
   },
-  "local-ollama": {
+  "local-ai": {
     name: "Local AI (Ollama / LM Studio / Jan)",
     baseUrl: "http://localhost:11434/v1/chat/completions",
     models: [
@@ -145,7 +145,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   onClose,
   isPrivateMode = false,
 }) => {
-  const [provider, setProvider] = useState<string>(isPrivateMode ? "local-ollama" : "ollama");
+  const [provider, setProvider] = useState<string>(isPrivateMode ? "local-ai" : "ollama");
   const [model, setModel] = useState<string>(isPrivateMode ? "llama3.2:latest" : "qwen3-coder-next:latest");
   const [localOllamaUrl, setLocalOllamaUrl] = useState<string>("http://localhost:11434");
   // const [ollamaUrl, setOllamaUrl] = useState<string>(
@@ -177,7 +177,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
     provider,
     model,
     apiKey,
-    baseUrl: provider === "local-ollama"
+    baseUrl: provider === "local-ai"
       ? `${localOllamaUrl}/v1/chat/completions`
       : currentProvider.baseUrl,
     isAnthropic: currentProvider.isAnthropic,
@@ -1440,7 +1440,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               }}
             >
               {Object.entries(llmProviders)
-                .filter(([key]) => isPrivateMode ? key !== "ollama" : key !== "local-ollama")
+                .filter(([key]) => isPrivateMode ? key !== "ollama" : key !== "local-ai")
                 .map(([key, p]) => (
                   <MenuItem key={key} value={key}>
                     {p.name}
@@ -1472,7 +1472,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           </FormControl>
           )}
 
-          {provider === "local-ollama" && (
+          {provider === "local-ai" && (
             <TextField
               fullWidth
               label="Custom Model Name (optional)"
@@ -1485,13 +1485,13 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             />
           )}
 
-          {isPrivateMode && provider !== "local-ollama" && (
+          {isPrivateMode && provider !== "local-ai" && (
             <Alert severity="warning" sx={{ mb: 2, fontSize: "0.8rem" }}>
               Your file information will be sent to <strong>{currentProvider.name}</strong>, an external AI service. Switch to <strong>Local AI (Ollama / LM Studio / Jan)</strong> to keep everything local.
             </Alert>
           )}
 
-          {provider === "local-ollama" && (
+          {provider === "local-ai" && (
             <TextField
               fullWidth
               label="Local AI Base URL"
