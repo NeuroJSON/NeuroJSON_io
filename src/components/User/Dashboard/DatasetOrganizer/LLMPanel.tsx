@@ -78,16 +78,23 @@ const llmProviders: Record<string, LLMProvider> = {
     name: "Local AI (Ollama / LM Studio / Jan)",
     baseUrl: "http://localhost:11434/v1/chat/completions",
     models: [
-      { id: "llama3.2:latest", name: "Llama 3.2 (Ollama)" },
-      { id: "llama3.1:latest", name: "Llama 3.1 (Ollama)" },
-      { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder (Ollama)" },
-      { id: "mistral:latest", name: "Mistral (Ollama)" },
-      { id: "gemma3:latest", name: "Gemma 3 (Ollama)" },
-      { id: "llama-3.2-3b-instruct", name: "Llama 3.2 3B (LM Studio)" },
-      { id: "llama-3.1-8b-instruct", name: "Llama 3.1 8B (LM Studio)" },
-      { id: "mistral-7b-instruct-v0.3", name: "Mistral 7B (LM Studio)" },
-      { id: "llama3.2:3b", name: "Llama 3.2 3B (Jan)" },
-      { id: "mistral:7b", name: "Mistral 7B (Jan)" },
+      // Ollama
+      { id: "qwen3.5:latest", name: "Qwen3.5 (Ollama)" },
+      { id: "qwen3:latest", name: "Qwen3 (Ollama)" },
+      { id: "qwen3:30b", name: "Qwen3 30B (Ollama)" },
+      { id: "deepseek-r1:latest", name: "DeepSeek R1 (Ollama)" },
+      { id: "llama4:latest", name: "Llama 4 Scout (Ollama)" },
+      { id: "gemma4:latest", name: "Gemma 4 (Ollama)" },
+      { id: "gemma4:e4b", name: "Gemma 4 E4B — low RAM (Ollama)" },
+      { id: "gpt-oss:20b", name: "GPT-OSS 20B (Ollama)" },
+      { id: "qwen2.5-coder:32b", name: "Qwen2.5 Coder 32B (Ollama)" },
+      // LM Studio / Jan — use Custom Model Name field if ID differs
+      { id: "qwen3.5", name: "Qwen3.5 (LM Studio / Jan)" },
+      { id: "qwen3-coder-next", name: "Qwen3 Coder Next (LM Studio / Jan)" },
+      { id: "llama4-scout-17b", name: "Llama 4 Scout 17B (LM Studio / Jan)" },
+      { id: "deepseek-r1", name: "DeepSeek R1 (LM Studio / Jan)" },
+      { id: "gemma4", name: "Gemma 4 (LM Studio / Jan)" },
+      { id: "phi-4", name: "Phi-4 (LM Studio / Jan)" },
     ],
     noApiKey: true,
   },
@@ -146,7 +153,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   isPrivateMode = false,
 }) => {
   const [provider, setProvider] = useState<string>(isPrivateMode ? "local-ai" : "ollama");
-  const [model, setModel] = useState<string>(isPrivateMode ? "llama3.2:latest" : "qwen3-coder-next:latest");
+  const [model, setModel] = useState<string>(isPrivateMode ? "qwen3.5:latest" : "qwen3-coder-next:latest");
   const [localOllamaUrl, setLocalOllamaUrl] = useState<string>("http://localhost:11434");
   // const [ollamaUrl, setOllamaUrl] = useState<string>(
   //   "http://jin.neu.edu:11434"

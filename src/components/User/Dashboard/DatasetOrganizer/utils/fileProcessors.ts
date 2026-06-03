@@ -213,6 +213,51 @@ export const processFile = async (
 };
 
 // Process ZIP files
+// Builds a FileItem tree from File[] with webkitRelativePath (folder picker input)
+export const processFolderFromFiles = async (
+  files: File[],
+  basePath?: string
+): Promise<FileItem[]> => {
+  const allItems: FileItem[] = [];
+  const pathMap: Record<string, string> = {}; // folder path → id
+
+  const sorted = [...files].sort((a, b) =>
+    a.webkitRelativePath.localeCompare(b.webkitRelativePath)
+  );
+
+  for (const file of sorted) {
+    const relPath = file.webkitRelativePath || file.name;
+    const parts = relPath.split("/");
+
+    // Build folder hierarchy for each path segment except the filename
+    let parentId: string | null = null;
+    let currentPath = "";
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i];
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      if (!pathMap[currentPath]) {
+        const folderId = generateId();
+        pathMap[currentPath] = folderId;
+        allItems.push({
+          id: folderId,
+          name: part,
+          type: "folder",
+          parentId,
+          sourcePath: currentPath,
+        } as FileItem);
+      }
+      parentId = pathMap[currentPath];
+    }
+
+    // Process the file itself
+    const fileItem = await processFile(file, basePath);
+    fileItem.parentId = parentId;
+    allItems.push(fileItem);
+  }
+
+  return allItems;
+};
+
 export const processZip = async (
   file: File,
   basePath?: string
