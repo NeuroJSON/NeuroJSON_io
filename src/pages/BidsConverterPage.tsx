@@ -229,6 +229,24 @@ const BidsConverterPage: React.FC = () => {
 
         <Box display="flex" gap={1} alignItems="center">
           <Button
+            variant="outlined"
+            size="small"
+            startIcon={<GetApp />}
+            onClick={() => {
+              const ua = navigator.userAgent.toLowerCase();
+              const os = ua.includes("win") ? "windows" : ua.includes("linux") ? "linux" : "mac";
+              const urls: Record<string, string> = {
+                mac: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-mac.zip",
+                windows: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-windows.zip",
+                linux: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-linux.zip",
+              };
+              window.open(urls[os], "_blank");
+            }}
+            sx={{ borderColor: Colors.purple, color: Colors.purple, fontSize: "0.75rem" }}
+          >
+            Download Executor
+          </Button>
+          <Button
             variant="contained"
             startIcon={<Psychology />}
             onClick={() => setShowLLMPanel(!showLLMPanel)}
