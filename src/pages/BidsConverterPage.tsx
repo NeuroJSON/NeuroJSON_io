@@ -10,7 +10,6 @@ import {
   LockOutlined,
   CloudUpload,
   InfoOutlined,
-  Circle,
 } from "@mui/icons-material";
 import {
   Box,
@@ -24,8 +23,6 @@ import {
   ToggleButtonGroup,
   Tooltip,
   IconButton,
-  Chip,
-  CircularProgress,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
@@ -53,26 +50,6 @@ const BidsConverterPage: React.FC = () => {
   const [baseDirectoryPath, setBaseDirectoryPath] = useState<string>("");
   const [evidenceBundle, setEvidenceBundle] = useState<any>(null);
   const [trioGenerated, setTrioGenerated] = useState(false);
-
-  const [connectorStatus, setConnectorStatus] = useState<any>(null);
-  const [checkingConnector, setCheckingConnector] = useState(false);
-
-  const checkConnector = async () => {
-    setCheckingConnector(true);
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 3000);
-      const res = await fetch("http://localhost:3210/status", { signal: controller.signal });
-      clearTimeout(timer);
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setConnectorStatus(data);
-    } catch {
-      setConnectorStatus(null);
-    } finally {
-      setCheckingConnector(false);
-    }
-  };
 
   // After login succeeds in save mode, redirect to dashboard to create a project
   useEffect(() => {
@@ -251,45 +228,6 @@ const BidsConverterPage: React.FC = () => {
         </Box>
 
         <Box display="flex" gap={1} alignItems="center">
-          {connectorStatus ? (
-            <Tooltip
-              title={
-                <Box>
-                  <Typography variant="body2" fontWeight={600} mb={0.5}>AutoBIDSify Connector v{connectorStatus.version}</Typography>
-                  {[
-                    { label: "Local AI", ok: connectorStatus.capabilities?.localAI, yes: `${connectorStatus.tools?.localAI?.provider || "Local AI"} connected`, no: "Local AI not running" },
-                    { label: "DICOM conversion", ok: connectorStatus.capabilities?.dicomConversion, yes: "dcm2niix available", no: "dcm2niix not installed" },
-                    { label: "Validation", ok: connectorStatus.capabilities?.validation, yes: "bids-validator available", no: "bids-validator not installed" },
-                  ].map(({ label, ok, yes, no }) => (
-                    <Typography key={label} variant="body2">
-                      <Box component="span" sx={{ color: ok ? "#4caf50" : "#9e9e9e", mr: 0.5 }}>{ok ? "✓" : "–"}</Box>
-                      {label}: {ok ? yes : no}
-                    </Typography>
-                  ))}
-                </Box>
-              }
-              componentsProps={{ tooltip: { sx: { bgcolor: "white", color: Colors.darkPurple, boxShadow: "0 2px 8px rgba(0,0,0,0.15)" } } }}
-            >
-              <Chip
-                icon={<Circle sx={{ fontSize: "10px !important", color: "#4caf50 !important" }} />}
-                label="Connector Connected"
-                onClick={checkConnector}
-                size="small"
-                sx={{ bgcolor: "#e8f5e9", color: "#2e7d32", fontWeight: 500, cursor: "pointer" }}
-              />
-            </Tooltip>
-          ) : (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={checkConnector}
-              disabled={checkingConnector}
-              startIcon={checkingConnector ? <CircularProgress size={14} /> : undefined}
-              sx={{ borderColor: Colors.lightGray, color: Colors.darkPurple, fontSize: "0.75rem" }}
-            >
-              {checkingConnector ? "Connecting..." : "Connect Connector"}
-            </Button>
-          )}
           <Button
             variant="contained"
             startIcon={<Psychology />}
@@ -406,7 +344,6 @@ const BidsConverterPage: React.FC = () => {
               updateFiles={updateFiles}
               onClose={() => setShowLLMPanel(false)}
               isPrivateMode={mode === "private"}
-              connectorUrl={connectorStatus ? "http://localhost:3210" : undefined}
             />
           )}
         </Box>

@@ -49,7 +49,6 @@ interface LLMPanelProps {
   updateFiles: (updater: React.SetStateAction<FileItem[]>) => void; // ✅ Add
   onClose: () => void;
   isPrivateMode?: boolean;
-  connectorUrl?: string;
 }
 
 interface LLMProvider {
@@ -152,7 +151,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   updateFiles, // ✅ Add
   onClose,
   isPrivateMode = false,
-  connectorUrl,
 }) => {
   const [provider, setProvider] = useState<string>(isPrivateMode ? "local-ai" : "ollama");
   const [model, setModel] = useState<string>(isPrivateMode ? "qwen3.5:latest" : "qwen3-coder-next:latest");
@@ -191,7 +189,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
       ? `${localOllamaUrl}/v1/chat/completions`
       : currentProvider.baseUrl,
     isAnthropic: currentProvider.isAnthropic,
-    connectorUrl,
     noApiKey: currentProvider.noApiKey,
   });
 
@@ -1509,7 +1506,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               value={localOllamaUrl}
               onChange={(e) => setLocalOllamaUrl(e.target.value)}
               placeholder="http://localhost:11434"
-              helperText="Ollama: port 11434 · LM Studio: port 1234 · Jan: port 1337"
+              helperText="Ollama: 11434 · LM Studio: 1234 · Jan: 1337 · Requires OLLAMA_ORIGINS=https://neurojson.io set before starting Ollama"
               sx={{ mb: 2 }}
             />
           )}

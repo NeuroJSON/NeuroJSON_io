@@ -99,7 +99,6 @@ export interface LLMConfig {
   baseUrl: string;
   isAnthropic?: boolean;
   noApiKey?: boolean;
-  connectorUrl?: string; // set when AutoBIDSify Connector is running locally
 }
 
 // ============================================================================
@@ -122,7 +121,7 @@ export const callLLM = async (
   temperature: number | null = null,
   signal?: AbortSignal
 ): Promise<string> => {
-  const { provider, model, apiKey, baseUrl, isAnthropic, noApiKey, connectorUrl } = llmConfig;
+  const { provider, model, apiKey, baseUrl, isAnthropic, noApiKey } = llmConfig;
 
   // ── Backend Ollama proxy (save mode only) ─────────────────────────
   // Routes to OllamaService → jin.neu.edu:11434.
@@ -195,43 +194,6 @@ export const callLLM = async (
     } catch (e) {
       if (e instanceof LLMHardFail) throw e;
       throw new LLMHardFail(step, "AnthropicError", String(e));
-    }
-  }
-
-  // ── Local AI via connector (private mode + connector running) ────────
-  // Routes through AutoBIDSify Connector at localhost:3210, which proxies
-  // to whatever local AI is running, using baseUrl from the UI.
-  if (provider === "local-ai" && connectorUrl) {
-    const params: Record<string, any> = {
-      model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPayload },
-      ],
-      baseUrl, // connector strips this and uses it as the forwarding target
-    };
-    if (!isReasoningModel(model)) {
-      params.max_completion_tokens = 16000;
-      if (temperature !== null) params.temperature = temperature;
-    } else {
-      params.max_completion_tokens = 32000;
-    }
-    try {
-      const res = await fetch(`${connectorUrl}/ollama/chat`, {
-        method: "POST",
-        signal,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(params),
-      });
-      const data = await res.json();
-      if (!res.ok)
-        throw new LLMHardFail(step, "ConnectorError", data?.detail ?? res.statusText);
-      const content = data?.choices?.[0]?.message?.content ?? "";
-      if (content.trim()) return content.trim();
-      throw new LLMHardFail(step, "EmptyResponse", "Local AI returned empty content");
-    } catch (e) {
-      if (e instanceof LLMHardFail) throw e;
-      throw new LLMHardFail(step, "ConnectorError", String(e));
     }
   }
 
