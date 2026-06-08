@@ -29,6 +29,7 @@ import {
   IconButton,
   Alert,
   Tooltip,
+  Divider,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import { dump as yamlDump } from "js-yaml";
@@ -1694,6 +1695,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             onClick={handleGeneratePlan}
             disabled={loading || !baseDirectoryPath.trim() || !trioGenerated}
             sx={{
+              textTransform: "none",
               background: `linear-gradient(135deg, ${Colors.purple} 0%, ${Colors.secondaryPurple} 100%)`,
               "&:hover": {
                 background: `linear-gradient(135deg, ${Colors.secondaryPurple} 0%, ${Colors.purple} 100%)`,
@@ -1763,6 +1765,68 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
 
         {/* Right: Generated Script */}
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", p: 2 }}>
+
+          {/* Next Steps card — shown once BIDSPlan is ready */}
+          {bidsPlan && (
+            <Paper variant="outlined" sx={{ mb: 2, p: 1.5, borderColor: Colors.purple, borderRadius: 2 }}>
+              <Box display="flex" alignItems="center" gap={1} mb={1}>
+                <Typography variant="caption" fontWeight={700} color={Colors.purple}>
+                  Next Steps
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Convert your dataset to BIDS format locally
+                </Typography>
+              </Box>
+              <Divider sx={{ mb: 1 }} />
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="caption" sx={{ color: Colors.purple, fontWeight: 700, minWidth: 16 }}>1.</Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<Download />}
+                    onClick={handleDownloadPackage}
+                    sx={{ borderColor: Colors.purple, color: Colors.purple, fontSize: "0.75rem", textTransform: "none" }}
+                  >
+                    Download Conversion Package
+                  </Button>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+                  <Typography variant="caption" sx={{ color: Colors.purple, fontWeight: 700, minWidth: 16, mt: 0.5 }}>2.</Typography>
+                  <Box>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<Download />}
+                      onClick={() => {
+                        const ua = navigator.userAgent.toLowerCase();
+                        const os = ua.includes("win") ? "windows" : ua.includes("linux") ? "linux" : "mac";
+                        const urls: Record<string, string> = {
+                          mac: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-mac.zip",
+                          windows: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-windows.zip",
+                          linux: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-linux.zip",
+                        };
+                        window.open(urls[os], "_blank");
+                      }}
+                      sx={{ borderColor: Colors.purple, color: Colors.purple, fontSize: "0.75rem", textTransform: "none" }}
+                    >
+                      Download Executor
+                    </Button>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25 }}>
+                      Skip if already downloaded
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Typography variant="caption" sx={{ color: Colors.purple, fontWeight: 700, minWidth: 16 }}>3.</Typography>
+                  <Typography variant="caption" fontWeight={700} sx={{ color: Colors.purple }}>
+                    Open the Executor, select the unzipped conversion package folder and your raw data folder, then click Run.
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
+          )}
+
           <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
             {/* <Button
               size="small"
