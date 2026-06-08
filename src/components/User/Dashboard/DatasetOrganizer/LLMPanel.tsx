@@ -1500,15 +1500,20 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           )}
 
           {provider === "local-ai" && (
-            <TextField
-              fullWidth
-              label="Local AI Base URL"
-              value={localOllamaUrl}
-              onChange={(e) => setLocalOllamaUrl(e.target.value)}
-              placeholder="http://localhost:11434"
-              helperText="Ollama: 11434 · LM Studio: 1234 · Jan: 1337 · Requires OLLAMA_ORIGINS=https://neurojson.io set before starting Ollama"
-              sx={{ mb: 2 }}
-            />
+            <>
+              <TextField
+                fullWidth
+                label="Local AI Base URL"
+                value={localOllamaUrl}
+                onChange={(e) => setLocalOllamaUrl(e.target.value)}
+                placeholder="http://localhost:11434"
+                helperText="Ollama: port 11434 · LM Studio: port 1234 · Jan: port 1337"
+                sx={{ mb: 1 }}
+              />
+              <Alert severity="info" sx={{ mb: 2, fontSize: "0.8rem" }}>
+                To allow your local AI to accept requests from this website, add <code>https://neurojson.io</code> to its allowed origins list.
+              </Alert>
+            </>
           )}
           {/* Base Directory Path field (shows for ALL providers) */}
           <TextField
