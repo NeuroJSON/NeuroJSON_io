@@ -12,7 +12,7 @@ import {
   ContentCopy,
   Download,
   AutoAwesome,
-  DriveFileMove,
+  AccountTree,
   InfoOutlined,
 } from "@mui/icons-material";
 import {
@@ -1793,29 +1793,27 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 </Box>
                 <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
                   <Typography variant="caption" sx={{ color: Colors.purple, fontWeight: 700, minWidth: 16, mt: 0.5 }}>2.</Typography>
-                  <Box>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<Download />}
-                      onClick={() => {
-                        const ua = navigator.userAgent.toLowerCase();
-                        const os = ua.includes("win") ? "windows" : ua.includes("linux") ? "linux" : "mac";
-                        const urls: Record<string, string> = {
-                          mac: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-mac.zip",
-                          windows: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-windows.zip",
-                          linux: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-linux.zip",
-                        };
-                        window.open(urls[os], "_blank");
-                      }}
-                      sx={{ borderColor: Colors.purple, color: Colors.purple, fontSize: "0.75rem", textTransform: "none" }}
-                    >
-                      Download Executor
-                    </Button>
-                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.25 }}>
-                      Skip if already downloaded
-                    </Typography>
-                  </Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<Download />}
+                    onClick={() => {
+                      const ua = navigator.userAgent.toLowerCase();
+                      const os = ua.includes("win") ? "windows" : ua.includes("linux") ? "linux" : "mac";
+                      const urls: Record<string, string> = {
+                        mac: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-mac.zip",
+                        windows: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-windows.zip",
+                        linux: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-linux.zip",
+                      };
+                      window.open(urls[os], "_blank");
+                    }}
+                    sx={{ borderColor: Colors.purple, color: Colors.purple, fontSize: "0.75rem", textTransform: "none" }}
+                  >
+                    Download Executor
+                  </Button>
+                  <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center" }}>
+                    Skip if already downloaded
+                  </Typography>
                 </Box>
                 <Box sx={{ display: "flex", gap: 1 }}>
                   <Typography variant="caption" sx={{ color: Colors.purple, fontWeight: 700, minWidth: 16 }}>3.</Typography>
@@ -1838,6 +1836,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             >
               Copy
             </Button> */}
+            {/* Download zip file for convert — moved to Next Steps card above
             <Button
               size="small"
               startIcon={<Download />}
@@ -1850,10 +1849,10 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               }}
             >
               Download zip file for convert
-            </Button>
+            </Button> */}
             <Button
               size="small"
-              startIcon={<DriveFileMove />}
+              startIcon={<AccountTree />}
               onClick={handleSaveZip}
               disabled={!bidsPlan || !trioGenerated}
               sx={{
@@ -1862,7 +1861,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 "&:hover": { borderColor: Colors.purple },
               }}
             >
-              Preview Conversion Package in File Tree
+              Preview in File Tree
             </Button>
           </Box>
 
