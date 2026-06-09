@@ -2,7 +2,7 @@ import DropZone from "./DropZone";
 import FileTree from "./FileTree";
 import LLMPanel from "./LLMPanel";
 import { generateId } from "./utils/fileProcessors";
-import { ArrowBack, Save, GetApp, Psychology } from "@mui/icons-material";
+import { ArrowBack, Save, GetApp, Psychology, InfoOutlined } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -16,6 +16,7 @@ import {
   DialogContentText,
   Chip,
   Tooltip,
+  IconButton,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import { useAppDispatch } from "hooks/useAppDispatch";
@@ -313,6 +314,52 @@ const DatasetOrganizer: React.FC = () => {
                   "&:hover": { backgroundColor: Colors.secondaryPurple },
                 }}
               />
+            </Tooltip>
+            <Tooltip
+              title={
+                <Box>
+                  <Typography variant="body2" fontWeight={600} mb={0.5}>How to use:</Typography>
+                  <Typography variant="body2" component="ol" sx={{ pl: 2, m: 0 }}>
+                    <li>Drop your dataset files into the workspace.</li>
+                    <li>Enter the number of subjects, modality, and base directory path.</li>
+                    <li>The AI will analyze your files and generate a BIDS conversion plan.</li>
+                    <li>Download the conversion bundle and the AutoBIDSify Converter, then run the Converter locally to reorganize your data into BIDS format.</li>
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    onClick={() => navigate("/about")}
+                    sx={{ mt: 1, color: Colors.purple, cursor: "pointer", textDecoration: "underline" }}
+                  >
+                    Watch video tutorial
+                  </Typography>
+                </Box>
+              }
+              placement="bottom-start"
+              arrow
+              componentsProps={{
+                tooltip: {
+                  sx: {
+                    backgroundColor: "white",
+                    color: Colors.darkPurple,
+                    border: `1px solid ${Colors.lightGray}`,
+                    boxShadow: 3,
+                    fontSize: "0.875rem",
+                    lineHeight: 1.5,
+                    p: 1.5,
+                    maxWidth: 320,
+                  },
+                },
+                arrow: {
+                  sx: {
+                    color: "white",
+                    "&::before": { border: `1px solid ${Colors.lightGray}` },
+                  },
+                },
+              }}
+            >
+              <IconButton size="small" sx={{ color: Colors.purple, p: 0, mt: 0.5 }}>
+                <InfoOutlined fontSize="small" />
+              </IconButton>
             </Tooltip>
           </Box>
         </Box>

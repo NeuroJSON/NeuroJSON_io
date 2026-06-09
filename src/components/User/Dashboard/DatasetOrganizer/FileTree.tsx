@@ -654,7 +654,7 @@ const FileTree: React.FC<FileTreeProps> = ({
                   variant="body2"
                   sx={{ color: Colors.darkPurple, fontWeight: 400 }}
                 >
-                  BIDS Conversion Package Preview
+                  BIDS Conversion Bundle Preview
                 </Typography>
               </Box>
               {outputFiles
