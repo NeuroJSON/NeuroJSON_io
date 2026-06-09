@@ -190,7 +190,14 @@ const BidsConverterPage: React.FC = () => {
                       <li>Drop your dataset files into the workspace.</li>
                       <li>Enter the number of subjects, modality, and base directory path.</li>
                       <li>The AI will analyze your files and generate a BIDS conversion plan.</li>
-                      <li>Download and run the script locally to reorganize your data into BIDS format.</li>
+                      <li>Download the conversion bundle and the AutoBIDSify Converter, then run the Converter locally to reorganize your data into BIDS format.</li>
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      onClick={() => navigate("/about")}
+                      sx={{ mt: 1, color: Colors.purple, cursor: "pointer", textDecoration: "underline" }}
+                    >
+                      Watch video tutorial
                     </Typography>
                   </Box>
                 }

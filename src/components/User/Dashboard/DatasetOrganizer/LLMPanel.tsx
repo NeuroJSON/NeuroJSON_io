@@ -1704,7 +1704,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               "&.Mui-disabled": { background: "#e0e0e0", color: "#9e9e9e" },
             }}
           >
-            {loading ? "Generating..." : "3. Generate Conversion Package"}
+            {loading ? "Generating..." : "3. Generate Conversion Bundle"}
           </Button>
 
           {/* <Button
@@ -1789,7 +1789,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                     onClick={handleDownloadPackage}
                     sx={{ borderColor: Colors.purple, color: Colors.purple, fontSize: "0.75rem", textTransform: "none" }}
                   >
-                    Download Conversion Package
+                    Download AutoBIDSify Conversion Bundle
                   </Button>
                 </Box>
                 <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
@@ -1810,7 +1810,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                     }}
                     sx={{ borderColor: Colors.purple, color: Colors.purple, fontSize: "0.75rem", textTransform: "none" }}
                   >
-                    Download Executor
+                    Download AutoBIDSify Converter
                   </Button>
                   <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center" }}>
                     Skip if already downloaded
@@ -1819,7 +1819,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 <Box sx={{ display: "flex", gap: 1 }}>
                   <Typography variant="caption" sx={{ color: Colors.purple, fontWeight: 700, minWidth: 16 }}>3.</Typography>
                   <Typography variant="caption" fontWeight={700} sx={{ color: Colors.purple }}>
-                    Open the Executor, select the unzipped conversion package folder and your raw data folder, then click Run.
+                    Open the Converter, select the unzipped conversion bundle folder and your raw data folder, then click Run.
                   </Typography>
                 </Box>
               </Box>
