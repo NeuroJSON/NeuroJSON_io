@@ -96,11 +96,11 @@ const BidsConverterPage: React.FC = () => {
     const resolveSourcePath = (sourcePath: string | undefined, fallback: string): string => {
       const raw = sourcePath || fallback;
       if (!baseDirectoryPath) return raw;
-      const baseName = baseDirectoryPath.replace(/\/+$/, "").split("/").pop() || "";
-      const stripped = baseName && raw.startsWith(baseName + "/")
-        ? raw.slice(baseName.length + 1)
-        : raw;
-      return `${baseDirectoryPath}/${stripped}`.replace(/\/+/g, "/");
+      const base = baseDirectoryPath.replace(/\/+$/, "");
+      const baseName = base.split("/").pop() || "";
+      if (baseName && raw === baseName) return base;
+      if (baseName && raw.startsWith(baseName + "/")) return `${base}/${raw.slice(baseName.length + 1)}`;
+      return `${base}/${raw}`.replace(/\/+/g, "/");
     };
 
     const buildTree = (parentId: string | null): any => {
