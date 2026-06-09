@@ -536,7 +536,9 @@ const FileTree: React.FC<FileTreeProps> = ({
             fullWidth
           />
           <Alert severity="info" sx={{ py: 0.5, mb: 1.5, fontSize: "0.75rem" }}>
-            All dropped files must be inside this root folder on your machine.
+            {baseDirectoryPath
+              ? <>All dropped files must be inside <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600 }}>{baseDirectoryPath}</Box> on your machine.</>
+              : "All dropped files must be inside this root folder on your machine."}
           </Alert>
           <Box>
             <Typography variant="subtitle2" fontWeight={800}>
