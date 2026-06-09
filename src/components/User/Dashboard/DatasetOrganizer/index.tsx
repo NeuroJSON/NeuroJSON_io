@@ -420,9 +420,11 @@ const DatasetOrganizer: React.FC = () => {
           files={files}
           selectedIds={selectedIds}
           expandedIds={expandedIds}
-          setFiles={updateFiles} // Pass wrapper instead
-          setSelectedIds={updateSelectedIds} // Pass wrapper
-          setExpandedIds={updateExpandedIds} // Pass wrapper
+          setFiles={updateFiles}
+          setSelectedIds={updateSelectedIds}
+          setExpandedIds={updateExpandedIds}
+          baseDirectoryPath={baseDirectoryPath}
+          setBaseDirectoryPath={updateBaseDirectoryPath}
         />
       </Box>
 

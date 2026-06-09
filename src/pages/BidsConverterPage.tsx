@@ -355,6 +355,8 @@ const BidsConverterPage: React.FC = () => {
           setFiles={updateFiles}
           setSelectedIds={updateSelectedIds}
           setExpandedIds={updateExpandedIds}
+          baseDirectoryPath={baseDirectoryPath}
+          setBaseDirectoryPath={updateBaseDirectoryPath}
         />
       </Box>
 

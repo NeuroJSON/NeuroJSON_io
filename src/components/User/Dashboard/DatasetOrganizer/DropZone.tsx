@@ -6,7 +6,6 @@ import {
   Typography,
   Paper,
   Button,
-  TextField,
   CircularProgress,
 } from "@mui/material";
 import { Colors } from "design/theme";
@@ -253,18 +252,6 @@ const DropZone: React.FC<DropZoneProps> = ({
           {...{ webkitdirectory: "", mozdirectory: "" } as any}
         />
       </Paper>
-      <TextField
-        label="Directory Path (actual data path)"
-        placeholder="example: /Users/username/Desktop/Downloads"
-        // value={basePath} // change
-        // onChange={(e) => setBasePath(e.target.value)} //change
-        value={baseDirectoryPath} // ✅ CHANGE: Use prop
-        onChange={(e) => setBaseDirectoryPath(e.target.value)} // ✅ CHANGE: Use prop setter
-        fullWidth
-        size="small"
-        sx={{ mb: 2 }}
-        helperText="Enter the folder path where these files are located"
-      />
     </Box>
   );
 };
