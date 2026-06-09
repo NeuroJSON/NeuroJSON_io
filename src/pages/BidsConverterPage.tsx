@@ -90,6 +90,19 @@ const BidsConverterPage: React.FC = () => {
   const updateBaseDirectoryPath = (path: string) => setBaseDirectoryPath(path);
 
   const handleExportJSON = () => {
+    // Strip the leading folder name from sourcePath if it duplicates the last
+    // segment of baseDirectoryPath (e.g. user typed /Desktop/dataset1 and
+    // sourcePath is dataset1/file.dcm → result should be /Desktop/dataset1/file.dcm)
+    const resolveSourcePath = (sourcePath: string | undefined, fallback: string): string => {
+      const raw = sourcePath || fallback;
+      if (!baseDirectoryPath) return raw;
+      const baseName = baseDirectoryPath.replace(/\/+$/, "").split("/").pop() || "";
+      const stripped = baseName && raw.startsWith(baseName + "/")
+        ? raw.slice(baseName.length + 1)
+        : raw;
+      return `${baseDirectoryPath}/${stripped}`.replace(/\/+/g, "/");
+    };
+
     const buildTree = (parentId: string | null): any => {
       const children = files.filter((f) => f.parentId === parentId);
       const result: any = {};
@@ -97,9 +110,7 @@ const BidsConverterPage: React.FC = () => {
         if (child.type === "folder" || child.type === "zip") {
           result[child.name] = {
             _type: child.type,
-            _sourcePath: baseDirectoryPath
-              ? `${baseDirectoryPath}/${child.sourcePath || child.name}`.replace(/\/+/g, "/")
-              : child.sourcePath || "",
+            _sourcePath: resolveSourcePath(child.sourcePath, child.name),
             _children: buildTree(child.id),
           };
         } else {
@@ -108,9 +119,7 @@ const BidsConverterPage: React.FC = () => {
             _fileType: child.fileType || "other",
           };
           if (child.sourcePath || baseDirectoryPath) {
-            fileData._sourcePath = baseDirectoryPath
-              ? `${baseDirectoryPath}/${child.sourcePath || child.name}`.replace(/\/+/g, "/")
-              : child.sourcePath;
+            fileData._sourcePath = resolveSourcePath(child.sourcePath, child.name);
           }
           if (child.isUserMeta) fileData._isUserMeta = true;
           if (child.content) fileData._content = child.content;
