@@ -1436,6 +1436,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             borderRight: 1,
             borderColor: "divider",
             overflow: "auto",
+            minHeight: 0,
           }}
         >
           <FormControl fullWidth sx={{ mb: 2 }}>
@@ -1764,7 +1765,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         </Box>
 
         {/* Right: Generated Script */}
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", p: 2 }}>
+        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", p: 2, minHeight: 0, overflow: "hidden" }}>
 
           {/* Next Steps card — shown once BIDSPlan is ready */}
           {bidsPlan && (
