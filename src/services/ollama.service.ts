@@ -13,7 +13,7 @@ export const OllamaService = {
     temperature?: number
   ): Promise<any> => {
     // const temperature = getQwenTemperature(model);
-    const response = await fetch(`${API_URL}/ollama/chat`, {
+    const response = await fetch(`${API_URL}/ollama/bidsify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

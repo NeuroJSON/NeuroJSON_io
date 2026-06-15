@@ -21,18 +21,23 @@ class EmailService {
   }
 
   async createTestTransporter() {
-    const testAccount = await nodemailer.createTestAccount();
-    this.transporter = nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-    });
-    console.log("📧 Using Ethereal email for development");
-    console.log("Preview emails at: https://ethereal.email");
+    try {
+      const testAccount = await nodemailer.createTestAccount();
+      this.transporter = nodemailer.createTransport({
+        host: "smtp.ethereal.email",
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
+      });
+      console.log("📧 Using Ethereal email for development");
+      console.log("Preview emails at: https://ethereal.email");
+    } catch (err) {
+      console.warn("⚠️  Ethereal unavailable, email disabled in dev:", err.message);
+      this.transporter = null;
+    }
   }
 
   async sendVerificationEmail(user, token) {
