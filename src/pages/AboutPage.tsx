@@ -398,6 +398,12 @@ const AboutPage: React.FC = () => {
                 videoUrl="https://neurojson.io/io/download/static/videos/convert.mp4"
               />
             </Grid>
+            <Grid item xs={12} sm={6}>
+              <TutorialVideoItem
+                title="AutoBIDSify tutorial"
+                videoUrl="https://neurojson.io/io/download/static/videos/autobidsify.mp4"
+              />
+            </Grid>
           </Grid>
         </Container>
       </Box>

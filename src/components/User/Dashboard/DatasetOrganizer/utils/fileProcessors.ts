@@ -170,11 +170,8 @@ export const processFile = async (
       entry.content = extractExcelContent(buffer);
       entry.contentType = "office";
     } else if (fileType === "matlab") {
-      entry.content = `MATLAB File: ${file.name}\nSize: ${(
-        file.size / 1024
-      ).toFixed(
-        2
-      )} KB\nFormat: .mat (fNIRS data — will be converted to SNIRF by autobidsify)`;
+      const buffer = await file.arrayBuffer();
+      entry.content = parseMatlabFile(buffer, file.name);
       entry.contentType = "matlab";
     } else if (fileType === "dicom") {
       // entry.content = `DICOM File: ${file.name}\nSize: ${(
@@ -216,6 +213,51 @@ export const processFile = async (
 };
 
 // Process ZIP files
+// Builds a FileItem tree from File[] with webkitRelativePath (folder picker input)
+export const processFolderFromFiles = async (
+  files: File[],
+  basePath?: string
+): Promise<FileItem[]> => {
+  const allItems: FileItem[] = [];
+  const pathMap: Record<string, string> = {}; // folder path → id
+
+  const sorted = [...files].sort((a, b) =>
+    a.webkitRelativePath.localeCompare(b.webkitRelativePath)
+  );
+
+  for (const file of sorted) {
+    const relPath = file.webkitRelativePath || file.name;
+    const parts = relPath.split("/");
+
+    // Build folder hierarchy for each path segment except the filename
+    let parentId: string | null = null;
+    let currentPath = "";
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i];
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      if (!pathMap[currentPath]) {
+        const folderId = generateId();
+        pathMap[currentPath] = folderId;
+        allItems.push({
+          id: folderId,
+          name: part,
+          type: "folder",
+          parentId,
+          sourcePath: currentPath,
+        } as FileItem);
+      }
+      parentId = pathMap[currentPath];
+    }
+
+    // Process the file itself
+    const fileItem = await processFile(file, basePath);
+    fileItem.parentId = parentId;
+    allItems.push(fileItem);
+  }
+
+  return allItems;
+};
+
 export const processZip = async (
   file: File,
   basePath?: string
@@ -399,11 +441,9 @@ export const processZip = async (
         entry.content = `Binary NeuroJSON: ${fileName}\nSize: ${sizeKB} KB\nFormat: BJData`;
         entry.contentType = "neurojson";
       }
-      // matlab placeholder
       else if (fileType === "matlab") {
         const arrayBuffer = await zipEntry.async("arraybuffer");
-        const sizeKB = (arrayBuffer.byteLength / 1024).toFixed(2);
-        entry.content = `MATLAB File: ${fileName}\nSize: ${sizeKB} KB\nFormat: .mat (fNIRS data — will be converted to SNIRF by autobidsify)`;
+        entry.content = parseMatlabFile(arrayBuffer, fileName);
         entry.contentType = "matlab";
       }
       // dicom header extraction from ZIP
@@ -623,6 +663,63 @@ export const parseNiftiHeader = (buffer: ArrayBuffer): any => {
     return header;
   } catch (e: any) {
     return { error: e.message };
+  }
+};
+
+// Parse .mat file — v7.3 files are HDF5; older v5 files are not supported
+const parseMatlabFile = (buffer: ArrayBuffer, fileName: string): string => {
+  // Check magic bytes: v7.3 starts with "MATLAB 7.3" in the first 116 bytes
+  const header = new Uint8Array(buffer.slice(0, 116));
+  const headerStr = String.fromCharCode(...header.slice(0, 10));
+  const isV73 = headerStr.startsWith("MATLAB 7.3");
+
+  if (!isV73) {
+    // v5 .mat — can't parse in browser, report what we know
+    const sizeKB = (buffer.byteLength / 1024).toFixed(2);
+    return `MATLAB File: ${fileName}\nSize: ${sizeKB} KB\nFormat: .mat v5 (older format — variable names not readable in browser)\nNote: autobidsify will convert this to SNIRF locally`;
+  }
+
+  // v7.3 is HDF5 — parse with jsfive
+  try {
+    const tree = parseHDF5Tree(buffer);
+    if (tree.error) {
+      return `MATLAB File: ${fileName}\nFormat: .mat v7.3 (HDF5)\nError reading contents: ${tree.error}`;
+    }
+
+    const sizeKB = (buffer.byteLength / 1024).toFixed(2);
+    let result = `MATLAB File: ${fileName}\nSize: ${sizeKB} KB\nFormat: .mat v7.3 (HDF5)\n\nVariables:\n`;
+
+    const vars = tree.children || [];
+    for (const v of vars) {
+      if (v.name === "#refs#") continue; // internal HDF5 reference group
+      if (v.type === "dataset") {
+        result += `  ${v.name}: shape=[${(v.shape || []).join("×")}] dtype=${v.dtype || "?"}`;
+        if (v.value !== undefined) {
+          const valStr = Array.isArray(v.value)
+            ? `[${v.value.slice(0, 5).join(", ")}${v.value.length > 5 ? "..." : ""}]`
+            : String(v.value).slice(0, 60);
+          result += ` = ${valStr}`;
+        }
+        result += "\n";
+      } else if (v.type === "group") {
+        result += `  ${v.name}/  (group with ${(v.children || []).length} fields)\n`;
+        for (const field of (v.children || []).slice(0, 10)) {
+          result += `    ${field.name}`;
+          if (field.shape) result += `: [${field.shape.join("×")}]`;
+          if (field.value !== undefined) {
+            const valStr = Array.isArray(field.value)
+              ? `[${field.value.slice(0, 5).join(", ")}${field.value.length > 5 ? "..." : ""}]`
+              : String(field.value).slice(0, 60);
+            result += ` = ${valStr}`;
+          }
+          result += "\n";
+        }
+        if ((v.children || []).length > 10) result += `    ... (${v.children.length - 10} more)\n`;
+      }
+    }
+    return result;
+  } catch (e: any) {
+    return `MATLAB File: ${fileName}\nFormat: .mat v7.3\nError: ${e.message}`;
   }
 };
 

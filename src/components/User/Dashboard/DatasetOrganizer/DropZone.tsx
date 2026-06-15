@@ -1,12 +1,11 @@
 // src/components/DatasetOrganizer/DropZone.tsx
-import { processFile, processFolder, processZip } from "./utils/fileProcessors";
+import { processFile, processFolder, processFolderFromFiles, processZip } from "./utils/fileProcessors";
 import { CloudUpload, Add, CheckCircle } from "@mui/icons-material";
 import {
   Box,
   Typography,
   Paper,
   Button,
-  TextField,
   CircularProgress,
 } from "@mui/material";
 import { Colors } from "design/theme";
@@ -38,6 +37,7 @@ const DropZone: React.FC<DropZoneProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false); // ← add
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   // const [basePath, setBasePath] = useState<string>(""); // change
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -117,6 +117,24 @@ const DropZone: React.FC<DropZoneProps> = ({
     }
   };
 
+  const handleFolderSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0) return;
+    setIsProcessing(true);
+
+    // Auto-detect root folder name from webkitRelativePath (e.g. "myDataset/sub-01/file.nii")
+    const rootFolder = selectedFiles[0].webkitRelativePath.split("/")[0];
+    if (rootFolder && !baseDirectoryPath) setBaseDirectoryPath(rootFolder);
+
+    try {
+      const items = await processFolderFromFiles(selectedFiles, baseDirectoryPath);
+      setFiles((prev) => [...prev, ...items]);
+    } finally {
+      setIsProcessing(false);
+      e.target.value = "";
+    }
+  };
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {/* Show file count if files exist */}
@@ -136,7 +154,7 @@ const DropZone: React.FC<DropZoneProps> = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
+        onClick={(e) => { if (e.target === e.currentTarget) fileInputRef.current?.click(); }}
         sx={{
           border: `2px dashed ${isDragging ? Colors.purple : Colors.lightGray}`,
           borderRadius: 2,
@@ -198,13 +216,24 @@ const DropZone: React.FC<DropZoneProps> = ({
               📁 Folders • 🗜️ ZIP files • 📄 Documents (.json, .txt, .md) • 📊
               Office (.docx, .pdf, .xlsx)
             </Typography>
-            <Button
-              variant="outlined"
-              startIcon={<Add />}
-              sx={{ borderColor: Colors.purple, color: Colors.purple }}
-            >
-              Or Click to Browse
-            </Button>
+            <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
+              <Button
+                variant="outlined"
+                startIcon={<Add />}
+                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                sx={{ borderColor: Colors.purple, color: Colors.purple }}
+              >
+                Browse Files
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<Add />}
+                onClick={(e) => { e.stopPropagation(); folderInputRef.current?.click(); }}
+                sx={{ borderColor: Colors.purple, color: Colors.purple }}
+              >
+                Browse Folder
+              </Button>
+            </Box>
           </>
         )}
         <input
@@ -215,19 +244,14 @@ const DropZone: React.FC<DropZoneProps> = ({
           onChange={handleFileSelect}
           accept=".nii,.nii.gz,.snirf,.h5,.hdf5,.jnii,.jmsh,.json,.txt,.md,.zip,.docx,.pdf,.xlsx,.xls,.mat,.dcm,.nirs"
         />
+        <input
+          ref={folderInputRef}
+          type="file"
+          hidden
+          onChange={handleFolderSelect}
+          {...{ webkitdirectory: "", mozdirectory: "" } as any}
+        />
       </Paper>
-      <TextField
-        label="Directory Path (actual data path)"
-        placeholder="example: /Users/username/Desktop/Downloads"
-        // value={basePath} // change
-        // onChange={(e) => setBasePath(e.target.value)} //change
-        value={baseDirectoryPath} // ✅ CHANGE: Use prop
-        onChange={(e) => setBaseDirectoryPath(e.target.value)} // ✅ CHANGE: Use prop setter
-        fullWidth
-        size="small"
-        sx={{ mb: 2 }}
-        helperText="Enter the folder path where these files are located"
-      />
     </Box>
   );
 };

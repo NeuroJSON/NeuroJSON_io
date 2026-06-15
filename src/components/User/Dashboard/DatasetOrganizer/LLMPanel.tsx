@@ -12,7 +12,7 @@ import {
   ContentCopy,
   Download,
   AutoAwesome,
-  DriveFileMove,
+  AccountTree,
   InfoOutlined,
 } from "@mui/icons-material";
 import {
@@ -29,6 +29,7 @@ import {
   IconButton,
   Alert,
   Tooltip,
+  Divider,
 } from "@mui/material";
 import { Colors } from "design/theme";
 import { dump as yamlDump } from "js-yaml";
@@ -74,20 +75,27 @@ const llmProviders: Record<string, LLMProvider> = {
     ],
     noApiKey: true,
   },
-  "local-ollama": {
+  "local-ai": {
     name: "Local AI (Ollama / LM Studio / Jan)",
     baseUrl: "http://localhost:11434/v1/chat/completions",
     models: [
-      { id: "llama3.2:latest", name: "Llama 3.2 (Ollama)" },
-      { id: "llama3.1:latest", name: "Llama 3.1 (Ollama)" },
-      { id: "qwen2.5-coder:latest", name: "Qwen 2.5 Coder (Ollama)" },
-      { id: "mistral:latest", name: "Mistral (Ollama)" },
-      { id: "gemma3:latest", name: "Gemma 3 (Ollama)" },
-      { id: "llama-3.2-3b-instruct", name: "Llama 3.2 3B (LM Studio)" },
-      { id: "llama-3.1-8b-instruct", name: "Llama 3.1 8B (LM Studio)" },
-      { id: "mistral-7b-instruct-v0.3", name: "Mistral 7B (LM Studio)" },
-      { id: "llama3.2:3b", name: "Llama 3.2 3B (Jan)" },
-      { id: "mistral:7b", name: "Mistral 7B (Jan)" },
+      // Ollama
+      { id: "qwen3.5:latest", name: "Qwen3.5 (Ollama)" },
+      { id: "qwen3:latest", name: "Qwen3 (Ollama)" },
+      { id: "qwen3:30b", name: "Qwen3 30B (Ollama)" },
+      { id: "deepseek-r1:latest", name: "DeepSeek R1 (Ollama)" },
+      { id: "llama4:latest", name: "Llama 4 Scout (Ollama)" },
+      { id: "gemma4:latest", name: "Gemma 4 (Ollama)" },
+      { id: "gemma4:e4b", name: "Gemma 4 E4B — low RAM (Ollama)" },
+      { id: "gpt-oss:20b", name: "GPT-OSS 20B (Ollama)" },
+      { id: "qwen2.5-coder:32b", name: "Qwen2.5 Coder 32B (Ollama)" },
+      // LM Studio / Jan — use Custom Model Name field if ID differs
+      { id: "qwen3.5", name: "Qwen3.5 (LM Studio / Jan)" },
+      { id: "qwen3-coder-next", name: "Qwen3 Coder Next (LM Studio / Jan)" },
+      { id: "llama4-scout-17b", name: "Llama 4 Scout 17B (LM Studio / Jan)" },
+      { id: "deepseek-r1", name: "DeepSeek R1 (LM Studio / Jan)" },
+      { id: "gemma4", name: "Gemma 4 (LM Studio / Jan)" },
+      { id: "phi-4", name: "Phi-4 (LM Studio / Jan)" },
     ],
     noApiKey: true,
   },
@@ -145,8 +153,8 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   onClose,
   isPrivateMode = false,
 }) => {
-  const [provider, setProvider] = useState<string>(isPrivateMode ? "local-ollama" : "ollama");
-  const [model, setModel] = useState<string>(isPrivateMode ? "llama3.2:latest" : "qwen3-coder-next:latest");
+  const [provider, setProvider] = useState<string>(isPrivateMode ? "local-ai" : "ollama");
+  const [model, setModel] = useState<string>(isPrivateMode ? "qwen3.5:latest" : "qwen3-coder-next:latest");
   const [localOllamaUrl, setLocalOllamaUrl] = useState<string>("http://localhost:11434");
   // const [ollamaUrl, setOllamaUrl] = useState<string>(
   //   "http://jin.neu.edu:11434"
@@ -172,12 +180,13 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
   const [panelHeight, setPanelHeight] = useState<number>(450);
   const [isResizing, setIsResizing] = useState(false);
 
+
   // Build LLMConfig for all helper calls — mirrors autobidsify CLI arg assembly
   const buildLLMConfig = (): LLMConfig => ({
     provider,
     model,
     apiKey,
-    baseUrl: provider === "local-ollama"
+    baseUrl: provider === "local-ai"
       ? `${localOllamaUrl}/v1/chat/completions`
       : currentProvider.baseUrl,
     isAnthropic: currentProvider.isAnthropic,
@@ -1427,6 +1436,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             borderRight: 1,
             borderColor: "divider",
             overflow: "auto",
+            minHeight: 0,
           }}
         >
           <FormControl fullWidth sx={{ mb: 2 }}>
@@ -1440,7 +1450,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               }}
             >
               {Object.entries(llmProviders)
-                .filter(([key]) => isPrivateMode ? key !== "ollama" : key !== "local-ollama")
+                .filter(([key]) => isPrivateMode ? key !== "ollama" : key !== "local-ai")
                 .map(([key, p]) => (
                   <MenuItem key={key} value={key}>
                     {p.name}
@@ -1472,7 +1482,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
           </FormControl>
           )}
 
-          {provider === "local-ollama" && (
+          {provider === "local-ai" && (
             <TextField
               fullWidth
               label="Custom Model Name (optional)"
@@ -1485,22 +1495,27 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             />
           )}
 
-          {isPrivateMode && provider !== "local-ollama" && (
+          {isPrivateMode && provider !== "local-ai" && (
             <Alert severity="warning" sx={{ mb: 2, fontSize: "0.8rem" }}>
               Your file information will be sent to <strong>{currentProvider.name}</strong>, an external AI service. Switch to <strong>Local AI (Ollama / LM Studio / Jan)</strong> to keep everything local.
             </Alert>
           )}
 
-          {provider === "local-ollama" && (
-            <TextField
-              fullWidth
-              label="Ollama URL"
-              value={localOllamaUrl}
-              onChange={(e) => setLocalOllamaUrl(e.target.value)}
-              placeholder="http://localhost:11434"
-              helperText="Ollama: port 11434 · LM Studio: port 1234 · Jan: port 1337"
-              sx={{ mb: 2 }}
-            />
+          {provider === "local-ai" && (
+            <>
+              <TextField
+                fullWidth
+                label="Local AI Base URL"
+                value={localOllamaUrl}
+                onChange={(e) => setLocalOllamaUrl(e.target.value)}
+                placeholder="http://localhost:11434"
+                helperText="Ollama: port 11434 · LM Studio: port 1234 · Jan: port 1337"
+                sx={{ mb: 1 }}
+              />
+              <Alert severity="info" sx={{ mb: 2, fontSize: "0.8rem" }}>
+                To allow your local AI to accept requests from this website, add <code>https://neurojson.io</code> to its allowed origins list.
+              </Alert>
+            </>
           )}
           {/* Base Directory Path field (shows for ALL providers) */}
           <TextField
@@ -1681,6 +1696,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             onClick={handleGeneratePlan}
             disabled={loading || !baseDirectoryPath.trim() || !trioGenerated}
             sx={{
+              textTransform: "none",
               background: `linear-gradient(135deg, ${Colors.purple} 0%, ${Colors.secondaryPurple} 100%)`,
               "&:hover": {
                 background: `linear-gradient(135deg, ${Colors.secondaryPurple} 0%, ${Colors.purple} 100%)`,
@@ -1688,7 +1704,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               "&.Mui-disabled": { background: "#e0e0e0", color: "#9e9e9e" },
             }}
           >
-            {loading ? "Generating..." : "3. Generate Conversion Package"}
+            {loading ? "Generating..." : "3. Generate Conversion Bundle"}
           </Button>
 
           {/* <Button
@@ -1749,7 +1765,67 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
         </Box>
 
         {/* Right: Generated Script */}
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", p: 2 }}>
+        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", p: 2, minHeight: 0, overflow: "hidden" }}>
+
+          {/* Next Steps card — shown once BIDSPlan is ready */}
+          {bidsPlan && (
+            <Paper variant="outlined" sx={{ mb: 2, p: 1.5, borderColor: Colors.purple, borderRadius: 2 }}>
+              <Box display="flex" alignItems="center" gap={1} mb={1}>
+                <Typography variant="caption" fontWeight={700} color={Colors.purple}>
+                  Next Steps
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Convert your dataset to BIDS format locally
+                </Typography>
+              </Box>
+              <Divider sx={{ mb: 1 }} />
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="caption" sx={{ color: Colors.purple, fontWeight: 700, minWidth: 16 }}>1.</Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<Download />}
+                    onClick={handleDownloadPackage}
+                    sx={{ borderColor: Colors.purple, color: Colors.purple, fontSize: "0.75rem", textTransform: "none" }}
+                  >
+                    Download AutoBIDSify Conversion Bundle
+                  </Button>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
+                  <Typography variant="caption" sx={{ color: Colors.purple, fontWeight: 700, minWidth: 16, mt: 0.5 }}>2.</Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<Download />}
+                    onClick={() => {
+                      const ua = navigator.userAgent.toLowerCase();
+                      const os = ua.includes("win") ? "windows" : ua.includes("linux") ? "linux" : "mac";
+                      const urls: Record<string, string> = {
+                        mac: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-mac.zip",
+                        windows: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-windows.zip",
+                        linux: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-linux.zip",
+                      };
+                      window.open(urls[os], "_blank");
+                    }}
+                    sx={{ borderColor: Colors.purple, color: Colors.purple, fontSize: "0.75rem", textTransform: "none" }}
+                  >
+                    Download AutoBIDSify Converter
+                  </Button>
+                  <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center" }}>
+                    Skip if already downloaded
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Typography variant="caption" sx={{ color: Colors.purple, fontWeight: 700, minWidth: 16 }}>3.</Typography>
+                  <Typography variant="caption" fontWeight={700} sx={{ color: Colors.purple }}>
+                    Open the Converter, select the unzipped conversion bundle folder and your raw data folder, then click Run.
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
+          )}
+
           <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
             {/* <Button
               size="small"
@@ -1761,6 +1837,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
             >
               Copy
             </Button> */}
+            {/* Download zip file for convert — moved to Next Steps card above
             <Button
               size="small"
               startIcon={<Download />}
@@ -1773,10 +1850,10 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
               }}
             >
               Download zip file for convert
-            </Button>
+            </Button> */}
             <Button
               size="small"
-              startIcon={<DriveFileMove />}
+              startIcon={<AccountTree />}
               onClick={handleSaveZip}
               disabled={!bidsPlan || !trioGenerated}
               sx={{
@@ -1785,7 +1862,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                 "&:hover": { borderColor: Colors.purple },
               }}
             >
-              Preview Conversion Package in File Tree
+              Preview in File Tree
             </Button>
           </Box>
 

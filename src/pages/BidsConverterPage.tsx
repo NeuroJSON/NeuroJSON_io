@@ -90,6 +90,19 @@ const BidsConverterPage: React.FC = () => {
   const updateBaseDirectoryPath = (path: string) => setBaseDirectoryPath(path);
 
   const handleExportJSON = () => {
+    // Strip the leading folder name from sourcePath if it duplicates the last
+    // segment of baseDirectoryPath (e.g. user typed /Desktop/dataset1 and
+    // sourcePath is dataset1/file.dcm → result should be /Desktop/dataset1/file.dcm)
+    const resolveSourcePath = (sourcePath: string | undefined, fallback: string): string => {
+      const raw = sourcePath || fallback;
+      if (!baseDirectoryPath) return raw;
+      const base = baseDirectoryPath.replace(/\/+$/, "");
+      const baseName = base.split("/").pop() || "";
+      if (baseName && raw === baseName) return base;
+      if (baseName && raw.startsWith(baseName + "/")) return `${base}/${raw.slice(baseName.length + 1)}`;
+      return `${base}/${raw}`.replace(/\/+/g, "/");
+    };
+
     const buildTree = (parentId: string | null): any => {
       const children = files.filter((f) => f.parentId === parentId);
       const result: any = {};
@@ -97,9 +110,7 @@ const BidsConverterPage: React.FC = () => {
         if (child.type === "folder" || child.type === "zip") {
           result[child.name] = {
             _type: child.type,
-            _sourcePath: baseDirectoryPath
-              ? `${baseDirectoryPath}/${child.sourcePath || child.name}`.replace(/\/+/g, "/")
-              : child.sourcePath || "",
+            _sourcePath: resolveSourcePath(child.sourcePath, child.name),
             _children: buildTree(child.id),
           };
         } else {
@@ -108,9 +119,7 @@ const BidsConverterPage: React.FC = () => {
             _fileType: child.fileType || "other",
           };
           if (child.sourcePath || baseDirectoryPath) {
-            fileData._sourcePath = baseDirectoryPath
-              ? `${baseDirectoryPath}/${child.sourcePath || child.name}`.replace(/\/+/g, "/")
-              : child.sourcePath;
+            fileData._sourcePath = resolveSourcePath(child.sourcePath, child.name);
           }
           if (child.isUserMeta) fileData._isUserMeta = true;
           if (child.content) fileData._content = child.content;
@@ -181,7 +190,14 @@ const BidsConverterPage: React.FC = () => {
                       <li>Drop your dataset files into the workspace.</li>
                       <li>Enter the number of subjects, modality, and base directory path.</li>
                       <li>The AI will analyze your files and generate a BIDS conversion plan.</li>
-                      <li>Download and run the script locally to reorganize your data into BIDS format.</li>
+                      <li>Download the conversion bundle and the AutoBIDSify Converter, then run the Converter locally to reorganize your data into BIDS format.</li>
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      onClick={() => navigate("/about")}
+                      sx={{ mt: 1, color: Colors.purple, cursor: "pointer", textDecoration: "underline" }}
+                    >
+                      Watch video tutorial
                     </Typography>
                   </Box>
                 }
@@ -227,7 +243,7 @@ const BidsConverterPage: React.FC = () => {
           </Box>
         </Box>
 
-        <Box display="flex" gap={1}>
+        <Box display="flex" gap={1} alignItems="center">
           <Button
             variant="contained"
             startIcon={<Psychology />}
@@ -355,6 +371,8 @@ const BidsConverterPage: React.FC = () => {
           setFiles={updateFiles}
           setSelectedIds={updateSelectedIds}
           setExpandedIds={updateExpandedIds}
+          baseDirectoryPath={baseDirectoryPath}
+          setBaseDirectoryPath={updateBaseDirectoryPath}
         />
       </Box>
 

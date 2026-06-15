@@ -20,6 +20,7 @@ import {
   Paper,
   Button,
   TextField,
+  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -37,6 +38,8 @@ interface FileTreeProps {
   setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   expandedIds: Set<string>;
   setExpandedIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  baseDirectoryPath: string;
+  setBaseDirectoryPath: (path: string) => void;
 }
 
 const FileTree: React.FC<FileTreeProps> = ({
@@ -46,6 +49,8 @@ const FileTree: React.FC<FileTreeProps> = ({
   setSelectedIds,
   expandedIds,
   setExpandedIds,
+  baseDirectoryPath,
+  setBaseDirectoryPath,
 }) => {
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -521,6 +526,20 @@ const FileTree: React.FC<FileTreeProps> = ({
             // alignItems: "center",
           }}
         >
+          <TextField
+            label="Root Directory Path"
+            placeholder="/Users/username/Desktop/my-dataset"
+            value={baseDirectoryPath}
+            onChange={(e) => setBaseDirectoryPath(e.target.value)}
+            size="small"
+            sx={{ mb: 0.75 }}
+            fullWidth
+          />
+          <Alert severity="info" sx={{ py: 0.5, mb: 1.5, fontSize: "0.75rem" }}>
+            {baseDirectoryPath
+              ? <>All dropped files must be inside <Box component="span" sx={{ fontFamily: "monospace", fontWeight: 600 }}>{baseDirectoryPath}</Box> on your machine.</>
+              : "All dropped files must be inside this root folder on your machine."}
+          </Alert>
           <Box>
             <Typography variant="subtitle2" fontWeight={800}>
               Virtual File System
@@ -635,7 +654,7 @@ const FileTree: React.FC<FileTreeProps> = ({
                   variant="body2"
                   sx={{ color: Colors.darkPurple, fontWeight: 400 }}
                 >
-                  BIDS Conversion Package Preview
+                  BIDS Conversion Bundle Preview
                 </Typography>
               </Box>
               {outputFiles
