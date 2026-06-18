@@ -1802,9 +1802,9 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                       const ua = navigator.userAgent.toLowerCase();
                       const os = ua.includes("win") ? "windows" : ua.includes("linux") ? "linux" : "mac";
                       const urls: Record<string, string> = {
-                        mac: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-mac.zip",
-                        windows: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-windows.zip",
-                        linux: "https://github.com/elainefan331/autobidsify-executor/releases/latest/download/AutoBIDSify-Executor-linux.zip",
+                        mac: "https://github.com/yiyiliu-rose/autobidsifyAPP/releases/latest/download/AutoBIDSify-ExecVal-macOS-arm64.zip",
+                        windows: "https://github.com/yiyiliu-rose/autobidsifyAPP/releases/latest/download/AutoBIDSify-ExecVal-Windows.zip",
+                        linux: "https://github.com/yiyiliu-rose/autobidsifyAPP/releases/latest/download/AutoBIDSify-ExecVal-Linux.tar.gz",
                       };
                       window.open(urls[os], "_blank");
                     }}

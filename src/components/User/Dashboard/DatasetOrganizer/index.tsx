@@ -364,38 +364,58 @@ const DatasetOrganizer: React.FC = () => {
           </Box>
         </Box>
 
-        <Box display="flex" gap={1}>
-          <Button
-            variant="contained"
-            startIcon={<Psychology />}
-            onClick={() => setShowLLMPanel(!showLLMPanel)}
-            sx={{
-              backgroundColor: Colors.purple,
-              color: Colors.lightGray,
-              "&:hover": {
+        <Box display="flex" flexDirection="column" gap={1} alignItems="flex-end">
+          <Box display="flex" gap={1}>
+            <Button
+              variant="contained"
+              startIcon={<Psychology />}
+              onClick={() => setShowLLMPanel(!showLLMPanel)}
+              sx={{
                 backgroundColor: Colors.purple,
-                border: "none",
-              },
-            }}
-          >
-            AI Assistant
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<GetApp />}
-            onClick={handleExportJSON}
-            disabled={files.length === 0}
-            sx={{
-              backgroundColor: Colors.darkGreen,
-              color: Colors.lightGray,
-              "&:hover": {
+                color: Colors.lightGray,
+                "&:hover": {
+                  backgroundColor: Colors.purple,
+                  border: "none",
+                },
+              }}
+            >
+              AI Assistant
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<GetApp />}
+              onClick={() => {
+                const ua = navigator.userAgent.toLowerCase();
+                const os = ua.includes("win") ? "windows" : ua.includes("linux") ? "linux" : "mac";
+                const urls: Record<string, string> = {
+                  mac: "https://github.com/yiyiliu-rose/autobidsifyAPP/releases/latest/download/AutoBIDSify-ExecVal-macOS-arm64.zip",
+                  windows: "https://github.com/yiyiliu-rose/autobidsifyAPP/releases/latest/download/AutoBIDSify-ExecVal-Windows.zip",
+                  linux: "https://github.com/yiyiliu-rose/autobidsifyAPP/releases/latest/download/AutoBIDSify-ExecVal-Linux.tar.gz",
+                };
+                window.open(urls[os], "_blank");
+              }}
+              sx={{ borderColor: Colors.purple, color: Colors.purple, textTransform: "none" }}
+            >
+              Download Converter
+            </Button>
+          </Box>
+          <Box display="flex" gap={1}>
+            <Button
+              variant="contained"
+              startIcon={<GetApp />}
+              onClick={handleExportJSON}
+              disabled={files.length === 0}
+              sx={{
                 backgroundColor: Colors.darkGreen,
-                border: "none",
-              },
-            }}
-          >
-            Export JSON
-          </Button>
+                color: Colors.lightGray,
+                "&:hover": {
+                  backgroundColor: Colors.darkGreen,
+                  border: "none",
+                },
+              }}
+            >
+              Export JSON
+            </Button>
           <Button
             variant="contained"
             startIcon={<Save />}
@@ -421,6 +441,7 @@ const DatasetOrganizer: React.FC = () => {
               "Saved ✓"
             )}
           </Button>
+          </Box>
         </Box>
       </Box>
 
