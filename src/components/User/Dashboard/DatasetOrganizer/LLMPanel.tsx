@@ -1591,7 +1591,6 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                   <MenuItem value="mri">MRI</MenuItem>
                   <MenuItem value="nirs">NIRS</MenuItem>
                   <MenuItem value="eeg">EEG</MenuItem>
-                  <MenuItem value="ieeg">iEEG</MenuItem>
                   <MenuItem value="mixed">Mixed</MenuItem>
                 </Select>
                 {modalityError && (
