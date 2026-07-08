@@ -14,6 +14,9 @@ export interface FileItem {
     | "matlab"
     | "dicom"
     | "nirs"
+    | "eegEdf"
+    | "eegBrainvision"
+    | "eegEeglab"
     | "array"
     | "other";
   content?: string;

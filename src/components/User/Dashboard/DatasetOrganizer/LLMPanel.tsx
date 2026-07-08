@@ -1590,6 +1590,8 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
                   </MenuItem>
                   <MenuItem value="mri">MRI</MenuItem>
                   <MenuItem value="nirs">NIRS</MenuItem>
+                  <MenuItem value="eeg">EEG</MenuItem>
+                  <MenuItem value="ieeg">iEEG</MenuItem>
                   <MenuItem value="mixed">Mixed</MenuItem>
                 </Select>
                 {modalityError && (
@@ -1605,7 +1607,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
 
               <TextField
                 label="Describe your dataset (optional)"
-                placeholder='e.g. "DICOM files from 2 subjects, one male one female"'
+                placeholder='e.g. "DICOM files from 2 subjects, one male one female" or "EDF recordings from 5 subjects, rest and task runs"'
                 value={describeText}
                 onChange={(e) => setDescribeText(e.target.value)}
                 size="small"
