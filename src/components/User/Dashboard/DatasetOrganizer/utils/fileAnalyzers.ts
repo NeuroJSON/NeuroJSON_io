@@ -81,6 +81,19 @@ export const categorizeFile = (file: FileItem): string => {
   )
     return "nirs";
 
+  // eeg — mirrors EEG_EXT = {'.edf', '.vhdr', '.set', '.bdf'}
+  if ([".edf", ".vhdr", ".set", ".bdf"].some((e) => name.endsWith(e)))
+    return "eeg";
+
+  // eeg_aux — mirrors EEG_AUX_EXT {'.vmrk', '.eeg', '.fdt'}
+  //           + EEG_EVENT_EXT {'.event', '.events', '.evt', '.mrk'}
+  if (
+    [".vmrk", ".eeg", ".fdt", ".event", ".events", ".evt", ".mrk"].some((e) =>
+      name.endsWith(e)
+    )
+  )
+    return "eeg_aux";
+
   // mri — mirrors MRI_EXT = {'.nii', '.dcm'} + .nii.gz
   if (
     name.endsWith(".nii.gz") ||
@@ -140,6 +153,13 @@ export const detectModality = (files: FileItem[]): string => {
     files.some((f) => f.name.endsWith(".snirf"))
   )
     return "nirs";
+  // eeg — fileType keys from fileProcessors.ts getFileType()
+  if (
+    counts.eegEdf > 0 ||
+    counts.eegBrainvision > 0 ||
+    counts.eegEeglab > 0
+  )
+    return "eeg";
   return "mixed";
 };
 
