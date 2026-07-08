@@ -70,9 +70,10 @@ export interface BuildBidsPlanResult {
 // Mirrors planner.py _DATA_EXTS, evidence.py TRIO_NAMES
 // ============================================================================
 
+// Mirrors planner.py _DATA_EXTS — EEG primary formats (edf/vhdr/set/bdf)
+// are data files; EEG aux (.vmrk/.eeg/.fdt) are handled separately, not here.
 const DATA_EXTENSIONS =
-  //   /\.(snirf|nii|nii\.gz|dcm|mat|nirs|jnii|bnii|h5|hdf5|edf|bdf)$/i;
-  /\.(snirf|nii|nii\.gz|dcm|mat|nirs|jnii|bnii)$/i;
+  /\.(snirf|nii|nii\.gz|dcm|mat|nirs|jnii|bnii|edf|vhdr|set|bdf)$/i;
 
 const TRIO_FILENAMES = new Set([
   "dataset_description.json",

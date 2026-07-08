@@ -375,6 +375,15 @@ fNIRS FORMATS (modality: nirs):
   • Homer3 (.nirs)         → convert_to: snirf
   • MATLAB (.mat)          → convert_to: snirf
 
+EEG FORMATS (modality: eeg):
+  • EDF/EDF+ (.edf)        → format_ready: true  (copy directly)
+  • BrainVision (.vhdr)    → format_ready: true  (copy directly)
+  • EEGLAB (.set)          → format_ready: true  (copy directly)
+  • Biosemi (.bdf)         → format_ready: true  (copy directly)
+  CRITICAL: EEG files are NEVER converted. Always format_ready: true, convert_to: none.
+  CRITICAL: EEG bids_template MUST end with '_eeg.<original_ext>' (e.g. '_eeg.edf').
+            NEVER use NIfTI suffixes (T1w, T2w, bold) for EEG data.
+
 ═══════════════════════════════════════════════════════════════════════
 SUBJECT IDENTIFICATION — MOST IMPORTANT STEP
 ═══════════════════════════════════════════════════════════════════════
@@ -495,6 +504,23 @@ For MRI: use acq- to distinguish different scan series from same subject.
   VHFCT1mm-Ankle.dcm → acq-ankle_T1w
   VHFCT1mm-Head.dcm  → acq-head_T1w
 
+For EEG: infer task and run from filename suffixes or directory names.
+  RULE 1 — If each subject has multiple EEG files, each file is a separate scan.
+    Identify what differs between files of the same subject (suffix, keyword, directory).
+    Map each variant to a distinct task- or run- label from user description.
+    If task labels cannot be inferred, use run-1, run-2, run-N.
+  RULE 2 — Create one mapping entry per unique file variant across subjects.
+  RULE 3 — BIDS directory for EEG is always 'eeg/', never 'anat/' or 'nirs/'.
+  RULE 4 — BIDS filename suffix is always '_eeg' + original extension.
+
+EEG FILENAME EXAMPLES (CRITICAL — follow exactly):
+  ✓ sub-01_task-rest_eeg.edf
+  ✓ sub-01_task-arithmetic_eeg.edf
+  ✓ sub-01_run-1_eeg.edf
+  ✗ sub-01_T1w.nii.gz          ← NEVER for EEG
+  ✗ sub-01_unknown.nii.gz      ← NEVER for EEG
+  ✗ sub-01_bold.nii.gz         ← NEVER for EEG
+
 ═══════════════════════════════════════════════════════════════════════
 OUTPUT FORMAT
 ═══════════════════════════════════════════════════════════════════════
@@ -526,6 +552,20 @@ mappings:
     filename_rules:
       - match_pattern: '.*'
         bids_template: 'sub-X_task-walking_nirs.snirf'
+
+  # EEG example — when each subject has ONE edf file:
+  - modality: eeg
+    match: ['**/*.edf']
+    exclude: []
+    format_ready: true
+    convert_to: none
+    filename_rules:
+      - match_pattern: '.*'
+        bids_template: 'sub-X_task-rest_eeg.edf'
+
+  # EEG example — when each subject has MULTIPLE edf files (different tasks/runs):
+  # Create one mapping entry per task/run, use match_pattern to distinguish them.
+  # The match_pattern must be derived from what actually differs in the filenames.
 
 OUTPUT: Raw YAML only (no markdown, no explanation)`;
 
