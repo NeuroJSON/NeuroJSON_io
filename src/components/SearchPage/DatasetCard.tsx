@@ -40,6 +40,7 @@ interface DatasetCardProps {
     value: {
       name?: string;
       readme?: string;
+      aisummary?: string;
       modality?: string[];
       subj?: string[];
       info?: {
@@ -101,8 +102,11 @@ function findMatchSnippet(
 ): { label: string; html: string } | null {
   if (!kw) return null;
 
-  // Which fields to scan (can add/remove fields here)
+  // Which fields to scan (can add/remove fields here).
+  // "AI Summary" is first so a topic-word hit in the generated summary is the
+  // explanation shown (its text lives in the dbinfo view's `aisummary` field).
   const CANDIDATE_FIELDS: Array<[string, (v: any) => string | undefined]> = [
+    ["AI Summary", (v) => v?.aisummary],
     ["Acknowledgements", (v) => v?.info?.Acknowledgements],
     [
       "Funding",
@@ -377,7 +381,8 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
                 paragraph
                 sx={{ textOverflow: "ellipsis" }}
               >
-                <strong>Summary:</strong> {highlightKeyword(readme, keyword)}
+                <strong>README:</strong> {highlightKeyword(readme, keyword)}
+                {readme.length >= 256 ? "…" : ""}
               </Typography>
             )}
           </Stack>
