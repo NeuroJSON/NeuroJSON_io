@@ -30,6 +30,9 @@ export const getFileType = (name: string): string => {
     matlab: ["mat"],
     dicom: ["dcm"],
     nirs: ["nirs"],
+    eegEdf: ["edf", "bdf"],
+    eegBrainvision: ["vhdr", "vmrk", "eeg"],
+    eegEeglab: ["set", "fdt"],
   };
 
   for (const [type, extensions] of Object.entries(fileTypes)) {

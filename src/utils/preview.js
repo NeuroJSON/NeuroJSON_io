@@ -200,7 +200,7 @@ function drawpreview(cfg) {
           // console.log("🔄 Converting MeshNode & MeshSurf to ndarrays...");
           drawsurf(
             nj.array(cfg.MeshNode, "float32"),
-            nj.array(cfg.MeshSurf, "uint32")
+            nj.array(cfg.MeshSurf, "uint32"),
           );
         } else {
           // console.log("🔄 Converting MeshNode & MeshSurf from plain arrays...");
@@ -210,7 +210,7 @@ function drawpreview(cfg) {
               .reshape(cfg.MeshNode.length / 3, 3),
             nj
               .array(Array.from(cfg.MeshSurf), "uint32")
-              .reshape(cfg.MeshSurf.length / 3, 3)
+              .reshape(cfg.MeshSurf.length / 3, 3),
           );
         }
       }
@@ -298,14 +298,22 @@ function previewdata(key, idx, isinternal, hastime) {
   // console.log("key in previewdata", key);
   if (!hasthreejs) {
     $.when(
-      $.getScript("https://mcx.space/cloud/js/OrbitControls.js"),
+      // $.getScript("https://mcx.space/cloud/js/OrbitControls.js"),
+      $.getScript(
+        "https://unpkg.com/three@0.145.0/examples/js/controls/OrbitControls.js",
+      ),
       $.Deferred(function (deferred) {
         $(deferred.resolve);
+      }),
+    )
+      .done(function () {
+        hasthreejs = true;
+        dopreview(key, idx, isinternal, hastime);
       })
-    ).done(function () {
-      hasthreejs = true;
-      dopreview(key, idx, isinternal, hastime);
-    });
+      .fail(function (_, __, error) {
+        console.error("Failed to load OrbitControls:", error);
+        $("#loadingdiv").hide();
+      });
   } else {
     dopreview(key, idx, isinternal, hastime);
   }
@@ -426,7 +434,7 @@ function dopreview(key, idx, isinternal, hastime) {
         "<b>Double-click</b> to restore all signals (Windows) &nbsp;|&nbsp; " +
         "<b>⌘+Click</b> the same selected item to restore all signals (Mac)" +
         "</div>" +
-        '<div id="plotchart"></div>'
+        '<div id="plotchart"></div>',
     );
 
     if (dataroot instanceof nj.NdArray) {
@@ -474,7 +482,7 @@ function dopreview(key, idx, isinternal, hastime) {
       uplotInstance = new uPlot(
         opts,
         plotdata,
-        document.getElementById("plotchart")
+        document.getElementById("plotchart"),
       );
 
       // Reset all series on double-click (works on both Mac and Windows)
@@ -499,7 +507,7 @@ function dopreview(key, idx, isinternal, hastime) {
       uplotInstance = new uPlot(
         opts,
         [[...Array(dataroot.length).keys()], dataroot],
-        document.getElementById("plotchart")
+        document.getElementById("plotchart"),
       );
 
       // uplotInstance.root.addEventListener("dblclick", (e) => {
@@ -536,7 +544,7 @@ function dopreview(key, idx, isinternal, hastime) {
 
     $("body").animate(
       { scrollTop: $("#chartpanel").offset().top - 20 },
-      "fast"
+      "fast",
     );
   } else {
     if (typeof scene === "undefined") {
@@ -601,7 +609,7 @@ function drawshape(shape, index) {
       boundingbox = createbox(
         shape.Grid.Size,
         shape.Grid.hasOwnProperty("O") ? shape.Grid.O : [0, 0, 0],
-        shape.Grid.Tag
+        shape.Grid.Tag,
       );
       const geo = new THREE.EdgesGeometry(boundingbox.geometry);
       const mat = new THREE.LineDashedMaterial({
@@ -619,13 +627,13 @@ function drawshape(shape, index) {
         controls.target.set(
           shape.Grid.Size[0] * 0.5 + shape.Grid.O[0],
           shape.Grid.Size[1] * 0.5 + shape.Grid.O[1],
-          shape.Grid.Size[2] * 0.5 + shape.Grid.O[2]
+          shape.Grid.Size[2] * 0.5 + shape.Grid.O[2],
         );
       else
         controls.target.set(
           shape.Grid.Size[0] * 0.5,
           shape.Grid.Size[1] * 0.5,
-          shape.Grid.Size[2] * 0.5
+          shape.Grid.Size[2] * 0.5,
         );
 
       break;
@@ -634,7 +642,7 @@ function drawshape(shape, index) {
       break;
     case "Subgrid":
       boundingbox.add(
-        createbox(shape.Subgrid.Size, shape.Subgrid.O, shape.Subgrid.Tag)
+        createbox(shape.Subgrid.Size, shape.Subgrid.O, shape.Subgrid.Tag),
       );
       break;
     case "XLayers":
@@ -643,7 +651,7 @@ function drawshape(shape, index) {
       if (shape[keys[0]] != null)
         for (let i = 0; i < shape[keys[0]].length; i++)
           boundingbox.add(
-            createlayer(shape[keys[0]][i], dir[keys[0]], shape[keys[0]][i][2])
+            createlayer(shape[keys[0]][i], dir[keys[0]], shape[keys[0]][i][2]),
           );
       break;
     case "XSlabs":
@@ -656,7 +664,7 @@ function drawshape(shape, index) {
         else
           for (let i = 0; i < slabs.length; i++)
             boundingbox.add(
-              createlayer(slabs[i], dir[keys[0]], shape[keys[0]].Tag)
+              createlayer(slabs[i], dir[keys[0]], shape[keys[0]].Tag),
             );
       }
       break;
@@ -677,12 +685,12 @@ function drawshape(shape, index) {
       c0 = new THREE.Vector3(
         shape.Cylinder.C0[0],
         shape.Cylinder.C0[1],
-        shape.Cylinder.C0[2]
+        shape.Cylinder.C0[2],
       );
       c1 = new THREE.Vector3(
         shape.Cylinder.C1[0],
         shape.Cylinder.C1[1],
-        shape.Cylinder.C1[2]
+        shape.Cylinder.C1[2],
       );
       dc = c1;
       height = c0.distanceTo(c1);
@@ -690,7 +698,7 @@ function drawshape(shape, index) {
         shape.Cylinder.R,
         shape.Cylinder.R,
         height,
-        32
+        32,
       );
       geometry.translate(0, height * 0.5 - 1, 0);
       geometry.rotateX(Math.PI * 0.5); // orient along z-axis - required
@@ -724,7 +732,7 @@ function drawsurf(node, tri) {
   // console.log("📌 MeshSurf Shape:", tri.shape);
   $("#mip-radio-button,#iso-radio-button,#interp-radio-button").prop(
     "disabled",
-    true
+    true,
   );
 
   const geometry = new THREE.BufferGeometry();
@@ -735,7 +743,7 @@ function drawsurf(node, tri) {
   geometry.setIndex(new THREE.BufferAttribute(tri.selection.data, 1));
   geometry.setAttribute(
     "position",
-    new THREE.BufferAttribute(node.selection.data, 3)
+    new THREE.BufferAttribute(node.selection.data, 3),
   );
   geometry.computeVertexNormals();
 
@@ -792,7 +800,7 @@ function drawsurf(node, tri) {
 function resetscene(s) {
   let diag = Math.sqrt(s[0] * s[0] + s[1] * s[1] + s[2] * s[2]);
   let distcenter = Math.sqrt(
-    s[0] * s[0] + 1.5 * 1.5 * s[1] * s[1] + 1.5 * 1.5 * s[2] * s[2]
+    s[0] * s[0] + 1.5 * 1.5 * s[1] * s[1] + 1.5 * 1.5 * s[2] * s[2],
   );
   let near = distcenter - diag;
   let far = distcenter + diag;
@@ -829,7 +837,7 @@ function resetscene(s) {
     0.7 *
     Math.min(
       $("#canvas").width() / Math.sqrt(s[0] * s[0] + s[1] * s[1]),
-      $("#canvas").height() / s[2]
+      $("#canvas").height() / s[2],
     );
   camera.updateProjectionMatrix();
   camera.updateMatrix();
@@ -840,7 +848,7 @@ function createbox(bsize, orig, tag) {
   geometry.translate(
     bsize[0] * 0.5 + orig[0],
     bsize[1] * 0.5 + orig[1],
-    bsize[2] * 0.5 + orig[2]
+    bsize[2] * 0.5 + orig[2],
   );
   const material = new THREE.MeshBasicMaterial({
     side: THREE.DoubleSide,
@@ -876,7 +884,7 @@ const texture_scale = {
 function drawvolume(volume) {
   $("#mip-radio-button,#iso-radio-button,#interp-radio-button").prop(
     "disabled",
-    false
+    false,
   );
 
   lastvolumedim = volume.shape;
@@ -897,20 +905,20 @@ function drawvolume(volume) {
         $("#cross-t").prop("min") +
         "," +
         $("#cross-t").prop("max") +
-        "]"
+        "]",
     );
   }
 
   lastvolumedata = nj.array(
     volume.transpose().flatten().selection.data,
-    "float32"
+    "float32",
   );
 
   texture = new THREE.DataTexture3D(
     lastvolumedata.selection.data,
     dim[0],
     dim[1],
-    dim[2]
+    dim[2],
   );
   texture.format = THREE.RedFormat;
   texture.type = THREE.FloatType;
@@ -922,11 +930,11 @@ function drawvolume(volume) {
   const cmtextures = {
     viridis: new THREE.TextureLoader().load(
       "https://threejs.org/examples/textures/cm_viridis.png",
-      render
+      render,
     ),
     gray: new THREE.TextureLoader().load(
       "https://threejs.org/examples/textures/cm_gray.png",
-      render
+      render,
     ),
   };
   let shader;
@@ -943,7 +951,7 @@ function drawvolume(volume) {
   } catch (e) {
     console.warn(
       "⚠️ Shader selection failed, using MipRenderShader by default",
-      e
+      e,
     );
     shader = MipRenderShader; // Safe fallback
   }
@@ -962,12 +970,12 @@ function drawvolume(volume) {
   uniforms["u_minslice"].value.set(
     parseFloat($("#cross-x-low").val()),
     parseFloat($("#cross-y-low").val()),
-    parseFloat($("#cross-z-low").val())
+    parseFloat($("#cross-z-low").val()),
   );
   uniforms["u_maxslice"].value.set(
     parseFloat($("#cross-x-hi").val()),
     parseFloat($("#cross-y-hi").val()),
-    parseFloat($("#cross-z-hi").val())
+    parseFloat($("#cross-z-hi").val()),
   );
 
   lastclim = uniforms["u_clim"].value;
@@ -978,7 +986,7 @@ function drawvolume(volume) {
   $("#clim-low").val(lastclim.x);
   $("#clim-low").prop(
     "title",
-    "" + lastclim.x + "[" + lastclim.x + "," + lastclim.y + "]"
+    "" + lastclim.x + "[" + lastclim.x + "," + lastclim.y + "]",
   );
 
   $("#clim-hi").prop("disabled", false);
@@ -987,7 +995,7 @@ function drawvolume(volume) {
   $("#clim-hi").val(lastclim.y);
   $("#clim-hi").prop(
     "title",
-    "" + lastclim.y + "[" + lastclim.x + "," + lastclim.y + "]"
+    "" + lastclim.y + "[" + lastclim.x + "," + lastclim.y + "]",
   );
 
   $("#isothreshold").prop("disabled", false);
@@ -1002,7 +1010,7 @@ function drawvolume(volume) {
       $("#isothreshold").prop("min") +
       "," +
       $("#isothreshold").prop("max") +
-      "]"
+      "]",
   );
 
   $("#x_thickness").prop("max", dim[0]);
@@ -1057,7 +1065,7 @@ function initcanvas() {
     canvas.height() / 2,
     canvas.height() / -2,
     1,
-    1000
+    1000,
   );
 
   camera.up = new THREE.Vector3(0, 0, 1);
@@ -1295,13 +1303,13 @@ function initcanvas() {
           $(this).prop("min") +
           "," +
           $(this).prop("max") +
-          "]"
+          "]",
       );
       if (lastvolume !== null) {
         let val = lastvolume.material.uniforms["u_clim"].value;
         lastvolume.material.uniforms["u_clim"].value.set(
           parseFloat($(this).val()),
-          val.y
+          val.y,
         );
         renderer.updateComplete = false;
       }
@@ -1318,13 +1326,13 @@ function initcanvas() {
           $(this).prop("min") +
           "," +
           $(this).prop("max") +
-          "]"
+          "]",
       );
       if (lastvolume !== null) {
         let val = lastvolume.material.uniforms["u_clim"].value;
         lastvolume.material.uniforms["u_clim"].value.set(
           val.x,
-          parseFloat($(this).val())
+          parseFloat($(this).val()),
         );
         renderer.updateComplete = false;
       }
@@ -1341,11 +1349,11 @@ function initcanvas() {
           $(this).prop("min") +
           "," +
           $(this).prop("max") +
-          "]"
+          "]",
       );
       if (lastvolume !== null) {
         lastvolume.material.uniforms["u_renderthreshold"].value = parseFloat(
-          $(this).val()
+          $(this).val(),
         );
         renderer.updateComplete = false;
       }
@@ -1437,7 +1445,7 @@ function initcanvas() {
         $("#" + linkedeid2).val(1);
       } else {
         $("#" + linkedeid1).val(
-          ($("#" + linkedeid1).val() + $("#" + linkedeid2).val()) * 0.5
+          ($("#" + linkedeid1).val() + $("#" + linkedeid2).val()) * 0.5,
         );
       }
       setcrosssectionsizes($("#" + linkedeid1));
@@ -1486,7 +1494,7 @@ function initcanvas() {
           $(this).prop("min") +
           "," +
           $(this).prop("max") +
-          "]"
+          "]",
       );
       if (lastvolume !== null && lastvolumedata !== undefined) {
         let dim = lastvolumedim;
@@ -1495,11 +1503,11 @@ function initcanvas() {
         let texture = new THREE.Data3DTexture(
           lastvolumedata.selection.data.slice(
             offset - 1,
-            offset + dim[0] * dim[1] * dim[2] - 1
+            offset + dim[0] * dim[1] * dim[2] - 1,
           ),
           dim[0],
           dim[1],
-          dim[2]
+          dim[2],
         );
         texture.format = THREE.RedFormat;
         texture.type = texture_dtype[lastvolumedata.dtype];
@@ -1520,7 +1528,7 @@ function initcanvas() {
         $(this).prop("min") +
         "," +
         $(this).prop("max") +
-        "]"
+        "]",
     );
     if (lastvolume !== null && lastvolumedata !== undefined) {
       let dim = lastvolumedim;
@@ -1530,11 +1538,11 @@ function initcanvas() {
       let texture = new THREE.Data3DTexture(
         lastvolumedata.selection.data.slice(
           offset - 1,
-          offset + dim[0] * dim[1] * dim[2] - 1
+          offset + dim[0] * dim[1] * dim[2] - 1,
         ),
         dim[0],
         dim[1],
-        dim[2]
+        dim[2],
       );
       texture.format = THREE.RedFormat;
       texture.type = texture_dtype[lastvolumedata.dtype];
@@ -2010,13 +2018,13 @@ function setcrosssectionsizes(e) {
         $(othereid).prop("min") +
         "," +
         $(othereid).prop("max") +
-        "]"
+        "]",
     );
   }
 
   $(e).prop(
     "title",
-    $(e).val() + " [" + $(e).prop("min") + "," + $(e).prop("max") + "]"
+    $(e).val() + " [" + $(e).prop("min") + "," + $(e).prop("max") + "]",
   );
 
   // 🔐 Ensure uniform exists
@@ -2028,7 +2036,7 @@ function setcrosssectionsizes(e) {
     !lastvolume.material.uniforms["u_maxslice"]
   ) {
     console.warn(
-      "⚠️ Skipping slice update — uniforms missing (not a volume shader)"
+      "⚠️ Skipping slice update — uniforms missing (not a volume shader)",
     );
     return;
   }
@@ -2037,12 +2045,12 @@ function setcrosssectionsizes(e) {
   lastvolume.material.uniforms["u_minslice"].value.set(
     parseFloat($("#cross-x-low").val()),
     parseFloat($("#cross-y-low").val()),
-    parseFloat($("#cross-z-low").val())
+    parseFloat($("#cross-z-low").val()),
   );
   lastvolume.material.uniforms["u_maxslice"].value.set(
     parseFloat($("#cross-x-hi").val()),
     parseFloat($("#cross-y-hi").val()),
-    parseFloat($("#cross-z-hi").val())
+    parseFloat($("#cross-z-hi").val()),
   );
 
   renderer.updateComplete = false;
@@ -2124,13 +2132,13 @@ function previewdataurl(url, idx) {
               "S" +
               cached.data.measurementList[i].sourceIndex +
               "D" +
-              cached.data.measurementList[i].detectorIndex
+              cached.data.measurementList[i].detectorIndex,
           );
       }
 
       const plotData2D = nj.concatenate(
         cached.data.time.reshape(cached.data.time.size, 1),
-        cached.data.dataTimeSeries
+        cached.data.dataTimeSeries,
       ).T;
 
       previewdata(plotData2D, idx, false, serieslabel); //  triggers __onPreviewReady
@@ -2197,14 +2205,14 @@ function previewdataurl(url, idx) {
       if (typedfun[typename] == null)
         typedfun[typename] = new Function(
           "d,o,l",
-          "return new " + typename + "(d,o,l)"
+          "return new " + typename + "(d,o,l)",
         );
 
       let typecast = typedfun[typename];
 
       bjd = nj.array(
         typecast(origdata.buffer, Math.floor(voxeloffset), totallen),
-        niitype[datatype]
+        niitype[datatype],
       );
       bjd = {
         NIFTIHeader: { VoxelSize: voxelsize },
@@ -2309,11 +2317,11 @@ function previewdataurl(url, idx) {
       previewdata(
         nj.concatenate(
           plotdata.data.time.reshape(plotdata.data.time.size, 1),
-          plotdata.data.dataTimeSeries
+          plotdata.data.dataTimeSeries,
         ).T,
         idx,
         false,
-        serieslabel
+        serieslabel,
       );
     }
 
@@ -2372,18 +2380,18 @@ function previewdataurl(url, idx) {
               "S" +
               plotdata.data.measurementList[i].sourceIndex +
               "D" +
-              plotdata.data.measurementList[i].detectorIndex
+              plotdata.data.measurementList[i].detectorIndex,
           );
       }
 
       previewdata(
         nj.concatenate(
           plotdata.data.time.reshape(plotdata.data.time.size, 1),
-          plotdata.data.dataTimeSeries
+          plotdata.data.dataTimeSeries,
         ).T,
         idx,
         false,
-        serieslabel
+        serieslabel,
       );
     }
 

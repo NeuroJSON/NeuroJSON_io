@@ -40,6 +40,7 @@ interface DatasetCardProps {
     value: {
       name?: string;
       readme?: string;
+      aisummary?: string | Record<string, string>;
       modality?: string[];
       subj?: string[];
       info?: {
@@ -94,6 +95,17 @@ const containsKeyword = (text?: string, kw?: string) => {
   return words.some((w) => t.includes(w));
 };
 
+/** AISummary can be a plain string OR a sectioned object
+ *  ({Introduction, Methods, Results, Conclusion}). Flatten to one string so we
+ *  can search/snippet it — mirrors the detail page's handling. */
+const flattenAiSummary = (s: any): string | undefined => {
+  if (!s) return undefined;
+  if (typeof s === "string") return s;
+  if (typeof s === "object")
+    return Object.values(s).filter(Boolean).join(" ");
+  return undefined;
+};
+
 /** Find a short snippet in secondary fields if not already visible */
 function findMatchSnippet(
   v: any,
@@ -101,8 +113,12 @@ function findMatchSnippet(
 ): { label: string; html: string } | null {
   if (!kw) return null;
 
-  // Which fields to scan (can add/remove fields here)
+  // Which fields to scan (can add/remove fields here).
+  // "AI Summary" is first so a topic-word hit in the generated summary is the
+  // explanation shown (its text lives in the dbinfo view's `aisummary` field).
   const CANDIDATE_FIELDS: Array<[string, (v: any) => string | undefined]> = [
+    ["AI Summary", (v) => flattenAiSummary(v?.aisummary)],
+    ["Description", (v) => v?.info?.Description],
     ["Acknowledgements", (v) => v?.info?.Acknowledgements],
     [
       "Funding",
@@ -377,7 +393,8 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
                 paragraph
                 sx={{ textOverflow: "ellipsis" }}
               >
-                <strong>Summary:</strong> {highlightKeyword(readme, keyword)}
+                <strong>README:</strong> {highlightKeyword(readme, keyword)}
+                {readme.length >= 256 ? "…" : ""}
               </Typography>
             )}
           </Stack>
