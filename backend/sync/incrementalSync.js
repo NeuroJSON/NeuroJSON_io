@@ -227,56 +227,10 @@ function transformSubjects(doc) {
   return results;
 }
 
-function transformLinks(doc) {
-  const results = [];
-  const filenameRe = /file=([^\/]*\/)*([^&\/\.]+)(\.[^.&%:]+(\.gz)*)([&:].*)*$/;
-  const filesizeRe = /size=(\d+)/;
-  const jsonpathRe = /:(\$[^&]+)/;
-  const urlhash = {};
-
-  function traverse(obj, level, rootpath) {
-    if (level > 10) return;
-    if (obj === null || typeof obj !== "object") return;
-
-    for (const subkey of Object.keys(obj)) {
-      const v = obj[subkey];
-      if (
-        subkey === "_DataLink_" &&
-        typeof v === "string" &&
-        v.indexOf("http") !== -1
-      ) {
-        const url = v;
-        const uniqurl = url.split(":$")[0];
-        if (!Object.prototype.hasOwnProperty.call(urlhash, uniqurl)) {
-          const fname = url.match(filenameRe);
-          const fsize = url.match(filesizeRe);
-          let jpath = url.match(jsonpathRe);
-          if (jpath !== null && jpath.length) jpath = jpath[1];
-          urlhash[uniqurl] = 1;
-          if (fname && fsize) {
-            results.push({
-              id: doc._id,
-              key: [fname[3], parseInt(fsize[1], 10)],
-              value: {
-                path: rootpath,
-                url: uniqurl,
-                file: fname[2] + fname[3],
-                suffix: fname[3],
-                ref: jpath,
-              },
-            });
-          }
-        }
-      }
-      if (typeof v === "object" && v !== null) {
-        traverse(v, level + 1, rootpath + "." + subkey);
-      }
-    }
-  }
-
-  traverse(doc, 1, "$");
-  return results;
-}
+// transformLinks() removed: links now come straight from the CouchDB links
+// view (id-first key [doc._id, ext, size]) in both firstSync and
+// processDatasetUpdate, so there's a single source of truth and no regex
+// drift between the two paths.
 
 // === DB helpers (each accepts an optional transaction) ===
 
