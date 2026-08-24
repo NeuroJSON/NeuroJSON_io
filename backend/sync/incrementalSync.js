@@ -227,56 +227,10 @@ function transformSubjects(doc) {
   return results;
 }
 
-function transformLinks(doc) {
-  const results = [];
-  const filenameRe = /file=([^\/]*\/)*([^&\/\.]+)(\.[^.&%:]+(\.gz)*)([&:].*)*$/;
-  const filesizeRe = /size=(\d+)/;
-  const jsonpathRe = /:(\$[^&]+)/;
-  const urlhash = {};
-
-  function traverse(obj, level, rootpath) {
-    if (level > 10) return;
-    if (obj === null || typeof obj !== "object") return;
-
-    for (const subkey of Object.keys(obj)) {
-      const v = obj[subkey];
-      if (
-        subkey === "_DataLink_" &&
-        typeof v === "string" &&
-        v.indexOf("http") !== -1
-      ) {
-        const url = v;
-        const uniqurl = url.split(":$")[0];
-        if (!Object.prototype.hasOwnProperty.call(urlhash, uniqurl)) {
-          const fname = url.match(filenameRe);
-          const fsize = url.match(filesizeRe);
-          let jpath = url.match(jsonpathRe);
-          if (jpath !== null && jpath.length) jpath = jpath[1];
-          urlhash[uniqurl] = 1;
-          if (fname && fsize) {
-            results.push({
-              id: doc._id,
-              key: [fname[3], parseInt(fsize[1], 10)],
-              value: {
-                path: rootpath,
-                url: uniqurl,
-                file: fname[2] + fname[3],
-                suffix: fname[3],
-                ref: jpath,
-              },
-            });
-          }
-        }
-      }
-      if (typeof v === "object" && v !== null) {
-        traverse(v, level + 1, rootpath + "." + subkey);
-      }
-    }
-  }
-
-  traverse(doc, 1, "$");
-  return results;
-}
+// transformLinks() removed: links now come straight from the CouchDB links
+// view (id-first key [doc._id, ext, size]) in both firstSync and
+// processDatasetUpdate, so there's a single source of truth and no regex
+// drift between the two paths.
 
 // === DB helpers (each accepts an optional transaction) ===
 
@@ -416,9 +370,10 @@ async function firstSync(dbname) {
   const linkRows = await fetchView(dbname, "links");
   let linkCount = 0;
   for (const row of linkRows) {
-    const fileType = row.key?.[0];
+    // links view key is now [doc._id, ext, size]
+    const fileType = row.key?.[1];
     if (!isValidFileType(fileType)) continue;
-    const subjId = String(row.key?.[1] || "");
+    const subjId = String(row.key?.[2] || "");
     await insertIolink(dbname, row.id, subjId, fileType, {
       key: row.key,
       value: row.value,
@@ -431,13 +386,26 @@ async function firstSync(dbname) {
 // === Process one changed dataset (Option A: 2 HTTP requests + local transforms) ===
 
 async function processDatasetUpdate(dbname, dsname) {
-  // dbinfo view supports key filtering; raw doc carries everything else.
+  // dbinfo view supports key filtering; raw doc carries subjects; links view
+  // is now filterable by dataset id (key = [doc._id, ext, size]) via a range
+  // query, so links come straight from the view — same source as firstSync.
   const keyParam = encodeURIComponent(JSON.stringify(dsname));
-  const [dbinfoRes, rawDocRes] = await Promise.all([
+  const linkStart = encodeURIComponent(JSON.stringify([dsname]));
+  const linkEnd = encodeURIComponent(JSON.stringify([dsname, {}]));
+  const [dbinfoRes, rawDocRes, linkRes] = await Promise.all([
     axios.get(
       `${COUCHDB_URL}/${dbname}/_design/qq/_view/dbinfo?key=${keyParam}`
     ),
     axios.get(`${COUCHDB_URL}/${dbname}/${encodeURIComponent(dsname)}`),
+    axios
+      .get(
+        `${COUCHDB_URL}/${dbname}/_design/qq/_view/links?startkey=${linkStart}&endkey=${linkEnd}`
+      )
+      .catch((err) => {
+        // DBs without a links view (404) → treat as no links.
+        if (err.response?.status === 404) return { data: { rows: [] } };
+        throw err;
+      }),
   ]);
 
   const dbinfoRow = (dbinfoRes.data.rows || [])[0];
@@ -449,7 +417,7 @@ async function processDatasetUpdate(dbname, dsname) {
   const doc = rawDocRes.data;
 
   const subjectRows = transformSubjects(doc);
-  const linkRows = transformLinks(doc);
+  const linkRows = linkRes.data.rows || [];
 
   // Rule 1: wrap all writes for this dataset in one transaction.
   await sequelize.transaction(async (t) => {
@@ -493,8 +461,10 @@ async function processDatasetUpdate(dbname, dsname) {
       { replacements: { dbname, dsname }, transaction: t }
     );
     for (const row of linkRows) {
-      const fileType = row.key?.[0];
-      const subjId = String(row.key?.[1] || "");
+      // links view key is [doc._id, ext, size]
+      const fileType = row.key?.[1];
+      if (!isValidFileType(fileType)) continue;
+      const subjId = String(row.key?.[2] || "");
       await insertIolink(
         dbname,
         dsname,

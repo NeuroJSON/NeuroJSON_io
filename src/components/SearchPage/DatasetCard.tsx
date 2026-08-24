@@ -231,7 +231,7 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
     return m ? m[0] : "";
   };
 
-  // File size stored in key[1] of each iolinks row (bytes). Format for humans.
+  // File size stored in key[2] of each iolinks row (bytes; key = [id, ext, size]). Format for humans.
   const formatBytes = (n?: number): string => {
     if (typeof n !== "number" || !Number.isFinite(n) || n < 0) return "";
     if (n < 1024) return `${n} B`;
@@ -525,8 +525,8 @@ const DatasetCard: React.FC<DatasetCardProps> = ({
                   const v = f.value || {};
                   const subjTag = subjectFromPath(v.path);
                   const sizeBytes =
-                    Array.isArray(f.key) && typeof f.key[1] === "number"
-                      ? f.key[1]
+                    Array.isArray(f.key) && typeof f.key[2] === "number"
+                      ? f.key[2]
                       : undefined;
                   const sizeTag = formatBytes(sizeBytes);
                   const meta = [subjTag, sizeTag].filter(Boolean).join(" · ");
