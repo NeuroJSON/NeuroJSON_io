@@ -259,12 +259,34 @@ const searchAllDatabases = async (req, res) => {
     // "ABIDE - CMU_a" matches stored names regardless of separator style.
     // The whole group is parenthesised so it ANDs cleanly with other filters.
     if (isFilter(f.keyword)) {
-      where.push(`(
-        search_vector @@ plainto_tsquery('english', :keyword)
-        OR dbname ILIKE :keywordLike
-        OR dsname ILIKE :keywordLike
-        OR (json->>'name') ILIKE :keywordLike
-      )`);
+      // The keyword matches dataset-level text (name / README / AI summary),
+      // which lives only in dbinfo rows. On a subjects search the current row
+      // has no such text, so match the keyword against the dataset's dbinfo
+      // row via EXISTS — mirrors the modalities cross-view pattern above.
+      // Without this, any dataset-level keyword wrongly drops all subjects (it
+      // only appeared to work when the keyword happened to be a subject-level
+      // token such as a task name, e.g. "memory").
+      if (isSubjectSearch) {
+        where.push(`EXISTS (
+          SELECT 1 FROM ioviews dsi
+          WHERE dsi.dbname = ioviews.dbname
+            AND dsi.dsname = ioviews.dsname
+            AND dsi.view = 'dbinfo'
+            AND (
+              dsi.search_vector @@ plainto_tsquery('english', :keyword)
+              OR dsi.dbname ILIKE :keywordLike
+              OR dsi.dsname ILIKE :keywordLike
+              OR (dsi.json->>'name') ILIKE :keywordLike
+            )
+        )`);
+      } else {
+        where.push(`(
+          search_vector @@ plainto_tsquery('english', :keyword)
+          OR dbname ILIKE :keywordLike
+          OR dsname ILIKE :keywordLike
+          OR (json->>'name') ILIKE :keywordLike
+        )`);
+      }
       repl.keyword = String(f.keyword);
       repl.keywordLike = `%${String(f.keyword).replace(/[\s-]+/g, "%")}%`;
     }
