@@ -23,43 +23,49 @@ const getDbList = async (req, res) => {
   }
 };
 
-// get db stats — Postgres-backed. Previously proxied to the legacy CGI, kept
-// here for reference; that source is decoupled from the synced Postgres data:
-//   const response = await axios.get(
-//     "https://neurojson.org/io/search.cgi?dbstats=1"
-//   );
-//   res.status(200).json(response.data);
+// get db stats — reads the latest finalized snapshot from stats_history
+// (written once at the end of each sync), so the landing page never triggers a
+// live aggregate over ioviews/iolinks.
 //
-// Returns the same [{view, num, size}] shape the landing-page StatisticsBanner
-// expects:
-//   - one row per file extension: num = file count, size = total bytes
-//     (iolinks.subj holds the byte size as text)
-//   - a 'dbinfo' row   → num = dataset count
-//   - a 'subjects' row → num = subject count
+// History of this endpoint:
+//   1. proxied the legacy CGI:  https://neurojson.org/io/search.cgi?dbstats=1
+//      (decoupled from the synced Postgres — stale/junk)
+//   2. live Postgres aggregate over iolinks/ioviews (correct but scanned ~1.5M
+//      rows on every landing-page visit)
+//   3. this: read the precomputed stats_history snapshot (tiny query)
+//
+// Returns:
+//   { datasets, subjects, files, sizeBytes, lastSynced }
 const getDbStats = async (req, res) => {
   try {
     const rows = await sequelize.query(
-      `SELECT view,
-              count(*) AS num,
-              sum(CASE WHEN subj ~ '^[0-9]+$' THEN subj::bigint ELSE 0 END) AS size
-         FROM iolinks
-        GROUP BY view
-       UNION ALL
-       SELECT 'dbinfo'   AS view, count(*) AS num, 0 AS size
-         FROM ioviews WHERE view = 'dbinfo'
-       UNION ALL
-       SELECT 'subjects' AS view, count(*) AS num, 0 AS size
-         FROM ioviews WHERE view = 'subjects'`,
+      `SELECT total_datasets, total_subjects, total_files,
+              total_size_bytes, completed_at
+         FROM stats_history
+        WHERE status = 'success'
+        ORDER BY completed_at DESC
+        LIMIT 1`,
       { type: sequelize.QueryTypes.SELECT }
     );
-    // Sequelize returns bigint as a string; the frontend sums `size` and `num`
-    // numerically, so coerce them to Number.
-    const stats = rows.map((r) => ({
-      view: r.view,
-      num: Number(r.num),
-      size: Number(r.size),
-    }));
-    res.status(200).json(stats);
+    const row = rows[0];
+    if (!row) {
+      // No successful sync snapshot yet.
+      return res.status(200).json({
+        datasets: 0,
+        subjects: 0,
+        files: 0,
+        sizeBytes: 0,
+        lastSynced: null,
+      });
+    }
+    // Sequelize returns BIGINT as a string; coerce to Number for the frontend.
+    res.status(200).json({
+      datasets: Number(row.total_datasets),
+      subjects: Number(row.total_subjects),
+      files: Number(row.total_files),
+      sizeBytes: Number(row.total_size_bytes),
+      lastSynced: row.completed_at,
+    });
   } catch (error) {
     console.error("Error fetching db stats:", error.message);
     res.status(error.response?.status || 500).json({
