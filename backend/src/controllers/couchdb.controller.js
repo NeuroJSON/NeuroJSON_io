@@ -23,13 +23,43 @@ const getDbList = async (req, res) => {
   }
 };
 
-// get db stats
+// get db stats — Postgres-backed. Previously proxied to the legacy CGI, kept
+// here for reference; that source is decoupled from the synced Postgres data:
+//   const response = await axios.get(
+//     "https://neurojson.org/io/search.cgi?dbstats=1"
+//   );
+//   res.status(200).json(response.data);
+//
+// Returns the same [{view, num, size}] shape the landing-page StatisticsBanner
+// expects:
+//   - one row per file extension: num = file count, size = total bytes
+//     (iolinks.subj holds the byte size as text)
+//   - a 'dbinfo' row   → num = dataset count
+//   - a 'subjects' row → num = subject count
 const getDbStats = async (req, res) => {
   try {
-    const response = await axios.get(
-      "https://neurojson.org/io/search.cgi?dbstats=1"
+    const rows = await sequelize.query(
+      `SELECT view,
+              count(*) AS num,
+              sum(CASE WHEN subj ~ '^[0-9]+$' THEN subj::bigint ELSE 0 END) AS size
+         FROM iolinks
+        GROUP BY view
+       UNION ALL
+       SELECT 'dbinfo'   AS view, count(*) AS num, 0 AS size
+         FROM ioviews WHERE view = 'dbinfo'
+       UNION ALL
+       SELECT 'subjects' AS view, count(*) AS num, 0 AS size
+         FROM ioviews WHERE view = 'subjects'`,
+      { type: sequelize.QueryTypes.SELECT }
     );
-    res.status(200).json(response.data);
+    // Sequelize returns bigint as a string; the frontend sums `size` and `num`
+    // numerically, so coerce them to Number.
+    const stats = rows.map((r) => ({
+      view: r.view,
+      num: Number(r.num),
+      size: Number(r.size),
+    }));
+    res.status(200).json(stats);
   } catch (error) {
     console.error("Error fetching db stats:", error.message);
     res.status(error.response?.status || 500).json({
