@@ -550,6 +550,46 @@ async function syncDatabase(dbname) {
   }
 }
 
+// === stats_history: one row per sync run ===
+
+// Insert a 'running' row at sync start; return its id. The id will also back
+// per-entity change logging (db_change_log) in a later phase.
+async function createStatsHistory() {
+  const [rows] = await sequelize.query(
+    `INSERT INTO stats_history (started_at, status)
+     VALUES (NOW(), 'running') RETURNING id`
+  );
+  return rows[0].id;
+}
+
+// Finalize the run's row. On success, compute totals from the fully-synced
+// tables (done ONCE here, never per landing-page visit); on failure, record
+// the error. Totals stay NULL for a failed/partial run.
+async function finalizeStatsHistory(id, status, errorMessage) {
+  if (status !== "success") {
+    await sequelize.query(
+      `UPDATE stats_history
+          SET completed_at = NOW(), status = :status, error = :error
+        WHERE id = :id`,
+      { replacements: { id, status, error: errorMessage || null } }
+    );
+    return;
+  }
+  await sequelize.query(
+    `UPDATE stats_history SET
+        completed_at     = NOW(),
+        status           = 'success',
+        total_datasets   = (SELECT count(*) FROM ioviews WHERE view = 'dbinfo'),
+        total_subjects   = (SELECT count(*) FROM ioviews WHERE view = 'subjects'),
+        total_files      = (SELECT count(*) FROM iolinks),
+        total_size_bytes = (SELECT COALESCE(
+                              sum(CASE WHEN subj ~ '^[0-9]+$' THEN subj::bigint ELSE 0 END), 0)
+                            FROM iolinks)
+      WHERE id = :id`,
+    { replacements: { id } }
+  );
+}
+
 // === Main ===
 
 async function runSync() {
@@ -557,16 +597,27 @@ async function runSync() {
   console.log(new Date().toISOString());
   console.log(`CouchDB: ${COUCHDB_URL}`);
 
-  const databases = await getDatabases();
-  console.log(`Databases: ${databases.length}`);
+  // Create the run's history row up front so it exists throughout the sync.
+  const historyId = await createStatsHistory();
 
-  for (const db of databases) {
-    await syncDatabase(db);
+  try {
+    const databases = await getDatabases();
+    console.log(`Databases: ${databases.length}`);
+
+    for (const db of databases) {
+      await syncDatabase(db);
+    }
+
+    // Compute + publish totals only after the whole run completed.
+    await finalizeStatsHistory(historyId, "success");
+    console.log(`\n=== Sync complete (stats_history #${historyId}) ===`);
+    console.log(new Date().toISOString());
+  } catch (err) {
+    await finalizeStatsHistory(historyId, "failed", err.message);
+    throw err;
+  } finally {
+    await sequelize.close();
   }
-
-  await sequelize.close();
-  console.log("\n=== Sync complete ===");
-  console.log(new Date().toISOString());
 }
 
 runSync().catch((err) => {
