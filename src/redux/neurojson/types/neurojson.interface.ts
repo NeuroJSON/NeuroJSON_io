@@ -10,7 +10,7 @@ export interface INeuroJsonState {
   limit: number;
   hasMore: boolean;
   dbInfo: DBParticulars | null; // add dbInfo type
-  dbStats: DbStatsItem[] | null; // for dbStats on landing page
+  dbStats: DbStats | null; // landing-page stats snapshot (from stats_history)
   searchResults: any[] | { status: string; msg: string } | null;
   datasetViewInfo: any | null;
   fileTypes: string[] | null;
@@ -92,4 +92,14 @@ export interface DbStatsItem {
   view: string;
   num: number;
   size: number;
+}
+
+// Landing-page stats snapshot returned by GET /dbs/stats (latest successful
+// stats_history row).
+export interface DbStats {
+  datasets: number;
+  subjects: number;
+  files: number;
+  sizeBytes: number;
+  lastSynced: string | null;
 }
