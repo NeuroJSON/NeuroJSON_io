@@ -317,6 +317,29 @@ async function insertIolink(dbname, dsname, subj, view, json, transaction) {
   );
 }
 
+// Record one dataset-level change for a sync run. Deduped by the unique
+// (history_id, dbname, dsname) index, so a dataset touched twice in one run
+// keeps its first logged change_type. Must share the same transaction as the
+// data write so the log rolls back if the write fails.
+async function logDatasetChange(
+  historyId,
+  dbname,
+  dsname,
+  changeType,
+  transaction
+) {
+  if (!historyId) return; // only the incremental path logs; firstSync passes none
+  await sequelize.query(
+    `INSERT INTO dataset_changes (history_id, dbname, dsname, change_type)
+     VALUES (:historyId, :dbname, :dsname, :changeType)
+     ON CONFLICT (history_id, dbname, dsname) DO NOTHING`,
+    {
+      replacements: { historyId, dbname, dsname, changeType },
+      transaction,
+    }
+  );
+}
+
 async function deleteDataset(dbname, dsname, transaction) {
   await sequelize.query(
     "DELETE FROM ioviews WHERE dbname = :dbname AND dsname = :dsname",
@@ -385,7 +408,7 @@ async function firstSync(dbname) {
 
 // === Process one changed dataset (Option A: 2 HTTP requests + local transforms) ===
 
-async function processDatasetUpdate(dbname, dsname) {
+async function processDatasetUpdate(dbname, dsname, historyId) {
   // dbinfo view supports key filtering; raw doc carries subjects; links view
   // is now filterable by dataset id (key = [doc._id, ext, size]) via a range
   // query, so links come straight from the view — same source as firstSync.
@@ -421,6 +444,16 @@ async function processDatasetUpdate(dbname, dsname) {
 
   // Rule 1: wrap all writes for this dataset in one transaction.
   await sequelize.transaction(async (t) => {
+    // Determine added vs updated BEFORE the dbinfo upsert (which would create
+    // the row and make every dataset look pre-existing). Same transaction as
+    // the write so the change log is consistent with the data.
+    const existing = await sequelize.query(
+      `SELECT 1 FROM ioviews
+        WHERE dbname = :dbname AND dsname = :dsname AND view = 'dbinfo' LIMIT 1`,
+      { replacements: { dbname, dsname }, transaction: t, type: sequelize.QueryTypes.SELECT }
+    );
+    const changeType = existing.length > 0 ? "updated" : "added";
+
     const subjCount = String(dbinfoValue?.subj?.length || 0);
     await upsertIoview(dbname, dsname, subjCount, "dbinfo", dbinfoValue, t);
 
@@ -474,12 +507,15 @@ async function processDatasetUpdate(dbname, dsname) {
         t
       );
     }
+
+    // Log the dataset-level change in the SAME transaction as the data write.
+    await logDatasetChange(historyId, dbname, dsname, changeType, t);
   });
 }
 
 // === Incremental sync ===
 
-async function incrementalSync(dbname, lastSeq) {
+async function incrementalSync(dbname, lastSeq, historyId) {
   // No include_docs=true: we fetch the raw doc per dataset so the _changes
   // payload stays small and per-dataset work runs in parallel.
   const { data } = await axios.get(
@@ -505,12 +541,20 @@ async function incrementalSync(dbname, lastSeq) {
       chunk.map(async (change) => {
         try {
           if (change.deleted) {
-            await sequelize.transaction((t) =>
-              deleteDataset(dbname, change.id, t)
-            );
+            // deleteDataset + change log share one transaction.
+            await sequelize.transaction(async (t) => {
+              await deleteDataset(dbname, change.id, t);
+              await logDatasetChange(
+                historyId,
+                dbname,
+                change.id,
+                "deleted",
+                t
+              );
+            });
             console.log(`  ${dbname}/${change.id}: deleted`);
           } else {
-            await processDatasetUpdate(dbname, change.id);
+            await processDatasetUpdate(dbname, change.id, historyId);
           }
         } catch (err) {
           console.error(`  ${dbname}/${change.id}: failed - ${err.message}`);
@@ -526,7 +570,7 @@ async function incrementalSync(dbname, lastSeq) {
 
 // === Sync a single database ===
 
-async function syncDatabase(dbname) {
+async function syncDatabase(dbname, historyId) {
   console.log(`\nSyncing ${dbname}...`);
   const lastSeq = await getLastSeq(dbname);
 
@@ -537,10 +581,12 @@ async function syncDatabase(dbname) {
       // get picked up by the next incremental run.
       const { data: info } = await axios.get(`${COUCHDB_URL}/${dbname}`);
       const seqAtStart = String(info.update_seq);
+      // firstSync intentionally receives no historyId → it never logs to
+      // dataset_changes (a full/first sync must not mass-record every dataset).
       await firstSync(dbname);
       nextSeq = seqAtStart;
     } else {
-      nextSeq = await incrementalSync(dbname, lastSeq);
+      nextSeq = await incrementalSync(dbname, lastSeq, historyId);
     }
 
     await saveLastSeq(dbname, String(nextSeq));
@@ -605,7 +651,7 @@ async function runSync() {
     console.log(`Databases: ${databases.length}`);
 
     for (const db of databases) {
-      await syncDatabase(db);
+      await syncDatabase(db, historyId);
     }
 
     // Compute + publish totals only after the whole run completed.
