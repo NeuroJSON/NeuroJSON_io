@@ -17,22 +17,14 @@ const C = {
   muted: "#a0a5c2", // primary.light
   link: "#a0a5c2", // primary.light (lightGreen on hover)
   lightGreen: "#16FDE2",
-  darkGreen: "#49c6ae",
 };
 
 type ChangeType = DatasetChange["changeType"];
 
-// Status-badge colors (green-family only, no red).
-const badgeText: Record<ChangeType, string> = {
-  added: C.lightGreen,
-  updated: C.muted,
-  deleted: C.darkGreen,
-};
-const changeBadgeBg: Record<ChangeType, string> = {
-  added: "rgba(22, 253, 226, 0.10)",
-  updated: "rgba(123, 129, 165, 0.16)",
-  deleted: "rgba(73, 198, 174, 0.12)",
-};
+// Status badges share one consistent green; the change type is conveyed by the
+// badge text (Added / Updated / Deleted), not by color.
+const BADGE_TEXT = C.lightGreen;
+const BADGE_BG = "rgba(22, 253, 226, 0.10)";
 const changeSign: Record<ChangeType, string> = {
   added: "+",
   updated: "~",
@@ -250,8 +242,8 @@ const LatestUpdateBoard: React.FC = () => {
                 fontSize: "0.75rem",
                 fontWeight: 500,
                 lineHeight: 1.6,
-                color: badgeText[d.changeType],
-                backgroundColor: changeBadgeBg[d.changeType],
+                color: BADGE_TEXT,
+                backgroundColor: BADGE_BG,
               }}
             >
               {badgeLabel[d.changeType]}
