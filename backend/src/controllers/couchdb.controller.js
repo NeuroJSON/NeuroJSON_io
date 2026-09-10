@@ -23,17 +23,155 @@ const getDbList = async (req, res) => {
   }
 };
 
-// get db stats
+// get db stats — reads the latest finalized snapshot from stats_history
+// (written once at the end of each sync), so the landing page never triggers a
+// live aggregate over ioviews/iolinks.
+//
+// History of this endpoint:
+//   1. proxied the legacy CGI:  https://neurojson.org/io/search.cgi?dbstats=1
+//      (decoupled from the synced Postgres — stale/junk)
+//   2. live Postgres aggregate over iolinks/ioviews (correct but scanned ~1.5M
+//      rows on every landing-page visit)
+//   3. this: read the precomputed stats_history snapshot (tiny query)
+//
+// Returns:
+//   { datasets, subjects, files, sizeBytes, lastSynced }
 const getDbStats = async (req, res) => {
   try {
-    const response = await axios.get(
-      "https://neurojson.org/io/search.cgi?dbstats=1"
+    const rows = await sequelize.query(
+      `SELECT total_datasets, total_subjects, total_files,
+              total_size_bytes, completed_at
+         FROM stats_history
+        WHERE status = 'success'
+        ORDER BY completed_at DESC
+        LIMIT 1`,
+      { type: sequelize.QueryTypes.SELECT }
     );
-    res.status(200).json(response.data);
+    const row = rows[0];
+    if (!row) {
+      // No successful sync snapshot yet.
+      return res.status(200).json({
+        datasets: 0,
+        subjects: 0,
+        files: 0,
+        sizeBytes: 0,
+        lastSynced: null,
+      });
+    }
+    // Sequelize returns BIGINT as a string; coerce to Number for the frontend.
+    res.status(200).json({
+      datasets: Number(row.total_datasets),
+      subjects: Number(row.total_subjects),
+      files: Number(row.total_files),
+      sizeBytes: Number(row.total_size_bytes),
+      lastSynced: row.completed_at,
+    });
   } catch (error) {
     console.error("Error fetching db stats:", error.message);
     res.status(error.response?.status || 500).json({
       message: "Error fetching database stats",
+      error: error.message,
+    });
+  }
+};
+
+// get the latest actual DATA update — distinct from "last synced". A cron sync
+// runs every ~12h and always writes a stats_history snapshot, but most runs
+// change nothing. This returns the most recent sync run that actually changed
+// datasets (i.e. has dataset_changes rows), with those changes.
+//
+// Response:
+//   { historyId, updatedAt,
+//     changes: {added, updated, deleted},           // datasets (dataset_changes)
+//     deltas:  {subjects, files, sizeBytes} | null, // NET, from snapshot diff
+//     datasets: [{dbname, dsname, changeType}] }
+//   or { historyId: null, ... } when nothing has ever changed.
+// deltas is null when there is no previous successful snapshot to compare
+// against (so the first-ever snapshot doesn't look like a huge update).
+const getLatestUpdate = async (req, res) => {
+  try {
+    // The newest run that produced any dataset changes.
+    const runRows = await sequelize.query(
+      `SELECT dc.history_id, sh.completed_at
+         FROM dataset_changes dc
+         JOIN stats_history sh ON sh.id = dc.history_id
+        WHERE sh.status = 'success'
+        ORDER BY dc.history_id DESC
+        LIMIT 1`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
+    const run = runRows[0];
+    if (!run) {
+      return res.status(200).json({
+        historyId: null,
+        updatedAt: null,
+        changes: { added: 0, updated: 0, deleted: 0 },
+        deltas: null,
+        datasets: [],
+      });
+    }
+
+    const rows = await sequelize.query(
+      `SELECT dbname, dsname, change_type
+         FROM dataset_changes
+        WHERE history_id = :historyId
+        ORDER BY change_type, dbname, dsname`,
+      {
+        replacements: { historyId: run.history_id },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    const changes = { added: 0, updated: 0, deleted: 0 };
+    const datasets = rows.map((r) => {
+      if (changes[r.change_type] !== undefined) changes[r.change_type] += 1;
+      return {
+        dbname: r.dbname,
+        dsname: r.dsname,
+        changeType: r.change_type,
+      };
+    });
+
+    // Subject/file/size deltas come from stats_history snapshot differences
+    // (dataset_changes only tracks datasets). Anchor on THIS run's snapshot and
+    // the previous SUCCESSFUL snapshot before it (skip failed/running) — NOT
+    // the global last-two rows, since later no-change syncs would zero it out.
+    // No previous snapshot → deltas: null (avoid a misleading "huge" first run).
+    const snapRows = await sequelize.query(
+      `SELECT id, total_subjects, total_files, total_size_bytes
+         FROM stats_history
+        WHERE status = 'success'
+          AND id <= :historyId
+        ORDER BY id DESC
+        LIMIT 2`,
+      {
+        replacements: { historyId: run.history_id },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+    let deltas = null;
+    if (snapRows.length === 2) {
+      const cur = snapRows[0];
+      const prev = snapRows[1];
+      deltas = {
+        subjects: Number(cur.total_subjects) - Number(prev.total_subjects),
+        files: Number(cur.total_files) - Number(prev.total_files),
+        sizeBytes:
+          Number(cur.total_size_bytes) - Number(prev.total_size_bytes),
+      };
+    }
+
+    res.status(200).json({
+      historyId: run.history_id,
+      updatedAt: run.completed_at,
+      changes,
+      deltas,
+      datasets,
+    });
+  } catch (error) {
+    console.error("Error fetching latest update:", error.message);
+    res.status(error.response?.status || 500).json({
+      message: "Error fetching latest update",
       error: error.message,
     });
   }
@@ -259,12 +397,34 @@ const searchAllDatabases = async (req, res) => {
     // "ABIDE - CMU_a" matches stored names regardless of separator style.
     // The whole group is parenthesised so it ANDs cleanly with other filters.
     if (isFilter(f.keyword)) {
-      where.push(`(
-        search_vector @@ plainto_tsquery('english', :keyword)
-        OR dbname ILIKE :keywordLike
-        OR dsname ILIKE :keywordLike
-        OR (json->>'name') ILIKE :keywordLike
-      )`);
+      // The keyword matches dataset-level text (name / README / AI summary),
+      // which lives only in dbinfo rows. On a subjects search the current row
+      // has no such text, so match the keyword against the dataset's dbinfo
+      // row via EXISTS — mirrors the modalities cross-view pattern above.
+      // Without this, any dataset-level keyword wrongly drops all subjects (it
+      // only appeared to work when the keyword happened to be a subject-level
+      // token such as a task name, e.g. "memory").
+      if (isSubjectSearch) {
+        where.push(`EXISTS (
+          SELECT 1 FROM ioviews dsi
+          WHERE dsi.dbname = ioviews.dbname
+            AND dsi.dsname = ioviews.dsname
+            AND dsi.view = 'dbinfo'
+            AND (
+              dsi.search_vector @@ plainto_tsquery('english', :keyword)
+              OR dsi.dbname ILIKE :keywordLike
+              OR dsi.dsname ILIKE :keywordLike
+              OR (dsi.json->>'name') ILIKE :keywordLike
+            )
+        )`);
+      } else {
+        where.push(`(
+          search_vector @@ plainto_tsquery('english', :keyword)
+          OR dbname ILIKE :keywordLike
+          OR dsname ILIKE :keywordLike
+          OR (json->>'name') ILIKE :keywordLike
+        )`);
+      }
       repl.keyword = String(f.keyword);
       repl.keywordLike = `%${String(f.keyword).replace(/[\s-]+/g, "%")}%`;
     }
@@ -619,6 +779,7 @@ const getFileTypes = async (req, res) => {
 module.exports = {
   getDbList,
   getDbStats,
+  getLatestUpdate,
   getDbInfo,
   getDbDatasets,
   searchAllDatabases,

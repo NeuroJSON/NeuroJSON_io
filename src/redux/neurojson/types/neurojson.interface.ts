@@ -10,7 +10,8 @@ export interface INeuroJsonState {
   limit: number;
   hasMore: boolean;
   dbInfo: DBParticulars | null; // add dbInfo type
-  dbStats: DbStatsItem[] | null; // for dbStats on landing page
+  dbStats: DbStats | null; // landing-page stats snapshot (from stats_history)
+  latestUpdate: LatestUpdate | null; // most recent sync run with data changes
   searchResults: any[] | { status: string; msg: string } | null;
   datasetViewInfo: any | null;
   fileTypes: string[] | null;
@@ -92,4 +93,31 @@ export interface DbStatsItem {
   view: string;
   num: number;
   size: number;
+}
+
+// Landing-page stats snapshot returned by GET /dbs/stats (latest successful
+// stats_history row).
+export interface DbStats {
+  datasets: number;
+  subjects: number;
+  files: number;
+  sizeBytes: number;
+  lastSynced: string | null;
+}
+
+// Response of GET /dbs/updates/latest — the most recent sync run that actually
+// changed datasets (distinct from "last synced").
+export interface DatasetChange {
+  dbname: string;
+  dsname: string;
+  changeType: "added" | "updated" | "deleted";
+}
+export interface LatestUpdate {
+  historyId: number | null;
+  updatedAt: string | null;
+  changes: { added: number; updated: number; deleted: number };
+  // Net subject/file/size deltas vs the previous snapshot; null when there is
+  // no previous successful snapshot to compare against.
+  deltas: { subjects: number; files: number; sizeBytes: number } | null;
+  datasets: DatasetChange[];
 }

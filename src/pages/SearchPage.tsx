@@ -648,17 +648,27 @@ const SearchPage: React.FC = () => {
   // check if has database/dataset matches
   // const hasDbMatches = !!keywordInput && registryMatches.length > 0;
   const hasDbMatches = registryMatches.length > 0;
+  // Display/pagination use the local `results` state (kept — also gives TS
+  // array-narrowing inside {hasDatasetMatches && ...} render blocks).
   const hasDatasetMatches = Array.isArray(results) && results.length > 0;
-  // when backend find nothing
-  const backendEmpty =
-    !Array.isArray(results) && (results as any)?.msg === "empty output";
+
+  // The empty-state WARNING is based on the Redux `searchResults` instead,
+  // which updates in the SAME render as `loading` (both set in the fulfilled
+  // reducer). The local `results` is set a render later (in the dispatch
+  // .then()), so using it for the warning made it FLASH on slow searches:
+  // loading turns false while `results` is still stale/empty.
+  const storeHasMatches =
+    Array.isArray(searchResults) && searchResults.length > 0;
+  const storeEmpty =
+    !Array.isArray(searchResults) &&
+    (searchResults as any)?.msg === "empty output";
 
   // show red message only if nothing matched at all
   const showNoResults =
     hasSearched &&
     !loading &&
     // !hasDbMatches &&
-    (!hasDatasetMatches || backendEmpty);
+    (!storeHasMatches || storeEmpty);
 
   // Tailored empty-state message: when the user combined a file_type filter
   // with any subject-level filter and got nothing back, it's almost certainly

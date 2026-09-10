@@ -97,6 +97,18 @@ export const fetchDbStats = createAsyncThunk(
   }
 );
 
+export const fetchLatestUpdate = createAsyncThunk(
+  "neurojson/fetchLatestUpdate",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await NeurojsonService.getLatestUpdate();
+      return response;
+    } catch (error: any) {
+      return rejectWithValue("Failed to fetch latest update");
+    }
+  }
+);
+
 export const fetchMetadataSearchResults = createAsyncThunk(
   "neurojson/fetchMetadataSearchResults",
   async (formData: any, { rejectWithValue }) => {
