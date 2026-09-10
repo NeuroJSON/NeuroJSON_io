@@ -3,6 +3,7 @@ const express = require("express");
 const {
   getDbList,
   getDbStats,
+  getLatestUpdate,
   getDbInfo,
   getDbDatasets,
   searchAllDatabases,
@@ -16,6 +17,10 @@ const router = express.Router();
 // Database list and stats
 router.get("/", getDbList);
 router.get("/stats", getDbStats);
+
+// latest actual data update (most recent sync run with dataset changes).
+// Must come BEFORE the /:dbName route so "updates" isn't read as a dbName.
+router.get("/updates/latest", getLatestUpdate);
 
 // distinct file extensions across all iolinks rows (drives the file-type
 // filter on the search page). Must come BEFORE the /:dbName route, otherwise

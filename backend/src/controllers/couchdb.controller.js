@@ -75,6 +75,73 @@ const getDbStats = async (req, res) => {
   }
 };
 
+// get the latest actual DATA update — distinct from "last synced". A cron sync
+// runs every ~12h and always writes a stats_history snapshot, but most runs
+// change nothing. This returns the most recent sync run that actually changed
+// datasets (i.e. has dataset_changes rows), with those changes.
+//
+// Response:
+//   { historyId, updatedAt, changes: {added, updated, deleted},
+//     datasets: [{dbname, dsname, changeType}] }
+//   or { historyId: null, ... } when nothing has ever changed.
+const getLatestUpdate = async (req, res) => {
+  try {
+    // The newest run that produced any dataset changes.
+    const runRows = await sequelize.query(
+      `SELECT dc.history_id, sh.completed_at
+         FROM dataset_changes dc
+         JOIN stats_history sh ON sh.id = dc.history_id
+        WHERE sh.status = 'success'
+        ORDER BY dc.history_id DESC
+        LIMIT 1`,
+      { type: sequelize.QueryTypes.SELECT }
+    );
+    const run = runRows[0];
+    if (!run) {
+      return res.status(200).json({
+        historyId: null,
+        updatedAt: null,
+        changes: { added: 0, updated: 0, deleted: 0 },
+        datasets: [],
+      });
+    }
+
+    const rows = await sequelize.query(
+      `SELECT dbname, dsname, change_type
+         FROM dataset_changes
+        WHERE history_id = :historyId
+        ORDER BY change_type, dbname, dsname`,
+      {
+        replacements: { historyId: run.history_id },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    const changes = { added: 0, updated: 0, deleted: 0 };
+    const datasets = rows.map((r) => {
+      if (changes[r.change_type] !== undefined) changes[r.change_type] += 1;
+      return {
+        dbname: r.dbname,
+        dsname: r.dsname,
+        changeType: r.change_type,
+      };
+    });
+
+    res.status(200).json({
+      historyId: run.history_id,
+      updatedAt: run.completed_at,
+      changes,
+      datasets,
+    });
+  } catch (error) {
+    console.error("Error fetching latest update:", error.message);
+    res.status(error.response?.status || 500).json({
+      message: "Error fetching latest update",
+      error: error.message,
+    });
+  }
+};
+
 // cross-database search — old version proxied to https://neurojson.org/io/search.cgi
 // kept for reference; replaced by the Postgres-backed version below.
 // const searchAllDatabases = async (req, res) => {
@@ -677,6 +744,7 @@ const getFileTypes = async (req, res) => {
 module.exports = {
   getDbList,
   getDbStats,
+  getLatestUpdate,
   getDbInfo,
   getDbDatasets,
   searchAllDatabases,
