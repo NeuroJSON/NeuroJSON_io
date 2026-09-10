@@ -61,7 +61,7 @@ const LatestUpdateBoard: React.FC = () => {
     n > 0 ? (
       <Chip
         key={type}
-        label={`${changeSign[type]}${n} ${label}`}
+        label={`${changeSign[type]}${n} dataset${n === 1 ? "" : "s"} ${label}`}
         size="small"
         sx={{
           height: 22,
