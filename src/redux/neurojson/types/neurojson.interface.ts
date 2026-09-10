@@ -11,6 +11,7 @@ export interface INeuroJsonState {
   hasMore: boolean;
   dbInfo: DBParticulars | null; // add dbInfo type
   dbStats: DbStats | null; // landing-page stats snapshot (from stats_history)
+  latestUpdate: LatestUpdate | null; // most recent sync run with data changes
   searchResults: any[] | { status: string; msg: string } | null;
   datasetViewInfo: any | null;
   fileTypes: string[] | null;
@@ -102,4 +103,18 @@ export interface DbStats {
   files: number;
   sizeBytes: number;
   lastSynced: string | null;
+}
+
+// Response of GET /dbs/updates/latest — the most recent sync run that actually
+// changed datasets (distinct from "last synced").
+export interface DatasetChange {
+  dbname: string;
+  dsname: string;
+  changeType: "added" | "updated" | "deleted";
+}
+export interface LatestUpdate {
+  historyId: number | null;
+  updatedAt: string | null;
+  changes: { added: number; updated: number; deleted: number };
+  datasets: DatasetChange[];
 }

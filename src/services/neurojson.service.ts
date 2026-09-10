@@ -90,6 +90,12 @@ export const NeurojsonService = {
     return response.data;
   },
 
+  // GET /api/v1/dbs/updates/latest  → getLatestUpdate
+  getLatestUpdate: async () => {
+    const response = await api.get(`/dbs/updates/latest`);
+    return response.data;
+  },
+
   // getMetadataSearchResults: async (formData: any): Promise<any> => {
   //   const map: Record<string, string> = {
   //     keyword: "keyword",
