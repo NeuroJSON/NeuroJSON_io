@@ -81,9 +81,13 @@ const getDbStats = async (req, res) => {
 // datasets (i.e. has dataset_changes rows), with those changes.
 //
 // Response:
-//   { historyId, updatedAt, changes: {added, updated, deleted},
+//   { historyId, updatedAt,
+//     changes: {added, updated, deleted},           // datasets (dataset_changes)
+//     deltas:  {subjects, files, sizeBytes} | null, // NET, from snapshot diff
 //     datasets: [{dbname, dsname, changeType}] }
 //   or { historyId: null, ... } when nothing has ever changed.
+// deltas is null when there is no previous successful snapshot to compare
+// against (so the first-ever snapshot doesn't look like a huge update).
 const getLatestUpdate = async (req, res) => {
   try {
     // The newest run that produced any dataset changes.
@@ -102,6 +106,7 @@ const getLatestUpdate = async (req, res) => {
         historyId: null,
         updatedAt: null,
         changes: { added: 0, updated: 0, deleted: 0 },
+        deltas: null,
         datasets: [],
       });
     }
@@ -127,10 +132,40 @@ const getLatestUpdate = async (req, res) => {
       };
     });
 
+    // Subject/file/size deltas come from stats_history snapshot differences
+    // (dataset_changes only tracks datasets). Anchor on THIS run's snapshot and
+    // the previous SUCCESSFUL snapshot before it (skip failed/running) — NOT
+    // the global last-two rows, since later no-change syncs would zero it out.
+    // No previous snapshot → deltas: null (avoid a misleading "huge" first run).
+    const snapRows = await sequelize.query(
+      `SELECT id, total_subjects, total_files, total_size_bytes
+         FROM stats_history
+        WHERE status = 'success'
+          AND id <= :historyId
+        ORDER BY id DESC
+        LIMIT 2`,
+      {
+        replacements: { historyId: run.history_id },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+    let deltas = null;
+    if (snapRows.length === 2) {
+      const cur = snapRows[0];
+      const prev = snapRows[1];
+      deltas = {
+        subjects: Number(cur.total_subjects) - Number(prev.total_subjects),
+        files: Number(cur.total_files) - Number(prev.total_files),
+        sizeBytes:
+          Number(cur.total_size_bytes) - Number(prev.total_size_bytes),
+      };
+    }
+
     res.status(200).json({
       historyId: run.history_id,
       updatedAt: run.completed_at,
       changes,
+      deltas,
       datasets,
     });
   } catch (error) {
