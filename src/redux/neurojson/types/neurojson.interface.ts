@@ -116,5 +116,8 @@ export interface LatestUpdate {
   historyId: number | null;
   updatedAt: string | null;
   changes: { added: number; updated: number; deleted: number };
+  // Net subject/file/size deltas vs the previous snapshot; null when there is
+  // no previous successful snapshot to compare against.
+  deltas: { subjects: number; files: number; sizeBytes: number } | null;
   datasets: DatasetChange[];
 }

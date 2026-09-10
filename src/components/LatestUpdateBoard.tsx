@@ -1,5 +1,4 @@
-import { Box, Chip, Typography, Link as MuiLink } from "@mui/material";
-import { Colors } from "design/theme";
+import { Box, Typography, Link as MuiLink } from "@mui/material";
 import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect } from "react";
@@ -11,16 +10,38 @@ import RoutesEnum from "types/routes.enum";
 
 const MAX_DATASETS = 5;
 
-// Colors per change type (light enough for the dark hero background).
-const changeColor: Record<DatasetChange["changeType"], string> = {
-  added: Colors.lightGreen,
-  updated: Colors.accent,
-  deleted: "#ff8a80",
+// Palette for this component (integrated with the dark navy/purple hero).
+// Green-family accents only — no red styling.
+const C = {
+  primary: "#F4F4FF", // near-white
+  muted: "#a0a5c2", // primary.light
+  link: "#a0a5c2", // primary.light (lightGreen on hover)
+  lightGreen: "#16FDE2",
+  darkGreen: "#49c6ae",
 };
-const changeSign: Record<DatasetChange["changeType"], string> = {
+
+type ChangeType = DatasetChange["changeType"];
+
+// Status-badge colors (green-family only, no red).
+const badgeText: Record<ChangeType, string> = {
+  added: C.lightGreen,
+  updated: C.muted,
+  deleted: C.darkGreen,
+};
+const changeBadgeBg: Record<ChangeType, string> = {
+  added: "rgba(22, 253, 226, 0.10)",
+  updated: "rgba(123, 129, 165, 0.16)",
+  deleted: "rgba(73, 198, 174, 0.12)",
+};
+const changeSign: Record<ChangeType, string> = {
   added: "+",
   updated: "~",
   deleted: "−",
+};
+const badgeLabel: Record<ChangeType, string> = {
+  added: "Added",
+  updated: "Updated",
+  deleted: "Deleted",
 };
 
 const formatDate = (iso: string | null): string => {
@@ -33,6 +54,54 @@ const formatDate = (iso: string | null): string => {
     day: "numeric",
   });
 };
+
+const signed = (n: number): string =>
+  `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)}`;
+
+const signedBytes = (n: number): string => {
+  const sign = n > 0 ? "+" : n < 0 ? "−" : "";
+  let v = Math.abs(n);
+  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+  let u = 0;
+  while (v >= 1024 && u < units.length - 1) {
+    v /= 1024;
+    u += 1;
+  }
+  return `${sign}${v.toFixed(v < 10 && u > 0 ? 1 : 0)} ${units[u]}`;
+};
+
+// A single metric: medium-weight number + slightly smaller label.
+const Metric: React.FC<{
+  value: string;
+  label: string;
+  numberColor: string;
+  labelColor: string;
+}> = ({ value, label, numberColor, labelColor }) => (
+  <Box sx={{ display: "inline-flex", alignItems: "baseline", gap: 0.5 }}>
+    <Typography
+      component="span"
+      sx={{
+        fontFamily: "Ubuntu",
+        fontSize: "0.875rem",
+        fontWeight: 500,
+        color: numberColor,
+      }}
+    >
+      {value}
+    </Typography>
+    <Typography
+      component="span"
+      sx={{
+        fontFamily: "Ubuntu",
+        fontSize: "0.8125rem",
+        fontWeight: 500,
+        color: labelColor,
+      }}
+    >
+      {label}
+    </Typography>
+  </Box>
+);
 
 const LatestUpdateBoard: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -49,78 +118,156 @@ const LatestUpdateBoard: React.FC = () => {
     return null;
   }
 
-  const { changes, datasets } = latest;
+  const { changes, deltas, datasets } = latest;
   const shown = datasets.slice(0, MAX_DATASETS);
   const remaining = datasets.length - shown.length;
 
-  const countChip = (
-    label: string,
-    n: number,
-    type: DatasetChange["changeType"]
-  ) =>
-    n > 0 ? (
-      <Chip
-        key={type}
-        label={`${changeSign[type]}${n} dataset${n === 1 ? "" : "s"} ${label}`}
-        size="small"
-        sx={{
-          height: 22,
-          backgroundColor: "transparent",
-          color: changeColor[type],
-          border: `1px solid ${changeColor[type]}`,
-          fontWeight: 600,
-          "& .MuiChip-label": { px: "8px", fontSize: "0.78rem" },
-        }}
-      />
-    ) : null;
+  // Dataset-change metrics (semantic color); subject/file/size deltas (neutral).
+  const datasetMetrics = (["added", "updated", "deleted"] as ChangeType[])
+    .filter((t) => changes[t] > 0)
+    .map((t) => {
+      const n = changes[t];
+      return {
+        key: t,
+        value: `${changeSign[t]}${n}`,
+        label: n === 1 ? "Dataset" : "Datasets",
+      };
+    });
 
   return (
-    <Box sx={{ textAlign: "center", mt: 2, color: Colors.lightGray }}>
+    <Box
+      sx={{
+        maxWidth: 620,
+        mx: "auto",
+        mt: 2.5,
+        px: 1,
+        textAlign: "left",
+      }}
+    >
+      {/* Line 1 — "Latest update · <date>" */}
+      <Typography
+        sx={{ fontFamily: "Ubuntu", fontSize: "0.875rem", fontWeight: 500, mb: 1 }}
+      >
+        <Box component="span" sx={{ color: C.primary }}>
+          Latest update
+        </Box>
+        <Box component="span" sx={{ color: C.muted }}>
+          {" · "}
+          {formatDate(latest.updatedAt)}
+        </Box>
+      </Typography>
+
+      {/* Line 2 — metrics, evenly spaced, lightweight (no bordered chips) */}
       <Box
         sx={{
           display: "flex",
           flexWrap: "wrap",
-          justifyContent: "center",
+          justifyContent: "flex-start",
           alignItems: "center",
-          gap: 1,
-          mb: 0.5,
+          columnGap: 3,
+          rowGap: 0.5,
+          mb: 1.25,
         }}
       >
-        <Typography sx={{ fontSize: "0.9rem", color: Colors.lightGray }}>
-          Latest update · {formatDate(latest.updatedAt)}
-        </Typography>
-        {countChip("added", changes.added, "added")}
-        {countChip("updated", changes.updated, "updated")}
-        {countChip("deleted", changes.deleted, "deleted")}
+        {datasetMetrics.map((m) => (
+          <Metric
+            key={m.key}
+            value={m.value}
+            label={m.label}
+            numberColor={C.primary}
+            labelColor={C.muted}
+          />
+        ))}
+        {deltas && deltas.subjects !== 0 && (
+          <Metric
+            value={signed(deltas.subjects)}
+            label={Math.abs(deltas.subjects) === 1 ? "Subject" : "Subjects"}
+            numberColor={C.primary}
+            labelColor={C.muted}
+          />
+        )}
+        {deltas && deltas.files !== 0 && (
+          <Metric
+            value={signed(deltas.files)}
+            label={Math.abs(deltas.files) === 1 ? "File" : "Files"}
+            numberColor={C.primary}
+            labelColor={C.muted}
+          />
+        )}
+        {deltas && deltas.sizeBytes !== 0 && (
+          <Metric
+            value={signedBytes(deltas.sizeBytes)}
+            label=""
+            numberColor={C.primary}
+            labelColor={C.muted}
+          />
+        )}
       </Box>
 
+      {/* Line 3+ — affected datasets, left-aligned; badge next to the name */}
       <Box
         sx={{
           display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "center",
-          gap: 1,
-          fontSize: "0.8rem",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          gap: 0.75,
+          textAlign: "left",
         }}
       >
         {shown.map((d, i) => (
-          <MuiLink
+          <Box
             key={`${d.dbname}/${d.dsname}/${i}`}
-            component={Link}
-            to={`${RoutesEnum.DATABASES}/${d.dbname}/${d.dsname}`}
-            underline="hover"
             sx={{
-              color: changeColor[d.changeType],
-              fontFamily: "monospace",
-              fontSize: "0.78rem",
-              wordBreak: "break-all",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-start",
+              gap: 1,
             }}
           >
-            {d.dbname}/{d.dsname} ({d.changeType})
-          </MuiLink>
+            <MuiLink
+              component={Link}
+              to={`${RoutesEnum.DATABASES}/${d.dbname}/${d.dsname}`}
+              underline="hover"
+              sx={{
+                color: C.link,
+                fontFamily: "Ubuntu",
+                fontWeight: 500,
+                fontSize: "0.8125rem",
+                wordBreak: "break-all",
+                "&:hover": { color: C.lightGreen },
+              }}
+            >
+              {d.dbname}/{d.dsname}
+            </MuiLink>
+            <Box
+              component="span"
+              sx={{
+                flexShrink: 0,
+                px: 1,
+                py: 0.25,
+                borderRadius: "999px",
+                fontFamily: "Ubuntu",
+                fontSize: "0.75rem",
+                fontWeight: 500,
+                lineHeight: 1.6,
+                color: badgeText[d.changeType],
+                backgroundColor: changeBadgeBg[d.changeType],
+              }}
+            >
+              {badgeLabel[d.changeType]}
+            </Box>
+          </Box>
         ))}
         {remaining > 0 && (
-          <Typography component="span" sx={{ fontSize: "0.78rem" }}>
+          <Typography
+            sx={{
+              fontFamily: "Ubuntu",
+              fontWeight: 500,
+              fontSize: "0.78rem",
+              color: C.muted,
+              mt: 0.25,
+            }}
+          >
             +{remaining} more
           </Typography>
         )}
