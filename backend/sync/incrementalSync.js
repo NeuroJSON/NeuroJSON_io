@@ -10,6 +10,16 @@ const CONCURRENCY = 5;
 // fetch database list dynamically from registry
 // registry doc shape: { database: [{ id, name, ... }, ...] }
 async function getDatabases() {
+  // Optional override for testing/ops: sync only the named databases instead
+  // of the full registry, without touching the shared sys/registry doc.
+  //   SYNC_DBS=sandbox1d,bfnirs node sync/incrementalSync.js
+  if (process.env.SYNC_DBS) {
+    const databases = process.env.SYNC_DBS.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    console.log(`SYNC_DBS override: ${databases.join(", ")}`);
+    return databases;
+  }
   const response = await axios.get(`${COUCHDB_URL}/sys/registry`);
   const entries = response.data?.database || [];
   const databases = entries.map((db) => db.id).filter(Boolean);
