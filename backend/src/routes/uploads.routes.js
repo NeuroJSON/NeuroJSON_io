@@ -13,7 +13,10 @@ const uploadRateLimit = rateLimit({
   max: parseInt(process.env.UPLOAD_RATE_LIMIT_MAX || "20", 10),
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => (req.user && req.user.id ? String(req.user.id) : req.ip),
+  // requireAuth runs first, so req.user is always set — key purely by user id.
+  // (Avoid referencing req.ip: express-rate-limit v7 statically flags that as
+  // an IPv6-unsafe key generator.)
+  keyGenerator: (req) => `user:${req.user.id}`,
   message: {
     error: "Daily upload limit reached. Please try again tomorrow.",
   },

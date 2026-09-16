@@ -61,7 +61,13 @@ const createUpload = async (req, res) => {
 
     res.status(201).json({ ok: true, id, rev });
   } catch (err) {
-    console.error("Upload failed:", err.response?.status, err.message);
+    console.error(
+      "Upload failed:",
+      err.response?.status,
+      err.message,
+      "| couch:",
+      JSON.stringify(err.response?.data)
+    );
     res.status(err.response?.status || 500).json({
       error: "Upload failed",
       detail: err.response?.data || err.message,
