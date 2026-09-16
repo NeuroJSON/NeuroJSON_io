@@ -33,6 +33,15 @@ const createUpload = async (req, res) => {
         .json({ error: "Request body must be a JSON object" });
     }
 
+    // Strip CouchDB-reserved fields the uploaded file may carry (_id, _rev,
+    // _revisions, _attachments, ...). A stray _rev makes the write fail with
+    // 409; a stray _id would write to/OVERWRITE that document (e.g. "ds000001")
+    // instead of a fresh sandbox doc. We always assign a new id below.
+    const clean = {};
+    for (const [key, value] of Object.entries(doc)) {
+      if (!key.startsWith("_")) clean[key] = value;
+    }
+
     // Stamp who submitted + a pending status into .datainfo (merged alongside
     // the CreateTime/UpdateTime the update handler adds) so the review queue
     // shows the submitter. requireAuth guarantees req.user is set.
@@ -45,8 +54,8 @@ const createUpload = async (req, res) => {
       },
     };
     const payload = {
-      ...doc,
-      ".datainfo": { ...(doc[".datainfo"] || {}), ...meta },
+      ...clean,
+      ".datainfo": { ...(clean[".datainfo"] || {}), ...meta },
     };
 
     // Write via the CouchDB `timestamp` update handler (not a plain POST/PUT)
