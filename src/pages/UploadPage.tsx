@@ -71,17 +71,21 @@ const UploadPage: React.FC = () => {
     return (
       <Container maxWidth="sm" sx={{ mt: 6, mb: 6 }}>
         <Paper sx={{ p: 4, textAlign: "center" }}>
-          <Typography variant="h6" sx={{ mb: 1 }}>
+          <Typography variant="h5" sx={{ mb: 1, fontWeight: 600 }}>
             Please log in to upload
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          <Typography color="text.secondary" sx={{ mb: 2, fontSize: "1rem" }}>
             Uploading a dataset for review requires a NeuroJSON account.
           </Typography>
           <Button
             variant="contained"
+            size="large"
             component={Link}
             to={RoutesEnum.DASHBOARD}
-            sx={{ backgroundColor: Colors.purple }}
+            sx={{
+              backgroundColor: Colors.purple,
+              "&:hover": { backgroundColor: Colors.secondaryPurple },
+            }}
           >
             Log in
           </Button>
@@ -92,10 +96,15 @@ const UploadPage: React.FC = () => {
 
   return (
     <Container maxWidth="sm" sx={{ mt: 6, mb: 6 }}>
-      <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
+      <Typography
+        variant="h4"
+        sx={{ fontWeight: 600, mb: 1.5, color: Colors.white }}
+      >
         Upload a dataset
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography
+        sx={{ mb: 3, color: Colors.lightGray, fontSize: "1.05rem", lineHeight: 1.6 }}
+      >
         Select a JSON file (e.g. the file produced by AutoBIDSify). It will be
         submitted to our sandbox for the NeuroJSON team to review before it is
         added to a database.
@@ -111,14 +120,23 @@ const UploadPage: React.FC = () => {
         />
         <Button
           variant="outlined"
+          size="large"
           startIcon={<CloudUploadIcon />}
           onClick={() => fileInputRef.current?.click()}
-          sx={{ color: Colors.purple, borderColor: Colors.purple }}
+          sx={{
+            color: Colors.purple,
+            borderColor: Colors.purple,
+            fontSize: "1rem",
+            "&:hover": {
+              borderColor: Colors.secondaryPurple,
+              backgroundColor: "rgba(74, 76, 183, 0.08)",
+            },
+          }}
         >
           Choose JSON file
         </Button>
         {file && (
-          <Typography variant="body2" sx={{ mt: 1.5 }}>
+          <Typography sx={{ mt: 1.5, fontSize: "1rem" }}>
             Selected: <strong>{file.name}</strong>{" "}
             {parsed && (
               <Box component="span" sx={{ color: "success.main" }}>
@@ -137,9 +155,14 @@ const UploadPage: React.FC = () => {
         <Box sx={{ mt: 3 }}>
           <Button
             variant="contained"
+            size="large"
             disabled={!parsed || submitting}
             onClick={handleSubmit}
-            sx={{ backgroundColor: Colors.purple }}
+            sx={{
+              backgroundColor: Colors.purple,
+              fontSize: "1rem",
+              "&:hover": { backgroundColor: Colors.secondaryPurple },
+            }}
           >
             {submitting ? (
               <CircularProgress size={22} sx={{ color: "white" }} />
@@ -150,20 +173,26 @@ const UploadPage: React.FC = () => {
         </Box>
 
         {result && (
-          <Alert severity="success" sx={{ mt: 3 }}>
+          <Alert severity="success" sx={{ mt: 3, fontSize: "0.95rem" }}>
             Submitted for review. Reference id: <code>{result.id}</code>
           </Alert>
         )}
         {submitError && (
-          <Alert severity="error" sx={{ mt: 3 }}>
+          <Alert severity="error" sx={{ mt: 3, fontSize: "0.95rem" }}>
             {submitError}
           </Alert>
         )}
       </Paper>
 
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: "block" }}>
+      <Typography
+        sx={{ mt: 2, display: "block", color: Colors.lightGray, fontSize: "0.95rem" }}
+      >
         Coming from AutoBIDSify? Convert your dataset in the{" "}
-        <MuiLink component={Link} to={RoutesEnum.BIDS_CONVERTER}>
+        <MuiLink
+          component={Link}
+          to={RoutesEnum.BIDS_CONVERTER}
+          sx={{ color: Colors.lightGreen }}
+        >
           converter
         </MuiLink>
         , then upload the generated JSON here.
