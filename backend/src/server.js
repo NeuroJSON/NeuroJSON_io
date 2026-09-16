@@ -15,7 +15,7 @@ const collectionRoutes = require("./routes/collection.route");
 const projectRoutes = require("./routes/projects.routes");
 const ollamaRoutes = require("./routes/ollama.routes");
 const ollamaPublicRoutes = require("./routes/ollama.public.routes");
-const autobidsifyRoutes = require("./routes/autobidsify.routes");
+const uploadsRoutes = require("./routes/uploads.routes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -54,7 +54,7 @@ app.use("/api/v1/collections", collectionRoutes);
 app.use("/api/v1/projects", projectRoutes);
 app.use("/api/v1/ollama", ollamaRoutes);
 app.use("/api/v1/ollama-public", ollamaPublicRoutes);
-app.use("/api/v1/autobidsify", autobidsifyRoutes);
+app.use("/api/v1/uploads", uploadsRoutes);
 
 // health check endpoint
 app.get("/api/health", async (req, res) => {
