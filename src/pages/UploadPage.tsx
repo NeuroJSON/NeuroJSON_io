@@ -111,6 +111,12 @@ const UploadPage: React.FC = () => {
       </Typography>
 
       <Paper variant="outlined" sx={{ p: 3 }}>
+        <Alert severity="info" sx={{ mb: 2, fontSize: "0.9rem" }}>
+          Your file is reviewed by the NeuroJSON team before it is added to a
+          database. On submission we assign a new reference id — any existing{" "}
+          <code>_id</code>/<code>_rev</code> in your file is ignored.
+        </Alert>
+
         <input
           ref={fileInputRef}
           type="file"
