@@ -105,9 +105,8 @@ const UploadPage: React.FC = () => {
       <Typography
         sx={{ mb: 3, color: Colors.lightGray, fontSize: "1.05rem", lineHeight: 1.6 }}
       >
-        Select a JSON file (e.g. the file produced by AutoBIDSify). It will be
-        submitted to our sandbox for the NeuroJSON team to review before it is
-        added to a database.
+        Select a JSON file. It will be submitted to our sandbox for the
+        NeuroJSON team to review before it is added to a database.
       </Typography>
 
       <Paper variant="outlined" sx={{ p: 3 }}>
