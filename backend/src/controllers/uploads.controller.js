@@ -63,8 +63,7 @@ const createUpload = async (req, res) => {
     const datasetName = nameFromDoc || req.query.datasetName;
     if (!datasetName) {
       return res.status(400).json({
-        error:
-          "Dataset name required: provide dataset_description.json.Name in the file or a datasetName parameter.",
+        error: "Please enter a dataset name.",
       });
     }
     // Normalize: ensure the stored doc carries the name.
