@@ -5,8 +5,14 @@ import {
   Button,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Link as MuiLink,
   Paper,
+  TextField,
   Typography,
 } from "@mui/material";
 import { Colors } from "design/theme";
@@ -24,13 +30,24 @@ const UploadPage: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<Record<string, unknown> | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [datasetId, setDatasetId] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ id: string } | null>(null);
+  const [result, setResult] = useState<{
+    datasetId: string;
+    submissionId: string;
+    status: string;
+  } | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null); // approved/blocked
+  const [confirmPrompt, setConfirmPrompt] = useState<{
+    code: string;
+    message: string;
+  } | null>(null);
 
   const resetOutcome = () => {
     setResult(null);
     setSubmitError(null);
+    setInfoMessage(null);
   };
 
   const handleFile = async (f: File | undefined) => {
@@ -52,13 +69,31 @@ const UploadPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = async () => {
+  const submit = async (confirm: boolean) => {
     if (!parsed) return;
     setSubmitting(true);
     resetOutcome();
+    setConfirmPrompt(null);
     try {
-      const res = await UploadService.uploadJson(parsed);
-      setResult({ id: res.id });
+      const { status, data } = await UploadService.uploadJson(parsed, {
+        datasetId: datasetId.trim() || undefined,
+        confirm,
+      });
+      if (status === 201) {
+        setResult({
+          datasetId: data.dataset_id,
+          submissionId: data.submission_id,
+          status: data.status,
+        });
+      } else if (status === 409 && data.requiresConfirmation) {
+        setConfirmPrompt({ code: data.code, message: data.message });
+      } else if (status === 409) {
+        setInfoMessage(
+          data.message || "This dataset cannot be updated right now."
+        );
+      } else {
+        setSubmitError(data.error || data.message || `Upload failed (${status})`);
+      }
     } catch (e: any) {
       setSubmitError(e.message || "Upload failed.");
     } finally {
@@ -103,7 +138,12 @@ const UploadPage: React.FC = () => {
         Upload a dataset
       </Typography>
       <Typography
-        sx={{ mb: 3, color: Colors.lightGray, fontSize: "1.05rem", lineHeight: 1.6 }}
+        sx={{
+          mb: 3,
+          color: Colors.lightGray,
+          fontSize: "1.05rem",
+          lineHeight: 1.6,
+        }}
       >
         Select a JSON file. It will be submitted to our sandbox for the
         NeuroJSON team to review before it is added to a database.
@@ -112,7 +152,7 @@ const UploadPage: React.FC = () => {
       <Paper variant="outlined" sx={{ p: 3 }}>
         <Alert severity="info" sx={{ mb: 2, fontSize: "0.9rem" }}>
           Your file is reviewed by the NeuroJSON team before it is added to a
-          database. On submission we assign a new reference id — any existing{" "}
+          database. A new reference id is assigned on submission — any existing{" "}
           <code>_id</code>/<code>_rev</code> in your file is ignored.
         </Alert>
 
@@ -157,12 +197,23 @@ const UploadPage: React.FC = () => {
           </Alert>
         )}
 
+        {/* Optional: updating an existing dataset */}
+        <TextField
+          label="Updating an existing dataset? Enter its NeuroJSON ID (optional)"
+          placeholder="njds000001"
+          value={datasetId}
+          onChange={(e) => setDatasetId(e.target.value)}
+          size="small"
+          fullWidth
+          sx={{ mt: 2.5 }}
+        />
+
         <Box sx={{ mt: 3 }}>
           <Button
             variant="contained"
             size="large"
             disabled={!parsed || submitting}
-            onClick={handleSubmit}
+            onClick={() => submit(false)}
             sx={{
               backgroundColor: Colors.purple,
               fontSize: "1rem",
@@ -179,7 +230,16 @@ const UploadPage: React.FC = () => {
 
         {result && (
           <Alert severity="success" sx={{ mt: 3, fontSize: "0.95rem" }}>
-            Submitted for review. Reference id: <code>{result.id}</code>
+            Submitted for review.
+            <br />
+            Dataset ID: <code>{result.datasetId}</code>
+            <br />
+            Submission: <code>{result.submissionId}</code> ({result.status})
+          </Alert>
+        )}
+        {infoMessage && (
+          <Alert severity="info" sx={{ mt: 3, fontSize: "0.95rem" }}>
+            {infoMessage}
           </Alert>
         )}
         {submitError && (
@@ -190,7 +250,12 @@ const UploadPage: React.FC = () => {
       </Paper>
 
       <Typography
-        sx={{ mt: 2, display: "block", color: Colors.lightGray, fontSize: "0.95rem" }}
+        sx={{
+          mt: 2,
+          display: "block",
+          color: Colors.lightGray,
+          fontSize: "0.95rem",
+        }}
       >
         Coming from AutoBIDSify? Convert your dataset in the{" "}
         <MuiLink
@@ -202,6 +267,27 @@ const UploadPage: React.FC = () => {
         </MuiLink>
         , then upload the generated JSON here.
       </Typography>
+
+      {/* Confirmation dialog for promoted/rejected resubmissions */}
+      <Dialog open={!!confirmPrompt} onClose={() => setConfirmPrompt(null)}>
+        <DialogTitle>Submit a new version?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{confirmPrompt?.message}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmPrompt(null)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={() => submit(true)}
+            sx={{
+              backgroundColor: Colors.purple,
+              "&:hover": { backgroundColor: Colors.secondaryPurple },
+            }}
+          >
+            Submit new version
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
