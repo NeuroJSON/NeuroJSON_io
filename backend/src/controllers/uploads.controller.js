@@ -230,4 +230,22 @@ const createUpload = async (req, res) => {
   }
 };
 
-module.exports = { createUpload };
+// List the caller's own submissions for the dashboard "Uploads" tab.
+const listMyUploads = async (req, res) => {
+  try {
+    const rows = await sequelize.query(
+      `SELECT dataset_id, dataset_name, status, created_at, updated_at,
+              reviewed_at, promoted_db, promoted_at
+         FROM submissions
+        WHERE user_id = :uid
+        ORDER BY created_at DESC`,
+      { replacements: { uid: req.user.id }, type: sequelize.QueryTypes.SELECT }
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("List uploads failed:", err.message);
+    res.status(500).json({ error: "Failed to list uploads" });
+  }
+};
+
+module.exports = { createUpload, listMyUploads };

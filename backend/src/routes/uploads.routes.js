@@ -1,7 +1,10 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const { requireAuth } = require("../middleware/auth.middleware");
-const { createUpload } = require("../controllers/uploads.controller");
+const {
+  createUpload,
+  listMyUploads,
+} = require("../controllers/uploads.controller");
 
 const router = express.Router();
 
@@ -24,5 +27,8 @@ const uploadRateLimit = rateLimit({
 
 // POST /api/v1/uploads — upload a JSON document (logged-in users only).
 router.post("/", requireAuth, uploadRateLimit, createUpload);
+
+// GET /api/v1/uploads — the caller's own submissions (dashboard Uploads tab).
+router.get("/", requireAuth, listMyUploads);
 
 module.exports = router;

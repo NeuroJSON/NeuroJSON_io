@@ -18,7 +18,7 @@ import {
 import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { AuthSelector } from "redux/auth/auth.selector";
 import { UploadService } from "services/upload.service";
 import RoutesEnum from "types/routes.enum";
@@ -26,11 +26,14 @@ import RoutesEnum from "types/routes.enum";
 const UploadPage: React.FC = () => {
   const { isLoggedIn } = useAppSelector(AuthSelector);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const location = useLocation();
+  const initialDatasetId =
+    new URLSearchParams(location.search).get("datasetId") ?? "";
 
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<Record<string, unknown> | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [datasetId, setDatasetId] = useState("");
+  const [datasetId, setDatasetId] = useState(initialDatasetId);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{
     datasetId: string;
