@@ -19,9 +19,17 @@ import { UploadRecord, UploadService } from "services/upload.service";
 
 const STATUS_CHIP: Record<
   UploadRecord["status"],
-  { label: string; color: "default" | "info" | "warning" | "success" | "error" }
+  {
+    label: string;
+    color?: "default" | "info" | "warning" | "success" | "error";
+    sx?: object;
+  }
 > = {
-  pending: { label: "Pending review", color: "info" },
+  // Pending uses the theme purple (not MUI's default blue).
+  pending: {
+    label: "Pending review",
+    sx: { backgroundColor: Colors.purple, color: Colors.white },
+  },
   approved: { label: "Approved — awaiting promotion", color: "warning" },
   promoted: { label: "Promoted", color: "success" },
   rejected: { label: "Rejected", color: "error" },
@@ -135,7 +143,7 @@ const UploadsTab: React.FC = () => {
                               label={chip.label}
                               color={chip.color}
                               size="small"
-                              sx={{ height: 20 }}
+                              sx={{ height: 20, ...(chip.sx || {}) }}
                             />
                           </Box>
                         }

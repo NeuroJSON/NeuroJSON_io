@@ -34,6 +34,7 @@ const UploadPage: React.FC = () => {
   const [parsed, setParsed] = useState<Record<string, unknown> | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
   const [datasetId, setDatasetId] = useState(initialDatasetId);
+  const [datasetName, setDatasetName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{
     datasetId: string;
@@ -80,6 +81,7 @@ const UploadPage: React.FC = () => {
     try {
       const { status, data } = await UploadService.uploadJson(parsed, {
         datasetId: datasetId.trim() || undefined,
+        datasetName: datasetName.trim() || undefined,
         confirm,
       });
       if (status === 201) {
@@ -131,6 +133,11 @@ const UploadPage: React.FC = () => {
       </Container>
     );
   }
+
+  // If the file already carries a name, use it and disable the name field.
+  const dd = parsed?.["dataset_description.json"] as any;
+  const nameFromFile =
+    dd && typeof dd === "object" && !Array.isArray(dd) ? dd.Name : undefined;
 
   return (
     <Container maxWidth="sm" sx={{ mt: 6, mb: 6 }}>
@@ -200,9 +207,26 @@ const UploadPage: React.FC = () => {
           </Alert>
         )}
 
+        {/* Dataset name — used when the file has no dataset_description.json Name */}
+        <TextField
+          label="Dataset name"
+          placeholder="My dataset"
+          value={nameFromFile ? String(nameFromFile) : datasetName}
+          onChange={(e) => setDatasetName(e.target.value)}
+          disabled={!!nameFromFile}
+          size="small"
+          fullWidth
+          sx={{ mt: 2.5 }}
+          helperText={
+            nameFromFile
+              ? 'Name taken from your file ("dataset_description.json" → Name).'
+              : 'No name found in your file ("dataset_description.json" → Name) — enter one here.'
+          }
+        />
+
         {/* Optional: updating an existing dataset */}
         <TextField
-          label="Updating an existing dataset? Enter its NeuroJSON ID (optional)"
+          label="Updating an existing dataset? Enter its NeuroJSON ID"
           placeholder="njds000001"
           value={datasetId}
           onChange={(e) => setDatasetId(e.target.value)}

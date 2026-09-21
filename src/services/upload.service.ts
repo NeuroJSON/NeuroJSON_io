@@ -23,10 +23,11 @@ export interface UploadRecord {
 export const UploadService = {
   uploadJson: async (
     doc: unknown,
-    opts?: { datasetId?: string; confirm?: boolean }
+    opts?: { datasetId?: string; datasetName?: string; confirm?: boolean }
   ): Promise<UploadResponse> => {
     const params = new URLSearchParams();
     if (opts?.datasetId) params.set("datasetId", opts.datasetId);
+    if (opts?.datasetName) params.set("datasetName", opts.datasetName);
     if (opts?.confirm) params.set("confirm", "true");
     const qs = params.toString() ? `?${params.toString()}` : "";
 
