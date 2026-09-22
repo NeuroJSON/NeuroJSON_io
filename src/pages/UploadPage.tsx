@@ -300,9 +300,21 @@ const UploadPage: React.FC = () => {
         <DialogTitle>Submit a new version?</DialogTitle>
         <DialogContent>
           <DialogContentText>{confirmPrompt?.message}</DialogContentText>
+          {confirmPrompt && (
+            <Alert severity="info" sx={{ mt: 2, fontSize: "0.9rem" }}>
+              {confirmPrompt.code === "DATASET_ALREADY_PROMOTED"
+                ? "This replaces your working copy in the sandbox for review. The version already published to the public database stays unchanged — it is only replaced if this new version passes review."
+                : "This replaces your working copy in the sandbox and starts a new review."}
+            </Alert>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmPrompt(null)}>Cancel</Button>
+          <Button
+            onClick={() => setConfirmPrompt(null)}
+            sx={{ color: Colors.darkGray }}
+          >
+            Cancel
+          </Button>
           <Button
             variant="contained"
             onClick={() => submit(true)}
