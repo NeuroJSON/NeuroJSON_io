@@ -4,6 +4,9 @@ const { requireAuth } = require("../middleware/auth.middleware");
 const {
   createUpload,
   listMyUploads,
+  getUpload,
+  listComments,
+  postComment,
 } = require("../controllers/uploads.controller");
 
 const router = express.Router();
@@ -30,5 +33,10 @@ router.post("/", requireAuth, uploadRateLimit, createUpload);
 
 // GET /api/v1/uploads — the caller's own submissions (dashboard Uploads tab).
 router.get("/", requireAuth, listMyUploads);
+
+// One dataset's detail + its review conversation (owner only).
+router.get("/:internalId", requireAuth, getUpload);
+router.get("/:internalId/comments", requireAuth, listComments);
+router.post("/:internalId/comments", requireAuth, postComment);
 
 module.exports = router;

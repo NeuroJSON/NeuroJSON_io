@@ -13,6 +13,7 @@ import Home from "pages/Home";
 import ResendVerification from "pages/ResendVerification";
 import SearchPage from "pages/SearchPage";
 import UpdatedDatasetDetailPage from "pages/UpdatedDatasetDetailPage";
+import UploadDetailPage from "pages/UploadDetailPage";
 import UploadPage from "pages/UploadPage";
 import NewDatasetPage from "pages/UpdatedDatasetPage";
 import VerifyEmail from "pages/VerifyEmail";
@@ -72,6 +73,7 @@ const Routes = () => (
         <Route path="/projects/:projectId" element={<DatasetOrganizer />} />
         <Route path={RoutesEnum.BIDS_CONVERTER} element={<BidsConverterPage />} />
         <Route path={RoutesEnum.UPLOAD} element={<UploadPage />} />
+        <Route path="/uploads/:internalId" element={<UploadDetailPage />} />
       </Route>
     </RouterRoutes>
   </>

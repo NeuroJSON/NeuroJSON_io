@@ -136,7 +136,18 @@ const UploadsTab: React.FC = () => {
                       <ListItemText
                         primary={
                           <Box display="flex" alignItems="center" gap={1}>
-                            <Typography variant="subtitle1" fontWeight="medium">
+                            <Typography
+                              variant="subtitle1"
+                              fontWeight="medium"
+                              onClick={() =>
+                                navigate(`/uploads/${r.internal_id}`)
+                              }
+                              sx={{
+                                cursor: "pointer",
+                                color: Colors.purple,
+                                "&:hover": { textDecoration: "underline" },
+                              }}
+                            >
                               {r.dataset_name || "(unnamed dataset)"}
                             </Typography>
                             <Chip

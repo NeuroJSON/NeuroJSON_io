@@ -301,4 +301,136 @@ const listMyUploads = async (req, res) => {
   }
 };
 
-module.exports = { createUpload, listMyUploads };
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Load a registry row the caller owns, or throw (404 unknown, 403 not owner).
+// Guards the UUID format first so a bad param can't crash the SQL uuid cast.
+const loadOwnedRegistry = async (internalId, userId) => {
+  if (!UUID_RE.test(internalId)) {
+    throw new HttpError(404, { error: "Dataset not found" });
+  }
+  const rows = await sequelize.query(
+    `SELECT internal_id, dataset_id, requested_dataset_id, dataset_name, owner_user_id
+       FROM dataset_registry WHERE internal_id = :iid`,
+    { replacements: { iid: internalId }, type: sequelize.QueryTypes.SELECT }
+  );
+  if (rows.length === 0) throw new HttpError(404, { error: "Dataset not found" });
+  if (rows[0].owner_user_id !== userId) {
+    throw new HttpError(403, { error: "This dataset belongs to another user" });
+  }
+  return rows[0];
+};
+
+const latestSubmissionId = async (internalId) => {
+  const s = await sequelize.query(
+    `SELECT submission_id FROM submissions
+      WHERE dataset_registry_id = :iid ORDER BY created_at DESC LIMIT 1`,
+    { replacements: { iid: internalId }, type: sequelize.QueryTypes.SELECT }
+  );
+  return s[0] ? s[0].submission_id : null;
+};
+
+// GET /api/v1/uploads/:internalId — one dataset's detail (owner only).
+const getUpload = async (req, res) => {
+  try {
+    const reg = await loadOwnedRegistry(String(req.params.internalId), req.user.id);
+    const s = await sequelize.query(
+      `SELECT submission_id, status, created_at, updated_at, promoted_db, promoted_at
+         FROM submissions WHERE dataset_registry_id = :iid
+        ORDER BY created_at DESC LIMIT 1`,
+      { replacements: { iid: reg.internal_id }, type: sequelize.QueryTypes.SELECT }
+    );
+    const sub = s[0] || {};
+    res.json({
+      internal_id: reg.internal_id,
+      dataset_id: reg.dataset_id,
+      requested_dataset_id: reg.requested_dataset_id,
+      dataset_name: reg.dataset_name,
+      submission_id: sub.submission_id || null,
+      status: sub.status || null,
+      created_at: sub.created_at || null,
+      updated_at: sub.updated_at || null,
+      promoted_db: sub.promoted_db || null,
+      promoted_at: sub.promoted_at || null,
+    });
+  } catch (err) {
+    if (err instanceof HttpError) return res.status(err.status).json(err.body);
+    console.error("Get upload failed:", err.message);
+    res.status(500).json({ error: "Failed to load dataset" });
+  }
+};
+
+// GET /api/v1/uploads/:internalId/comments — thread for the latest cycle.
+const listComments = async (req, res) => {
+  try {
+    const reg = await loadOwnedRegistry(String(req.params.internalId), req.user.id);
+    const sid = await latestSubmissionId(reg.internal_id);
+    if (!sid) return res.json([]);
+    // Mask reviewer identity: the owner sees their own name, reviewers show as
+    // a generic "Reviewer" and their user id is not exposed.
+    const rows = await sequelize.query(
+      `SELECT c.id,
+              CASE WHEN c.user_id = :owner THEN u.username ELSE 'Reviewer' END AS username,
+              c.message, c.created_at,
+              (c.user_id = :owner) AS is_owner
+         FROM submission_comments c
+         JOIN users u ON u.id = c.user_id
+        WHERE c.submission_id = :sid
+        ORDER BY c.created_at ASC`,
+      {
+        replacements: { sid, owner: reg.owner_user_id },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+    res.json(rows);
+  } catch (err) {
+    if (err instanceof HttpError) return res.status(err.status).json(err.body);
+    console.error("List comments failed:", err.message);
+    res.status(500).json({ error: "Failed to load comments" });
+  }
+};
+
+// POST /api/v1/uploads/:internalId/comments — add a comment (owner only for now).
+const postComment = async (req, res) => {
+  try {
+    const reg = await loadOwnedRegistry(String(req.params.internalId), req.user.id);
+    const message = String((req.body && req.body.message) || "").trim();
+    if (!message) throw new HttpError(400, { error: "Message cannot be empty." });
+    if (message.length > 5000) {
+      throw new HttpError(400, {
+        error: "Message is too long (5000 characters max).",
+      });
+    }
+    const sid = await latestSubmissionId(reg.internal_id);
+    if (!sid) throw new HttpError(400, { error: "No submission to comment on." });
+    const ins = await sequelize.query(
+      `INSERT INTO submission_comments (submission_id, user_id, message, created_at)
+       VALUES (:sid, :uid, :msg, NOW()) RETURNING id, created_at`,
+      {
+        replacements: { sid, uid: req.user.id, msg: message },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+    const isOwner = reg.owner_user_id === req.user.id;
+    res.status(201).json({
+      id: ins[0].id,
+      username: isOwner ? req.user.username : "Reviewer",
+      message,
+      created_at: ins[0].created_at,
+      is_owner: isOwner,
+    });
+  } catch (err) {
+    if (err instanceof HttpError) return res.status(err.status).json(err.body);
+    console.error("Post comment failed:", err.message);
+    res.status(500).json({ error: "Failed to post comment" });
+  }
+};
+
+module.exports = {
+  createUpload,
+  listMyUploads,
+  getUpload,
+  listComments,
+  postComment,
+};
