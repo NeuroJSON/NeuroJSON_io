@@ -141,6 +141,23 @@ const UploadPage: React.FC = () => {
   const nameFromFile =
     dd && typeof dd === "object" && !Array.isArray(dd) ? dd.Name : undefined;
 
+  // Live validation of the preferred public id (mirrors the backend rule:
+  // ^[a-z0-9][a-z0-9_-]{2,62}$), but with a specific message per problem.
+  const CHAR_RE = /^[a-z0-9][a-z0-9_-]*$/; // allowed chars + first-char rule
+  const requestedTrimmed = requestedDatasetId.trim();
+  const requestedIdError =
+    requestedTrimmed === ""
+      ? ""
+      : requestedTrimmed.startsWith("njds")
+      ? 'Cannot start with "njds" (reserved for NeuroJSON-assigned IDs).'
+      : !CHAR_RE.test(requestedTrimmed)
+      ? "Use only lowercase letters and numbers; join words with - or _ (e.g. my-fmri-study). Cannot start with - or _."
+      : requestedTrimmed.length < 3
+      ? "Too short — use at least 3 characters."
+      : requestedTrimmed.length > 63
+      ? "Too long — use 63 characters or fewer."
+      : "";
+
   return (
     <Container maxWidth="sm" sx={{ mt: 6, mb: 6 }}>
       <Typography
@@ -234,11 +251,35 @@ const UploadPage: React.FC = () => {
           onChange={(e) => setRequestedDatasetId(e.target.value)}
           size="small"
           fullWidth
+          error={!!requestedIdError}
+          helperText={requestedIdError || undefined}
           sx={{ mt: 2.5 }}
-          helperText={
-            "Lowercase letters, digits, - or _ (3–63 chars). Assigned when your dataset is approved; NeuroJSON assigns one if left blank."
-          }
         />
+        <Box
+          component="ul"
+          sx={{
+            mt: 0.75,
+            mb: 0,
+            pl: 2.5,
+            color: "text.secondary",
+            fontSize: "0.78rem",
+            lineHeight: 1.5,
+            "& li": { mb: 0.25 },
+          }}
+        >
+          <li>
+            Becomes part of your dataset’s public URL once approved (e.g.{" "}
+            <code>/db/…/my-fmri-study</code>).
+          </li>
+          <li>
+            Use only lowercase letters and numbers; join words with - or _
+            (e.g. <code>my-fmri-study</code>).
+          </li>
+          <li>Cannot start with a hyphen or underscore.</li>
+          <li>
+            Leave blank to let NeuroJSON assign one (<code>njds######</code>).
+          </li>
+        </Box>
 
         {/* Existing-dataset internal ID — normally auto-filled from the dashboard */}
         <TextField
@@ -256,7 +297,7 @@ const UploadPage: React.FC = () => {
           <Button
             variant="contained"
             size="large"
-            disabled={!parsed || submitting}
+            disabled={!parsed || submitting || !!requestedIdError}
             onClick={() => submit(false)}
             sx={{
               backgroundColor: Colors.purple,
