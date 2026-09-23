@@ -54,6 +54,30 @@ const validateRequestedId = (id) => {
   }
 };
 
+// Preliminary availability: reject an id already used as a final public
+// dataset_id OR another row's requested_dataset_id. `excludeInternalId` skips
+// the caller's own row on update. (The authoritative check still runs at
+// promotion; a DB partial-unique index also backs this up.)
+const assertRequestedIdFree = async (requestedId, excludeInternalId, t) => {
+  const rows = await sequelize.query(
+    `SELECT 1 FROM dataset_registry
+      WHERE (dataset_id = :id OR requested_dataset_id = :id)
+        AND (:exclude::uuid IS NULL OR internal_id <> :exclude::uuid)
+      LIMIT 1`,
+    {
+      replacements: { id: requestedId, exclude: excludeInternalId || null },
+      type: sequelize.QueryTypes.SELECT,
+      transaction: t,
+    }
+  );
+  if (rows.length) {
+    throw new HttpError(409, {
+      code: "REQUESTED_ID_TAKEN",
+      error: `The preferred ID "${requestedId}" is already in use.`,
+    });
+  }
+};
+
 const createUpload = async (req, res) => {
   try {
     const body = req.body;
@@ -103,22 +127,7 @@ const createUpload = async (req, res) => {
 
       if (!internalId) {
         // NEW logical dataset.
-        if (requestedId) {
-          const dup = await sequelize.query(
-            "SELECT 1 FROM dataset_registry WHERE dataset_id = :id LIMIT 1",
-            {
-              replacements: { id: requestedId },
-              type: sequelize.QueryTypes.SELECT,
-              transaction: t,
-            }
-          );
-          if (dup.length) {
-            throw new HttpError(409, {
-              code: "REQUESTED_ID_TAKEN",
-              error: `The preferred ID "${requestedId}" is already in use.`,
-            });
-          }
-        }
+        if (requestedId) await assertRequestedIdFree(requestedId, null, t);
         registryId = crypto.randomUUID();
         await sequelize.query(
           `INSERT INTO dataset_registry
@@ -164,6 +173,9 @@ const createUpload = async (req, res) => {
             error: "This dataset belongs to another user",
           });
         }
+
+        // If changing the preferred id, it must still be free (excluding self).
+        if (requestedId) await assertRequestedIdFree(requestedId, registryId, t);
 
         // Registry holds the canonical name (+ optional preferred id).
         await sequelize.query(
