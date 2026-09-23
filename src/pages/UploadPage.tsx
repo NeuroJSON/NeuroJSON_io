@@ -27,17 +27,18 @@ const UploadPage: React.FC = () => {
   const { isLoggedIn } = useAppSelector(AuthSelector);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const location = useLocation();
-  const initialDatasetId =
-    new URLSearchParams(location.search).get("datasetId") ?? "";
+  const initialInternalId =
+    new URLSearchParams(location.search).get("internalId") ?? "";
 
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<Record<string, unknown> | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [datasetId, setDatasetId] = useState(initialDatasetId);
+  const [internalId, setInternalId] = useState(initialInternalId);
   const [datasetName, setDatasetName] = useState("");
+  const [requestedDatasetId, setRequestedDatasetId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{
-    datasetId: string;
+    internalId: string;
     submissionId: string;
     status: string;
   } | null>(null);
@@ -80,13 +81,14 @@ const UploadPage: React.FC = () => {
     setConfirmPrompt(null);
     try {
       const { status, data } = await UploadService.uploadJson(parsed, {
-        datasetId: datasetId.trim() || undefined,
+        internalId: internalId.trim() || undefined,
         datasetName: datasetName.trim() || undefined,
+        requestedDatasetId: requestedDatasetId.trim() || undefined,
         confirm,
       });
       if (status === 201) {
         setResult({
-          datasetId: data.dataset_id,
+          internalId: data.internal_id,
           submissionId: data.submission_id,
           status: data.status,
         });
@@ -224,15 +226,30 @@ const UploadPage: React.FC = () => {
           }
         />
 
-        {/* Optional: updating an existing dataset */}
+        {/* Optional preferred public ID (a preference; final id is set at review) */}
         <TextField
-          label="Updating an existing dataset? Enter its NeuroJSON ID"
-          placeholder="njds000001"
-          value={datasetId}
-          onChange={(e) => setDatasetId(e.target.value)}
+          label="Preferred dataset ID (optional)"
+          placeholder="my-fmri-study"
+          value={requestedDatasetId}
+          onChange={(e) => setRequestedDatasetId(e.target.value)}
           size="small"
           fullWidth
           sx={{ mt: 2.5 }}
+          helperText={
+            "Lowercase letters, digits, - or _ (3–63 chars). Assigned when your dataset is approved; NeuroJSON assigns one if left blank."
+          }
+        />
+
+        {/* Existing-dataset internal ID — normally auto-filled from the dashboard */}
+        <TextField
+          label="Existing dataset internal ID (for updates)"
+          placeholder="auto-filled from your dashboard"
+          value={internalId}
+          onChange={(e) => setInternalId(e.target.value)}
+          size="small"
+          fullWidth
+          sx={{ mt: 2.5 }}
+          helperText="Leave blank for a new dataset. To update one, use the Update button on your dashboard."
         />
 
         <Box sx={{ mt: 3 }}>
@@ -259,9 +276,9 @@ const UploadPage: React.FC = () => {
           <Alert severity="success" sx={{ mt: 3, fontSize: "0.95rem" }}>
             Submitted for review.
             <br />
-            Dataset ID: <code>{result.datasetId}</code>
+            Internal reference: <code>{result.internalId}</code>
             <br />
-            Submission: <code>{result.submissionId}</code> ({result.status})
+            The public dataset ID is assigned after your dataset passes review.
           </Alert>
         )}
         {infoMessage && (

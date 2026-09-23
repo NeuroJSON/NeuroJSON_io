@@ -17,8 +17,10 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UploadRecord, UploadService } from "services/upload.service";
 
+type SubStatus = Exclude<UploadRecord["status"], null>;
+
 const STATUS_CHIP: Record<
-  UploadRecord["status"],
+  SubStatus,
   {
     label: string;
     color?: "default" | "info" | "warning" | "success" | "error";
@@ -49,12 +51,14 @@ const UploadsTab: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+  const formatDate = (d: string | null) =>
+    d
+      ? new Date(d).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
+      : "";
 
   if (loading) {
     return (
@@ -116,9 +120,9 @@ const UploadsTab: React.FC = () => {
         <Paper variant="outlined">
           <List>
             {rows.map((r, index) => {
-              const chip = STATUS_CHIP[r.status];
+              const chip = r.status ? STATUS_CHIP[r.status] : null;
               return (
-                <React.Fragment key={r.dataset_id}>
+                <React.Fragment key={r.internal_id}>
                   {index > 0 && <Divider />}
                   <ListItem
                     sx={{
@@ -133,19 +137,21 @@ const UploadsTab: React.FC = () => {
                         primary={
                           <Box display="flex" alignItems="center" gap={1}>
                             <Typography variant="subtitle1" fontWeight="medium">
-                              {r.dataset_name || r.dataset_id}
+                              {r.dataset_name || "(unnamed dataset)"}
                             </Typography>
                             <Chip
-                              label={r.dataset_id}
+                              label={r.dataset_id || "ID: not yet assigned"}
                               size="small"
                               sx={{ height: 20 }}
                             />
-                            <Chip
-                              label={chip.label}
-                              color={chip.color}
-                              size="small"
-                              sx={{ height: 20, ...(chip.sx || {}) }}
-                            />
+                            {chip && (
+                              <Chip
+                                label={chip.label}
+                                color={chip.color}
+                                size="small"
+                                sx={{ height: 20, ...(chip.sx || {}) }}
+                              />
+                            )}
                           </Box>
                         }
                         secondary={`Submitted ${formatDate(r.created_at)}${
@@ -154,23 +160,9 @@ const UploadsTab: React.FC = () => {
                             : ""
                         }`}
                       />
-                      {r.review_note && (
-                        <Alert
-                          severity={
-                            r.status === "rejected"
-                              ? "error"
-                              : r.status === "changes_requested"
-                              ? "warning"
-                              : "info"
-                          }
-                          sx={{ mt: 1, fontSize: "0.85rem", py: 0 }}
-                        >
-                          {r.review_note}
-                        </Alert>
-                      )}
                     </Box>
                     <Box display="flex" gap={1}>
-                      {r.status === "promoted" && r.promoted_db && (
+                      {r.status === "promoted" && r.promoted_db && r.dataset_id && (
                         <Button
                           variant="outlined"
                           size="small"
@@ -191,7 +183,7 @@ const UploadsTab: React.FC = () => {
                         size="small"
                         startIcon={<Edit />}
                         onClick={() =>
-                          navigate(`/upload?datasetId=${r.dataset_id}`)
+                          navigate(`/upload?internalId=${r.internal_id}`)
                         }
                         sx={{
                           color: Colors.purple,

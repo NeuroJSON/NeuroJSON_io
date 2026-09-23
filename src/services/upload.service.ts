@@ -6,18 +6,20 @@ export interface UploadResponse {
 }
 
 export interface UploadRecord {
-  dataset_id: string;
+  internal_id: string; // permanent logical-dataset id (also the sandbox _id)
+  dataset_id: string | null; // final public id — null until promoted
+  requested_dataset_id: string | null;
   dataset_name: string | null;
+  submission_id: string | null;
   status:
     | "pending"
     | "changes_requested"
     | "approved"
     | "rejected"
-    | "promoted";
-  review_note: string | null;
-  created_at: string;
-  updated_at: string;
-  reviewed_at: string | null;
+    | "promoted"
+    | null;
+  created_at: string | null;
+  updated_at: string | null;
   promoted_db: string | null;
   promoted_at: string | null;
 }
@@ -29,11 +31,18 @@ export interface UploadRecord {
 export const UploadService = {
   uploadJson: async (
     doc: unknown,
-    opts?: { datasetId?: string; datasetName?: string; confirm?: boolean }
+    opts?: {
+      internalId?: string;
+      datasetName?: string;
+      requestedDatasetId?: string;
+      confirm?: boolean;
+    }
   ): Promise<UploadResponse> => {
     const params = new URLSearchParams();
-    if (opts?.datasetId) params.set("datasetId", opts.datasetId);
+    if (opts?.internalId) params.set("internalId", opts.internalId);
     if (opts?.datasetName) params.set("datasetName", opts.datasetName);
+    if (opts?.requestedDatasetId)
+      params.set("requestedDatasetId", opts.requestedDatasetId);
     if (opts?.confirm) params.set("confirm", "true");
     const qs = params.toString() ? `?${params.toString()}` : "";
 
