@@ -30,7 +30,8 @@ const STATUS_CHIP: Record<
     label: "Pending review",
     sx: { backgroundColor: Colors.purple, color: Colors.white },
   },
-  approved: { label: "Approved — awaiting promotion", color: "warning" },
+  changes_requested: { label: "Changes requested", color: "warning" },
+  approved: { label: "Approved — awaiting promotion", color: "info" },
   promoted: { label: "Promoted", color: "success" },
   rejected: { label: "Rejected", color: "error" },
 };
@@ -153,6 +154,20 @@ const UploadsTab: React.FC = () => {
                             : ""
                         }`}
                       />
+                      {r.review_note && (
+                        <Alert
+                          severity={
+                            r.status === "rejected"
+                              ? "error"
+                              : r.status === "changes_requested"
+                              ? "warning"
+                              : "info"
+                          }
+                          sx={{ mt: 1, fontSize: "0.85rem", py: 0 }}
+                        >
+                          {r.review_note}
+                        </Alert>
+                      )}
                     </Box>
                     <Box display="flex" gap={1}>
                       {r.status === "promoted" && r.promoted_db && (

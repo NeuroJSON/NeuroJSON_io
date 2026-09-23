@@ -135,16 +135,21 @@ const createUpload = async (req, res) => {
           });
         }
 
-        const pending = subs.find((s) => s.status === "pending");
-        if (pending) {
-          // Re-upload of the active working copy → reuse the workflow.
-          submissionId = pending.submission_id;
+        // pending OR changes_requested = an OPEN workflow the user can revise.
+        // Re-upload reuses it, resets it to pending (re-enters the queue), and
+        // clears the old review note (it has been addressed).
+        const open = subs.find(
+          (s) => s.status === "pending" || s.status === "changes_requested"
+        );
+        if (open) {
+          submissionId = open.submission_id;
           await sequelize.query(
             `UPDATE submissions
-                SET dataset_name = :name, updated_at = NOW()
+                SET dataset_name = :name, status = 'pending',
+                    review_note = NULL, updated_at = NOW()
               WHERE id = :id`,
             {
-              replacements: { name: datasetName, id: pending.id },
+              replacements: { name: datasetName, id: open.id },
               transaction: t,
             }
           );
@@ -233,8 +238,8 @@ const createUpload = async (req, res) => {
 const listMyUploads = async (req, res) => {
   try {
     const rows = await sequelize.query(
-      `SELECT dataset_id, dataset_name, status, created_at, updated_at,
-              reviewed_at, promoted_db, promoted_at
+      `SELECT dataset_id, dataset_name, status, review_note, created_at,
+              updated_at, reviewed_at, promoted_db, promoted_at
          FROM submissions
         WHERE user_id = :uid
         ORDER BY created_at DESC`,

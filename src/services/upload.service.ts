@@ -8,7 +8,13 @@ export interface UploadResponse {
 export interface UploadRecord {
   dataset_id: string;
   dataset_name: string | null;
-  status: "pending" | "approved" | "rejected" | "promoted";
+  status:
+    | "pending"
+    | "changes_requested"
+    | "approved"
+    | "rejected"
+    | "promoted";
+  review_note: string | null;
   created_at: string;
   updated_at: string;
   reviewed_at: string | null;
