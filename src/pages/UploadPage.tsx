@@ -250,13 +250,52 @@ const UploadPage: React.FC = () => {
           disabled={!!nameFromFile}
           size="small"
           fullWidth
-          sx={{ mt: 2.5 }}
+          sx={{
+            mt: 2.5,
+            // Highlight the "no name found" prompt so it's easy to notice.
+            "& .MuiFormHelperText-root": nameFromFile
+              ? {}
+              : { color: Colors.purple, fontWeight: 600 },
+          }}
           helperText={
             nameFromFile
               ? 'Name taken from your file ("dataset_description.json" → Name).'
               : 'No name found in your file ("dataset_description.json" → Name) — enter one here.'
           }
         />
+
+        {/* Target database — where the dataset is published after review */}
+        <TextField
+          label="Publish to database (optional)"
+          placeholder="public (default)"
+          value={requestedDb}
+          onChange={(e) => setRequestedDb(e.target.value)}
+          size="small"
+          fullWidth
+          error={!!requestedDbError}
+          helperText={requestedDbError || undefined}
+          sx={{ mt: 2.5 }}
+        />
+        <Box
+          component="ul"
+          sx={{
+            mt: 0.75,
+            mb: 0,
+            pl: 2.5,
+            color: "text.secondary",
+            fontSize: "0.78rem",
+            lineHeight: 1.5,
+            "& li": { mb: 0.25 },
+          }}
+        >
+          <li>
+            Becomes part of your dataset’s public URL after review (e.g.{" "}
+            <code>/db/my-lab/…</code>).
+          </li>
+          <li>
+            Leave blank for the default <code>public</code> database.
+          </li>
+        </Box>
 
         {/* Optional preferred public ID (a preference; final id is set at review) */}
         <TextField
@@ -283,29 +322,23 @@ const UploadPage: React.FC = () => {
           }}
         >
           <li>
-            Becomes part of your dataset’s public URL once approved (e.g.{" "}
+            Becomes part of your dataset’s public URL after review (e.g.{" "}
             <code>/db/…/my-fmri-study</code>).
           </li>
           <li>
             Use only lowercase letters and numbers; join words with - or _
             (e.g. <code>my-fmri-study</code>).
           </li>
-          <li>Cannot start with a hyphen or underscore.</li>
-          <li>
-            Leave blank to let NeuroJSON assign one (<code>njds######</code>).
-          </li>
         </Box>
 
-        {/* Target database — where the dataset is published after review */}
+        {/* Existing-dataset internal ID — normally auto-filled from the dashboard */}
         <TextField
-          label="Target database (optional)"
-          placeholder="my-lab"
-          value={requestedDb}
-          onChange={(e) => setRequestedDb(e.target.value)}
+          label="Existing dataset internal ID (for updates)"
+          placeholder="auto-filled from your dashboard"
+          value={internalId}
+          onChange={(e) => setInternalId(e.target.value)}
           size="small"
           fullWidth
-          error={!!requestedDbError}
-          helperText={requestedDbError || undefined}
           sx={{ mt: 2.5 }}
         />
         <Box
@@ -320,27 +353,8 @@ const UploadPage: React.FC = () => {
             "& li": { mb: 0.25 },
           }}
         >
-          <li>
-            Where your dataset is published after review (part of the URL, e.g.{" "}
-            <code>/db/my-lab/…</code>).
-          </li>
-          <li>
-            Leave blank for the default <code>public</code> database.
-          </li>
-          <li>A new database name is created only after review.</li>
+          <li>Leave blank for a new dataset.</li>
         </Box>
-
-        {/* Existing-dataset internal ID — normally auto-filled from the dashboard */}
-        <TextField
-          label="Existing dataset internal ID (for updates)"
-          placeholder="auto-filled from your dashboard"
-          value={internalId}
-          onChange={(e) => setInternalId(e.target.value)}
-          size="small"
-          fullWidth
-          sx={{ mt: 2.5 }}
-          helperText="Leave blank for a new dataset. To update one, use the Update button on your dashboard."
-        />
 
         <Box sx={{ mt: 3 }}>
           <Button
