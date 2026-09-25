@@ -14,6 +14,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import CopyButton from "components/CopyButton";
 import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect, useState } from "react";
@@ -204,6 +205,7 @@ const UploadDetailPage: React.FC = () => {
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Internal reference: <code>{detail.internal_id}</code>
+            <CopyButton value={detail.internal_id} label="Copy reference" />
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Submitted {formatDate(detail.created_at)}

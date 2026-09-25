@@ -15,11 +15,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import CopyButton from "components/CopyButton";
 import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { AuthSelector } from "redux/auth/auth.selector";
+import { NeurojsonService } from "services/neurojson.service";
 import { UploadService } from "services/upload.service";
 import RoutesEnum from "types/routes.enum";
 
@@ -37,6 +39,10 @@ const UploadPage: React.FC = () => {
   const [datasetName, setDatasetName] = useState("");
   const [requestedDatasetId, setRequestedDatasetId] = useState("");
   const [requestedDb, setRequestedDb] = useState("");
+  // Existing public db names (lowercased) — a user may not publish into another
+  // collection's database, so typing one of these is blocked. Fetched for the
+  // check only (not offered as a picker). Non-fatal if it fails to load.
+  const [existingDbs, setExistingDbs] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{
     internalId: string;
@@ -49,6 +55,17 @@ const UploadPage: React.FC = () => {
     code: string;
     message: string;
   } | null>(null);
+
+  useEffect(() => {
+    NeurojsonService.getRegistry()
+      .then((data: any) => {
+        const names = (data?.database || []).map((d: any) =>
+          String(d.name || "").toLowerCase()
+        );
+        setExistingDbs(new Set(names));
+      })
+      .catch(() => {}); // non-fatal — skip the collision check if it fails
+  }, []);
 
   const resetOutcome = () => {
     setResult(null);
@@ -171,6 +188,9 @@ const UploadPage: React.FC = () => {
       ? "Too short — use at least 3 characters."
       : dbTrimmed.length > 63
       ? "Too long — use 63 characters or fewer."
+      : dbTrimmed.toLowerCase() !== "public" &&
+        existingDbs.has(dbTrimmed.toLowerCase())
+      ? `A database named "${dbTrimmed}" already exists. Choose a different name or leave blank for public.`
       : "";
 
   return (
@@ -290,7 +310,7 @@ const UploadPage: React.FC = () => {
         >
           <li>
             Becomes part of your dataset’s public URL after review (e.g.{" "}
-            <code>/db/my-lab/…</code>).
+            <code>/db/smith-lab/…</code>).
           </li>
           <li>
             Leave blank for the default <code>public</code> database.
@@ -383,8 +403,17 @@ const UploadPage: React.FC = () => {
             Submitted for review.
             <br />
             Internal reference: <code>{result.internalId}</code>
+            <CopyButton value={result.internalId} label="Copy reference" />
             <br />
             The public dataset ID is assigned after your dataset passes review.
+            <br />
+            <MuiLink
+              component={Link}
+              to={`/uploads/${result.internalId}`}
+              sx={{ color: Colors.purple, fontWeight: 600 }}
+            >
+              View status →
+            </MuiLink>
           </Alert>
         )}
         {infoMessage && (
