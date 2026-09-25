@@ -1,4 +1,5 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import DataObjectIcon from "@mui/icons-material/DataObject";
 import EditIcon from "@mui/icons-material/Edit";
 import SendIcon from "@mui/icons-material/Send";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -20,6 +21,7 @@ import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AuthSelector } from "redux/auth/auth.selector";
+import { baseURL } from "services/instance";
 import {
   Comment,
   UploadDetail,
@@ -224,6 +226,19 @@ const UploadDetailPage: React.FC = () => {
             sx={{ color: Colors.purple, borderColor: Colors.purple }}
           >
             Update
+          </Button>
+          {/* Opens the stored doc via our owner-checked backend proxy (the
+              sandbox CouchDB URL is never exposed to the browser). */}
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<DataObjectIcon />}
+            href={`${baseURL}/uploads/${detail.internal_id}/document`}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: Colors.purple, borderColor: Colors.purple }}
+          >
+            View submitted JSON
           </Button>
           {detail.status === "promoted" &&
             detail.promoted_db &&

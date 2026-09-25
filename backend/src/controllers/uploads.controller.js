@@ -297,6 +297,9 @@ const createUpload = async (req, res) => {
     if (err instanceof HttpError) {
       return res.status(err.status).json(err.body);
     }
+    // Full details stay in the server log only. Never send err.message or the
+    // CouchDB response to the browser — a network error message contains the
+    // sandbox host/port (e.g. "connect ECONNREFUSED <ip>:7777").
     console.error(
       "Upload failed:",
       err.response?.status,
@@ -304,10 +307,36 @@ const createUpload = async (req, res) => {
       "| couch:",
       JSON.stringify(err.response?.data)
     );
-    res.status(err.response?.status || 500).json({
-      error: "Upload failed",
-      detail: err.response?.data || err.message,
+    // 502 = the upstream sandbox failed; keeps it distinct from our own 409s.
+    res.status(502).json({
+      error: "Upload failed. Please try again later.",
     });
+  }
+};
+
+// GET /api/v1/uploads/:internalId/document — the stored sandbox doc (owner
+// only). Proxied server-side so the sandbox CouchDB URL never reaches the
+// browser (not even in DevTools).
+const getUploadDocument = async (req, res) => {
+  try {
+    const reg = await loadOwnedRegistry(
+      String(req.params.internalId),
+      req.user.id
+    );
+    const url = `${UPLOAD_URL}/${UPLOAD_DB}/${encodeURIComponent(
+      reg.internal_id
+    )}`;
+    const { data } = await axios.get(url, { headers: buildHeaders() });
+    res.json(data);
+  } catch (err) {
+    if (err instanceof HttpError) return res.status(err.status).json(err.body);
+    if (err.response?.status === 404) {
+      return res.status(404).json({
+        error: "The submitted document was not found in the sandbox.",
+      });
+    }
+    console.error("Get upload document failed:", err.message);
+    res.status(502).json({ error: "Failed to load the submitted document." });
   }
 };
 
@@ -466,6 +495,7 @@ module.exports = {
   createUpload,
   listMyUploads,
   getUpload,
+  getUploadDocument,
   listComments,
   postComment,
 };
