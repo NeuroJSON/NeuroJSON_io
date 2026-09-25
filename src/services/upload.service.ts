@@ -28,6 +28,7 @@ export interface UploadDetail {
   internal_id: string;
   dataset_id: string | null;
   requested_dataset_id: string | null;
+  requested_db: string | null;
   dataset_name: string | null;
   submission_id: string | null;
   status: UploadRecord["status"];
@@ -56,6 +57,7 @@ export const UploadService = {
       internalId?: string;
       datasetName?: string;
       requestedDatasetId?: string;
+      requestedDb?: string;
       confirm?: boolean;
     }
   ): Promise<UploadResponse> => {
@@ -64,6 +66,7 @@ export const UploadService = {
     if (opts?.datasetName) params.set("datasetName", opts.datasetName);
     if (opts?.requestedDatasetId)
       params.set("requestedDatasetId", opts.requestedDatasetId);
+    if (opts?.requestedDb) params.set("requestedDb", opts.requestedDb);
     if (opts?.confirm) params.set("confirm", "true");
     const qs = params.toString() ? `?${params.toString()}` : "";
 

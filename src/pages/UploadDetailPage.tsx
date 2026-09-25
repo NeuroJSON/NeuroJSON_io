@@ -200,6 +200,9 @@ const UploadDetailPage: React.FC = () => {
             </Typography>
           )}
           <Typography variant="body2" color="text.secondary">
+            Target database: <code>{detail.requested_db || "public"}</code>
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
             Internal reference: <code>{detail.internal_id}</code>
           </Typography>
           <Typography variant="body2" color="text.secondary">

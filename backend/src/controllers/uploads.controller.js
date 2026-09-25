@@ -54,6 +54,17 @@ const validateRequestedId = (id) => {
   }
 };
 
+// Target public database name (same slug rule; no njds restriction — that is
+// only for dataset ids). Blank defaults to "public" upstream.
+const validateRequestedDb = (db) => {
+  if (!/^[a-z0-9][a-z0-9_-]{2,62}$/.test(db)) {
+    throw new HttpError(400, {
+      error:
+        "Database name must be 3–63 characters: lowercase letters, numbers, - or _.",
+    });
+  }
+};
+
 // Preliminary availability: reject an id already used as a final public
 // dataset_id OR another row's requested_dataset_id. `excludeInternalId` skips
 // the caller's own row on update. (The authoritative check still runs at
@@ -114,10 +125,14 @@ const createUpload = async (req, res) => {
     const requestedId = req.query.requestedDatasetId
       ? String(req.query.requestedDatasetId).trim()
       : null;
+    const requestedDb = req.query.requestedDb
+      ? String(req.query.requestedDb).trim()
+      : null;
     const confirm = req.query.confirm === "true";
     const userId = req.user.id;
 
     if (requestedId) validateRequestedId(requestedId); // throws 400
+    if (requestedDb) validateRequestedDb(requestedDb); // throws 400
 
     // Keep the PostgreSQL transaction open across the CouchDB write: commit on
     // success, roll back if the upload fails. Acceptable at low upload volume.
@@ -131,12 +146,13 @@ const createUpload = async (req, res) => {
         registryId = crypto.randomUUID();
         await sequelize.query(
           `INSERT INTO dataset_registry
-             (internal_id, dataset_id, requested_dataset_id, dataset_name, owner_user_id, created_at, updated_at)
-           VALUES (:iid, NULL, :req, :name, :uid, NOW(), NOW())`,
+             (internal_id, dataset_id, requested_dataset_id, requested_db, dataset_name, owner_user_id, created_at, updated_at)
+           VALUES (:iid, NULL, :req, :db, :name, :uid, NOW(), NOW())`,
           {
             replacements: {
               iid: registryId,
               req: requestedId,
+              db: requestedDb || "public",
               name: datasetName,
               uid: userId,
             },
@@ -182,10 +198,16 @@ const createUpload = async (req, res) => {
           `UPDATE dataset_registry
               SET dataset_name = :name,
                   requested_dataset_id = COALESCE(:req, requested_dataset_id),
+                  requested_db = COALESCE(:db, requested_db),
                   updated_at = NOW()
             WHERE internal_id = :iid`,
           {
-            replacements: { name: datasetName, req: requestedId, iid: registryId },
+            replacements: {
+              name: datasetName,
+              req: requestedId,
+              db: requestedDb,
+              iid: registryId,
+            },
             transaction: t,
           }
         );
@@ -323,7 +345,7 @@ const loadOwnedRegistry = async (internalId, userId) => {
     throw new HttpError(404, { error: "Dataset not found" });
   }
   const rows = await sequelize.query(
-    `SELECT internal_id, dataset_id, requested_dataset_id, dataset_name, owner_user_id
+    `SELECT internal_id, dataset_id, requested_dataset_id, requested_db, dataset_name, owner_user_id
        FROM dataset_registry WHERE internal_id = :iid`,
     { replacements: { iid: internalId }, type: sequelize.QueryTypes.SELECT }
   );
@@ -358,6 +380,7 @@ const getUpload = async (req, res) => {
       internal_id: reg.internal_id,
       dataset_id: reg.dataset_id,
       requested_dataset_id: reg.requested_dataset_id,
+      requested_db: reg.requested_db,
       dataset_name: reg.dataset_name,
       submission_id: sub.submission_id || null,
       status: sub.status || null,

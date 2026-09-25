@@ -36,6 +36,7 @@ const UploadPage: React.FC = () => {
   const [internalId, setInternalId] = useState(initialInternalId);
   const [datasetName, setDatasetName] = useState("");
   const [requestedDatasetId, setRequestedDatasetId] = useState("");
+  const [requestedDb, setRequestedDb] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{
     internalId: string;
@@ -84,6 +85,7 @@ const UploadPage: React.FC = () => {
         internalId: internalId.trim() || undefined,
         datasetName: datasetName.trim() || undefined,
         requestedDatasetId: requestedDatasetId.trim() || undefined,
+        requestedDb: requestedDb.trim() || undefined,
         confirm,
       });
       if (status === 201) {
@@ -155,6 +157,19 @@ const UploadPage: React.FC = () => {
       : requestedTrimmed.length < 3
       ? "Too short — use at least 3 characters."
       : requestedTrimmed.length > 63
+      ? "Too long — use 63 characters or fewer."
+      : "";
+
+  // Same slug rule for the target database name (no njds restriction).
+  const dbTrimmed = requestedDb.trim();
+  const requestedDbError =
+    dbTrimmed === ""
+      ? ""
+      : !CHAR_RE.test(dbTrimmed)
+      ? "Use only lowercase letters and numbers; join words with - or _ (e.g. my-lab)."
+      : dbTrimmed.length < 3
+      ? "Too short — use at least 3 characters."
+      : dbTrimmed.length > 63
       ? "Too long — use 63 characters or fewer."
       : "";
 
@@ -281,6 +296,40 @@ const UploadPage: React.FC = () => {
           </li>
         </Box>
 
+        {/* Target database — where the dataset is published after review */}
+        <TextField
+          label="Target database (optional)"
+          placeholder="my-lab"
+          value={requestedDb}
+          onChange={(e) => setRequestedDb(e.target.value)}
+          size="small"
+          fullWidth
+          error={!!requestedDbError}
+          helperText={requestedDbError || undefined}
+          sx={{ mt: 2.5 }}
+        />
+        <Box
+          component="ul"
+          sx={{
+            mt: 0.75,
+            mb: 0,
+            pl: 2.5,
+            color: "text.secondary",
+            fontSize: "0.78rem",
+            lineHeight: 1.5,
+            "& li": { mb: 0.25 },
+          }}
+        >
+          <li>
+            Where your dataset is published after review (part of the URL, e.g.{" "}
+            <code>/db/my-lab/…</code>).
+          </li>
+          <li>
+            Leave blank for the default <code>public</code> database.
+          </li>
+          <li>A new database name is created only after review.</li>
+        </Box>
+
         {/* Existing-dataset internal ID — normally auto-filled from the dashboard */}
         <TextField
           label="Existing dataset internal ID (for updates)"
@@ -297,7 +346,9 @@ const UploadPage: React.FC = () => {
           <Button
             variant="contained"
             size="large"
-            disabled={!parsed || submitting || !!requestedIdError}
+            disabled={
+              !parsed || submitting || !!requestedIdError || !!requestedDbError
+            }
             onClick={() => submit(false)}
             sx={{
               backgroundColor: Colors.purple,
