@@ -94,11 +94,11 @@ const UploadPage: React.FC = () => {
         });
       } else if (status === 409 && data.requiresConfirmation) {
         setConfirmPrompt({ code: data.code, message: data.message });
-      } else if (status === 409) {
-        setInfoMessage(
-          data.message || "This dataset cannot be updated right now."
-        );
+      } else if (status === 409 && data.message) {
+        // Informational block (e.g. approved, awaiting promotion).
+        setInfoMessage(data.message);
       } else {
+        // Real errors, incl. REQUESTED_ID_TAKEN (which carries `error`).
         setSubmitError(data.error || data.message || `Upload failed (${status})`);
       }
     } catch (e: any) {
