@@ -6,6 +6,8 @@ const {
   listMyUploads,
   getUpload,
   getUploadDocument,
+  submitForReview,
+  withdrawSubmission,
   listComments,
   postComment,
 } = require("../controllers/uploads.controller");
@@ -38,6 +40,10 @@ router.get("/", requireAuth, listMyUploads);
 // One dataset's detail + its review conversation (owner only).
 router.get("/:internalId", requireAuth, getUpload);
 router.get("/:internalId/document", requireAuth, getUploadDocument);
+
+// Review workflow actions (owner only).
+router.post("/:internalId/submit", requireAuth, submitForReview);
+router.post("/:internalId/withdraw", requireAuth, withdrawSubmission);
 router.get("/:internalId/comments", requireAuth, listComments);
 router.post("/:internalId/comments", requireAuth, postComment);
 

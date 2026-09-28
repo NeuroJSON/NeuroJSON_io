@@ -209,14 +209,18 @@ const UploadPage: React.FC = () => {
           lineHeight: 1.6,
         }}
       >
-        Select a JSON file. It will be submitted to our sandbox for the
-        NeuroJSON team to review before it is added to a database.
+        Select a JSON file. It is saved as a draft in our sandbox. When
+        everything is ready, submit it for review from its upload detail page
+        (Dashboard → Uploads).
       </Typography>
 
       <Paper variant="outlined" sx={{ p: 3 }}>
         <Alert severity="info" sx={{ mb: 2, fontSize: "0.9rem" }}>
-          Your file is reviewed by the NeuroJSON team before it is added to a
-          database. A new reference id is assigned on submission — any existing{" "}
+          Uploading does not send your dataset for review. Review starts only
+          after you click <strong>Submit for review</strong> on the upload
+          detail page; the NeuroJSON team reviews it before it is added to a
+          database.
+          A new reference id is assigned on upload — any existing{" "}
           <code>_id</code>/<code>_rev</code> in your file is ignored.
         </Alert>
 
@@ -393,14 +397,16 @@ const UploadPage: React.FC = () => {
             {submitting ? (
               <CircularProgress size={22} sx={{ color: "white" }} />
             ) : (
-              "Submit for review"
+              "Upload JSON"
             )}
           </Button>
         </Box>
 
         {result && (
           <Alert severity="success" sx={{ mt: 3, fontSize: "0.95rem" }}>
-            Submitted for review.
+            {result.status === "changes_requested"
+              ? "Saved. Resubmit it for review when it's ready."
+              : "Saved as draft. Submit it for review when it's ready."}
             <br />
             Internal reference: <code>{result.internalId}</code>
             <CopyButton value={result.internalId} label="Copy reference" />
@@ -412,7 +418,7 @@ const UploadPage: React.FC = () => {
               to={`/uploads/${result.internalId}`}
               sx={{ color: Colors.purple, fontWeight: 600 }}
             >
-              View status →
+              Open upload details →
             </MuiLink>
           </Alert>
         )}
@@ -455,8 +461,8 @@ const UploadPage: React.FC = () => {
           {confirmPrompt && (
             <Alert severity="info" sx={{ mt: 2, fontSize: "0.9rem" }}>
               {confirmPrompt.code === "DATASET_ALREADY_PROMOTED"
-                ? "This replaces your working copy in the sandbox for review. The version already published to the public database stays unchanged — it is only replaced if this new version passes review."
-                : "This replaces your working copy in the sandbox and starts a new review."}
+                ? "This starts a new draft version and replaces your working copy in the sandbox. The version already published to the public database stays unchanged — it is only replaced if the new version passes review."
+                : "This starts a new draft version and replaces your working copy in the sandbox. Submit it for review when it's ready."}
             </Alert>
           )}
         </DialogContent>

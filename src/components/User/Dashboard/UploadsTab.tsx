@@ -27,6 +27,7 @@ const STATUS_CHIP: Record<
     sx?: object;
   }
 > = {
+  draft: { label: "Draft", color: "default" },
   // Pending uses the theme purple (not MUI's default blue).
   pending: {
     label: "Pending review",
@@ -189,24 +190,29 @@ const UploadsTab: React.FC = () => {
                           View
                         </Button>
                       )}
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<Edit />}
-                        onClick={() =>
-                          navigate(`/upload?internalId=${r.internal_id}`)
-                        }
-                        sx={{
-                          color: Colors.purple,
-                          borderColor: Colors.purple,
-                          "&:hover": {
-                            borderColor: Colors.secondaryPurple,
-                            backgroundColor: "rgba(128, 90, 213, 0.1)",
-                          },
-                        }}
-                      >
-                        Update
-                      </Button>
+                      {/* Same rule as the detail page: locked while
+                          pending/approved (withdraw on the detail page to
+                          edit a pending one). */}
+                      {r.status !== "pending" && r.status !== "approved" && (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<Edit />}
+                          onClick={() =>
+                            navigate(`/upload?internalId=${r.internal_id}`)
+                          }
+                          sx={{
+                            color: Colors.purple,
+                            borderColor: Colors.purple,
+                            "&:hover": {
+                              borderColor: Colors.secondaryPurple,
+                              backgroundColor: "rgba(128, 90, 213, 0.1)",
+                            },
+                          }}
+                        >
+                          Update
+                        </Button>
+                      )}
                     </Box>
                   </ListItem>
                 </React.Fragment>

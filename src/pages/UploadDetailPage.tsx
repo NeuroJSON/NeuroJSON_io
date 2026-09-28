@@ -40,6 +40,7 @@ const STATUS_CHIP: Record<
     sx?: object;
   }
 > = {
+  draft: { label: "Draft", color: "default" },
   pending: {
     label: "Pending review",
     sx: { backgroundColor: Colors.purple, color: Colors.white },
@@ -72,6 +73,24 @@ const UploadDetailPage: React.FC = () => {
   const [message, setMessage] = useState("");
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+
+  // Review actions (submit / resubmit / withdraw).
+  const [acting, setActing] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const runAction = async (fn: (id: string) => Promise<unknown>) => {
+    if (!internalId) return;
+    setActing(true);
+    setActionError(null);
+    try {
+      await fn(internalId);
+      setDetail(await UploadService.getUpload(internalId)); // refresh status
+    } catch (e: any) {
+      setActionError(e.message || "Action failed.");
+    } finally {
+      setActing(false);
+    }
+  };
 
   useEffect(() => {
     if (!internalId || !isLoggedIn) return;
@@ -217,16 +236,22 @@ const UploadDetailPage: React.FC = () => {
           </Typography>
         </Box>
 
-        <Box sx={{ display: "flex", gap: 1 }}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<EditIcon />}
-            onClick={() => navigate(`/upload?internalId=${detail.internal_id}`)}
-            sx={{ color: Colors.purple, borderColor: Colors.purple }}
-          >
-            Update
-          </Button>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          {/* Locked while pending/approved; rejected/promoted use Update to
+              start a new version. */}
+          {detail.status !== "pending" && detail.status !== "approved" && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<EditIcon />}
+              onClick={() =>
+                navigate(`/upload?internalId=${detail.internal_id}`)
+              }
+              sx={{ color: Colors.purple, borderColor: Colors.purple }}
+            >
+              Update
+            </Button>
+          )}
           {/* Opens the stored doc via our owner-checked backend proxy (the
               sandbox CouchDB URL is never exposed to the browser). */}
           <Button
@@ -256,6 +281,98 @@ const UploadDetailPage: React.FC = () => {
               </Button>
             )}
         </Box>
+      </Paper>
+
+      {/* Review: readiness checklist + submit / resubmit / withdraw */}
+      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" sx={{ mb: 1.5 }}>
+          Review
+        </Typography>
+
+        <Typography
+          variant="body2"
+          sx={{
+            mb: 1,
+            color:
+              detail.json_status === "failed"
+                ? Colors.error
+                : Colors.textPrimary,
+          }}
+        >
+          {detail.json_status === "failed"
+            ? `✗ ${detail.json_error || "The last JSON update failed."}`
+            : `✓ JSON uploaded${
+                detail.json_uploaded_at
+                  ? ` (${new Date(detail.json_uploaded_at).toLocaleString()})`
+                  : ""
+              }`}
+        </Typography>
+
+        {(detail.status === "draft" ||
+          detail.status === "changes_requested") && (
+          <>
+            {!detail.readiness.canSubmit && (
+              <Alert severity="warning" sx={{ mb: 1.5 }}>
+                {detail.readiness.problems.join(" ")}
+              </Alert>
+            )}
+            <Button
+              variant="contained"
+              disabled={acting || !detail.readiness.canSubmit}
+              onClick={() => runAction(UploadService.submitForReview)}
+              sx={{
+                backgroundColor: Colors.purple,
+                "&:hover": { backgroundColor: Colors.secondaryPurple },
+              }}
+            >
+              {detail.status === "changes_requested"
+                ? "Resubmit for review"
+                : "Submit for review"}
+            </Button>
+          </>
+        )}
+
+        {detail.status === "pending" && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              flexWrap: "wrap",
+            }}
+          >
+            <Typography variant="body2" sx={{ color: Colors.textSecondary }}>
+              Waiting for review
+              {detail.submitted_at
+                ? ` · submitted ${new Date(
+                    detail.submitted_at
+                  ).toLocaleString()}`
+                : ""}
+              . Withdraw it to make changes.
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={acting}
+              onClick={() => runAction(UploadService.withdraw)}
+              sx={{ color: Colors.purple, borderColor: Colors.purple }}
+            >
+              Withdraw to draft
+            </Button>
+          </Box>
+        )}
+
+        {detail.status === "approved" && (
+          <Typography variant="body2" sx={{ color: Colors.textSecondary }}>
+            Approved and waiting to be published. It can't be changed now.
+          </Typography>
+        )}
+
+        {actionError && (
+          <Alert severity="error" sx={{ mt: 1.5 }}>
+            {actionError}
+          </Alert>
+        )}
       </Paper>
 
       {/* Conversation */}

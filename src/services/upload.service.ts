@@ -12,6 +12,7 @@ export interface UploadRecord {
   dataset_name: string | null;
   submission_id: string | null;
   status:
+    | "draft"
     | "pending"
     | "changes_requested"
     | "approved"
@@ -36,6 +37,12 @@ export interface UploadDetail {
   updated_at: string | null;
   promoted_db: string | null;
   promoted_at: string | null;
+  json_status: "uploaded" | "failed" | null;
+  json_uploaded_at: string | null;
+  json_error: string | null;
+  submitted_at: string | null;
+  raw_zip_expected: boolean;
+  readiness: { canSubmit: boolean; problems: string[] };
 }
 
 export interface Comment {
@@ -115,6 +122,32 @@ export const UploadService = {
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.error || `Failed to post comment (${res.status})`);
+    }
+    return res.json();
+  },
+
+  // draft / changes_requested → pending
+  submitForReview: async (internalId: string): Promise<{ status: string }> => {
+    const res = await fetch(`${baseURL}/uploads/${internalId}/submit`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `Failed to submit (${res.status})`);
+    }
+    return res.json();
+  },
+
+  // pending → draft (only before the reviewer acts)
+  withdraw: async (internalId: string): Promise<{ status: string }> => {
+    const res = await fetch(`${baseURL}/uploads/${internalId}/withdraw`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `Failed to withdraw (${res.status})`);
     }
     return res.json();
   },

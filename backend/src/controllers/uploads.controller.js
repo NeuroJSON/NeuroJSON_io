@@ -90,6 +90,9 @@ const assertRequestedIdFree = async (requestedId, excludeInternalId, t) => {
 };
 
 const createUpload = async (req, res) => {
+  // Existing editable cycle whose JSON update is being attempted; used to
+  // record a failure after the transaction rolls back.
+  let jsonTargetId = null;
   try {
     const body = req.body;
     if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -134,6 +137,9 @@ const createUpload = async (req, res) => {
     if (requestedId) validateRequestedId(requestedId); // throws 400
     if (requestedDb) validateRequestedDb(requestedDb); // throws 400
 
+    // Review status of the cycle this upload lands in (returned to the client).
+    let reviewStatus = "draft";
+
     // Keep the PostgreSQL transaction open across the CouchDB write: commit on
     // success, roll back if the upload fails. Acceptable at low upload volume.
     const result = await sequelize.transaction(async (t) => {
@@ -162,8 +168,8 @@ const createUpload = async (req, res) => {
         submissionId = crypto.randomUUID();
         await sequelize.query(
           `INSERT INTO submissions
-             (submission_id, dataset_registry_id, status, created_at, updated_at)
-           VALUES (:sid, :rid, 'pending', NOW(), NOW())`,
+             (submission_id, dataset_registry_id, status, json_status, json_uploaded_at, created_at, updated_at)
+           VALUES (:sid, :rid, 'draft', 'uploaded', NOW(), NOW(), NOW())`,
           {
             replacements: { sid: submissionId, rid: registryId },
             transaction: t,
@@ -223,22 +229,29 @@ const createUpload = async (req, res) => {
           }
         );
 
-        // Open = pending / changes_requested → reuse, reset to pending.
-        const open = subs.find(
-          (s) => s.status === "pending" || s.status === "changes_requested"
+        // Editable = draft / changes_requested → reuse this cycle. The review
+        // status is NOT changed; the user must click Submit/Resubmit to send it
+        // to review.
+        const editable = subs.find(
+          (s) => s.status === "draft" || s.status === "changes_requested"
         );
-        if (open) {
-          submissionId = open.submission_id;
+        if (editable) {
+          submissionId = editable.submission_id;
+          reviewStatus = editable.status;
+          jsonTargetId = editable.id;
           await sequelize.query(
-            `UPDATE submissions SET status='pending', updated_at=NOW() WHERE id=:id`,
-            { replacements: { id: open.id }, transaction: t }
+            `UPDATE submissions
+                SET json_status='uploaded', json_uploaded_at=NOW(), json_error=NULL, updated_at=NOW()
+              WHERE id=:id`,
+            { replacements: { id: editable.id }, transaction: t }
           );
         } else if (subs.length === 0) {
           // Defensive: registry with no cycle → start one.
           submissionId = crypto.randomUUID();
           await sequelize.query(
-            `INSERT INTO submissions (submission_id, dataset_registry_id, status, created_at, updated_at)
-             VALUES (:sid, :rid, 'pending', NOW(), NOW())`,
+            `INSERT INTO submissions
+               (submission_id, dataset_registry_id, status, json_status, json_uploaded_at, created_at, updated_at)
+             VALUES (:sid, :rid, 'draft', 'uploaded', NOW(), NOW(), NOW())`,
             {
               replacements: { sid: submissionId, rid: registryId },
               transaction: t,
@@ -246,6 +259,17 @@ const createUpload = async (req, res) => {
           );
         } else {
           const latest = subs[0];
+          if (latest.status === "pending") {
+            // Locked while waiting for review; the user can withdraw it to
+            // draft first.
+            throw new HttpError(409, {
+              code: "SUBMISSION_UNDER_REVIEW",
+              status: "pending",
+              requiresConfirmation: false,
+              message:
+                "This submission is waiting for review. Withdraw it back to draft to make changes.",
+            });
+          }
           if (latest.status === "approved") {
             // Still an ACTIVE workflow (awaiting promotion) — block.
             throw new HttpError(409, {
@@ -266,14 +290,15 @@ const createUpload = async (req, res) => {
               status: latest.status,
               requiresConfirmation: true,
               message: promoted
-                ? "This dataset is already published. Confirm to submit an updated version for a new review."
-                : "The previous submission was rejected. Confirm to resubmit for review.",
+                ? "This dataset is already published. Confirm to start a new version (saved as a draft)."
+                : "The previous submission was rejected. Confirm to start a new version (saved as a draft).",
             });
           }
           submissionId = crypto.randomUUID();
           await sequelize.query(
-            `INSERT INTO submissions (submission_id, dataset_registry_id, status, created_at, updated_at)
-             VALUES (:sid, :rid, 'pending', NOW(), NOW())`,
+            `INSERT INTO submissions
+               (submission_id, dataset_registry_id, status, json_status, json_uploaded_at, created_at, updated_at)
+             VALUES (:sid, :rid, 'draft', 'uploaded', NOW(), NOW(), NOW())`,
             {
               replacements: { sid: submissionId, rid: registryId },
               transaction: t,
@@ -292,10 +317,31 @@ const createUpload = async (req, res) => {
       return { internal_id: registryId, submission_id: submissionId };
     });
 
-    res.status(201).json({ ok: true, status: "pending", ...result });
+    res.status(201).json({ ok: true, status: reviewStatus, ...result });
   } catch (err) {
     if (err instanceof HttpError) {
       return res.status(err.status).json(err.body);
+    }
+    // The transaction rolled back, so the sandbox still has the previous good
+    // copy. Mark the last JSON update as failed — only for an existing
+    // draft/changes_requested cycle (a brand-new dataset has no row to mark).
+    // Stored message is a fixed, safe sentence (never the raw error).
+    if (jsonTargetId) {
+      await sequelize
+        .query(
+          `UPDATE submissions
+              SET json_status='failed', json_error=:msg, updated_at=NOW()
+            WHERE id=:id`,
+          {
+            replacements: {
+              id: jsonTargetId,
+              msg: "The last JSON update could not be saved.",
+            },
+          }
+        )
+        .catch((e) =>
+          console.error("Could not record JSON failure:", e.message)
+        );
     }
     // Full details stay in the server log only. Never send err.message or the
     // CouchDB response to the browser — a network error message contains the
@@ -394,12 +440,107 @@ const latestSubmissionId = async (internalId) => {
   return s[0] ? s[0].submission_id : null;
 };
 
+// What must be true before draft/changes_requested → pending.
+// (Raw ZIP checks are added in step 2, once the raw tables exist; until then
+// raw_zip_expected is always false.)
+const getReadiness = (sub) => {
+  const problems = [];
+  if (sub.json_status !== "uploaded") {
+    problems.push("The last JSON update failed. Upload the JSON again.");
+  }
+  return { canSubmit: problems.length === 0, problems };
+};
+
+// POST /api/v1/uploads/:internalId/submit — send (or resend) to review.
+const submitForReview = async (req, res) => {
+  try {
+    const reg = await loadOwnedRegistry(
+      String(req.params.internalId),
+      req.user.id
+    );
+    const out = await sequelize.transaction(async (t) => {
+      const rows = await sequelize.query(
+        `SELECT id, status, json_status, raw_zip_expected FROM submissions
+          WHERE dataset_registry_id = :iid
+          ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
+        {
+          replacements: { iid: reg.internal_id },
+          type: sequelize.QueryTypes.SELECT,
+          transaction: t,
+        }
+      );
+      const sub = rows[0];
+      if (!sub || !["draft", "changes_requested"].includes(sub.status)) {
+        throw new HttpError(409, {
+          code: "NOT_SUBMITTABLE",
+          error:
+            "Only a draft or a submission with requested changes can be sent for review.",
+        });
+      }
+      const { canSubmit, problems } = getReadiness(sub);
+      if (!canSubmit) {
+        throw new HttpError(409, {
+          code: "NOT_READY",
+          error: problems[0],
+          problems,
+        });
+      }
+      await sequelize.query(
+        `UPDATE submissions
+            SET status='pending', submitted_at=NOW(), updated_at=NOW()
+          WHERE id=:id`,
+        { replacements: { id: sub.id }, transaction: t }
+      );
+      return { status: "pending" };
+    });
+    res.json(out);
+  } catch (err) {
+    if (err instanceof HttpError) return res.status(err.status).json(err.body);
+    console.error("Submit failed:", err.message);
+    res.status(500).json({ error: "Failed to submit for review." });
+  }
+};
+
+// POST /api/v1/uploads/:internalId/withdraw — pending → draft, only until the
+// reviewer changes the status. A single conditional UPDATE, so it can't race a
+// reviewer action: whichever lands first wins.
+const withdrawSubmission = async (req, res) => {
+  try {
+    const reg = await loadOwnedRegistry(
+      String(req.params.internalId),
+      req.user.id
+    );
+    const sid = await latestSubmissionId(reg.internal_id);
+    const rows = sid
+      ? await sequelize.query(
+          `UPDATE submissions SET status='draft', updated_at=NOW()
+            WHERE submission_id = :sid AND status = 'pending'
+          RETURNING id`,
+          { replacements: { sid }, type: sequelize.QueryTypes.SELECT }
+        )
+      : [];
+    if (rows.length === 0) {
+      return res.status(409).json({
+        code: "CANNOT_WITHDRAW",
+        error:
+          "This submission can no longer be withdrawn — the reviewer has already acted on it.",
+      });
+    }
+    res.json({ status: "draft" });
+  } catch (err) {
+    if (err instanceof HttpError) return res.status(err.status).json(err.body);
+    console.error("Withdraw failed:", err.message);
+    res.status(500).json({ error: "Failed to withdraw." });
+  }
+};
+
 // GET /api/v1/uploads/:internalId — one dataset's detail (owner only).
 const getUpload = async (req, res) => {
   try {
     const reg = await loadOwnedRegistry(String(req.params.internalId), req.user.id);
     const s = await sequelize.query(
-      `SELECT submission_id, status, created_at, updated_at, promoted_db, promoted_at
+      `SELECT submission_id, status, created_at, updated_at, promoted_db, promoted_at,
+              json_status, json_uploaded_at, json_error, submitted_at, raw_zip_expected
          FROM submissions WHERE dataset_registry_id = :iid
         ORDER BY created_at DESC LIMIT 1`,
       { replacements: { iid: reg.internal_id }, type: sequelize.QueryTypes.SELECT }
@@ -417,6 +558,14 @@ const getUpload = async (req, res) => {
       updated_at: sub.updated_at || null,
       promoted_db: sub.promoted_db || null,
       promoted_at: sub.promoted_at || null,
+      json_status: sub.json_status || null,
+      json_uploaded_at: sub.json_uploaded_at || null,
+      json_error: sub.json_error || null,
+      submitted_at: sub.submitted_at || null,
+      raw_zip_expected: !!sub.raw_zip_expected,
+      readiness: sub.submission_id
+        ? getReadiness(sub)
+        : { canSubmit: false, problems: ["No submission found."] },
     });
   } catch (err) {
     if (err instanceof HttpError) return res.status(err.status).json(err.body);
@@ -496,6 +645,8 @@ module.exports = {
   listMyUploads,
   getUpload,
   getUploadDocument,
+  submitForReview,
+  withdrawSubmission,
   listComments,
   postComment,
 };
