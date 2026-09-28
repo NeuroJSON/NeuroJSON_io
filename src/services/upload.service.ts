@@ -139,6 +139,25 @@ export const UploadService = {
     return res.json();
   },
 
+  // Publishing settings. A key left out = unchanged; null = reset
+  // (requestedDatasetId → NeuroJSON assigns; requestedDb → "public").
+  updateSettings: async (
+    internalId: string,
+    settings: { requestedDb?: string | null; requestedDatasetId?: string | null }
+  ): Promise<{ requested_dataset_id: string | null; requested_db: string }> => {
+    const res = await fetch(`${baseURL}/uploads/${internalId}/settings`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(settings),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `Failed to update settings (${res.status})`);
+    }
+    return res.json();
+  },
+
   // pending → draft (only before the reviewer acts)
   withdraw: async (internalId: string): Promise<{ status: string }> => {
     const res = await fetch(`${baseURL}/uploads/${internalId}/withdraw`, {

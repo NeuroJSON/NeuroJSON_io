@@ -18,12 +18,16 @@ import {
 import CopyButton from "components/CopyButton";
 import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { AuthSelector } from "redux/auth/auth.selector";
-import { NeurojsonService } from "services/neurojson.service";
 import { UploadService } from "services/upload.service";
 import RoutesEnum from "types/routes.enum";
+import {
+  getRequestedDbError,
+  getRequestedIdError,
+  useExistingDbNames,
+} from "utils/uploadValidation";
 
 const UploadPage: React.FC = () => {
   const { isLoggedIn } = useAppSelector(AuthSelector);
@@ -39,10 +43,8 @@ const UploadPage: React.FC = () => {
   const [datasetName, setDatasetName] = useState("");
   const [requestedDatasetId, setRequestedDatasetId] = useState("");
   const [requestedDb, setRequestedDb] = useState("");
-  // Existing public db names (lowercased) — a user may not publish into another
-  // collection's database, so typing one of these is blocked. Fetched for the
-  // check only (not offered as a picker). Non-fatal if it fails to load.
-  const [existingDbs, setExistingDbs] = useState<Set<string>>(new Set());
+  // Existing public db names — typing one of these is blocked (shared helper).
+  const existingDbs = useExistingDbNames();
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{
     internalId: string;
@@ -55,17 +57,6 @@ const UploadPage: React.FC = () => {
     code: string;
     message: string;
   } | null>(null);
-
-  useEffect(() => {
-    NeurojsonService.getRegistry()
-      .then((data: any) => {
-        const names = (data?.database || []).map((d: any) =>
-          String(d.name || "").toLowerCase()
-        );
-        setExistingDbs(new Set(names));
-      })
-      .catch(() => {}); // non-fatal — skip the collision check if it fails
-  }, []);
 
   const resetOutcome = () => {
     setResult(null);
@@ -101,8 +92,13 @@ const UploadPage: React.FC = () => {
       const { status, data } = await UploadService.uploadJson(parsed, {
         internalId: internalId.trim() || undefined,
         datasetName: datasetName.trim() || undefined,
-        requestedDatasetId: requestedDatasetId.trim() || undefined,
-        requestedDb: requestedDb.trim() || undefined,
+        // Only sent for a new dataset (the backend ignores them on update).
+        requestedDatasetId: internalId.trim()
+          ? undefined
+          : requestedDatasetId.trim() || undefined,
+        requestedDb: internalId.trim()
+          ? undefined
+          : requestedDb.trim() || undefined,
         confirm,
       });
       if (status === 201) {
@@ -118,7 +114,9 @@ const UploadPage: React.FC = () => {
         setInfoMessage(data.message);
       } else {
         // Real errors, incl. REQUESTED_ID_TAKEN (which carries `error`).
-        setSubmitError(data.error || data.message || `Upload failed (${status})`);
+        setSubmitError(
+          data.error || data.message || `Upload failed (${status})`
+        );
       }
     } catch (e: any) {
       setSubmitError(e.message || "Upload failed.");
@@ -160,38 +158,17 @@ const UploadPage: React.FC = () => {
   const nameFromFile =
     dd && typeof dd === "object" && !Array.isArray(dd) ? dd.Name : undefined;
 
-  // Live validation of the preferred public id (mirrors the backend rule:
-  // ^[a-z0-9][a-z0-9_-]{2,62}$), but with a specific message per problem.
-  const CHAR_RE = /^[a-z0-9][a-z0-9_-]*$/; // allowed chars + first-char rule
-  const requestedTrimmed = requestedDatasetId.trim();
-  const requestedIdError =
-    requestedTrimmed === ""
-      ? ""
-      : requestedTrimmed.startsWith("njds")
-      ? 'Cannot start with "njds" (reserved for NeuroJSON-assigned IDs).'
-      : !CHAR_RE.test(requestedTrimmed)
-      ? "Use only lowercase letters and numbers; join words with - or _ (e.g. my-fmri-study). Cannot start with - or _."
-      : requestedTrimmed.length < 3
-      ? "Too short — use at least 3 characters."
-      : requestedTrimmed.length > 63
-      ? "Too long — use 63 characters or fewer."
-      : "";
+  // Publishing settings are set here only for a NEW dataset; for an update
+  // they're edited on the upload detail page (PATCH /settings).
+  const isNewDataset = !internalId.trim();
 
-  // Same slug rule for the target database name (no njds restriction).
-  const dbTrimmed = requestedDb.trim();
-  const requestedDbError =
-    dbTrimmed === ""
-      ? ""
-      : !CHAR_RE.test(dbTrimmed)
-      ? "Use only lowercase letters and numbers; join words with - or _ (e.g. my-lab)."
-      : dbTrimmed.length < 3
-      ? "Too short — use at least 3 characters."
-      : dbTrimmed.length > 63
-      ? "Too long — use 63 characters or fewer."
-      : dbTrimmed.toLowerCase() !== "public" &&
-        existingDbs.has(dbTrimmed.toLowerCase())
-      ? `A database named "${dbTrimmed}" already exists. Choose a different name or leave blank for public.`
-      : "";
+  // Live validation (shared with the detail-page settings dialog).
+  const requestedIdError = isNewDataset
+    ? getRequestedIdError(requestedDatasetId)
+    : "";
+  const requestedDbError = isNewDataset
+    ? getRequestedDbError(requestedDb, existingDbs)
+    : "";
 
   return (
     <Container maxWidth="sm" sx={{ mt: 6, mb: 6 }}>
@@ -219,8 +196,7 @@ const UploadPage: React.FC = () => {
           Uploading does not send your dataset for review. Review starts only
           after you click <strong>Submit for review</strong> on the upload
           detail page; the NeuroJSON team reviews it before it is added to a
-          database.
-          A new reference id is assigned on upload — any existing{" "}
+          database. A new reference id is assigned on upload — any existing{" "}
           <code>_id</code>/<code>_rev</code> in your file is ignored.
         </Alert>
 
@@ -288,72 +264,88 @@ const UploadPage: React.FC = () => {
           }
         />
 
-        {/* Target database — where the dataset is published after review */}
-        <TextField
-          label="Publish to database (optional)"
-          placeholder="public (default)"
-          value={requestedDb}
-          onChange={(e) => setRequestedDb(e.target.value)}
-          size="small"
-          fullWidth
-          error={!!requestedDbError}
-          helperText={requestedDbError || undefined}
-          sx={{ mt: 2.5 }}
-        />
-        <Box
-          component="ul"
-          sx={{
-            mt: 0.75,
-            mb: 0,
-            pl: 2.5,
-            color: "text.secondary",
-            fontSize: "0.78rem",
-            lineHeight: 1.5,
-            "& li": { mb: 0.25 },
-          }}
-        >
-          <li>
-            Becomes part of your dataset’s public URL after review (e.g.{" "}
-            <code>/db/smith-lab/…</code>).
-          </li>
-          <li>
-            Leave blank for the default <code>public</code> database.
-          </li>
-        </Box>
+        {/* Publishing settings: only for a NEW dataset. For an update they're
+            edited on the upload detail page. */}
+        {!isNewDataset && (
+          <Typography
+            variant="body2"
+            sx={{ mt: 2.5, color: Colors.textSecondary }}
+          >
+            Publishing settings (database and dataset ID) are changed on the
+            upload detail page.
+          </Typography>
+        )}
 
-        {/* Optional preferred public ID (a preference; final id is set at review) */}
-        <TextField
-          label="Preferred dataset ID (optional)"
-          placeholder="my-fmri-study"
-          value={requestedDatasetId}
-          onChange={(e) => setRequestedDatasetId(e.target.value)}
-          size="small"
-          fullWidth
-          error={!!requestedIdError}
-          helperText={requestedIdError || undefined}
-          sx={{ mt: 2.5 }}
-        />
-        <Box
-          component="ul"
-          sx={{
-            mt: 0.75,
-            mb: 0,
-            pl: 2.5,
-            color: "text.secondary",
-            fontSize: "0.78rem",
-            lineHeight: 1.5,
-            "& li": { mb: 0.25 },
-          }}
-        >
-          <li>
-            Becomes part of your dataset’s public URL after review (e.g.{" "}
-            <code>/db/…/my-fmri-study</code>).
-          </li>
-          <li>
-            Use only lowercase letters and numbers; join words with - or _
-            (e.g. <code>my-fmri-study</code>).
-          </li>
-        </Box>
+        {isNewDataset && (
+          <>
+            {/* Target database — where the dataset is published after review */}
+            <TextField
+              label="Publish to database (optional)"
+              placeholder="public (default)"
+              value={requestedDb}
+              onChange={(e) => setRequestedDb(e.target.value)}
+              size="small"
+              fullWidth
+              error={!!requestedDbError}
+              helperText={requestedDbError || undefined}
+              sx={{ mt: 2.5 }}
+            />
+            <Box
+              component="ul"
+              sx={{
+                mt: 0.75,
+                mb: 0,
+                pl: 2.5,
+                color: "text.secondary",
+                fontSize: "0.78rem",
+                lineHeight: 1.5,
+                "& li": { mb: 0.25 },
+              }}
+            >
+              <li>
+                Becomes part of your dataset’s public URL after review (e.g.{" "}
+                <code>/db/smith-lab/…</code>).
+              </li>
+              <li>
+                Leave blank for the default <code>public</code> database.
+              </li>
+            </Box>
+
+            {/* Optional preferred public ID (a preference; final id is set at review) */}
+            <TextField
+              label="Preferred dataset ID (optional)"
+              placeholder="my-fmri-study"
+              value={requestedDatasetId}
+              onChange={(e) => setRequestedDatasetId(e.target.value)}
+              size="small"
+              fullWidth
+              error={!!requestedIdError}
+              helperText={requestedIdError || undefined}
+              sx={{ mt: 2.5 }}
+            />
+            <Box
+              component="ul"
+              sx={{
+                mt: 0.75,
+                mb: 0,
+                pl: 2.5,
+                color: "text.secondary",
+                fontSize: "0.78rem",
+                lineHeight: 1.5,
+                "& li": { mb: 0.25 },
+              }}
+            >
+              <li>
+                Becomes part of your dataset’s public URL after review (e.g.{" "}
+                <code>/db/…/my-fmri-study</code>).
+              </li>
+              <li>
+                Use only lowercase letters and numbers; join words with - or _
+                (e.g. <code>my-fmri-study</code>).
+              </li>
+            </Box>
+          </>
+        )}
 
         {/* Existing-dataset internal ID — normally auto-filled from the dashboard */}
         <TextField

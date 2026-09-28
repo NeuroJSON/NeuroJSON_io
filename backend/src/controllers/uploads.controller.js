@@ -196,24 +196,15 @@ const createUpload = async (req, res) => {
           });
         }
 
-        // If changing the preferred id, it must still be free (excluding self).
-        if (requestedId) await assertRequestedIdFree(requestedId, registryId, t);
-
-        // Registry holds the canonical name (+ optional preferred id).
+        // Registry holds the canonical name. Publishing settings (preferred id,
+        // target db) are NOT changed by an upload — they are edited only via
+        // PATCH /:internalId/settings, so they're ignored here on update.
         await sequelize.query(
           `UPDATE dataset_registry
-              SET dataset_name = :name,
-                  requested_dataset_id = COALESCE(:req, requested_dataset_id),
-                  requested_db = COALESCE(:db, requested_db),
-                  updated_at = NOW()
+              SET dataset_name = :name, updated_at = NOW()
             WHERE internal_id = :iid`,
           {
-            replacements: {
-              name: datasetName,
-              req: requestedId,
-              db: requestedDb,
-              iid: registryId,
-            },
+            replacements: { name: datasetName, iid: registryId },
             transaction: t,
           }
         );
@@ -534,6 +525,101 @@ const withdrawSubmission = async (req, res) => {
   }
 };
 
+// PATCH /api/v1/uploads/:internalId/settings — change publishing settings
+// without re-uploading. A field left out = unchanged; null or "" = reset
+// (requestedDatasetId → let NeuroJSON assign; requestedDb → "public").
+const updateSettings = async (req, res) => {
+  try {
+    const body = req.body || {};
+    const has = (k) => Object.prototype.hasOwnProperty.call(body, k);
+    const clean = (v) =>
+      v === null || v === undefined ? null : String(v).trim() || null;
+
+    const changeId = has("requestedDatasetId");
+    const changeDb = has("requestedDb");
+    if (!changeId && !changeDb) {
+      return res.status(400).json({ error: "Nothing to update." });
+    }
+    const newId = changeId ? clean(body.requestedDatasetId) : null;
+    const newDb = changeDb ? clean(body.requestedDb) || "public" : null;
+    if (newId) validateRequestedId(newId); // 400 on bad format / njds
+    if (changeDb) validateRequestedDb(newDb); // "public" passes
+
+    const reg = await loadOwnedRegistry(
+      String(req.params.internalId),
+      req.user.id
+    );
+
+    // Once a dataset has a public ID, its URL (/db/<db>/<id>) is fixed so
+    // shared/cited links keep working; later versions publish to the same place.
+    if (reg.dataset_id) {
+      throw new HttpError(409, {
+        code: "PUBLIC_ID_ASSIGNED",
+        error:
+          "This dataset is already published, so its database and ID can't be changed.",
+      });
+    }
+
+    const out = await sequelize.transaction(async (t) => {
+      // Same rule as uploads: only while the submission is editable.
+      const rows = await sequelize.query(
+        `SELECT status FROM submissions WHERE dataset_registry_id = :iid
+          ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
+        {
+          replacements: { iid: reg.internal_id },
+          type: sequelize.QueryTypes.SELECT,
+          transaction: t,
+        }
+      );
+      if (
+        !rows[0] ||
+        !["draft", "changes_requested"].includes(rows[0].status)
+      ) {
+        throw new HttpError(409, {
+          code: "NOT_EDITABLE",
+          error:
+            "Settings can only be changed while the submission is a draft or has requested changes.",
+        });
+      }
+      if (newId) await assertRequestedIdFree(newId, reg.internal_id, t);
+
+      const sets = [];
+      const repl = { iid: reg.internal_id };
+      if (changeId) {
+        sets.push("requested_dataset_id = :rid");
+        repl.rid = newId;
+      }
+      if (changeDb) {
+        sets.push("requested_db = :rdb");
+        repl.rdb = newDb;
+      }
+      const updated = await sequelize.query(
+        `UPDATE dataset_registry SET ${sets.join(", ")}, updated_at = NOW()
+          WHERE internal_id = :iid
+          RETURNING requested_dataset_id, requested_db`,
+        {
+          replacements: repl,
+          type: sequelize.QueryTypes.SELECT,
+          transaction: t,
+        }
+      );
+      return updated[0];
+    });
+    res.json(out);
+  } catch (err) {
+    if (err instanceof HttpError) return res.status(err.status).json(err.body);
+    // Unique index backstop (two users grabbing the same ID at once).
+    if (err.original?.code === "23505") {
+      return res.status(409).json({
+        code: "REQUESTED_ID_TAKEN",
+        error: "That preferred ID is already in use.",
+      });
+    }
+    console.error("Update settings failed:", err.message);
+    res.status(500).json({ error: "Failed to update settings." });
+  }
+};
+
 // GET /api/v1/uploads/:internalId — one dataset's detail (owner only).
 const getUpload = async (req, res) => {
   try {
@@ -647,6 +733,7 @@ module.exports = {
   getUploadDocument,
   submitForReview,
   withdrawSubmission,
+  updateSettings,
   listComments,
   postComment,
 };

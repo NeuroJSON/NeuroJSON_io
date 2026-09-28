@@ -16,6 +16,7 @@ import {
   Typography,
 } from "@mui/material";
 import CopyButton from "components/CopyButton";
+import PublishSettingsDialog from "components/Upload/PublishSettingsDialog";
 import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect, useState } from "react";
@@ -73,6 +74,8 @@ const UploadDetailPage: React.FC = () => {
   const [message, setMessage] = useState("");
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Review actions (submit / resubmit / withdraw).
   const [acting, setActing] = useState(false);
@@ -172,6 +175,9 @@ const UploadDetailPage: React.FC = () => {
   }
 
   const chip = detail.status ? STATUS_CHIP[detail.status] : null;
+  const canEditSettings =
+    (detail.status === "draft" || detail.status === "changes_requested") &&
+    !detail.dataset_id;
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 6 }}>
@@ -215,14 +221,6 @@ const UploadDetailPage: React.FC = () => {
             ) : (
               <em>Not yet assigned</em>
             )}
-          </Typography>
-          {detail.requested_dataset_id && (
-            <Typography variant="body2" color="text.secondary">
-              Preferred ID: <code>{detail.requested_dataset_id}</code>
-            </Typography>
-          )}
-          <Typography variant="body2" color="text.secondary">
-            Target database: <code>{detail.requested_db || "public"}</code>
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Internal reference: <code>{detail.internal_id}</code>
@@ -282,6 +280,65 @@ const UploadDetailPage: React.FC = () => {
             )}
         </Box>
       </Paper>
+
+      {/* Publishing settings: editable while draft/changes_requested and not
+          yet published (the public URL is fixed once a public ID exists). */}
+      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 1.5,
+          }}
+        >
+          <Typography variant="h6">Publishing settings</Typography>
+          {canEditSettings && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<EditIcon />}
+              onClick={() => setSettingsOpen(true)}
+              sx={{ color: Colors.purple, borderColor: Colors.purple }}
+            >
+              Edit
+            </Button>
+          )}
+        </Box>
+        <Box sx={{ display: "grid", gap: 0.75 }}>
+          <Typography variant="body2" color="text.secondary">
+            Database: <code>{detail.requested_db || "public"}</code>
+            {(detail.requested_db || "public") === "public" ? " (default)" : ""}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Dataset ID:{" "}
+            {detail.requested_dataset_id ? (
+              <>
+                <code>{detail.requested_dataset_id}</code> (preferred)
+              </>
+            ) : (
+              <em>Assigned by NeuroJSON after approval</em>
+            )}
+          </Typography>
+          {detail.dataset_id && (
+            <Typography variant="body2" color="text.secondary">
+              Locked — this dataset is published, so its address can't change.
+            </Typography>
+          )}
+        </Box>
+      </Paper>
+
+      <PublishSettingsDialog
+        open={settingsOpen}
+        internalId={detail.internal_id}
+        currentDb={detail.requested_db}
+        currentId={detail.requested_dataset_id}
+        onClose={() => setSettingsOpen(false)}
+        onSaved={async () => {
+          setSettingsOpen(false);
+          if (internalId) setDetail(await UploadService.getUpload(internalId));
+        }}
+      />
 
       {/* Review: readiness checklist + submit / resubmit / withdraw */}
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>

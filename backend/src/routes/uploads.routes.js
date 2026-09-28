@@ -8,6 +8,7 @@ const {
   getUploadDocument,
   submitForReview,
   withdrawSubmission,
+  updateSettings,
   listComments,
   postComment,
 } = require("../controllers/uploads.controller");
@@ -44,6 +45,9 @@ router.get("/:internalId/document", requireAuth, getUploadDocument);
 // Review workflow actions (owner only).
 router.post("/:internalId/submit", requireAuth, submitForReview);
 router.post("/:internalId/withdraw", requireAuth, withdrawSubmission);
+
+// Publishing settings (target db + preferred id), editable without re-uploading.
+router.patch("/:internalId/settings", requireAuth, updateSettings);
 router.get("/:internalId/comments", requireAuth, listComments);
 router.post("/:internalId/comments", requireAuth, postComment);
 
