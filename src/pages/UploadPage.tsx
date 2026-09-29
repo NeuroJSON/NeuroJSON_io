@@ -19,7 +19,7 @@ import CopyButton from "components/CopyButton";
 import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthSelector } from "redux/auth/auth.selector";
 import { UploadService } from "services/upload.service";
 import RoutesEnum from "types/routes.enum";
@@ -33,6 +33,7 @@ const UploadPage: React.FC = () => {
   const { isLoggedIn } = useAppSelector(AuthSelector);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const initialInternalId =
     new URLSearchParams(location.search).get("internalId") ?? "";
 
@@ -200,6 +201,35 @@ const UploadPage: React.FC = () => {
           <code>_id</code>/<code>_rev</code> in your file is ignored.
         </Alert>
 
+        {/* Updating an existing dataset: the id comes only from the URL
+            (?internalId=…, set by the Update button) — never typed by hand. */}
+        {!isNewDataset && (
+          <Alert
+            severity="warning"
+            icon={false}
+            sx={{ mb: 2, fontSize: "0.9rem" }}
+          >
+            You're updating an existing dataset (reference{" "}
+            <code>{internalId}</code>).{" "}
+            <MuiLink
+              component="button"
+              type="button"
+              onClick={() => {
+                setInternalId("");
+                resetOutcome();
+                navigate("/upload", { replace: true });
+              }}
+              sx={{
+                color: Colors.purple,
+                fontWeight: 600,
+                verticalAlign: "baseline",
+              }}
+            >
+              Start a new dataset instead
+            </MuiLink>
+          </Alert>
+        )}
+
         <input
           ref={fileInputRef}
           type="file"
@@ -346,31 +376,6 @@ const UploadPage: React.FC = () => {
             </Box>
           </>
         )}
-
-        {/* Existing-dataset internal ID — normally auto-filled from the dashboard */}
-        <TextField
-          label="Existing dataset internal ID (for updates)"
-          placeholder="auto-filled from your dashboard"
-          value={internalId}
-          onChange={(e) => setInternalId(e.target.value)}
-          size="small"
-          fullWidth
-          sx={{ mt: 2.5 }}
-        />
-        <Box
-          component="ul"
-          sx={{
-            mt: 0.75,
-            mb: 0,
-            pl: 2.5,
-            color: "text.secondary",
-            fontSize: "0.78rem",
-            lineHeight: 1.5,
-            "& li": { mb: 0.25 },
-          }}
-        >
-          <li>Leave blank for a new dataset.</li>
-        </Box>
 
         <Box sx={{ mt: 3 }}>
           <Button
