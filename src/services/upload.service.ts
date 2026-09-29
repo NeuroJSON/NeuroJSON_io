@@ -41,6 +41,7 @@ export interface UploadDetail {
   json_uploaded_at: string | null;
   json_error: string | null;
   submitted_at: string | null;
+  reviewed_at: string | null;
   raw_zip_expected: boolean;
   readiness: { canSubmit: boolean; problems: string[] };
 }

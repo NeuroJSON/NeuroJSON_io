@@ -172,6 +172,18 @@ const UploadsTab: React.FC = () => {
                             : ""
                         }`}
                       />
+                      {r.status === "changes_requested" && (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            mt: 0.5,
+                            color: Colors.darkOrange,
+                            fontWeight: 600,
+                          }}
+                        >
+                          Action needed: update and resubmit for review
+                        </Typography>
+                      )}
                     </Box>
                     <Box display="flex" gap={1}>
                       {r.status === "promoted" && r.promoted_db && r.dataset_id && (

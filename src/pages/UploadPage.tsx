@@ -155,9 +155,22 @@ const UploadPage: React.FC = () => {
   }
 
   // If the file already carries a name, use it and disable the name field.
+  // Mirrors the backend: Name must be text; spaces-only counts as no name.
   const dd = parsed?.["dataset_description.json"] as any;
-  const nameFromFile =
+  const rawName =
     dd && typeof dd === "object" && !Array.isArray(dd) ? dd.Name : undefined;
+  const fileNameTypeError =
+    rawName !== undefined && rawName !== null && typeof rawName !== "string"
+      ? 'The "Name" in dataset_description.json must be text.'
+      : "";
+  const nameFromFile = typeof rawName === "string" ? rawName.trim() : "";
+  const typedName = datasetName.trim();
+  const datasetNameError = fileNameTypeError
+    ? fileNameTypeError
+    : (nameFromFile || typedName).length > 255
+    ? "Too long — 255 characters max."
+    : "";
+  const hasName = !!nameFromFile || !!typedName;
 
   // Publishing settings are set here only for a NEW dataset; for an update
   // they're edited on the upload detail page (PATCH /settings).
@@ -275,22 +288,26 @@ const UploadPage: React.FC = () => {
         <TextField
           label="Dataset name"
           placeholder="My dataset"
-          value={nameFromFile ? String(nameFromFile) : datasetName}
+          value={nameFromFile || datasetName}
           onChange={(e) => setDatasetName(e.target.value)}
-          disabled={!!nameFromFile}
+          disabled={!!nameFromFile || !!fileNameTypeError}
           size="small"
           fullWidth
+          error={!!datasetNameError}
           sx={{
             mt: 2.5,
-            // Highlight the "no name found" prompt so it's easy to notice.
-            "& .MuiFormHelperText-root": nameFromFile
-              ? {}
-              : { color: Colors.purple, fontWeight: 600 },
+            // Highlight the "no name found" prompt so it's easy to notice
+            // (red error styling wins when there's a problem).
+            "& .MuiFormHelperText-root":
+              nameFromFile || datasetNameError
+                ? {}
+                : { color: Colors.purple, fontWeight: 600 },
           }}
           helperText={
-            nameFromFile
+            datasetNameError ||
+            (nameFromFile
               ? 'Name taken from your file ("dataset_description.json" → Name).'
-              : 'No name found in your file ("dataset_description.json" → Name) — enter one here.'
+              : 'No name found in your file ("dataset_description.json" → Name) — enter one here.')
           }
         />
 
@@ -382,7 +399,12 @@ const UploadPage: React.FC = () => {
             variant="contained"
             size="large"
             disabled={
-              !parsed || submitting || !!requestedIdError || !!requestedDbError
+              !parsed ||
+              submitting ||
+              !hasName ||
+              !!datasetNameError ||
+              !!requestedIdError ||
+              !!requestedDbError
             }
             onClick={() => submit(false)}
             sx={{

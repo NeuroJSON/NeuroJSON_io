@@ -56,11 +56,13 @@ const validateRequestedId = (id) => {
 
 // Target public database name (same slug rule; no njds restriction — that is
 // only for dataset ids). Blank defaults to "public" upstream.
+// CouchDB requires db names to start with a lowercase letter, so this is
+// stricter than the dataset-id rule.
 const validateRequestedDb = (db) => {
-  if (!/^[a-z0-9][a-z0-9_-]{2,62}$/.test(db)) {
+  if (!/^[a-z][a-z0-9_-]{2,62}$/.test(db)) {
     throw new HttpError(400, {
       error:
-        "Database name must be 3–63 characters: lowercase letters, numbers, - or _.",
+        "Database name must be 3–63 characters, start with a lowercase letter, and use only lowercase letters, numbers, - or _.",
     });
   }
 };
@@ -109,11 +111,32 @@ const createUpload = async (req, res) => {
 
     // dataset name: file's dataset_description.json.Name → ?datasetName → 400.
     const dd = clean["dataset_description.json"];
-    const nameFromDoc =
+    const rawFromDoc =
       dd && typeof dd === "object" && !Array.isArray(dd) ? dd.Name : undefined;
-    const datasetName = nameFromDoc || req.query.datasetName;
+    if (
+      rawFromDoc !== undefined &&
+      rawFromDoc !== null &&
+      typeof rawFromDoc !== "string"
+    ) {
+      return res.status(400).json({
+        error: 'The "Name" in dataset_description.json must be text.',
+      });
+    }
+    // Spaces-only counts as no name; a repeated ?datasetName (array) is ignored.
+    const nameFromDoc = typeof rawFromDoc === "string" ? rawFromDoc.trim() : "";
+    const nameFromQuery =
+      typeof req.query.datasetName === "string"
+        ? req.query.datasetName.trim()
+        : "";
+    const datasetName = nameFromDoc || nameFromQuery;
     if (!datasetName) {
       return res.status(400).json({ error: "Please enter a dataset name." });
+    }
+    // Matches the dataset_name VARCHAR(255) column (clear 400, not a DB error).
+    if (datasetName.length > 255) {
+      return res.status(400).json({
+        error: "Dataset name is too long (255 characters max).",
+      });
     }
     if (!nameFromDoc) {
       if (!dd || typeof dd !== "object" || Array.isArray(dd)) {
@@ -626,7 +649,8 @@ const getUpload = async (req, res) => {
     const reg = await loadOwnedRegistry(String(req.params.internalId), req.user.id);
     const s = await sequelize.query(
       `SELECT submission_id, status, created_at, updated_at, promoted_db, promoted_at,
-              json_status, json_uploaded_at, json_error, submitted_at, raw_zip_expected
+              json_status, json_uploaded_at, json_error, submitted_at, raw_zip_expected,
+              reviewed_at
          FROM submissions WHERE dataset_registry_id = :iid
         ORDER BY created_at DESC LIMIT 1`,
       { replacements: { iid: reg.internal_id }, type: sequelize.QueryTypes.SELECT }
@@ -648,6 +672,7 @@ const getUpload = async (req, res) => {
       json_uploaded_at: sub.json_uploaded_at || null,
       json_error: sub.json_error || null,
       submitted_at: sub.submitted_at || null,
+      reviewed_at: sub.reviewed_at || null,
       raw_zip_expected: !!sub.raw_zip_expected,
       readiness: sub.submission_id
         ? getReadiness(sub)

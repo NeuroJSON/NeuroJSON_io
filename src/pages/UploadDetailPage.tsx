@@ -175,6 +175,12 @@ const UploadDetailPage: React.FC = () => {
   }
 
   const chip = detail.status ? STATUS_CHIP[detail.status] : null;
+  // JSON re-uploaded after the reviewer asked for changes?
+  const updatedSinceReview =
+    detail.status === "changes_requested" &&
+    !!detail.json_uploaded_at &&
+    !!detail.reviewed_at &&
+    new Date(detail.json_uploaded_at) > new Date(detail.reviewed_at);
   const canEditSettings =
     (detail.status === "draft" || detail.status === "changes_requested") &&
     !detail.dataset_id;
@@ -368,6 +374,29 @@ const UploadDetailPage: React.FC = () => {
         {(detail.status === "draft" ||
           detail.status === "changes_requested") && (
           <>
+            {/* Changes requested: remind the user that updating is not enough —
+                they must click Resubmit. Wording depends on whether the JSON
+                was updated after the reviewer's decision. */}
+            {detail.status === "changes_requested" && (
+              <Alert
+                severity={updatedSinceReview ? "success" : "warning"}
+                sx={{ mb: 1.5 }}
+              >
+                {updatedSinceReview ? (
+                  <>
+                    You've updated your dataset since the reviewer's request.
+                    Click <strong>Resubmit for review</strong> so the reviewer
+                    can see your changes.
+                  </>
+                ) : (
+                  <>
+                    The reviewer requested changes. Read their message below,
+                    update your files, then click{" "}
+                    <strong>Resubmit for review</strong>.
+                  </>
+                )}
+              </Alert>
+            )}
             {!detail.readiness.canSubmit && (
               <Alert severity="warning" sx={{ mb: 1.5 }}>
                 {detail.readiness.problems.join(" ")}

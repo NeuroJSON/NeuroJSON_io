@@ -5,7 +5,8 @@ import { NeurojsonService } from "services/neurojson.service";
 // rules (^[a-z0-9][a-z0-9_-]{2,62}$; no "njds" prefix for dataset ids) but
 // give one specific message per problem. The backend stays authoritative.
 
-const CHAR_RE = /^[a-z0-9][a-z0-9_-]*$/; // allowed chars + first-char rule
+const CHAR_RE = /^[a-z0-9][a-z0-9_-]*$/; // dataset id: allowed chars + first-char rule
+const DB_CHAR_RE = /^[a-z][a-z0-9_-]*$/; // CouchDB: db names start with a letter
 
 const lengthError = (v: string) =>
   v.length < 3
@@ -35,12 +36,15 @@ export const getRequestedDbError = (
 ): string => {
   const v = raw.trim();
   if (!v) return "";
-  if (!CHAR_RE.test(v)) {
+  if (!/^[a-z]/.test(v)) {
+    return "Must start with a lowercase letter (e.g. smith-lab).";
+  }
+  if (!DB_CHAR_RE.test(v)) {
     return "Use only lowercase letters and numbers; join words with - or _ (e.g. smith-lab).";
   }
   const len = lengthError(v);
   if (len) return len;
-  if (v.toLowerCase() !== "public" && existingDbs.has(v.toLowerCase())) {
+  if (v !== "public" && existingDbs.has(v)) {
     return `A database named "${v}" already exists. Choose a different name or leave blank for public.`;
   }
   return "";
