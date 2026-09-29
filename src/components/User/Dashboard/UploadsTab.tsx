@@ -1,4 +1,4 @@
-import { CloudUpload, Edit, Visibility } from "@mui/icons-material";
+import { CloudUpload, OpenInNew, Visibility } from "@mui/icons-material";
 import {
   Alert,
   Box,
@@ -190,29 +190,24 @@ const UploadsTab: React.FC = () => {
                           View
                         </Button>
                       )}
-                      {/* Same rule as the detail page: locked while
-                          pending/approved (withdraw on the detail page to
-                          edit a pending one). */}
-                      {r.status !== "pending" && r.status !== "approved" && (
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<Edit />}
-                          onClick={() =>
-                            navigate(`/upload?internalId=${r.internal_id}`)
-                          }
-                          sx={{
-                            color: Colors.purple,
-                            borderColor: Colors.purple,
-                            "&:hover": {
-                              borderColor: Colors.secondaryPurple,
-                              backgroundColor: "rgba(128, 90, 213, 0.1)",
-                            },
-                          }}
-                        >
-                          Update
-                        </Button>
-                      )}
+                      {/* All actions (Update, Submit, settings) live on the
+                          upload detail page, which also shows review state. */}
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<OpenInNew />}
+                        onClick={() => navigate(`/uploads/${r.internal_id}`)}
+                        sx={{
+                          color: Colors.purple,
+                          borderColor: Colors.purple,
+                          "&:hover": {
+                            borderColor: Colors.secondaryPurple,
+                            backgroundColor: "rgba(128, 90, 213, 0.1)",
+                          },
+                        }}
+                      >
+                        Open
+                      </Button>
                     </Box>
                   </ListItem>
                 </React.Fragment>
