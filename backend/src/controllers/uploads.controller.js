@@ -1,6 +1,7 @@
 const axios = require("axios");
 const crypto = require("crypto");
 const { sequelize } = require("../config/database");
+const { HttpError, loadOwnedRegistry } = require("../lib/uploadAccess");
 
 // Upload a JSON dataset into the sandbox CouchDB db for review, tracked in
 // PostgreSQL. See migrations create-dataset-registry / create-submissions /
@@ -27,15 +28,6 @@ const buildHeaders = () => {
   }
   return headers;
 };
-
-// Errors thrown inside the transaction to signal a specific HTTP response.
-class HttpError extends Error {
-  constructor(status, body) {
-    super(typeof body === "string" ? body : body.error || "error");
-    this.status = status;
-    this.body = typeof body === "string" ? { error: body } : body;
-  }
-}
 
 // Preferred public id rules (final availability is re-checked at promotion).
 const REQUESTED_ID_RE = /^[a-z0-9][a-z0-9_-]{2,62}$/;
@@ -424,27 +416,6 @@ const listMyUploads = async (req, res) => {
   }
 };
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-// Load a registry row the caller owns, or throw (404 unknown, 403 not owner).
-// Guards the UUID format first so a bad param can't crash the SQL uuid cast.
-const loadOwnedRegistry = async (internalId, userId) => {
-  if (!UUID_RE.test(internalId)) {
-    throw new HttpError(404, { error: "Dataset not found" });
-  }
-  const rows = await sequelize.query(
-    `SELECT internal_id, dataset_id, requested_dataset_id, requested_db, dataset_name, owner_user_id
-       FROM dataset_registry WHERE internal_id = :iid`,
-    { replacements: { iid: internalId }, type: sequelize.QueryTypes.SELECT }
-  );
-  if (rows.length === 0) throw new HttpError(404, { error: "Dataset not found" });
-  if (rows[0].owner_user_id !== userId) {
-    throw new HttpError(403, { error: "This dataset belongs to another user" });
-  }
-  return rows[0];
-};
-
 const latestSubmissionId = async (internalId) => {
   const s = await sequelize.query(
     `SELECT submission_id FROM submissions
@@ -454,16 +425,35 @@ const latestSubmissionId = async (internalId) => {
   return s[0] ? s[0].submission_id : null;
 };
 
-// What must be true before draft/changes_requested → pending.
-// (Raw ZIP checks are added in step 2, once the raw tables exist; until then
-// raw_zip_expected is always false.)
+// What must be true before draft/changes_requested → pending: the JSON is
+// uploaded, no raw upload is in progress, and — if this version is marked as
+// including raw data — a raw object is attached. `sub` needs the
+// RAW_READINESS_COLUMNS below (has_raw, raw_upload_active).
 const getReadiness = (sub) => {
   const problems = [];
   if (sub.json_status !== "uploaded") {
     problems.push("The last JSON update failed. Upload the JSON again.");
   }
+  if (sub.raw_upload_active) {
+    problems.push(
+      "A raw data upload is still in progress. Wait for it to finish, or cancel it."
+    );
+  }
+  if (sub.raw_zip_expected && !sub.has_raw) {
+    problems.push(
+      "This version is marked as including raw data, but no raw ZIP has been uploaded yet."
+    );
+  }
   return { canSubmit: problems.length === 0, problems };
 };
+
+// Extra readiness columns for a `FROM submissions` query (raw ZIP state).
+const RAW_READINESS_COLUMNS = `
+  EXISTS (SELECT 1 FROM submission_raw_files f
+           WHERE f.submission_id = submissions.submission_id) AS has_raw,
+  EXISTS (SELECT 1 FROM raw_upload_attempts a
+           WHERE a.submission_id = submissions.submission_id
+             AND a.status IN ('initiated','uploading','verifying')) AS raw_upload_active`;
 
 // POST /api/v1/uploads/:internalId/submit — send (or resend) to review.
 const submitForReview = async (req, res) => {
@@ -474,7 +464,8 @@ const submitForReview = async (req, res) => {
     );
     const out = await sequelize.transaction(async (t) => {
       const rows = await sequelize.query(
-        `SELECT id, status, json_status, raw_zip_expected FROM submissions
+        `SELECT id, status, json_status, raw_zip_expected, ${RAW_READINESS_COLUMNS}
+           FROM submissions
           WHERE dataset_registry_id = :iid
           ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
         {
@@ -650,7 +641,7 @@ const getUpload = async (req, res) => {
     const s = await sequelize.query(
       `SELECT submission_id, status, created_at, updated_at, promoted_db, promoted_at,
               json_status, json_uploaded_at, json_error, submitted_at, raw_zip_expected,
-              reviewed_at
+              reviewed_at, ${RAW_READINESS_COLUMNS}
          FROM submissions WHERE dataset_registry_id = :iid
         ORDER BY created_at DESC LIMIT 1`,
       { replacements: { iid: reg.internal_id }, type: sequelize.QueryTypes.SELECT }

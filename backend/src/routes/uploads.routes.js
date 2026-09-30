@@ -12,6 +12,13 @@ const {
   listComments,
   postComment,
 } = require("../controllers/uploads.controller");
+const {
+  startRawUpload,
+  refreshRawUploadToken,
+  getRawStatus,
+  cancelRawUpload,
+  setRawExpected,
+} = require("../controllers/rawUploads.controller");
 
 const router = express.Router();
 
@@ -50,5 +57,18 @@ router.post("/:internalId/withdraw", requireAuth, withdrawSubmission);
 router.patch("/:internalId/settings", requireAuth, updateSettings);
 router.get("/:internalId/comments", requireAuth, listComments);
 router.post("/:internalId/comments", requireAuth, postComment);
+
+// Raw ZIP upload sessions (owner only). The file itself goes straight to
+// Zodiac; REN only authorizes and tracks state. Starting shares the daily
+// upload limit; token refreshes aren't limited (long uploads need several).
+router.post("/:internalId/raw", requireAuth, uploadRateLimit, startRawUpload);
+router.get("/:internalId/raw", requireAuth, getRawStatus);
+router.patch("/:internalId/raw/expected", requireAuth, setRawExpected);
+router.post(
+  "/:internalId/raw/:uploadId/token",
+  requireAuth,
+  refreshRawUploadToken
+);
+router.delete("/:internalId/raw/:uploadId", requireAuth, cancelRawUpload);
 
 module.exports = router;
