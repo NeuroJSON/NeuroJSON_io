@@ -16,6 +16,7 @@ const projectRoutes = require("./routes/projects.routes");
 const ollamaRoutes = require("./routes/ollama.routes");
 const ollamaPublicRoutes = require("./routes/ollama.public.routes");
 const uploadsRoutes = require("./routes/uploads.routes");
+const internalRoutes = require("./routes/internal.routes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,6 +36,10 @@ app.use(
     credentials: true,
   })
 );
+
+// Zodiac → REN service calls (HMAC-signed). Mounted BEFORE express.json() so
+// the internal router can read the raw body; no cookies/restoreUser needed.
+app.use("/api/v1/internal", internalRoutes);
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
