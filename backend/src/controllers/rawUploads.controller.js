@@ -11,8 +11,8 @@ const {
 const { signUploadToken } = require("../lib/uploadTokens");
 
 const MAX_UPLOAD_BYTES = Number(
-  process.env.RAW_MAX_UPLOAD_BYTES || 500000000000
-); // 500 GB (decimal, matches the size shown in the UI)
+  process.env.RAW_MAX_UPLOAD_BYTES || 50000000000
+); // 50 GB (decimal, matches the size shown in the UI); sent to the page
 const CHUNK_BYTES = Number(process.env.RAW_CHUNK_BYTES || 67108864); // 64 MB
 const ACTIVE = ["initiated", "uploading", "verifying"];
 const EDITABLE = ["draft", "changes_requested"];
@@ -264,6 +264,7 @@ const getRawStatus = async (req, res) => {
       return res.json({
         rawZipExpected: false,
         editable: false,
+        maxUploadBytes: MAX_UPLOAD_BYTES,
         current: null,
         activeUpload: null,
         lastUpload: null,
@@ -312,6 +313,7 @@ const getRawStatus = async (req, res) => {
     res.json({
       rawZipExpected: !!sub.raw_zip_expected,
       editable: EDITABLE.includes(sub.status),
+      maxUploadBytes: MAX_UPLOAD_BYTES,
       // Storage keys stay server-side; only display facts are returned.
       current: c
         ? {

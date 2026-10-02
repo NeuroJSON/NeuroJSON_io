@@ -29,7 +29,6 @@ import { RawUploader, rawUploadSupported } from "utils/rawUploader";
 // "Raw data (ZIP)" section of the upload detail page: shows the version's
 // current ZIP and uploads a new one straight to the storage API (tus).
 
-const MAX_BYTES = 500_000_000_000; // 500 GB — same limit as the server
 const POLL_MS = 3000;
 
 type Phase = "idle" | "starting" | "uploading" | "paused" | "verifying";
@@ -196,9 +195,10 @@ const RawDataUploader: React.FC<RawDataUploaderProps> = ({
     if (file.size <= 0) {
       return setError({ message: "The file is empty.", canResume: false });
     }
-    if (file.size > MAX_BYTES) {
+    const max = status?.maxUploadBytes ?? 0;
+    if (max && file.size > max) {
       return setError({
-        message: `The file is too large (max ${formatBytes(MAX_BYTES)}).`,
+        message: `The file is too large (max ${formatBytes(max)}).`,
         canResume: false,
       });
     }
@@ -557,6 +557,15 @@ const RawDataUploader: React.FC<RawDataUploaderProps> = ({
         >
           {current ? "Replace ZIP" : "Choose ZIP file"}
         </Button>
+      )}
+      {canPick && (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block", mt: 0.5 }}
+        >
+          ZIP files up to {formatBytes(status.maxUploadBytes)}.
+        </Typography>
       )}
 
       {!editable && (

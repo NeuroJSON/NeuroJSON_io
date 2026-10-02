@@ -45,6 +45,7 @@ export interface RawCurrentZip {
 export interface RawStatus {
   rawZipExpected: boolean;
   editable: boolean;
+  maxUploadBytes: number; // server's per-file limit (bytes)
   current: RawCurrentZip | null;
   activeUpload: RawUploadSummary | null;
   lastUpload: RawUploadSummary | null;

@@ -1,5 +1,5 @@
 // Human-readable size in DECIMAL units (1 GB = 1,000,000,000 bytes), matching
-// the "500 GB max" limit message.
+// the "50 GB max" limit message.
 export const formatBytes = (bytes: number): string => {
   if (!Number.isFinite(bytes) || bytes < 0) return "—";
   if (bytes < 1000) return `${bytes} B`;

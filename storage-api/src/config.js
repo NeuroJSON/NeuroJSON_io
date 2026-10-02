@@ -76,7 +76,7 @@ export const config = {
   tokenPublicKeys,
   hmacKeys,
   hmacActiveKid,
-  maxUploadBytes: num("MAX_UPLOAD_BYTES", 500000000000), // 500 GB (decimal)
+  maxUploadBytes: num("MAX_UPLOAD_BYTES", 50000000000), // 50 GB (decimal)
   diskReservePercent: num("DISK_RESERVE_PERCENT", 5),
 };
 
