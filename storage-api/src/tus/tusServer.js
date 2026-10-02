@@ -1,6 +1,7 @@
 // tus resumable uploads into UPLOAD_ROOT/.incoming/<uploadId>.
 // The upload id = the token's `uid` (assigned by REN), so URLs are
-// <BASE_PATH>/files/<uploadId>. Finishing (verify → ask REN → move) comes next.
+// <BASE_PATH>/files/<uploadId>. When an upload finishes, an outbox record is
+// written and the worker verifies it, asks REN, and moves it into place.
 import fs from "node:fs/promises";
 import { Server } from "@tus/server";
 import { FileStore } from "@tus/file-store";
@@ -8,6 +9,8 @@ import { config } from "../config.js";
 import { getClaims, tusError } from "../lib/tusAuth.js";
 import { hasRoomFor } from "../lib/diskSpace.js";
 import { incomingFile, rawObjectDir } from "../lib/paths.js";
+import { createRecord } from "../outbox/outbox.js";
+import { wakeWorker } from "../outbox/worker.js";
 
 const exists = (p) =>
   fs.access(p).then(
@@ -75,9 +78,18 @@ export const tusServer = new Server({
   },
 
   onUploadFinish: async (req, upload) => {
-    // Next step replaces this: write outbox record → verify → ask REN → move.
+    // Values set by the server in onUploadCreate (never client-supplied).
+    const m = upload.metadata || {};
+    await createRecord({
+      uploadId: upload.id,
+      internalId: m.nj_internal_id,
+      submissionId: m.nj_submission_id,
+      expectedSize: upload.size,
+      state: "verifying",
+    });
     console.log(`upload complete: ${upload.id} (${upload.size} bytes)`);
-    return {};
+    wakeWorker();
+    return {}; // reply to the browser right away; checks run in the background
   },
 
   // Our own errors ({status_code, body}) pass through; anything unexpected

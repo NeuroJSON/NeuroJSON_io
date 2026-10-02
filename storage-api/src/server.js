@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import express from "express";
 import { config } from "./config.js";
 import { tusServer } from "./tus/tusServer.js";
+import { startWorker, stopWorker } from "./outbox/worker.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -34,9 +35,14 @@ const server = app.listen(config.port, config.host, () => {
         config.mainApiUrl ? "ON → " + config.mainApiUrl : "OFF (pull mode)"
       }`
   );
+  startWorker();
 });
 
-// Let pm2 stop us cleanly (finish in-flight requests).
+// Let pm2 stop us cleanly (finish in-flight requests). Outbox records are on
+// disk, so an interrupted step simply resumes on the next start.
 for (const sig of ["SIGTERM", "SIGINT"]) {
-  process.on(sig, () => server.close(() => process.exit(0)));
+  process.on(sig, () => {
+    stopWorker();
+    server.close(() => process.exit(0));
+  });
 }
