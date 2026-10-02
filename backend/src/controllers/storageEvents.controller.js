@@ -198,22 +198,26 @@ const HANDLERS = {
   failed: onFailed,
 };
 
+// Run one storage event for an upload (shared by the HTTP endpoint for
+// pushes and by the reconciliation job for pulls). Returns REN's answer.
+const processStorageEvent = async (uploadId, body = {}) => {
+  if (!UUID_RE.test(uploadId)) {
+    throw new HttpError(404, { error: "Unknown upload." });
+  }
+  const handler = HANDLERS[body.event];
+  if (!handler) throw new HttpError(400, { error: "Unknown event." });
+  return sequelize.transaction(async (t) => {
+    const a = await lockAttempt(uploadId, t);
+    return handler(a, body, t);
+  });
+};
+
 // POST /api/v1/internal/storage/uploads/:uploadId/events  {event, ...}
 const handleUploadEvent = async (req, res) => {
   try {
-    const uploadId = String(req.params.uploadId);
-    if (!UUID_RE.test(uploadId)) {
-      throw new HttpError(404, { error: "Unknown upload." });
-    }
-    const body = req.body || {};
-    const handler = HANDLERS[body.event];
-    if (!handler) throw new HttpError(400, { error: "Unknown event." });
-
-    const out = await sequelize.transaction(async (t) => {
-      const a = await lockAttempt(uploadId, t);
-      return handler(a, body, t);
-    });
-    res.json(out);
+    res.json(
+      await processStorageEvent(String(req.params.uploadId), req.body || {})
+    );
   } catch (err) {
     if (err instanceof HttpError) return res.status(err.status).json(err.body);
     console.error("Storage event failed:", err.message);
@@ -222,4 +226,4 @@ const handleUploadEvent = async (req, res) => {
   }
 };
 
-module.exports = { handleUploadEvent };
+module.exports = { handleUploadEvent, processStorageEvent };

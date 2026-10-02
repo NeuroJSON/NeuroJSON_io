@@ -17,6 +17,7 @@ const ollamaRoutes = require("./routes/ollama.routes");
 const ollamaPublicRoutes = require("./routes/ollama.public.routes");
 const uploadsRoutes = require("./routes/uploads.routes");
 const internalRoutes = require("./routes/internal.routes");
+const { startRawReconciler } = require("./jobs/reconcileRawUploads");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -106,6 +107,8 @@ const startServer = async () => {
       console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📡 API available at http://localhost:${PORT}/api`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+      // Finish raw uploads by asking the storage API (needed in pull mode).
+      startRawReconciler();
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);
