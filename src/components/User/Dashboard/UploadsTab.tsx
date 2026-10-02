@@ -16,6 +16,7 @@ import { Colors } from "design/theme";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UploadRecord, UploadService } from "services/upload.service";
+import { formatBytes } from "utils/formatBytes";
 
 type SubStatus = Exclude<UploadRecord["status"], null>;
 
@@ -37,6 +38,28 @@ const STATUS_CHIP: Record<
   approved: { label: "Approved — awaiting promotion", color: "info" },
   promoted: { label: "Promoted", color: "success" },
   rejected: { label: "Rejected", color: "error" },
+};
+
+// Raw ZIP state of the latest version (null = no raw data → no chip).
+const rawChip = (r: UploadRecord) => {
+  if (r.raw_upload_active) {
+    return {
+      label: "ZIP uploading",
+      sx: { color: Colors.purple, borderColor: Colors.purple },
+      variant: "outlined" as const,
+    };
+  }
+  if (r.raw_zip_size != null) {
+    return { label: `ZIP · ${formatBytes(Number(r.raw_zip_size))}` };
+  }
+  if (r.raw_zip_expected) {
+    return {
+      label: "ZIP missing",
+      color: "warning" as const,
+      variant: "outlined" as const,
+    };
+  }
+  return null;
 };
 
 const UploadsTab: React.FC = () => {
@@ -164,6 +187,20 @@ const UploadsTab: React.FC = () => {
                                 sx={{ height: 20, ...(chip.sx || {}) }}
                               />
                             )}
+                            {(() => {
+                              const raw = rawChip(r);
+                              return (
+                                raw && (
+                                  <Chip
+                                    label={raw.label}
+                                    size="small"
+                                    variant={raw.variant}
+                                    color={raw.color}
+                                    sx={{ height: 20, ...(raw.sx || {}) }}
+                                  />
+                                )
+                              );
+                            })()}
                           </Box>
                         }
                         secondary={`Submitted ${formatDate(r.created_at)}${

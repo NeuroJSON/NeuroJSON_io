@@ -398,7 +398,15 @@ const listMyUploads = async (req, res) => {
     const rows = await sequelize.query(
       `SELECT r.internal_id, r.dataset_id, r.requested_dataset_id, r.dataset_name,
               s.submission_id, s.status,
-              s.created_at, s.updated_at, s.promoted_db, s.promoted_at
+              s.created_at, s.updated_at, s.promoted_db, s.promoted_at,
+              s.raw_zip_expected,
+              (SELECT o.size_bytes
+                 FROM submission_raw_files f
+                 JOIN raw_objects o ON o.raw_id = f.raw_id
+                WHERE f.submission_id = s.submission_id) AS raw_zip_size,
+              EXISTS (SELECT 1 FROM raw_upload_attempts a
+                       WHERE a.submission_id = s.submission_id
+                         AND a.status IN ('initiated','uploading','verifying')) AS raw_upload_active
          FROM dataset_registry r
          LEFT JOIN LATERAL (
            SELECT * FROM submissions s2

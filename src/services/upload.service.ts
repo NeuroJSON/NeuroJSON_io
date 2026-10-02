@@ -23,6 +23,9 @@ export interface UploadRecord {
   updated_at: string | null;
   promoted_db: string | null;
   promoted_at: string | null;
+  raw_zip_expected: boolean | null;
+  raw_zip_size: string | number | null; // BIGINT arrives as a string
+  raw_upload_active: boolean | null;
 }
 
 export interface UploadDetail {
