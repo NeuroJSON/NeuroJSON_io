@@ -17,3 +17,7 @@ backend/.env.*.local
 backend/*.sqlite
 backend/*.db
 !backend/package-lock.json
+
+#storage-api
+storage-api/storage-dev/
+!storage-api/package-lock.json
