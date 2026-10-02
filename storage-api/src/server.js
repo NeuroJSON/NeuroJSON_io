@@ -1,9 +1,9 @@
 // NeuroJSON storage API (Zodiac). Listens on 127.0.0.1; Apache adds TLS and
-// proxies /neurojson-storage/* here. tus uploads and /internal routes are
-// added in later steps.
+// proxies /neurojson-storage/* here. /internal routes are added in a later step.
 import fs from "node:fs/promises";
 import express from "express";
 import { config } from "./config.js";
+import { tusServer } from "./tus/tusServer.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -17,6 +17,12 @@ app.get(`${config.basePath}/health`, async (req, res) => {
     res.status(503).json({ status: "error" });
   }
 });
+
+// tus owns everything under /files (POST create, HEAD/PATCH/DELETE
+// /files/<id>, and the CORS preflight). No body parser: tus streams the body.
+const tusHandler = (req, res) => tusServer.handle(req, res);
+app.all(`${config.basePath}/files`, tusHandler);
+app.all(`${config.basePath}/files/*splat`, tusHandler);
 
 app.use((req, res) => res.status(404).json({ error: "Not found." }));
 
