@@ -1,10 +1,12 @@
 // NeuroJSON storage API (Zodiac). Listens on 127.0.0.1; Apache adds TLS and
-// proxies /neurojson-storage/* here. /internal routes are added in a later step.
+// proxies /neurojson-storage/* here: /health (public), /files (tus uploads,
+// token-checked), /internal (REN only, HMAC-signed).
 import fs from "node:fs/promises";
 import express from "express";
 import { config } from "./config.js";
 import { tusServer } from "./tus/tusServer.js";
 import { startWorker, stopWorker } from "./outbox/worker.js";
+import internalRoutes from "./routes/internal.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -24,6 +26,9 @@ app.get(`${config.basePath}/health`, async (req, res) => {
 const tusHandler = (req, res) => tusServer.handle(req, res);
 app.all(`${config.basePath}/files`, tusHandler);
 app.all(`${config.basePath}/files/*splat`, tusHandler);
+
+// REN → Zodiac service calls (HMAC-signed): status, decisions, acks.
+app.use(`${config.basePath}/internal`, internalRoutes);
 
 app.use((req, res) => res.status(404).json({ error: "Not found." }));
 

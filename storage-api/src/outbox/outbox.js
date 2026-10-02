@@ -14,6 +14,26 @@ await fs.mkdir(FAILED, { recursive: true });
 
 const fileIn = (dir, id) => path.join(dir, `${id}.json`);
 
+// One change at a time per upload (worker vs. REN's /internal calls).
+// In-memory is enough: the service runs as a single process.
+const locks = new Map();
+export const withLock = async (id, fn) => {
+  while (locks.has(id)) await locks.get(id);
+  let release;
+  locks.set(
+    id,
+    new Promise((r) => {
+      release = r;
+    })
+  );
+  try {
+    return await fn();
+  } finally {
+    locks.delete(id);
+    release();
+  }
+};
+
 // temp file → fsync → rename, so a crash never leaves a half-written record.
 const writeAtomic = async (file, obj) => {
   const tmp = `${file}.tmp`;

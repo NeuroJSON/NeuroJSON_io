@@ -15,6 +15,7 @@ import {
   readPending,
   saveRecord,
   closeRecord,
+  withLock,
 } from "./outbox.js";
 import { incomingFile, rawObjectDir, rawZipKey } from "../lib/paths.js";
 import { looksLikeZip, sha256File, fsyncDir } from "../lib/fileChecks.js";
@@ -41,7 +42,8 @@ const removeIncoming = async (id) => {
   await fs.rm(`${incomingFile(id)}.json`, { force: true });
 };
 
-class Permanent extends Error {}
+// A problem retrying won't fix (bad reply, files missing) → park the record.
+export class Permanent extends Error {}
 
 const ready = (rec) => {
   rec.attempts = 0;
@@ -113,8 +115,7 @@ const STEPS = {
   // Tell REN the file failed the checks, then delete it.
   async rejecting(rec) {
     await askRen(rec, { event: "failed", reason: rec.reason });
-    await removeIncoming(rec.uploadId);
-    await finish(rec);
+    await applyAck(rec);
   },
 
   // "verified" → REN answers commit (with rawId) or discard.
@@ -159,12 +160,7 @@ const STEPS = {
       size: rec.size,
       sha256: rec.sha256,
     });
-    if (reply.action === "discard") {
-      return setState(rec, "discarding_committed", {
-        reason: reply.reason || null,
-      });
-    }
-    await finish(rec);
+    await applyAck(rec, reply);
   },
 
   async discarding(rec) {
@@ -200,6 +196,26 @@ export const applyDecision = async (rec, reply) => {
   throw new Permanent("REN sent an unknown decision");
 };
 
+// REN's acknowledgement of a final result (push reply or pull /ack).
+export const applyAck = async (rec, reply = {}) => {
+  if (rec.state === "committed") {
+    if (reply.action === "discard") {
+      return setState(rec, "discarding_committed", {
+        reason: reply.reason || null,
+      });
+    }
+    if (reply.action === "keep") return finish(rec);
+    throw new Permanent(
+      "acknowledging a committed upload needs action keep or discard"
+    );
+  }
+  if (rec.state === "rejecting") {
+    await removeIncoming(rec.uploadId);
+    return finish(rec);
+  }
+  throw new Permanent(`nothing to acknowledge in state ${rec.state}`);
+};
+
 // Run one record forward until it waits, retries, or finishes.
 const advance = async (rec) => {
   for (let i = 0; i < 10; i++) {
@@ -230,14 +246,18 @@ const tick = async () => {
   running = true;
   try {
     for (const id of await listPendingIds()) {
-      let rec;
-      try {
-        rec = await readPending(id);
-      } catch {
-        continue; // removed meanwhile
-      }
-      if (new Date(rec.nextAttemptAt) > new Date()) continue;
-      await advance(rec);
+      // Read fresh inside the lock, so REN's /internal calls and the worker
+      // never work on the same record at once (or on a stale copy).
+      await withLock(id, async () => {
+        let rec;
+        try {
+          rec = await readPending(id);
+        } catch {
+          return; // finished or removed meanwhile
+        }
+        if (new Date(rec.nextAttemptAt) > new Date()) return;
+        await advance(rec);
+      });
     }
   } catch (e) {
     console.error("outbox worker:", e.message);
