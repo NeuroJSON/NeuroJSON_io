@@ -211,7 +211,8 @@ const UploadPage: React.FC = () => {
           after you click <strong>Submit for review</strong> on the upload
           detail page; the NeuroJSON team reviews it before it is added to a
           database. A new reference id is assigned on upload — any existing{" "}
-          <code>_id</code>/<code>_rev</code> in your file is ignored.
+          <code>_id</code>/<code>_rev</code> in your file is ignored. Raw data
+          (a ZIP) is added afterwards, on the upload detail page.
         </Alert>
 
         {/* Updating an existing dataset: the id comes only from the URL

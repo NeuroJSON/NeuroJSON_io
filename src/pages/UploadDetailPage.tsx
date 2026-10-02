@@ -17,9 +17,10 @@ import {
 } from "@mui/material";
 import CopyButton from "components/CopyButton";
 import PublishSettingsDialog from "components/Upload/PublishSettingsDialog";
+import RawDataUploader from "components/Upload/RawDataUploader";
 import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AuthSelector } from "redux/auth/auth.selector";
 import { baseURL } from "services/instance";
@@ -94,6 +95,11 @@ const UploadDetailPage: React.FC = () => {
       setActing(false);
     }
   };
+
+  // Raw ZIP changes affect readiness, so reload the dataset after them.
+  const reloadDetail = useCallback(async () => {
+    if (internalId) setDetail(await UploadService.getUpload(internalId));
+  }, [internalId]);
 
   useEffect(() => {
     if (!internalId || !isLoggedIn) return;
@@ -344,6 +350,13 @@ const UploadDetailPage: React.FC = () => {
           setSettingsOpen(false);
           if (internalId) setDetail(await UploadService.getUpload(internalId));
         }}
+      />
+
+      {/* Raw data (ZIP): optional; uploads go straight to the storage API */}
+      <RawDataUploader
+        internalId={detail.internal_id}
+        status={detail.status}
+        onChanged={reloadDetail}
       />
 
       {/* Review: readiness checklist + submit / resubmit / withdraw */}
