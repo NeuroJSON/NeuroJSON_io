@@ -11,8 +11,8 @@ const {
 const { signUploadToken } = require("../lib/uploadTokens");
 
 const MAX_UPLOAD_BYTES = Number(
-  process.env.RAW_MAX_UPLOAD_BYTES || 536870912000
-); // 500 GB
+  process.env.RAW_MAX_UPLOAD_BYTES || 500000000000
+); // 500 GB (decimal, matches the size shown in the UI)
 const CHUNK_BYTES = Number(process.env.RAW_CHUNK_BYTES || 67108864); // 64 MB
 const ACTIVE = ["initiated", "uploading", "verifying"];
 const EDITABLE = ["draft", "changes_requested"];
