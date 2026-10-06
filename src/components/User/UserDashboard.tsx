@@ -3,6 +3,7 @@ import ProfileTab from "./Dashboard/ProfileTab";
 import ProjectsTab from "./Dashboard/ProjectsTab";
 import SavedDatasetsTab from "./Dashboard/SavedDatasetsTab";
 import SecurityTab from "./Dashboard/SecurityTab";
+import UploadsTab from "./Dashboard/UploadsTab";
 import LikedDatasetsTab from "./Dashboard/likedDatasetsTab";
 import {
   AccountCircle,
@@ -11,6 +12,7 @@ import {
   Bookmark,
   Favorite,
   FolderOpen,
+  CloudUpload,
 } from "@mui/icons-material";
 import {
   Box,
@@ -56,6 +58,7 @@ const TAB_INDEX: Record<string, number> = {
   liked: 3,
   projects: 4,
   settings: 5,
+  uploads: 6,
 };
 
 const TAB_NAME = Object.fromEntries(
@@ -177,6 +180,12 @@ const UserDashboard: React.FC = () => {
             id="dashboard-tab-2"
             aria-controls="dashboard-tabpanel-2"
           />
+          <Tab
+            icon={<CloudUpload />}
+            label="Uploads"
+            id="dashboard-tab-6"
+            aria-controls="dashboard-tabpanel-6"
+          />
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
@@ -193,6 +202,9 @@ const UserDashboard: React.FC = () => {
         </TabPanel>
         <TabPanel value={tabValue} index={4}>
           <ProjectsTab userId={user.id} />
+        </TabPanel>
+        <TabPanel value={tabValue} index={6}>
+          <UploadsTab />
         </TabPanel>
       </Paper>
     </Container>

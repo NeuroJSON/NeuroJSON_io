@@ -5,5 +5,6 @@ enum RoutesEnum {
   ABOUT = "/about", // New route for the about page
   DASHBOARD = "/dashboard",
   BIDS_CONVERTER = "/autobidsify",
+  UPLOAD = "/upload", // logged-in users submit a JSON dataset for review
 }
 export default RoutesEnum;

@@ -5,6 +5,7 @@ import {
   fetchDbInfo,
   fetchDocumentDetails,
   fetchDbStats,
+  fetchLatestUpdate,
   fetchMetadataSearchResults,
   fetchDbInfoByDatasetId,
   fetchFileTypes,
@@ -25,6 +26,7 @@ const initialState: INeuroJsonState = {
   registry: null,
   dbInfo: null, // add dbInfo in neurojson.interface.ts
   dbStats: null,
+  latestUpdate: null,
   searchResults: null,
   datasetViewInfo: null,
   fileTypes: null,
@@ -142,6 +144,12 @@ const neurojsonSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      .addCase(
+        fetchLatestUpdate.fulfilled,
+        (state, action: PayloadAction<any>) => {
+          state.latestUpdate = action.payload;
+        }
+      )
       .addCase(fetchMetadataSearchResults.pending, (state) => {
         state.loading = true;
         state.error = null;

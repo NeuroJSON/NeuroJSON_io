@@ -9,7 +9,6 @@ import { useAppDispatch } from "hooks/useAppDispatch";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useEffect } from "react";
 import { fetchDbStats } from "redux/neurojson/neurojson.action";
-import { DbStatsItem } from "redux/neurojson/types/neurojson.interface";
 import { RootState } from "redux/store";
 
 const iconStyle = {
@@ -42,31 +41,19 @@ const labelTextStyle = {
   },
 };
 
-// function for calculate links and size
-const calculateLinksAndSize = (dbStats: DbStatsItem[] | null) => {
-  if (!dbStats) return { totalLinks: 0, totalSizeTB: "0.00" };
-
-  const filtered = dbStats.filter(
-    (item) => item.view !== "dbinfo" && item.view !== "subjects"
-  );
-
-  const totalLinks = filtered.reduce((acc, item) => acc + item.num, 0);
-  const totalSizeBytes = filtered.reduce((acc, item) => acc + item.size, 0);
-  const totalSizeTB = Math.floor(totalSizeBytes / 1024 ** 4);
-  return { totalLinks, totalSizeTB };
-};
-
 const StatisticsBanner: React.FC = () => {
   const dispatch = useAppDispatch();
+  // dbStats is now the flat snapshot { datasets, subjects, files, sizeBytes,
+  // lastSynced } from the latest successful stats_history row.
   const dbstats = useAppSelector((state: RootState) => state.neurojson.dbStats);
   const registry = useAppSelector(
     (state: RootState) => state.neurojson.registry
   );
 
   const databaseCount = registry?.length ?? "-";
-  const datasetStat = dbstats?.find((item) => item.view === "dbinfo");
-  const subjectStat = dbstats?.find((item) => item.view === "subjects");
-  const { totalLinks, totalSizeTB } = calculateLinksAndSize(dbstats);
+  const totalSizeTB = dbstats
+    ? Math.floor(dbstats.sizeBytes / 1024 ** 4)
+    : "-";
 
   // format numbers with commas
   const formatNumber = (num: number | undefined) =>
@@ -127,19 +114,19 @@ const StatisticsBanner: React.FC = () => {
       {/* Datasets */}
       <StatItem
         icon={<ContentPasteSearchIcon fontSize="inherit" />}
-        number={formatNumber(datasetStat?.num)}
+        number={formatNumber(dbstats?.datasets)}
         label="Datasets"
       />
       {/* Subjects */}
       <StatItem
         icon={<PeopleAltIcon fontSize="inherit" />}
-        number={formatNumber(subjectStat?.num)}
+        number={formatNumber(dbstats?.subjects)}
         label="Subjects"
       />
       {/* Links */}
       <StatItem
         icon={<DatasetLinkedIcon fontSize="inherit" />}
-        number={formatNumber(totalLinks)}
+        number={formatNumber(dbstats?.files)}
         label="Links"
       />
       {/* Size */}

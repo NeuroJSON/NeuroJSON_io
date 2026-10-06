@@ -8,6 +8,7 @@ import {
   Grid,
   IconButton,
 } from "@mui/material";
+import LatestUpdateBoard from "components/LatestUpdateBoard";
 import StatisticsBanner from "components/StatisticsBanner";
 import { Colors } from "design/theme";
 import pako from "pako";
@@ -168,6 +169,7 @@ const Section1: React.FC<Section1Props> = ({ scrollToNext }) => {
           }}
         >
           <StatisticsBanner />
+          <LatestUpdateBoard />
         </Grid>
       </Grid>
 
