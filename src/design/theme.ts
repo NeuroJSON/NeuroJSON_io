@@ -67,6 +67,28 @@ const theme = createTheme({
       fontFamily: "Ubuntu",
     },
   },
+  components: {
+    // Text-field focus uses the theme purple instead of MUI's default blue.
+    // :not(.Mui-error) keeps the red border/label on invalid fields.
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          "&.Mui-focused:not(.Mui-error) .MuiOutlinedInput-notchedOutline": {
+            borderColor: Colors.purple,
+          },
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          "&.Mui-focused:not(.Mui-error)": {
+            color: Colors.purple,
+          },
+        },
+      },
+    },
+  },
 });
 
 export default theme;

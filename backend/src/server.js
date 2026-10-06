@@ -15,6 +15,9 @@ const collectionRoutes = require("./routes/collection.route");
 const projectRoutes = require("./routes/projects.routes");
 const ollamaRoutes = require("./routes/ollama.routes");
 const ollamaPublicRoutes = require("./routes/ollama.public.routes");
+const uploadsRoutes = require("./routes/uploads.routes");
+const internalRoutes = require("./routes/internal.routes");
+const { startRawReconciler } = require("./jobs/reconcileRawUploads");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,6 +38,10 @@ app.use(
   })
 );
 
+// Zodiac → REN service calls (HMAC-signed). Mounted BEFORE express.json() so
+// the internal router can read the raw body; no cookies/restoreUser needed.
+app.use("/api/v1/internal", internalRoutes);
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cookieParser()); // parse cookies
@@ -53,6 +60,7 @@ app.use("/api/v1/collections", collectionRoutes);
 app.use("/api/v1/projects", projectRoutes);
 app.use("/api/v1/ollama", ollamaRoutes);
 app.use("/api/v1/ollama-public", ollamaPublicRoutes);
+app.use("/api/v1/uploads", uploadsRoutes);
 
 // health check endpoint
 app.get("/api/health", async (req, res) => {
@@ -99,6 +107,8 @@ const startServer = async () => {
       console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📡 API available at http://localhost:${PORT}/api`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+      // Finish raw uploads by asking the storage API (needed in pull mode).
+      startRawReconciler();
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);
