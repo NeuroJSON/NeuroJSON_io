@@ -15,19 +15,7 @@ const { HttpError, loadOwnedRegistry } = require("../lib/uploadAccess");
 //   submissions.submission_id    = one review cycle (UUID).
 // The sandbox holds the latest working copy at _id = internal_id; a re-upload
 // full-replaces it (the `timestamp` update handler on the db).
-const UPLOAD_URL = process.env.COUCHDB_UPLOAD_URL || process.env.COUCHDB_URL;
-const UPLOAD_DB = process.env.COUCHDB_UPLOAD_DB;
-
-const buildHeaders = () => {
-  const headers = { "Content-Type": "application/json" };
-  const user = process.env.COUCHDB_UPLOAD_USER;
-  const pass = process.env.COUCHDB_UPLOAD_PASSWORD;
-  if (user && pass) {
-    headers.Authorization =
-      "Basic " + Buffer.from(`${user}:${pass}`).toString("base64");
-  }
-  return headers;
-};
+const { UPLOAD_URL, UPLOAD_DB, buildHeaders } = require("../lib/sandbox");
 
 // Preferred public id rules (final availability is re-checked at promotion).
 const REQUESTED_ID_RE = /^[a-z0-9][a-z0-9_-]{2,62}$/;

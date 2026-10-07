@@ -246,38 +246,10 @@ const UploadDetailPage: React.FC = () => {
           </Typography>
         </Box>
 
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-          {/* Locked while pending/approved; rejected/promoted use Update to
-              start a new version. */}
-          {detail.status !== "pending" && detail.status !== "approved" && (
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<EditIcon />}
-              onClick={() =>
-                navigate(`/upload?internalId=${detail.internal_id}`)
-              }
-              sx={{ color: Colors.purple, borderColor: Colors.purple }}
-            >
-              Update
-            </Button>
-          )}
-          {/* Opens the stored doc via our owner-checked backend proxy (the
-              sandbox CouchDB URL is never exposed to the browser). */}
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<DataObjectIcon />}
-            href={`${baseURL}/uploads/${detail.internal_id}/document`}
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ color: Colors.purple, borderColor: Colors.purple }}
-          >
-            View submitted JSON
-          </Button>
-          {detail.status === "promoted" &&
-            detail.promoted_db &&
-            detail.dataset_id && (
+        {detail.status === "promoted" &&
+          detail.promoted_db &&
+          detail.dataset_id && (
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
               <Button
                 variant="outlined"
                 size="small"
@@ -289,8 +261,8 @@ const UploadDetailPage: React.FC = () => {
               >
                 View live
               </Button>
-            )}
-        </Box>
+            </Box>
+          )}
       </Paper>
 
       {/* Publishing settings: editable while draft/changes_requested and not
@@ -317,6 +289,18 @@ const UploadDetailPage: React.FC = () => {
             </Button>
           )}
         </Box>
+        {/* The db + id form the public URL (/db/<db>/<id>), fixed once published. */}
+        {!detail.dataset_id && (
+          <Alert severity="info" sx={{ mb: 1.5, fontSize: "0.9rem" }}>
+            The database and dataset ID become part of this dataset's{" "}
+            <strong>permanent address</strong>:{" "}
+            <code>
+              neurojson.io/db/{detail.requested_db || "public"}/
+              {detail.requested_dataset_id || "njds######"}
+            </code>
+            . They can't be changed after the dataset is published.
+          </Alert>
+        )}
         <Box sx={{ display: "grid", gap: 0.75 }}>
           <Typography variant="body2" color="text.secondary">
             Database: <code>{detail.requested_db || "public"}</code>
@@ -329,7 +313,17 @@ const UploadDetailPage: React.FC = () => {
                 <code>{detail.requested_dataset_id}</code> (preferred)
               </>
             ) : (
-              <em>Assigned by NeuroJSON after approval</em>
+              <em>
+                NeuroJSON will assign one after approval (
+                <code>njds######</code>).
+                {canEditSettings && (
+                  <>
+                    {" "}
+                    If you'd like to choose your own, please click{" "}
+                    <strong>Edit</strong>.
+                  </>
+                )}
+              </em>
             )}
           </Typography>
           {detail.dataset_id && (
@@ -352,23 +346,15 @@ const UploadDetailPage: React.FC = () => {
         }}
       />
 
-      {/* Raw data (ZIP): optional; uploads go straight to the storage API */}
-      <RawDataUploader
-        internalId={detail.internal_id}
-        status={detail.status}
-        onChanged={reloadDetail}
-      />
-
-      {/* Review: readiness checklist + submit / resubmit / withdraw */}
+      {/* Dataset JSON: upload status + update / view */}
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" sx={{ mb: 1.5 }}>
-          Review
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          Dataset JSON
         </Typography>
-
         <Typography
           variant="body2"
           sx={{
-            mb: 1,
+            mb: 1.5,
             color:
               detail.json_status === "failed"
                 ? Colors.error
@@ -382,6 +368,64 @@ const UploadDetailPage: React.FC = () => {
                   ? ` (${new Date(detail.json_uploaded_at).toLocaleString()})`
                   : ""
               }`}
+        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            gap: 1,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          {/* Locked while pending/approved; rejected/promoted use Update to
+              start a new version. */}
+          {detail.status !== "pending" && detail.status !== "approved" && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<EditIcon />}
+              onClick={() =>
+                navigate(`/upload?internalId=${detail.internal_id}`)
+              }
+              sx={{ color: Colors.purple, borderColor: Colors.purple }}
+            >
+              Update JSON
+            </Button>
+          )}
+          {/* Opens the stored doc via our owner-checked backend proxy (the
+              sandbox CouchDB URL is never exposed to the browser). */}
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<DataObjectIcon />}
+            href={`${baseURL}/uploads/${detail.internal_id}/document`}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: Colors.purple, borderColor: Colors.purple }}
+          >
+            View submitted JSON
+          </Button>
+          {(detail.status === "pending" || detail.status === "approved") && (
+            <Typography variant="body2" color="text.secondary">
+              {detail.status === "pending"
+                ? "Locked while in review. Withdraw to draft to update it."
+                : "Locked after approval."}
+            </Typography>
+          )}
+        </Box>
+      </Paper>
+
+      {/* Raw data (ZIP): optional; uploads go straight to the storage API */}
+      <RawDataUploader
+        internalId={detail.internal_id}
+        status={detail.status}
+        onChanged={reloadDetail}
+      />
+
+      {/* Review: readiness checklist + submit / resubmit / withdraw */}
+      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" sx={{ mb: 1.5 }}>
+          Review
         </Typography>
 
         {(detail.status === "draft" ||

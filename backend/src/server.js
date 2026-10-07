@@ -16,6 +16,7 @@ const projectRoutes = require("./routes/projects.routes");
 const ollamaRoutes = require("./routes/ollama.routes");
 const ollamaPublicRoutes = require("./routes/ollama.public.routes");
 const uploadsRoutes = require("./routes/uploads.routes");
+const reviewsRoutes = require("./routes/reviews.routes");
 const internalRoutes = require("./routes/internal.routes");
 const { startRawReconciler } = require("./jobs/reconcileRawUploads");
 
@@ -61,6 +62,7 @@ app.use("/api/v1/projects", projectRoutes);
 app.use("/api/v1/ollama", ollamaRoutes);
 app.use("/api/v1/ollama-public", ollamaPublicRoutes);
 app.use("/api/v1/uploads", uploadsRoutes);
+app.use("/api/v1/reviews", reviewsRoutes);
 
 // health check endpoint
 app.get("/api/health", async (req, res) => {

@@ -90,6 +90,16 @@ const PublishSettingsDialog: React.FC<PublishSettingsDialogProps> = ({
     <Dialog open={open} onClose={saving ? undefined : onClose} fullWidth maxWidth="sm">
       <DialogTitle>Publishing settings</DialogTitle>
       <DialogContent>
+        {/* Live preview of the public URL (/db/<db>/<id>), fixed once published. */}
+        <Alert severity="info" sx={{ mt: 1, mb: 2, fontSize: "0.9rem" }}>
+          These two become part of the dataset's{" "}
+          <strong>permanent address</strong>:{" "}
+          <code>
+            neurojson.io/db/{db.trim() || "public"}/
+            {(mode === "custom" && customId.trim()) || "njds######"}
+          </code>
+          . They can't be changed after the dataset is published.
+        </Alert>
         <TextField
           label="Publish to database (optional)"
           placeholder="public (default)"
