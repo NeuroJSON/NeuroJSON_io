@@ -13,6 +13,7 @@ import {
   Tabs,
   Typography,
 } from "@mui/material";
+import { STATUS_CHIP } from "components/Upload/statusChip";
 import { Colors } from "design/theme";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -123,6 +124,15 @@ const ReviewTab: React.FC = () => {
                         >
                           {r.dataset_name || "(unnamed dataset)"}
                         </Typography>
+                        <Chip
+                          label={STATUS_CHIP[r.status].label}
+                          color={STATUS_CHIP[r.status].color}
+                          size="small"
+                          sx={{
+                            height: 20,
+                            ...(STATUS_CHIP[r.status].sx || {}),
+                          }}
+                        />
                         {r.raw_zip_size != null && (
                           <Chip
                             label={`ZIP · ${formatBytes(
