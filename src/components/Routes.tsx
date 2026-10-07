@@ -11,6 +11,7 @@ import AboutPage from "pages/AboutPage";
 import DatabasePage from "pages/DatabasePage";
 import Home from "pages/Home";
 import ResendVerification from "pages/ResendVerification";
+import ReviewPage from "pages/ReviewPage";
 import SearchPage from "pages/SearchPage";
 import UpdatedDatasetDetailPage from "pages/UpdatedDatasetDetailPage";
 import UploadDetailPage from "pages/UploadDetailPage";
@@ -74,6 +75,7 @@ const Routes = () => (
         <Route path={RoutesEnum.BIDS_CONVERTER} element={<BidsConverterPage />} />
         <Route path={RoutesEnum.UPLOAD} element={<UploadPage />} />
         <Route path="/uploads/:internalId" element={<UploadDetailPage />} />
+        <Route path="/reviews/:submissionId" element={<ReviewPage />} />
       </Route>
     </RouterRoutes>
   </>
