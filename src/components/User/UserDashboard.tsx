@@ -1,6 +1,7 @@
 import CollectionsTab from "./Dashboard/CollectionsTab";
 import ProfileTab from "./Dashboard/ProfileTab";
 import ProjectsTab from "./Dashboard/ProjectsTab";
+import ReviewTab from "./Dashboard/ReviewTab";
 import SavedDatasetsTab from "./Dashboard/SavedDatasetsTab";
 import SecurityTab from "./Dashboard/SecurityTab";
 import UploadsTab from "./Dashboard/UploadsTab";
@@ -13,6 +14,7 @@ import {
   Favorite,
   FolderOpen,
   CloudUpload,
+  RateReview,
 } from "@mui/icons-material";
 import {
   Box,
@@ -25,9 +27,10 @@ import {
 } from "@mui/material";
 import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthSelector } from "redux/auth/auth.selector";
+import { ReviewService } from "services/review.service";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -59,6 +62,7 @@ const TAB_INDEX: Record<string, number> = {
   projects: 4,
   settings: 5,
   uploads: 6,
+  review: 7, // only shown to reviewers
 };
 
 const TAB_NAME = Object.fromEntries(
@@ -71,6 +75,12 @@ const UserDashboard: React.FC = () => {
   const tabParam = new URLSearchParams(location.search).get("tab") ?? "";
   const [tabValue, setTabValue] = useState(TAB_INDEX[tabParam] ?? 0);
   const { user } = useAppSelector(AuthSelector);
+  // Show the Review tab only if the backend says this user is a reviewer
+  // (same database check as every review action).
+  const [canReview, setCanReview] = useState(false);
+  useEffect(() => {
+    if (user) ReviewService.canReview().then(setCanReview);
+  }, [user]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -125,7 +135,8 @@ const UserDashboard: React.FC = () => {
       {/* Dashboard Content */}
       <Paper sx={{ width: "100%" }}>
         <Tabs
-          value={tabValue}
+          // ?tab=review before the role check (or without the role) → Profile
+          value={tabValue === TAB_INDEX.review && !canReview ? 0 : tabValue}
           onChange={handleTabChange}
           aria-label="dashboard tabs"
           variant="scrollable"
@@ -186,6 +197,14 @@ const UserDashboard: React.FC = () => {
             id="dashboard-tab-6"
             aria-controls="dashboard-tabpanel-6"
           />
+          {canReview && (
+            <Tab
+              icon={<RateReview />}
+              label="Review"
+              id="dashboard-tab-7"
+              aria-controls="dashboard-tabpanel-7"
+            />
+          )}
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
@@ -206,6 +225,11 @@ const UserDashboard: React.FC = () => {
         <TabPanel value={tabValue} index={6}>
           <UploadsTab />
         </TabPanel>
+        {canReview && (
+          <TabPanel value={tabValue} index={TAB_INDEX.review}>
+            <ReviewTab />
+          </TabPanel>
+        )}
       </Paper>
     </Container>
   );

@@ -15,6 +15,9 @@ const router = express.Router();
 router.use(requireAuth, requireReviewer);
 
 router.get("/", listReviews);
+// Lets the frontend decide whether to show the Review tab (same check as the
+// actions). Must stay before "/:submissionId".
+router.get("/access", (req, res) => res.json({ role: req.userRole }));
 router.get("/:submissionId", getReview);
 router.get("/:submissionId/document", getReviewDocument);
 router.post("/:submissionId/decision", decide);
