@@ -7,6 +7,7 @@ const {
   getReviewDocument,
   decide,
   postReviewComment,
+  promote,
 } = require("../controllers/reviews.controller");
 
 const router = express.Router();
@@ -22,5 +23,7 @@ router.get("/:submissionId", getReview);
 router.get("/:submissionId/document", getReviewDocument);
 router.post("/:submissionId/decision", decide);
 router.post("/:submissionId/comments", postReviewComment);
+// Publish an approved submission (writes to COUCHDB_PROMOTE_URL; off if empty).
+router.post("/:submissionId/promote", promote);
 
 module.exports = router;

@@ -2,6 +2,12 @@ const axios = require("axios");
 const { sequelize } = require("../config/database");
 const { HttpError, UUID_RE } = require("../lib/uploadAccess");
 const { buildHeaders, sandboxDocUrl } = require("../lib/sandbox");
+const {
+  promoteEnabled,
+  dbExists,
+  getDoc,
+  putDoc,
+} = require("../lib/publicCouch");
 
 // Reviewer side of the upload workflow (routes use requireAuth + requireReviewer).
 // Drafts are private to their owner, so reviewers only see submissions that
@@ -256,10 +262,202 @@ const postReviewComment = async (req, res) => {
   }
 };
 
+// ---- Publishing (promotion) ----
+
+// CouchDB database names (and the rule /settings already enforces).
+const DB_RE = /^[a-z][a-z0-9_-]{0,62}$/;
+// Raw-file links written by the converter. Publishing them needs extraction +
+// validation (not built yet), so such JSONs are blocked — markers are NOT
+// rewritten here. Later they become /api/v1/files/<db>/<dataset_id>/<path>.
+const FILE_MARKER = "neurojson:files/";
+
+// Any string anywhere in the doc that starts with "neurojson:files/"?
+// Iterative so a very deep JSON can't overflow the stack.
+const hasFileMarker = (root) => {
+  const stack = [root];
+  while (stack.length) {
+    const v = stack.pop();
+    if (typeof v === "string") {
+      if (v.startsWith(FILE_MARKER)) return true;
+    } else if (v && typeof v === "object") {
+      for (const k in v) stack.push(v[k]);
+    }
+  }
+  return false;
+};
+
+// Reserve the public ID (Postgres) — or reuse the one this dataset already has.
+// First time only: the ID must also be free in the target CouchDB database
+// (an older dataset may already use it). A reserved ID stays reserved, so a
+// failed publish can be retried with the SAME ID.
+const reserveDatasetId = async (sub, db) =>
+  sequelize.transaction(async (t) => {
+    const s = await loadSubmission(sub.submission_id, { t, lock: true });
+    if (s.status !== "approved") {
+      throw new HttpError(409, {
+        error: "Only approved submissions can be published.",
+      });
+    }
+    const reg = (
+      await sequelize.query(
+        `SELECT dataset_id, requested_dataset_id FROM dataset_registry
+          WHERE internal_id = :iid FOR UPDATE`,
+        {
+          replacements: { iid: s.internal_id },
+          type: sequelize.QueryTypes.SELECT,
+          transaction: t,
+        }
+      )
+    )[0];
+    if (reg.dataset_id) return reg.dataset_id;
+
+    let id = reg.requested_dataset_id;
+    if (id) {
+      if (await getDoc(db, id)) {
+        throw new HttpError(409, {
+          error: `The dataset ID "${id}" is already used in the "${db}" database. Ask the uploader to choose another one.`,
+        });
+      }
+    } else {
+      // Next free njds###### (skip numbers an older dataset already uses).
+      for (let tries = 0; !id; tries++) {
+        if (tries >= 20) throw new Error("no free njds id after 20 tries");
+        const n = (
+          await sequelize.query(
+            "SELECT nextval('neurojson_dataset_seq') AS n",
+            { type: sequelize.QueryTypes.SELECT, transaction: t }
+          )
+        )[0].n;
+        const candidate = `njds${String(n).padStart(6, "0")}`;
+        if (!(await getDoc(db, candidate))) id = candidate;
+      }
+    }
+    try {
+      await sequelize.query(
+        `UPDATE dataset_registry SET dataset_id = :id, updated_at = NOW()
+          WHERE internal_id = :iid`,
+        { replacements: { id, iid: s.internal_id }, transaction: t }
+      );
+    } catch (err) {
+      if (err.name === "SequelizeUniqueConstraintError") {
+        throw new HttpError(409, {
+          error: `The dataset ID "${id}" is already used by another dataset.`,
+        });
+      }
+      throw err;
+    }
+    return id;
+  });
+
+// POST /api/v1/reviews/:submissionId/promote — publish an approved submission.
+// 1 checks → 2 reserve the public ID (Postgres) → 3 write the doc to the
+// public CouchDB → 4 mark promoted (Postgres). Safe to repeat after a failure
+// at any step: same ID, and step 3 updates the doc it wrote before.
+// Any reviewer may publish, including their own (approved by someone else).
+const promote = async (req, res) => {
+  try {
+    if (!promoteEnabled()) {
+      throw new HttpError(503, {
+        error: "Publishing is not enabled on this server yet.",
+      });
+    }
+    const sub = await loadSubmission(String(req.params.submissionId));
+    if (sub.status !== "approved") {
+      throw new HttpError(409, {
+        error: "Only approved submissions can be published.",
+      });
+    }
+    const db = sub.requested_db || "public";
+    if (!DB_RE.test(db)) {
+      throw new HttpError(400, { error: "Invalid database name." });
+    }
+    if (!(await dbExists(db))) {
+      throw new HttpError(409, {
+        error: `The database "${db}" doesn't exist yet. Please create it first, then publish again.`,
+      });
+    }
+
+    // The JSON as it will be published (sandbox _id/_rev and other _ fields dropped).
+    const { data: sandboxDoc } = await axios.get(
+      sandboxDocUrl(sub.internal_id),
+      { headers: buildHeaders() }
+    );
+    if (hasFileMarker(sandboxDoc)) {
+      throw new HttpError(409, {
+        error:
+          "This dataset links to raw files (neurojson:files/…). Publishing those needs file extraction, which isn't available yet.",
+      });
+    }
+    const doc = {};
+    for (const [k, v] of Object.entries(sandboxDoc)) {
+      if (!k.startsWith("_")) doc[k] = v;
+    }
+
+    const datasetId = await reserveDatasetId(sub, db);
+
+    // Write (or update — a new version, or a retry after a failure) the public doc.
+    const existing = await getDoc(db, datasetId);
+    if (existing) doc._rev = existing._rev;
+    await putDoc(db, datasetId, doc);
+
+    await sequelize.transaction(async (t) => {
+      const [, meta] = await sequelize.query(
+        `UPDATE submissions
+            SET status = 'promoted', promoted_db = :db, promoted_at = NOW(), updated_at = NOW()
+          WHERE submission_id = :sid AND status = 'approved'`,
+        { replacements: { db, sid: sub.submission_id }, transaction: t }
+      );
+      // Exactly this submission, still approved — otherwise change nothing.
+      if (!meta || meta.rowCount !== 1) {
+        throw new HttpError(409, {
+          error: "This submission is no longer approved.",
+        });
+      }
+      await sequelize.query(
+        `UPDATE dataset_registry SET published_submission_id = :sid, updated_at = NOW()
+          WHERE internal_id = :iid`,
+        {
+          replacements: { sid: sub.submission_id, iid: sub.internal_id },
+          transaction: t,
+        }
+      );
+      await sequelize.query(
+        `INSERT INTO submission_comments (submission_id, user_id, message, created_at)
+         VALUES (:sid, :me, :msg, NOW())`,
+        {
+          replacements: {
+            sid: sub.submission_id,
+            me: req.user.id,
+            msg: `Published as ${db}/${datasetId}.`,
+          },
+          transaction: t,
+        }
+      );
+    });
+
+    // path = the dataset's "View live" page on the site (not the raw-file API).
+    res.json({
+      status: "promoted",
+      db,
+      dataset_id: datasetId,
+      path: `/db/${db}/${datasetId}`,
+    });
+  } catch (err) {
+    if (err instanceof HttpError) return res.status(err.status).json(err.body);
+    // CouchDB / network problems: log the reason, never send it to the client.
+    console.error(
+      "Promote failed:",
+      err.response ? `HTTP ${err.response.status}` : err.message
+    );
+    res.status(502).json({ error: "Publishing failed. Please try again." });
+  }
+};
+
 module.exports = {
   listReviews,
   getReview,
   getReviewDocument,
   decide,
   postReviewComment,
+  promote,
 };
