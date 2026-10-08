@@ -11,7 +11,7 @@ const {
 
 const router = express.Router();
 
-// Every review route: logged in AND reviewer/admin (role read from the DB).
+// Every review route: logged in AND reviewer (role read from the DB).
 router.use(requireAuth, requireReviewer);
 
 router.get("/", listReviews);

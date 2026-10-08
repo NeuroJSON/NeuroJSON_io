@@ -1,6 +1,6 @@
 const { sequelize } = require("../config/database");
 
-const REVIEW_ROLES = ["reviewer", "admin"];
+const REVIEW_ROLES = ["reviewer"];
 
 // Reviewer-only routes. Use after requireAuth. The role is read from the
 // database on every request (not from the login cookie), so granting or
