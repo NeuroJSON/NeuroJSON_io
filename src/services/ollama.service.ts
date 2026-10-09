@@ -15,6 +15,9 @@ export const OllamaService = {
     // const temperature = getQwenTemperature(model);
     const response = await fetch(`${API_URL}/ollama/bidsify`, {
       method: "POST",
+      // Send the login cookie: /ollama/bidsify requires login, and locally the
+      // API (localhost:5000) is a different origin from the page.
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
@@ -29,19 +32,23 @@ export const OllamaService = {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || "Failed to call Ollama");
+      throw new Error(data.error || data.message || "Failed to call Ollama");
     }
 
     return data;
   },
 
   getTags: async (): Promise<any> => {
-    const response = await fetch(`${API_URL}/ollama/tags`);
+    const response = await fetch(`${API_URL}/ollama/tags`, {
+      credentials: "include",
+    });
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || "Failed to fetch Ollama models");
+      throw new Error(
+        data.error || data.message || "Failed to fetch Ollama models"
+      );
     }
 
     return data;

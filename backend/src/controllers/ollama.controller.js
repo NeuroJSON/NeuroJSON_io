@@ -1,5 +1,10 @@
-const OLLAMA_BASE_URL = "http://jin.neu.edu:11434";
-const OLLAMA_MODEL = "qwen3.6:27b";
+// Ollama server + model come from .env, so switching needs no code change:
+//   OLLAMA_BASE_URL=http://shui.neu.edu:11434
+//   OLLAMA_MODEL=qwen3.8-careful:latest
+const OLLAMA_BASE_URL = (
+  process.env.OLLAMA_BASE_URL || "http://shui.neu.edu:11434"
+).replace(/\/+$/, "");
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen3.8-careful:latest";
 
 const proxyChat = async (req, res) => {
   console.log("🟣 [Ollama] proxyChat hit — model:", OLLAMA_MODEL);

@@ -66,7 +66,7 @@ const llmProviders: Record<string, LLMProvider> = {
     name: "Ollama (NeuroJSON Server)",
     baseUrl: "",
     models: [
-      { id: "qwen3.6:27b", name: "Qwen 3.6 27B" },
+      { id: "qwen3.8-careful:latest", name: "Qwen 3.8 Careful" },
       // { id: "qwen3-coder-next:latest", name: "Qwen 3 Coder Next" },
       // { id: "qwen3-coder-careful:latest", name: "Qwen 3 Coder Careful" },
       // { id: "qwen3.5:9b", name: "Qwen 3.5 9B" },
@@ -1461,7 +1461,7 @@ const LLMPanel: React.FC<LLMPanelProps> = ({
 
           {provider === "ollama" && (
             <Typography variant="caption" color="text.secondary" sx={{ mt: -1, mb: 2, display: "block" }}>
-              Using qwen3.6:27b on NeuroJSON server
+              Using Qwen 3.8 Careful on NeuroJSON server
             </Typography>
           )}
 
