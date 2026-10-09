@@ -371,6 +371,17 @@ const promote = async (req, res) => {
     if (!DB_RE.test(db)) {
       throw new HttpError(400, { error: "Invalid database name." });
     }
+    // Safety net while testing against a real CouchDB server: only listed
+    // databases may be written. Empty list = no database is allowed.
+    const allowed = (process.env.COUCHDB_PROMOTE_DBS || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!allowed.includes(db)) {
+      throw new HttpError(403, {
+        error: `Publishing to the "${db}" database is not enabled on this server.`,
+      });
+    }
     if (!(await dbExists(db))) {
       throw new HttpError(409, {
         error: `The database "${db}" doesn't exist yet. Please create it first, then publish again.`,
