@@ -619,16 +619,39 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         }),
       ];
 
-      // Bash script (Mac/Linux)
+      // Shell-safe single quoting: ' → '\'' (nothing inside '…' is expanded).
+      const shq = (s?: string) => `'${(s ?? "").replace(/'/g, `'\\''`)}'`;
+      // Batch: % must be doubled (else %20 etc. are read as variables);
+      // a " can't be quoted safely, so such items are skipped below.
+      const batq = (s?: string) => `"${(s ?? "").replace(/%/g, "%%")}"`;
+      // Only plain relative paths inside the download folder: no leading /,
+      // no "..", no backslash, no control characters. Others → file-<n>.
+      const safeName = (name: string) =>
+        !!name &&
+        !name.startsWith("/") &&
+        !name.includes("\\") &&
+        !/[\x00-\x1f\x7f]/.test(name) &&
+        !name.split("/").some((part) => part === ".." || part === "");
+      const safeItems = items.map((it, i) => ({
+        ...it,
+        filename: safeName(it.filename) ? it.filename : `file-${i}`,
+      }));
+
+      // Bash script (Mac/Linux). --create-dirs makes the sub-01/anat/… folders.
       const sh =
         `#!/bin/bash\n` +
         `# Downloads ${docId} from ${dbName}\n` +
         `# Usage: bash ${docId}.sh\n` +
         `set -e\n` +
-        `mkdir -p "${docId}"\n` +
-        `cd "${docId}" || exit 1\n` +
-        items
-          .map((it) => `curl -L -C - -o "${it.filename}" "${it.url}"`)
+        `mkdir -p ${shq(docId)}\n` +
+        `cd ${shq(docId)} || exit 1\n` +
+        safeItems
+          .map(
+            (it) =>
+              `curl -L -C - --create-dirs -o ${shq(it.filename)} ${shq(
+                it.url
+              )}`
+          )
           .join("\n") +
         `\necho "Done. Files saved to $(pwd)"\n`;
 
@@ -637,10 +660,16 @@ const UpdatedDatasetDetailPage: React.FC = () => {
         `@echo off\r\n` +
         `REM Downloads ${docId} from ${dbName}\r\n` +
         `REM Usage: double-click or run ${docId}.bat\r\n` +
-        `if not exist "${docId}" mkdir "${docId}"\r\n` +
-        `cd /d "${docId}"\r\n` +
-        items
-          .map((it) => `curl -L -C - -o "${it.filename}" "${it.url}"`)
+        `if not exist ${batq(docId)} mkdir ${batq(docId)}\r\n` +
+        `cd /d ${batq(docId)}\r\n` +
+        safeItems
+          .filter((it) => !it.filename.includes('"') && !it.url.includes('"'))
+          .map(
+            (it) =>
+              `curl -L -C - --create-dirs -o ${batq(it.filename)} ${batq(
+                it.url
+              )}`
+          )
           .join("\r\n") +
         `\r\necho Done. Files saved to %cd%\r\n` +
         `pause\r\n`;
