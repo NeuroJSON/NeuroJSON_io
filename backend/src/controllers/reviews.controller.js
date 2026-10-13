@@ -412,7 +412,17 @@ const promote = async (req, res) => {
     const datasetId = await reserveDatasetId(sub, db);
 
     // Write (or update — a new version, or a retry after a failure) the public doc.
+    // Full replace (a new version must not keep keys it removed — the CouchDB
+    // `timestamp` update handler would merge), with the same .datainfo
+    // timestamps that handler sets: CreateTime = first publish (kept),
+    // UpdateTime = now (seconds, as a string).
     const existing = await getDoc(db, datasetId);
+    const nowSec = Date.now() / 1000;
+    doc[".datainfo"] = {
+      ...(doc[".datainfo"] || {}),
+      CreateTime: existing?.[".datainfo"]?.CreateTime ?? nowSec,
+      UpdateTime: String(nowSec),
+    };
     if (existing) doc._rev = existing._rev;
     await putDoc(db, datasetId, doc);
 
