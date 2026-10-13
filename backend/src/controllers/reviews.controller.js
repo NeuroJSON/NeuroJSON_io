@@ -71,12 +71,17 @@ const listReviews = async (req, res) => {
       status === "pending" ? "s.submitted_at ASC" : "s.updated_at DESC";
     const rows = await sequelize.query(
       `SELECT s.submission_id, s.status, s.submitted_at, s.reviewed_at, s.updated_at,
+              s.json_uploaded_at,
               r.internal_id, r.dataset_name, r.requested_db, r.requested_dataset_id,
               u.username AS owner_username, u.email AS owner_email,
               (r.owner_user_id = :me) AS is_own,
               (SELECT o.size_bytes FROM submission_raw_files f
                  JOIN raw_objects o ON o.raw_id = f.raw_id
-                WHERE f.submission_id = s.submission_id) AS raw_zip_size
+                WHERE f.submission_id = s.submission_id) AS raw_zip_size,
+              -- when the current ZIP arrived (for "what changed since review")
+              (SELECT o.created_at FROM submission_raw_files f
+                 JOIN raw_objects o ON o.raw_id = f.raw_id
+                WHERE f.submission_id = s.submission_id) AS raw_zip_uploaded_at
          FROM submissions s
          JOIN dataset_registry r ON r.internal_id = s.dataset_registry_id
          JOIN users u ON u.id = r.owner_user_id

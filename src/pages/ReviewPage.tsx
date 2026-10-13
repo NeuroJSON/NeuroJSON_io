@@ -32,6 +32,7 @@ import {
   ReviewService,
 } from "services/review.service";
 import { formatBytes } from "utils/formatBytes";
+import { resubmitChanges } from "utils/resubmitChanges";
 
 // Reviewer view of one submission: read it, decide, and talk to the uploader.
 
@@ -57,6 +58,15 @@ const DECISION_TEXT: Record<
     help: "Please explain why. The uploader can start a new version, but this one is closed.",
     required: true,
   },
+};
+
+// Note for a resubmission: what changed since the last decision.
+const RESUBMIT_NOTE = {
+  "json+zip":
+    "The uploader updated the JSON and replaced the raw ZIP after the last review.",
+  json: "The uploader updated the JSON after the last review.",
+  zip: "The uploader replaced the raw ZIP after the last review.",
+  none: "Resubmitted without changes to the JSON or ZIP. Please check the discussion for their reply.",
 };
 
 const formatDate = (d: string | null | undefined) =>
@@ -186,22 +196,13 @@ const ReviewPage: React.FC = () => {
   const canDecide = detail.status === "pending" && !detail.is_own;
   const zip = detail.raw_zip;
   // Resubmitted after a decision: tell the reviewer what changed since then.
-  const resubmitNote = (() => {
-    if (detail.status !== "pending" || !detail.reviewed_at) return null;
-    const reviewed = new Date(detail.reviewed_at);
-    const jsonChanged =
-      !!detail.json_uploaded_at && new Date(detail.json_uploaded_at) > reviewed;
-    const zipChanged = !!zip && new Date(zip.uploadedAt) > reviewed;
-    if (jsonChanged && zipChanged) {
-      return "The uploader updated the JSON and replaced the raw ZIP after the last review.";
-    }
-    if (jsonChanged)
-      return "The uploader updated the JSON after the last review.";
-    if (zipChanged) {
-      return "The uploader replaced the raw ZIP after the last review.";
-    }
-    return "Resubmitted without changes to the JSON or ZIP. Please check the discussion for their reply.";
-  })();
+  const changes = resubmitChanges({
+    status: detail.status,
+    reviewed_at: detail.reviewed_at,
+    json_uploaded_at: detail.json_uploaded_at,
+    raw_zip_uploaded_at: zip ? zip.uploadedAt : null,
+  });
+  const resubmitNote = changes ? RESUBMIT_NOTE[changes] : null;
   const d = decision ? DECISION_TEXT[decision] : null;
 
   return (

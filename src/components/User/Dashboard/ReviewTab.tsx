@@ -23,6 +23,19 @@ import {
   SubmissionStatus,
 } from "services/review.service";
 import { formatBytes } from "utils/formatBytes";
+import { resubmitChanges } from "utils/resubmitChanges";
+
+// Resubmissions: what changed since the last decision (same rule as the review page).
+const CHANGE_CHIP: Record<
+  "json+zip" | "json" | "zip" | "none",
+  { label: string; color: "success" | "warning" }
+> = {
+  // Filled so they stand out next to the status chip.
+  "json+zip": { label: "Updated: JSON + ZIP", color: "success" },
+  json: { label: "Updated: JSON", color: "success" },
+  zip: { label: "Updated: ZIP", color: "success" },
+  none: { label: "Resubmitted: no changes", color: "warning" },
+};
 
 // Reviewer queue (shown only to reviewers). Pending = oldest first.
 const FILTERS: { value: SubmissionStatus; label: string }[] = [
@@ -133,6 +146,19 @@ const ReviewTab: React.FC = () => {
                             ...(STATUS_CHIP[r.status].sx || {}),
                           }}
                         />
+                        {(() => {
+                          const c = resubmitChanges(r);
+                          return (
+                            c && (
+                              <Chip
+                                label={CHANGE_CHIP[c].label}
+                                color={CHANGE_CHIP[c].color}
+                                size="small"
+                                sx={{ height: 20, fontWeight: 600 }}
+                              />
+                            )
+                          );
+                        })()}
                         {r.raw_zip_size != null && (
                           <Chip
                             label={`ZIP · ${formatBytes(

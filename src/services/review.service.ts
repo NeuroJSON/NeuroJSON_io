@@ -21,6 +21,8 @@ export interface ReviewListItem {
   owner_email: string;
   is_own: boolean;
   raw_zip_size: string | number | null; // BIGINT arrives as a string
+  json_uploaded_at: string | null;
+  raw_zip_uploaded_at: string | null;
 }
 
 export interface ReviewComment {
@@ -31,7 +33,8 @@ export interface ReviewComment {
   is_owner: boolean;
 }
 
-export interface ReviewDetail extends Omit<ReviewListItem, "raw_zip_size"> {
+export interface ReviewDetail
+  extends Omit<ReviewListItem, "raw_zip_size" | "raw_zip_uploaded_at"> {
   dataset_id: string | null;
   json_uploaded_at: string | null;
   raw_zip_expected: boolean;
