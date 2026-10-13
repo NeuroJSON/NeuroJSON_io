@@ -405,6 +405,19 @@ const UploadDetailPage: React.FC = () => {
           >
             View submitted JSON
           </Button>
+          {/* Check the format: same layout as the public dataset page */}
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<VisibilityIcon />}
+            component={Link}
+            to={`/uploads/${detail.internal_id}/preview`}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: Colors.purple, borderColor: Colors.purple }}
+          >
+            Preview as dataset page
+          </Button>
           {(detail.status === "pending" || detail.status === "approved") && (
             <Typography variant="body2" color="text.secondary">
               {detail.status === "pending"

@@ -72,7 +72,13 @@ import {
   fetchDbInfoByDatasetId,
 } from "redux/neurojson/neurojson.action";
 import { NeurojsonSelector } from "redux/neurojson/neurojson.selector";
-import { resetDocument } from "redux/neurojson/neurojson.slice";
+import {
+  resetDocument,
+  setLoading,
+  setSelectedDocument,
+} from "redux/neurojson/neurojson.slice";
+import { baseURL } from "services/instance";
+import { previewViewInfo } from "utils/dbinfoPreview";
 // import { NeurojsonService } from "services/neurojson.service";
 import RoutesEnum from "types/routes.enum";
 
@@ -92,16 +98,38 @@ interface InternalDataLink {
   path: string; // for preview in tree row
 }
 
-const UpdatedDatasetDetailPage: React.FC = () => {
-  const { dbName, docId } = useParams<{ dbName: string; docId: string }>();
+// Preview of a not-yet-published dataset, loaded from our backend instead of
+// the public CouchDB (reviewer view of a submission, or the owner's upload).
+export interface DatasetPreviewSource {
+  kind: "review" | "upload";
+  id: string; // submissionId (review) or internalId (upload)
+}
+
+const UpdatedDatasetDetailPage: React.FC<{ preview?: DatasetPreviewSource }> = ({
+  preview,
+}) => {
+  const params = useParams<{ dbName: string; docId: string }>();
+  const isPreview = !!preview;
+  // In preview there is no public db/doc: the public-only loads below (doc,
+  // stats, likes, collections, metadata) are skipped by their existing
+  // `if (!dbName || !docId) return;` guards.
+  const dbName = isPreview ? undefined : params.dbName;
+  const docId = isPreview ? undefined : params.docId;
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const {
     selectedDocument: datasetDocument,
     loading,
     error,
-    datasetViewInfo: dbViewInfo,
+    datasetViewInfo: publicViewInfo,
   } = useAppSelector(NeurojsonSelector);
+  // Preview: no public dbinfo row yet → derive it from the JSON with the same
+  // rule as the CouchDB "dbinfo" view (subjects, modality, AI summary).
+  const previewInfo = useMemo(
+    () => (isPreview ? previewViewInfo(datasetDocument) : null),
+    [isPreview, datasetDocument]
+  );
+  const dbViewInfo = isPreview ? previewInfo : publicViewInfo;
   // user auth state
   const { isLoggedIn: isAuthenticated } = useAppSelector(AuthSelector);
 
@@ -520,6 +548,33 @@ const UpdatedDatasetDetailPage: React.FC = () => {
       dispatch(fetchDbInfoByDatasetId({ dbName, docId })); // for metadata panel (include modality)
     })();
   }, [dbName, docId, rev, dispatch]);
+
+  // Preview: load the submitted JSON from our backend (reviewer or owner only).
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const previewKind = preview?.kind;
+  const previewId = preview?.id;
+  useEffect(() => {
+    if (!previewKind || !previewId) return;
+    const url =
+      previewKind === "review"
+        ? `${baseURL}/reviews/${previewId}/document`
+        : `${baseURL}/uploads/${previewId}/document`;
+    dispatch(resetDocument());
+    dispatch(setLoading(true));
+    fetch(url, { credentials: "include" })
+      .then(async (r) => {
+        const body = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          throw new Error(
+            body.error || `Could not load the dataset (${r.status}).`
+          );
+        }
+        dispatch(setSelectedDocument(body));
+        setPreviewError(null);
+      })
+      .catch((e) => setPreviewError(e.message))
+      .finally(() => dispatch(setLoading(false)));
+  }, [previewKind, previewId, dispatch]);
   // for revs list storage
   const [revsList, setRevsList] = React.useState<{ rev: string }[]>([]);
 
@@ -700,7 +755,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     const blob = new Blob([jsonData], { type: "application/json" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `${docId}.json`;
+    link.download = `${docId ?? "dataset-preview"}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -946,11 +1001,11 @@ const UpdatedDatasetDetailPage: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (error || previewError) {
     return (
       <Box sx={{ textAlign: "center", padding: 4 }}>
         <Alert severity="error" sx={{ color: Colors.error }}>
-          {error}
+          {previewError || error}
         </Alert>
       </Box>
     );
@@ -967,7 +1022,14 @@ const UpdatedDatasetDetailPage: React.FC = () => {
   return (
     <>
       <Box sx={{ padding: 4 }}>
-        {/* Breadcrumb Navigation (Home → Database → Dataset) */}
+        {/* Preview: not a public dataset, so a banner instead of the breadcrumb */}
+        {isPreview ? (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <strong>Preview</strong> — this dataset is not published yet. This is
+            how its dataset page will look.
+          </Alert>
+        ) : (
+        /* Breadcrumb Navigation (Home → Database → Dataset) */
         <Box
           sx={{
             display: "flex",
@@ -1039,6 +1101,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             {docId}
           </Typography>
         </Box>
+        )}
 
         <Box
           sx={{
@@ -1058,7 +1121,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
             sx={{ fontWeight: "bold", mb: 1 }}
           >
             {datasetDocument?.["dataset_description.json"]?.Name ??
-              `Dataset: ${docId}`}
+              (isPreview ? "Dataset preview" : `Dataset: ${docId}`)}
           </Typography>
 
           {/* Dataset Author (If Exists) */}
@@ -1074,7 +1137,8 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 : datasetDocument["dataset_description.json"].Authors}
             </Typography>
           )}
-          {/* user actions component */}
+          {/* user actions component (public datasets only) */}
+          {!isPreview && (
           <DatasetActions
             isLiked={isLiked}
             isSaved={isInAnyCollection}
@@ -1096,6 +1160,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               isAddingToCollection
             }
           />
+          )}
           {/* ai summary */}
           {aiSummary ? (
             <>
@@ -1205,6 +1270,9 @@ const UpdatedDatasetDetailPage: React.FC = () => {
               Download Metadata ({formatSize(jsonSize)})
             </Button>
 
+            {/* Download script links point at the public CouchDB → public only */}
+            {!isPreview && (
+            <>
             <Button
               variant="contained"
               startIcon={<DescriptionIcon />}
@@ -1237,6 +1305,8 @@ const UpdatedDatasetDetailPage: React.FC = () => {
                 URL list (.txt, advanced)
               </MenuItem>
             </Menu>
+            </>
+            )}
           </Box>
         </Box>
 
@@ -1733,7 +1803,8 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           }}
         ></Box>
 
-        {/* <api tabs */}
+        {/* <api tabs (code examples use the public CouchDB → public only) */}
+        {!isPreview && (
         <LoadDatasetTabs
           pagename={docId ?? ""}
           docname={datasetDocument?.Name || ""}
@@ -1743,6 +1814,7 @@ const UpdatedDatasetDetailPage: React.FC = () => {
           onekey={onekey}
           handleDownloadDataset={handleDownloadDataset}
         />
+        )}
 
         {/* Global spinner while loading (before modal mounts) */}
         <Backdrop

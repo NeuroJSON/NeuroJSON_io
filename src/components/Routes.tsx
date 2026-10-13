@@ -9,6 +9,7 @@ import UserDashboard from "./User/UserDashboard";
 import FullScreen from "design/Layouts/FullScreen";
 import AboutPage from "pages/AboutPage";
 import DatabasePage from "pages/DatabasePage";
+import DatasetPreviewPage from "pages/DatasetPreviewPage";
 import Home from "pages/Home";
 import ResendVerification from "pages/ResendVerification";
 import ReviewPage from "pages/ReviewPage";
@@ -76,6 +77,9 @@ const Routes = () => (
         <Route path={RoutesEnum.UPLOAD} element={<UploadPage />} />
         <Route path="/uploads/:internalId" element={<UploadDetailPage />} />
         <Route path="/reviews/:submissionId" element={<ReviewPage />} />
+        {/* Not-yet-published dataset shown like the public dataset page */}
+        <Route path="/reviews/:id/preview" element={<DatasetPreviewPage kind="review" />} />
+        <Route path="/uploads/:id/preview" element={<DatasetPreviewPage kind="upload" />} />
       </Route>
     </RouterRoutes>
   </>

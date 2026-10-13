@@ -51,6 +51,12 @@ const neurojsonSlice = createSlice({
       state.selectedDocument = null;
       state.datasetViewInfo = null;
     },
+    // Preview mode: show a document that isn't in the public CouchDB.
+    setSelectedDocument: (state, action: PayloadAction<any>) => {
+      state.selectedDocument = action.payload;
+      state.datasetViewInfo = null;
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -194,6 +200,7 @@ const neurojsonSlice = createSlice({
   },
 });
 
-export const { resetData, setLoading, resetDocument } = neurojsonSlice.actions;
+export const { resetData, setLoading, resetDocument, setSelectedDocument } =
+  neurojsonSlice.actions;
 
 export default neurojsonSlice.reducer;

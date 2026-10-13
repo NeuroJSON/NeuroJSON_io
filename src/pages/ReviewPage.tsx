@@ -1,6 +1,7 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import SendIcon from "@mui/icons-material/Send";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Alert,
   Box,
@@ -23,7 +24,7 @@ import { STATUS_CHIP } from "components/Upload/statusChip";
 import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { AuthSelector } from "redux/auth/auth.selector";
 import {
   ReviewComment,
@@ -286,17 +287,32 @@ const ReviewPage: React.FC = () => {
         <Typography variant="h6" sx={{ mb: 1.5 }}>
           Data
         </Typography>
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<DataObjectIcon />}
-          href={ReviewService.documentUrl(detail.submission_id)}
-          target="_blank"
-          rel="noopener noreferrer"
-          sx={{ color: Colors.purple, borderColor: Colors.purple, mb: 2 }}
-        >
-          View submitted JSON
-        </Button>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 2 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<DataObjectIcon />}
+            href={ReviewService.documentUrl(detail.submission_id)}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: Colors.purple, borderColor: Colors.purple }}
+          >
+            View submitted JSON
+          </Button>
+          {/* Same layout as the public dataset page (not published yet) */}
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<VisibilityIcon />}
+            component={Link}
+            to={`/reviews/${detail.submission_id}/preview`}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: Colors.purple, borderColor: Colors.purple }}
+          >
+            Preview as dataset page
+          </Button>
+        </Box>
         {zip ? (
           <Box sx={{ display: "grid", gap: 0.5 }}>
             <Typography variant="body2">
