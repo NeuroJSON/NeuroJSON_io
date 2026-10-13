@@ -239,6 +239,23 @@ const ReviewPage: React.FC = () => {
             <CopyButton value={detail.internal_id} label="Copy reference" />
           </Typography>
           <Typography variant="body2" color="text.secondary">
+            Requested database: <code>{detail.requested_db || "public"}</code>
+            {(detail.requested_db || "public") === "public" ? " (default)" : ""}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Preferred dataset ID:{" "}
+            {detail.requested_dataset_id ? (
+              <code>{detail.requested_dataset_id}</code>
+            ) : (
+              <em>none — NeuroJSON will assign one (njds######)</em>
+            )}
+          </Typography>
+          {detail.dataset_id && (
+            <Typography variant="body2" color="text.secondary">
+              Public dataset ID: <code>{detail.dataset_id}</code>
+            </Typography>
+          )}
+          <Typography variant="body2" color="text.secondary">
             Permanent address after publishing:{" "}
             <code>
               neurojson.io/db/{detail.requested_db || "public"}/
