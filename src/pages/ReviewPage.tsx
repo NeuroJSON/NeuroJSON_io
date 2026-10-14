@@ -98,6 +98,10 @@ const ReviewPage: React.FC = () => {
   const [deciding, setDeciding] = useState(false);
   const [decisionError, setDecisionError] = useState<string | null>(null);
 
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+
   const [reply, setReply] = useState("");
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
@@ -141,6 +145,24 @@ const ReviewPage: React.FC = () => {
       if (e.status === 409) await load(); // someone else decided / withdrawn
     } finally {
       setDeciding(false);
+    }
+  };
+
+  // Publish an approved submission. The backend re-checks everything (raw-file
+  // links, allowed/existing database, free ID) and its message is shown as is.
+  const confirmPublish = async () => {
+    if (!submissionId) return;
+    setPublishing(true);
+    setPublishError(null);
+    try {
+      await ReviewService.promote(submissionId);
+      setPublishOpen(false);
+      await load();
+    } catch (e: any) {
+      setPublishError(e.message || "Publishing failed.");
+      if (e.status === 409) await load(); // already published / no longer approved
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -195,6 +217,11 @@ const ReviewPage: React.FC = () => {
 
   const chip = STATUS_CHIP[detail.status];
   const canDecide = detail.status === "pending" && !detail.is_own;
+  // Publish dialog: where it goes and which version it becomes.
+  const publishDb = detail.requested_db || "public";
+  const publishId =
+    detail.dataset_id || detail.requested_dataset_id || "njds######";
+  const nextVersion = (detail.live_version || 0) + 1;
   const zip = detail.raw_zip;
   // Resubmitted after a decision: tell the reviewer what changed since then.
   const changes = resubmitChanges({
@@ -351,7 +378,54 @@ const ReviewPage: React.FC = () => {
         <Typography variant="h6" sx={{ mb: 1.5 }}>
           Decision
         </Typography>
-        {detail.is_own ? (
+        {detail.status === "approved" ? (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              flexWrap: "wrap",
+            }}
+          >
+            <Typography variant="body2">
+              Approved
+              {detail.reviewed_at
+                ? ` · ${formatDate(detail.reviewed_at)}`
+                : ""}{" "}
+              · ready to publish.
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => {
+                setPublishError(null);
+                setPublishOpen(true);
+              }}
+              sx={purpleButton}
+            >
+              Publish
+            </Button>
+          </Box>
+        ) : detail.status === "promoted" ? (
+          <Typography variant="body2">
+            <strong>Published</strong> as{" "}
+            <code>
+              {detail.promoted_db}/{detail.dataset_id}
+            </code>
+            {detail.published_version
+              ? ` · version ${detail.published_version}`
+              : ""}{" "}
+            <Button
+              size="small"
+              component={Link}
+              to={`/db/${detail.promoted_db}/${detail.dataset_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ color: Colors.purple }}
+            >
+              View live
+            </Button>
+          </Typography>
+        ) : detail.is_own && detail.status === "pending" ? (
           <Alert severity="info">
             This is your own upload. Another reviewer needs to decide it.
           </Alert>
@@ -477,6 +551,62 @@ const ReviewPage: React.FC = () => {
           </Button>
         </Box>
       </Paper>
+
+      {/* Publish dialog */}
+      <Dialog
+        open={publishOpen}
+        onClose={publishing ? undefined : () => setPublishOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Publish this dataset?</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 1.5 }}>
+            It becomes public at{" "}
+            <code>
+              neurojson.io/db/{publishDb}/{publishId}
+            </code>
+            {publishId === "njds######"
+              ? " (the ID is assigned when publishing)"
+              : ""}
+            .
+          </DialogContentText>
+          <DialogContentText sx={{ mb: 1.5 }}>
+            This will be <strong>version {nextVersion}</strong>
+            {detail.live_version
+              ? ` (version ${detail.live_version} is live and stays in the archive)`
+              : ""}
+            . A frozen copy of this version is kept. Publishing can't be undone
+            from here.
+          </DialogContentText>
+          {publishError && (
+            <Alert severity="error" sx={{ mt: 1 }}>
+              {publishError}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setPublishOpen(false)}
+            disabled={publishing}
+            sx={{ color: Colors.darkGray }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={confirmPublish}
+            disabled={publishing}
+            sx={purpleButton}
+          >
+            {publishing ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Publish"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Decision dialog */}
       <Dialog

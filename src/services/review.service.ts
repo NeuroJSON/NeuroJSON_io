@@ -40,6 +40,8 @@ export interface ReviewDetail
   dataset_id: string | null;
   json_uploaded_at: string | null;
   raw_zip_expected: boolean;
+  published_version: number | null;
+  promoted_db: string | null;
   raw_zip: {
     rawId: string;
     filename: string | null;
@@ -88,6 +90,16 @@ export const ReviewService = {
       `/${submissionId}/decision`,
       { method: "POST", body: JSON.stringify({ decision, message }) }
     ),
+
+  // Publish an approved submission (the backend checks everything again).
+  promote: (submissionId: string) =>
+    request<{
+      status: SubmissionStatus;
+      db: string;
+      dataset_id: string;
+      version: number;
+      path: string;
+    }>(`/${submissionId}/promote`, { method: "POST" }),
 
   comment: (submissionId: string, message: string) =>
     request<ReviewComment>(`/${submissionId}/comments`, {
