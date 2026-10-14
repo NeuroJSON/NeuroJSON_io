@@ -146,6 +146,15 @@ const ReviewTab: React.FC = () => {
                             ...(STATUS_CHIP[r.status].sx || {}),
                           }}
                         />
+                        {/* New version of an already published dataset */}
+                        {!!r.live_version && r.status !== "promoted" && (
+                          <Chip
+                            label={`New version (v${r.live_version} published)`}
+                            color="info"
+                            size="small"
+                            sx={{ height: 20, fontWeight: 600 }}
+                          />
+                        )}
                         {(() => {
                           const c = resubmitChanges(r);
                           return (

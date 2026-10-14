@@ -23,6 +23,8 @@ export interface ReviewListItem {
   raw_zip_size: string | number | null; // BIGINT arrives as a string
   json_uploaded_at: string | null;
   raw_zip_uploaded_at: string | null;
+  dataset_id: string | null;
+  live_version: number | null; // highest version already published by another submission
 }
 
 export interface ReviewComment {

@@ -41,6 +41,10 @@ const loadSubmission = async (submissionId, { t, lock } = {}) => {
   const rows = await sequelize.query(
     `SELECT s.submission_id, s.status, s.submitted_at, s.reviewed_at, s.updated_at,
             s.json_uploaded_at, s.raw_zip_expected, s.published_version,
+            -- highest version already published by ANOTHER submission (new-version note)
+            (SELECT MAX(s2.published_version) FROM submissions s2
+              WHERE s2.dataset_registry_id = s.dataset_registry_id
+                AND s2.submission_id <> s.submission_id) AS live_version,
             r.internal_id, r.dataset_name, r.requested_db, r.requested_dataset_id,
             r.dataset_id, r.owner_user_id, u.username AS owner_username, u.email AS owner_email
        FROM submissions s
@@ -73,6 +77,11 @@ const listReviews = async (req, res) => {
       `SELECT s.submission_id, s.status, s.submitted_at, s.reviewed_at, s.updated_at,
               s.json_uploaded_at,
               r.internal_id, r.dataset_name, r.requested_db, r.requested_dataset_id,
+              r.dataset_id,
+              -- highest version already published by ANOTHER submission (new-version chip)
+              (SELECT MAX(s2.published_version) FROM submissions s2
+                WHERE s2.dataset_registry_id = s.dataset_registry_id
+                  AND s2.submission_id <> s.submission_id) AS live_version,
               u.username AS owner_username, u.email AS owner_email,
               (r.owner_user_id = :me) AS is_own,
               (SELECT o.size_bytes FROM submission_raw_files f

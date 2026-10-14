@@ -275,6 +275,17 @@ const ReviewPage: React.FC = () => {
               : ""}
           </Typography>
         </Box>
+        {!!detail.live_version && detail.status !== "promoted" && (
+          <Alert severity="info" sx={{ mt: 2, fontSize: "0.9rem" }}>
+            This is a <strong>new version</strong> of a published dataset:{" "}
+            <code>
+              {detail.requested_db || "public"}/{detail.dataset_id}
+            </code>{" "}
+            (version {detail.live_version} is live). Publishing it replaces the
+            live page; version {detail.live_version} stays available in the
+            archive.
+          </Alert>
+        )}
         {resubmitNote && (
           <Alert severity="info" sx={{ mt: 2, fontSize: "0.9rem" }}>
             {resubmitNote}
