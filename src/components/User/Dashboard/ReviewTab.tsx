@@ -43,6 +43,8 @@ const FILTERS: { value: SubmissionStatus; label: string }[] = [
   { value: "changes_requested", label: "Changes requested" },
   { value: "approved", label: "Approved" },
   { value: "rejected", label: "Rejected" },
+  // Every published version (each submission = one version; newest first).
+  { value: "promoted", label: "Published" },
 ];
 
 const formatDate = (d: string | null) =>

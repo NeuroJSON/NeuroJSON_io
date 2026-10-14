@@ -413,7 +413,25 @@ const ReviewPage: React.FC = () => {
             </code>
             {detail.published_version
               ? ` · version ${detail.published_version}`
+              : ""}
+            {detail.is_live
+              ? " (live)"
+              : detail.live_version
+              ? ` (older; version ${detail.live_version} is live)`
               : ""}{" "}
+            {/* An older version: its own frozen copy, in the preview layout */}
+            {!detail.is_live && (
+              <Button
+                size="small"
+                component={Link}
+                to={`/reviews/${detail.submission_id}/preview`}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ color: Colors.purple }}
+              >
+                View this version
+              </Button>
+            )}
             <Button
               size="small"
               component={Link}
@@ -422,7 +440,9 @@ const ReviewPage: React.FC = () => {
               rel="noopener noreferrer"
               sx={{ color: Colors.purple }}
             >
-              View live
+              {detail.is_live || !detail.live_version
+                ? "View live"
+                : `View live (version ${detail.live_version})`}
             </Button>
           </Typography>
         ) : detail.is_own && detail.status === "pending" ? (

@@ -42,6 +42,7 @@ export interface ReviewDetail
   raw_zip_expected: boolean;
   published_version: number | null;
   promoted_db: string | null;
+  is_live: boolean; // this submission is the version the live page shows
   raw_zip: {
     rawId: string;
     filename: string | null;

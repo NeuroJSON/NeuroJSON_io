@@ -41,6 +41,7 @@ const loadSubmission = async (submissionId, { t, lock } = {}) => {
   const rows = await sequelize.query(
     `SELECT s.submission_id, s.status, s.submitted_at, s.reviewed_at, s.updated_at,
             s.json_uploaded_at, s.raw_zip_expected, s.published_version, s.promoted_db,
+            (r.published_submission_id = s.submission_id) AS is_live,
             -- highest version already published by ANOTHER submission (new-version note)
             (SELECT MAX(s2.published_version) FROM submissions s2
               WHERE s2.dataset_registry_id = s.dataset_registry_id
