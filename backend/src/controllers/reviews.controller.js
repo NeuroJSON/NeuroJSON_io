@@ -40,7 +40,7 @@ const loadSubmission = async (submissionId, { t, lock } = {}) => {
   }
   const rows = await sequelize.query(
     `SELECT s.submission_id, s.status, s.submitted_at, s.reviewed_at, s.updated_at,
-            s.json_uploaded_at, s.raw_zip_expected,
+            s.json_uploaded_at, s.raw_zip_expected, s.published_version,
             r.internal_id, r.dataset_name, r.requested_db, r.requested_dataset_id,
             r.dataset_id, r.owner_user_id, u.username AS owner_username, u.email AS owner_email
        FROM submissions s
@@ -275,6 +275,10 @@ const DB_RE = /^[a-z][a-z0-9_-]{0,62}$/;
 // validation (not built yet), so such JSONs are blocked — markers are NOT
 // rewritten here. Later they become /api/v1/files/<db>/<dataset_id>/<path>.
 const FILE_MARKER = "neurojson:files/";
+// Frozen copy of every published version goes here (create-only):
+//   <archive db>/<db>:<dataset_id>:v<n>
+// Required while publishing is on, so no version is published without it.
+const ARCHIVE_DB = (process.env.COUCHDB_PROMOTE_ARCHIVE_DB || "").trim();
 
 // Any string anywhere in the doc that starts with "neurojson:files/"?
 // Iterative so a very deep JSON can't overflow the stack.
@@ -291,10 +295,10 @@ const hasFileMarker = (root) => {
   return false;
 };
 
-// Reserve the public ID (Postgres) — or reuse the one this dataset already has.
-// First time only: the ID must also be free in the target CouchDB database
-// (an older dataset may already use it). A reserved ID stays reserved, so a
-// failed publish can be retried with the SAME ID.
+// Reserve the public ID and the version number (Postgres). First publish of a
+// dataset: the ID must also be free in the target CouchDB database (an older
+// dataset may already use it). Both stay reserved, so a failed publish is
+// retried with the SAME ID and version.
 const reserveDatasetId = async (sub, db) =>
   sequelize.transaction(async (t) => {
     const s = await loadSubmission(sub.submission_id, { t, lock: true });
@@ -314,50 +318,76 @@ const reserveDatasetId = async (sub, db) =>
         }
       )
     )[0];
-    if (reg.dataset_id) return reg.dataset_id;
+    // Public ID: the one this dataset already has (a new version keeps it),
+    // else the preferred ID, else the next free njds######.
+    let id = reg.dataset_id;
+    if (!id) {
+      id = reg.requested_dataset_id;
+      if (id) {
+        if (await getDoc(db, id)) {
+          throw new HttpError(409, {
+            error: `The dataset ID "${id}" is already used in the "${db}" database. Ask the uploader to choose another one.`,
+          });
+        }
+      } else {
+        // Next free njds###### (skip numbers an older dataset already uses).
+        for (let tries = 0; !id; tries++) {
+          if (tries >= 20) throw new Error("no free njds id after 20 tries");
+          const n = (
+            await sequelize.query(
+              "SELECT nextval('neurojson_dataset_seq') AS n",
+              { type: sequelize.QueryTypes.SELECT, transaction: t }
+            )
+          )[0].n;
+          const candidate = `njds${String(n).padStart(6, "0")}`;
+          if (!(await getDoc(db, candidate))) id = candidate;
+        }
+      }
+      try {
+        await sequelize.query(
+          `UPDATE dataset_registry SET dataset_id = :id, updated_at = NOW()
+            WHERE internal_id = :iid`,
+          { replacements: { id, iid: s.internal_id }, transaction: t }
+        );
+      } catch (err) {
+        if (err.name === "SequelizeUniqueConstraintError") {
+          throw new HttpError(409, {
+            error: `The dataset ID "${id}" is already used by another dataset.`,
+          });
+        }
+        throw err;
+      }
+    }
 
-    let id = reg.requested_dataset_id;
-    if (id) {
-      if (await getDoc(db, id)) {
-        throw new HttpError(409, {
-          error: `The dataset ID "${id}" is already used in the "${db}" database. Ask the uploader to choose another one.`,
-        });
-      }
-    } else {
-      // Next free njds###### (skip numbers an older dataset already uses).
-      for (let tries = 0; !id; tries++) {
-        if (tries >= 20) throw new Error("no free njds id after 20 tries");
-        const n = (
-          await sequelize.query(
-            "SELECT nextval('neurojson_dataset_seq') AS n",
-            { type: sequelize.QueryTypes.SELECT, transaction: t }
-          )
-        )[0].n;
-        const candidate = `njds${String(n).padStart(6, "0")}`;
-        if (!(await getDoc(db, candidate))) id = candidate;
-      }
-    }
-    try {
+    // Version number for this publish: kept if a failed attempt already set it,
+    // else the dataset's highest published version + 1. The unique index
+    // uq_submissions_dataset_published_version refuses a duplicate.
+    let version = s.published_version;
+    if (!version) {
+      version = (
+        await sequelize.query(
+          `SELECT COALESCE(MAX(published_version), 0) + 1 AS v
+             FROM submissions WHERE dataset_registry_id = :iid`,
+          {
+            replacements: { iid: s.internal_id },
+            type: sequelize.QueryTypes.SELECT,
+            transaction: t,
+          }
+        )
+      )[0].v;
       await sequelize.query(
-        `UPDATE dataset_registry SET dataset_id = :id, updated_at = NOW()
-          WHERE internal_id = :iid`,
-        { replacements: { id, iid: s.internal_id }, transaction: t }
+        `UPDATE submissions SET published_version = :v WHERE submission_id = :sid`,
+        { replacements: { v: version, sid: s.submission_id }, transaction: t }
       );
-    } catch (err) {
-      if (err.name === "SequelizeUniqueConstraintError") {
-        throw new HttpError(409, {
-          error: `The dataset ID "${id}" is already used by another dataset.`,
-        });
-      }
-      throw err;
     }
-    return id;
+    return { datasetId: id, version };
   });
 
 // POST /api/v1/reviews/:submissionId/promote — publish an approved submission.
-// 1 checks → 2 reserve the public ID (Postgres) → 3 write the doc to the
-// public CouchDB → 4 mark promoted (Postgres). Safe to repeat after a failure
-// at any step: same ID, and step 3 updates the doc it wrote before.
+// 1 checks → 2 reserve the public ID + version (Postgres) → 3a frozen copy in
+// the archive db (create-only) → 3b latest doc (full replace) → 4 mark
+// promoted (Postgres). Safe to repeat after a failure at any step: same ID and
+// version; the frozen copy is never rewritten, the latest is updated again.
 // Any reviewer may publish, including their own (approved by someone else).
 const promote = async (req, res) => {
   try {
@@ -392,6 +422,16 @@ const promote = async (req, res) => {
         error: `The database "${db}" doesn't exist yet. Please create it first, then publish again.`,
       });
     }
+    if (!ARCHIVE_DB || !DB_RE.test(ARCHIVE_DB)) {
+      throw new HttpError(503, {
+        error: "Publishing is not enabled on this server yet.",
+      });
+    }
+    if (!(await dbExists(ARCHIVE_DB))) {
+      throw new HttpError(503, {
+        error: "The version archive is not set up on this server.",
+      });
+    }
 
     // The JSON as it will be published (sandbox _id/_rev and other _ fields dropped).
     const { data: sandboxDoc } = await axios.get(
@@ -409,22 +449,35 @@ const promote = async (req, res) => {
       if (!k.startsWith("_")) doc[k] = v;
     }
 
-    const datasetId = await reserveDatasetId(sub, db);
+    const { datasetId, version } = await reserveDatasetId(sub, db);
 
-    // Write (or update — a new version, or a retry after a failure) the public doc.
-    // Full replace (a new version must not keep keys it removed — the CouchDB
-    // `timestamp` update handler would merge), with the same .datainfo
-    // timestamps that handler sets: CreateTime = first publish (kept),
-    // UpdateTime = now (seconds, as a string).
+    // Full replace (a new version must not keep keys it removed — the public
+    // dbs' `timestamp` update handler would merge), with .datainfo like the
+    // CouchDB timestamp handler (seconds, as strings): CreateTime = first
+    // publish (kept), UpdateTime = now; plus the version number.
     const existing = await getDoc(db, datasetId);
-    const nowSec = Date.now() / 1000;
+    const now = String(Date.now() / 1000);
     doc[".datainfo"] = {
       ...(doc[".datainfo"] || {}),
-      CreateTime: existing?.[".datainfo"]?.CreateTime ?? nowSec,
-      UpdateTime: String(nowSec),
+      CreateTime: existing?.[".datainfo"]?.CreateTime ?? now,
+      UpdateTime: now,
+      Version: version,
     };
-    if (existing) doc._rev = existing._rev;
-    await putDoc(db, datasetId, doc);
+
+    // 1) Frozen copy, create-only: never overwrite an archived version. If it
+    //    exists, a failed earlier attempt already wrote it (the number is ours).
+    const archiveId = `${db}:${datasetId}:v${version}`;
+    if (!(await getDoc(ARCHIVE_DB, archiveId))) {
+      try {
+        await putDoc(ARCHIVE_DB, archiveId, doc);
+      } catch (err) {
+        if (err.response?.status !== 409) throw err; // 409 = written by a parallel attempt
+      }
+    }
+
+    // 2) Latest (full replace) — what the stable /db/<db>/<dataset_id> shows.
+    const latest = existing ? { ...doc, _rev: existing._rev } : doc;
+    await putDoc(db, datasetId, latest);
 
     await sequelize.transaction(async (t) => {
       const [, meta] = await sequelize.query(
@@ -454,7 +507,7 @@ const promote = async (req, res) => {
           replacements: {
             sid: sub.submission_id,
             me: req.user.id,
-            msg: `Published as ${db}/${datasetId}.`,
+            msg: `Published as ${db}/${datasetId} (version ${version}).`,
           },
           transaction: t,
         }
@@ -466,6 +519,7 @@ const promote = async (req, res) => {
       status: "promoted",
       db,
       dataset_id: datasetId,
+      version,
       path: `/db/${db}/${datasetId}`,
     });
   } catch (err) {
