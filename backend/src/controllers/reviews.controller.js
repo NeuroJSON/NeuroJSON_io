@@ -40,7 +40,7 @@ const loadSubmission = async (submissionId, { t, lock } = {}) => {
   }
   const rows = await sequelize.query(
     `SELECT s.submission_id, s.status, s.submitted_at, s.reviewed_at, s.updated_at,
-            s.json_uploaded_at, s.raw_zip_expected, s.published_version,
+            s.json_uploaded_at, s.raw_zip_expected, s.published_version, s.promoted_db,
             -- highest version already published by ANOTHER submission (new-version note)
             (SELECT MAX(s2.published_version) FROM submissions s2
               WHERE s2.dataset_registry_id = s.dataset_registry_id
@@ -156,9 +156,23 @@ const getReview = async (req, res) => {
 };
 
 // GET /api/v1/reviews/:submissionId/document — the submitted JSON (proxied).
+// A PUBLISHED submission is read from its frozen copy in the archive
+// (<db>:<dataset_id>:v<n>): the sandbox only holds the dataset's latest working
+// copy, which may already be a newer version. Everything else (draft, pending,
+// changes requested, approved, rejected) reads the working copy.
 const getReviewDocument = async (req, res) => {
   try {
     const sub = await loadSubmission(String(req.params.submissionId));
+    if (sub.status === "promoted" && sub.published_version) {
+      const archiveId = `${sub.promoted_db}:${sub.dataset_id}:v${sub.published_version}`;
+      const frozen = ARCHIVE_DB ? await getDoc(ARCHIVE_DB, archiveId) : null;
+      if (!frozen) {
+        return res.status(404).json({
+          error: "The archived copy of this published version was not found.",
+        });
+      }
+      return res.json(frozen);
+    }
     const { data } = await axios.get(sandboxDocUrl(sub.internal_id), {
       headers: buildHeaders(),
     });
