@@ -79,6 +79,8 @@ const listReviews = async (req, res) => {
               s.json_uploaded_at,
               r.internal_id, r.dataset_name, r.requested_db, r.requested_dataset_id,
               r.dataset_id,
+              s.published_version,
+              (r.published_submission_id = s.submission_id) AS is_live,
               -- highest version already published by ANOTHER submission (new-version chip)
               (SELECT MAX(s2.published_version) FROM submissions s2
                 WHERE s2.dataset_registry_id = s.dataset_registry_id

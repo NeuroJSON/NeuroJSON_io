@@ -25,6 +25,8 @@ export interface ReviewListItem {
   raw_zip_uploaded_at: string | null;
   dataset_id: string | null;
   live_version: number | null; // highest version already published by another submission
+  published_version: number | null; // this submission's own version, once published
+  is_live: boolean; // this submission is the version the live page shows
 }
 
 export interface ReviewComment {
