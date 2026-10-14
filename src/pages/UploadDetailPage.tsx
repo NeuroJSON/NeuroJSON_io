@@ -18,6 +18,7 @@ import {
 import CopyButton from "components/CopyButton";
 import PublishSettingsDialog from "components/Upload/PublishSettingsDialog";
 import RawDataUploader from "components/Upload/RawDataUploader";
+import { STATUS_CHIP } from "components/Upload/statusChip";
 import { Colors } from "design/theme";
 import { useAppSelector } from "hooks/useAppSelector";
 import React, { useCallback, useEffect, useState } from "react";
@@ -32,26 +33,7 @@ import {
 } from "services/upload.service";
 import RoutesEnum from "types/routes.enum";
 
-type SubStatus = Exclude<UploadRecord["status"], null>;
-
-const STATUS_CHIP: Record<
-  SubStatus,
-  {
-    label: string;
-    color?: "default" | "info" | "warning" | "success" | "error";
-    sx?: object;
-  }
-> = {
-  draft: { label: "Draft", color: "default" },
-  pending: {
-    label: "Pending review",
-    sx: { backgroundColor: Colors.purple, color: Colors.white },
-  },
-  changes_requested: { label: "Changes requested", color: "warning" },
-  approved: { label: "Approved — awaiting promotion", color: "info" },
-  promoted: { label: "Promoted", color: "success" },
-  rejected: { label: "Rejected", color: "error" },
-};
+// Status labels/colors: shared with the uploads tab and review pages.
 
 const formatDate = (d: string | null) =>
   d

@@ -15,30 +15,11 @@ import {
 import { Colors } from "design/theme";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { STATUS_CHIP } from "components/Upload/statusChip";
 import { UploadRecord, UploadService } from "services/upload.service";
 import { formatBytes } from "utils/formatBytes";
 
-type SubStatus = Exclude<UploadRecord["status"], null>;
-
-const STATUS_CHIP: Record<
-  SubStatus,
-  {
-    label: string;
-    color?: "default" | "info" | "warning" | "success" | "error";
-    sx?: object;
-  }
-> = {
-  draft: { label: "Draft", color: "default" },
-  // Pending uses the theme purple (not MUI's default blue).
-  pending: {
-    label: "Pending review",
-    sx: { backgroundColor: Colors.purple, color: Colors.white },
-  },
-  changes_requested: { label: "Changes requested", color: "warning" },
-  approved: { label: "Approved — awaiting promotion", color: "info" },
-  promoted: { label: "Promoted", color: "success" },
-  rejected: { label: "Rejected", color: "error" },
-};
+// Status labels/colors: shared with the upload and review pages.
 
 // Raw ZIP state of the latest version (null = no raw data → no chip).
 const rawChip = (r: UploadRecord) => {

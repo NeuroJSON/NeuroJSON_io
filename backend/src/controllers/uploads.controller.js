@@ -271,7 +271,7 @@ const createUpload = async (req, res) => {
               status: "approved",
               requiresConfirmation: false,
               message:
-                "This dataset has been approved and is awaiting promotion.",
+                "This dataset has been approved and is awaiting publishing.",
             });
           }
           // promoted or rejected → confirmable resubmission.

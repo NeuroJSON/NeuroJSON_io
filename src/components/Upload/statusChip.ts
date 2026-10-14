@@ -19,7 +19,8 @@ export const STATUS_CHIP: Record<
     sx: { backgroundColor: Colors.purple, color: Colors.white },
   },
   changes_requested: { label: "Changes requested", color: "warning" },
-  approved: { label: "Approved — awaiting promotion", color: "info" },
-  promoted: { label: "Promoted", color: "success" },
+  approved: { label: "Approved — awaiting publishing", color: "info" },
+  // DB status stays "promoted"; users see "Published".
+  promoted: { label: "Published", color: "success" },
   rejected: { label: "Rejected", color: "error" },
 };
