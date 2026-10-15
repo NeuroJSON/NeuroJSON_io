@@ -249,7 +249,10 @@ const UploadPage: React.FC = () => {
           type="file"
           accept=".json,application/json"
           style={{ display: "none" }}
-          onChange={(e) => handleFile(e.target.files?.[0])}
+          onChange={(e) => {
+            handleFile(e.target.files?.[0]);
+            e.target.value = ""; // allow choosing the same (edited) file again
+          }}
         />
         <Button
           variant="outlined"
