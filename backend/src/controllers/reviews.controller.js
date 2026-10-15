@@ -27,6 +27,12 @@ const DECISIONS = {
 };
 const MAX_MESSAGE = 5000;
 
+// Published versions are MAJOR.MINOR ("1.1"); frozen copies are
+// <archive db>/<db>:<dataset_id>:v<major>.<minor>.
+const versionLabel = (major, minor) => `${major}.${minor}`;
+const archiveIdFor = (db, id, major, minor) =>
+  `${db}:${id}:v${versionLabel(major, minor)}`;
+
 const sendError = (res, err, what) => {
   if (err instanceof HttpError) return res.status(err.status).json(err.body);
   console.error(`${what} failed:`, err.message);
@@ -40,12 +46,21 @@ const loadSubmission = async (submissionId, { t, lock } = {}) => {
   }
   const rows = await sequelize.query(
     `SELECT s.submission_id, s.status, s.submitted_at, s.reviewed_at, s.updated_at,
-            s.json_uploaded_at, s.raw_zip_expected, s.published_version, s.promoted_db,
+            s.json_uploaded_at, s.raw_zip_expected, s.promoted_db,
+            s.published_major, s.published_minor,
             (r.published_submission_id = s.submission_id) AS is_live,
-            -- highest version already published by ANOTHER submission (new-version note)
-            (SELECT MAX(s2.published_version) FROM submissions s2
-              WHERE s2.dataset_registry_id = s.dataset_registry_id
-                AND s2.submission_id <> s.submission_id) AS live_version,
+            -- the LIVE version of this dataset (if it's another submission), e.g. "1.1"
+            (SELECT ls.published_major || '.' || ls.published_minor
+               FROM submissions ls
+              WHERE ls.submission_id = r.published_submission_id
+                AND ls.submission_id <> s.submission_id) AS live_version,
+            -- may this be a MINOR update? (same raw ZIP as the live version, or both none)
+            (r.published_submission_id IS NOT NULL
+             AND r.published_submission_id <> s.submission_id
+             AND (SELECT f.raw_id FROM submission_raw_files f WHERE f.submission_id = s.submission_id)
+                 IS NOT DISTINCT FROM
+                 (SELECT f.raw_id FROM submission_raw_files f WHERE f.submission_id = r.published_submission_id)
+            ) AS minor_allowed,
             r.internal_id, r.dataset_name, r.requested_db, r.requested_dataset_id,
             r.dataset_id, r.owner_user_id, u.username AS owner_username, u.email AS owner_email
        FROM submissions s
@@ -79,12 +94,13 @@ const listReviews = async (req, res) => {
               s.json_uploaded_at,
               r.internal_id, r.dataset_name, r.requested_db, r.requested_dataset_id,
               r.dataset_id,
-              s.published_version,
+              s.published_major, s.published_minor,
               (r.published_submission_id = s.submission_id) AS is_live,
-              -- highest version already published by ANOTHER submission (new-version chip)
-              (SELECT MAX(s2.published_version) FROM submissions s2
-                WHERE s2.dataset_registry_id = s.dataset_registry_id
-                  AND s2.submission_id <> s.submission_id) AS live_version,
+              -- the LIVE version of this dataset (if it's another submission), e.g. "1.1"
+              (SELECT ls.published_major || '.' || ls.published_minor
+                 FROM submissions ls
+                WHERE ls.submission_id = r.published_submission_id
+                  AND ls.submission_id <> s.submission_id) AS live_version,
               u.username AS owner_username, u.email AS owner_email,
               (r.owner_user_id = :me) AS is_own,
               (SELECT o.size_bytes FROM submission_raw_files f
@@ -160,14 +176,19 @@ const getReview = async (req, res) => {
 
 // GET /api/v1/reviews/:submissionId/document — the submitted JSON (proxied).
 // A PUBLISHED submission is read from its frozen copy in the archive
-// (<db>:<dataset_id>:v<n>): the sandbox only holds the dataset's latest working
+// (<db>:<dataset_id>:v<major>.<minor>): the sandbox only holds the dataset's latest working
 // copy, which may already be a newer version. Everything else (draft, pending,
 // changes requested, approved, rejected) reads the working copy.
 const getReviewDocument = async (req, res) => {
   try {
     const sub = await loadSubmission(String(req.params.submissionId));
-    if (sub.status === "promoted" && sub.published_version) {
-      const archiveId = `${sub.promoted_db}:${sub.dataset_id}:v${sub.published_version}`;
+    if (sub.status === "promoted" && sub.published_major != null) {
+      const archiveId = archiveIdFor(
+        sub.promoted_db,
+        sub.dataset_id,
+        sub.published_major,
+        sub.published_minor
+      );
       const frozen = ARCHIVE_DB ? await getDoc(ARCHIVE_DB, archiveId) : null;
       if (!frozen) {
         return res.status(404).json({
@@ -302,7 +323,7 @@ const DB_RE = /^[a-z][a-z0-9_-]{0,62}$/;
 // rewritten here. Later they become /api/v1/files/<db>/<dataset_id>/<path>.
 const FILE_MARKER = "neurojson:files/";
 // Frozen copy of every published version goes here (create-only):
-//   <archive db>/<db>:<dataset_id>:v<n>
+//   <archive db>/<db>:<dataset_id>:v<major>.<minor>
 // Required while publishing is on, so no version is published without it.
 const ARCHIVE_DB = (process.env.COUCHDB_PROMOTE_ARCHIVE_DB || "").trim();
 
@@ -325,7 +346,7 @@ const hasFileMarker = (root) => {
 // dataset: the ID must also be free in the target CouchDB database (an older
 // dataset may already use it). Both stay reserved, so a failed publish is
 // retried with the SAME ID and version.
-const reserveDatasetId = async (sub, db) =>
+const reserveDatasetId = async (sub, db, kind) =>
   sequelize.transaction(async (t) => {
     const s = await loadSubmission(sub.submission_id, { t, lock: true });
     if (s.status !== "approved") {
@@ -385,28 +406,73 @@ const reserveDatasetId = async (sub, db) =>
       }
     }
 
-    // Version number for this publish: kept if a failed attempt already set it,
-    // else the dataset's highest published version + 1. The unique index
-    // uq_submissions_dataset_published_version refuses a duplicate.
-    let version = s.published_version;
-    if (!version) {
-      version = (
+    // Version for this publish (kept if a failed attempt already reserved it):
+    //   first publish            → 1.0 (always a new version)
+    //   kind "minor" (metadata)  → <live major>.<highest minor of that major + 1>,
+    //                              only if the raw ZIP is the same as the live version's
+    //   kind "major"             → <highest major + 1>.0
+    // The unique index (dataset, major, minor) refuses a duplicate.
+    let major = s.published_major;
+    let minor = s.published_minor;
+    if (major == null) {
+      const top = (
         await sequelize.query(
-          `SELECT COALESCE(MAX(published_version), 0) + 1 AS v
-             FROM submissions WHERE dataset_registry_id = :iid`,
+          `SELECT MAX(published_major) AS max_major FROM submissions
+            WHERE dataset_registry_id = :iid AND submission_id <> :sid`,
           {
-            replacements: { iid: s.internal_id },
+            replacements: { iid: s.internal_id, sid: s.submission_id },
             type: sequelize.QueryTypes.SELECT,
             transaction: t,
           }
         )
-      )[0].v;
+      )[0];
+      if (!top.max_major) {
+        if (kind === "minor") {
+          throw new HttpError(409, {
+            error: "The first publish is always version 1.0 (a new version).",
+          });
+        }
+        major = 1;
+        minor = 0;
+      } else if (kind === "minor") {
+        if (!s.minor_allowed) {
+          throw new HttpError(409, {
+            error:
+              "The raw data (ZIP) changed since the live version, so this must be published as a new version.",
+          });
+        }
+        const live = (
+          await sequelize.query(
+            `SELECT ls.published_major AS major,
+                    (SELECT MAX(x.published_minor) FROM submissions x
+                      WHERE x.dataset_registry_id = :iid
+                        AND x.published_major = ls.published_major) AS max_minor
+               FROM dataset_registry r
+               JOIN submissions ls ON ls.submission_id = r.published_submission_id
+              WHERE r.internal_id = :iid`,
+            {
+              replacements: { iid: s.internal_id },
+              type: sequelize.QueryTypes.SELECT,
+              transaction: t,
+            }
+          )
+        )[0];
+        major = live.major;
+        minor = live.max_minor + 1;
+      } else {
+        major = top.max_major + 1;
+        minor = 0;
+      }
       await sequelize.query(
-        `UPDATE submissions SET published_version = :v WHERE submission_id = :sid`,
-        { replacements: { v: version, sid: s.submission_id }, transaction: t }
+        `UPDATE submissions SET published_major = :major, published_minor = :minor
+          WHERE submission_id = :sid`,
+        {
+          replacements: { major, minor, sid: s.submission_id },
+          transaction: t,
+        }
       );
     }
-    return { datasetId: id, version };
+    return { datasetId: id, major, minor };
   });
 
 // POST /api/v1/reviews/:submissionId/promote — publish an approved submission.
@@ -422,6 +488,8 @@ const promote = async (req, res) => {
         error: "Publishing is not enabled on this server yet.",
       });
     }
+    // "minor" = metadata-only update of the live version; anything else = new version.
+    const kind = req.body?.kind === "minor" ? "minor" : "major";
     const sub = await loadSubmission(String(req.params.submissionId));
     if (sub.status !== "approved") {
       throw new HttpError(409, {
@@ -475,7 +543,8 @@ const promote = async (req, res) => {
       if (!k.startsWith("_")) doc[k] = v;
     }
 
-    const { datasetId, version } = await reserveDatasetId(sub, db);
+    const { datasetId, major, minor } = await reserveDatasetId(sub, db, kind);
+    const version = versionLabel(major, minor); // "1.1"
 
     // Full replace (a new version must not keep keys it removed — the public
     // dbs' `timestamp` update handler would merge), with .datainfo like the
@@ -492,7 +561,7 @@ const promote = async (req, res) => {
 
     // 1) Frozen copy, create-only: never overwrite an archived version. If it
     //    exists, a failed earlier attempt already wrote it (the number is ours).
-    const archiveId = `${db}:${datasetId}:v${version}`;
+    const archiveId = archiveIdFor(db, datasetId, major, minor);
     if (!(await getDoc(ARCHIVE_DB, archiveId))) {
       try {
         await putDoc(ARCHIVE_DB, archiveId, doc);
@@ -546,6 +615,8 @@ const promote = async (req, res) => {
       db,
       dataset_id: datasetId,
       version,
+      major,
+      minor,
       path: `/db/${db}/${datasetId}`,
     });
   } catch (err) {
