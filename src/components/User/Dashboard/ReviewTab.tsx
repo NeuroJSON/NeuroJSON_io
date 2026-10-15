@@ -149,19 +149,18 @@ const ReviewTab: React.FC = () => {
                           }}
                         />
                         {/* Published rows: which version, and whether it is the live one */}
-                        {r.status === "promoted" && !!r.published_version && (
-                          <Chip
-                            label={
-                              r.is_live
-                                ? `v${r.published_version} · live`
-                                : `v${r.published_version}`
-                            }
-                            color={r.is_live ? "success" : "default"}
-                            variant={r.is_live ? "filled" : "outlined"}
-                            size="small"
-                            sx={{ height: 20, fontWeight: 600 }}
-                          />
-                        )}
+                        {r.status === "promoted" &&
+                          r.published_major != null && (
+                            <Chip
+                              label={`v${r.published_major}.${
+                                r.published_minor
+                              }${r.is_live ? " · live" : ""}`}
+                              color={r.is_live ? "success" : "default"}
+                              variant={r.is_live ? "filled" : "outlined"}
+                              size="small"
+                              sx={{ height: 20, fontWeight: 600 }}
+                            />
+                          )}
                         {/* New version of an already published dataset */}
                         {!!r.live_version && r.status !== "promoted" && (
                           <Chip

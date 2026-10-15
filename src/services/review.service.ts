@@ -5,6 +5,8 @@ import { UploadRecord } from "services/upload.service";
 // httpOnly login cookie, like upload.service.ts.
 
 export type SubmissionStatus = Exclude<UploadRecord["status"], null>;
+// "minor" = metadata-only update of the live version; "major" = new version.
+export type PublishKind = "minor" | "major";
 export type ReviewDecision = "approve" | "request_changes" | "reject";
 
 export interface ReviewListItem {
@@ -24,8 +26,9 @@ export interface ReviewListItem {
   json_uploaded_at: string | null;
   raw_zip_uploaded_at: string | null;
   dataset_id: string | null;
-  live_version: number | null; // highest version already published by another submission
-  published_version: number | null; // this submission's own version, once published
+  live_version: string | null; // the LIVE version of this dataset, e.g. "1.1" (if another submission)
+  published_major: number | null; // this submission's version once published: major …
+  published_minor: number | null; // … and minor → "1.1"
   is_live: boolean; // this submission is the version the live page shows
 }
 
@@ -42,7 +45,7 @@ export interface ReviewDetail
   dataset_id: string | null;
   json_uploaded_at: string | null;
   raw_zip_expected: boolean;
-  published_version: number | null;
+  minor_allowed: boolean; // same raw ZIP as the live version → a minor update is possible
   promoted_db: string | null;
   is_live: boolean; // this submission is the version the live page shows
   raw_zip: {
@@ -95,14 +98,19 @@ export const ReviewService = {
     ),
 
   // Publish an approved submission (the backend checks everything again).
-  promote: (submissionId: string) =>
+  promote: (submissionId: string, kind: PublishKind) =>
     request<{
       status: SubmissionStatus;
       db: string;
       dataset_id: string;
-      version: number;
+      version: string; // "1.1"
+      major: number;
+      minor: number;
       path: string;
-    }>(`/${submissionId}/promote`, { method: "POST" }),
+    }>(`/${submissionId}/promote`, {
+      method: "POST",
+      body: JSON.stringify({ kind }),
+    }),
 
   comment: (submissionId: string, message: string) =>
     request<ReviewComment>(`/${submissionId}/comments`, {

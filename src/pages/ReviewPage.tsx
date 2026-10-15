@@ -15,7 +15,10 @@ import {
   DialogContentText,
   DialogTitle,
   Divider,
+  FormControlLabel,
   Paper,
+  Radio,
+  RadioGroup,
   TextField,
   Typography,
 } from "@mui/material";
@@ -31,6 +34,7 @@ import {
   ReviewDecision,
   ReviewDetail,
   ReviewService,
+  PublishKind,
 } from "services/review.service";
 import { formatBytes } from "utils/formatBytes";
 import { resubmitChanges } from "utils/resubmitChanges";
@@ -79,6 +83,8 @@ const formatDate = (d: string | null | undefined) =>
       })
     : "—";
 
+const radioSx = { "&.Mui-checked": { color: Colors.purple } };
+
 const purpleButton = {
   backgroundColor: Colors.purple,
   "&:hover": { backgroundColor: Colors.secondaryPurple },
@@ -99,6 +105,7 @@ const ReviewPage: React.FC = () => {
   const [decisionError, setDecisionError] = useState<string | null>(null);
 
   const [publishOpen, setPublishOpen] = useState(false);
+  const [publishKind, setPublishKind] = useState<PublishKind>("major");
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
 
@@ -155,7 +162,7 @@ const ReviewPage: React.FC = () => {
     setPublishing(true);
     setPublishError(null);
     try {
-      await ReviewService.promote(submissionId);
+      await ReviewService.promote(submissionId, publishKind);
       setPublishOpen(false);
       await load();
     } catch (e: any) {
@@ -221,7 +228,14 @@ const ReviewPage: React.FC = () => {
   const publishDb = detail.requested_db || "public";
   const publishId =
     detail.dataset_id || detail.requested_dataset_id || "njds######";
-  const nextVersion = (detail.live_version || 0) + 1;
+  // The live version is always the latest published one, so these are exact.
+  const firstPublish = !detail.live_version;
+  const [liveMajor, liveMinor] = (detail.live_version || "0.0")
+    .split(".")
+    .map(Number);
+  const nextMinor = firstPublish ? "1.0" : `${liveMajor}.${liveMinor + 1}`;
+  const nextMajor = firstPublish ? "1.0" : `${liveMajor + 1}.0`;
+  const canMinor = !firstPublish && detail.minor_allowed;
   const zip = detail.raw_zip;
   // Resubmitted after a decision: tell the reviewer what changed since then.
   const changes = resubmitChanges({
@@ -398,6 +412,7 @@ const ReviewPage: React.FC = () => {
               variant="contained"
               onClick={() => {
                 setPublishError(null);
+                setPublishKind("major");
                 setPublishOpen(true);
               }}
               sx={purpleButton}
@@ -411,8 +426,8 @@ const ReviewPage: React.FC = () => {
             <code>
               {detail.promoted_db}/{detail.dataset_id}
             </code>
-            {detail.published_version
-              ? ` · version ${detail.published_version}`
+            {detail.published_major != null
+              ? ` · version ${detail.published_major}.${detail.published_minor}`
               : ""}
             {detail.is_live
               ? " (live)"
@@ -591,12 +606,48 @@ const ReviewPage: React.FC = () => {
               : ""}
             .
           </DialogContentText>
-          <DialogContentText sx={{ mb: 1.5 }}>
-            This will be <strong>version {nextVersion}</strong>
+          <RadioGroup
+            value={publishKind}
+            onChange={(e) => setPublishKind(e.target.value as PublishKind)}
+          >
+            <FormControlLabel
+              value="minor"
+              disabled={!canMinor}
+              control={<Radio sx={radioSx} />}
+              label={
+                <>
+                  Minor update → <strong>version {nextMinor}</strong> (metadata
+                  only; data and file links stay the same)
+                </>
+              }
+            />
+            {!canMinor && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ ml: 4, mt: -0.5, mb: 1 }}
+              >
+                {firstPublish
+                  ? "The first publish is always version 1.0."
+                  : `The raw data (ZIP) changed since version ${detail.live_version}, so this must be a new version.`}
+              </Typography>
+            )}
+            <FormControlLabel
+              value="major"
+              control={<Radio sx={radioSx} />}
+              label={
+                <>
+                  New version → <strong>version {nextMajor}</strong> (the data
+                  changed)
+                </>
+              }
+            />
+          </RadioGroup>
+          <DialogContentText sx={{ mt: 1.5 }}>
             {detail.live_version
-              ? ` (version ${detail.live_version} is live and stays in the archive)`
+              ? `Version ${detail.live_version} stays available in the archive. `
               : ""}
-            . A frozen copy of this version is kept. Publishing can't be undone
+            A frozen copy of this version is kept. Publishing can't be undone
             from here.
           </DialogContentText>
           {publishError && (
