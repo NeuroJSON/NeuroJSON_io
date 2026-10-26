@@ -65,11 +65,12 @@ const cleanSize = (raw) => {
   return size;
 };
 
-// Latest submission (cycle) of the dataset, locked for this transaction.
+// Latest non-expired submission (cycle) of the dataset, locked for this transaction.
 const lockLatestSubmission = async (internalId, t) => {
   const rows = await sequelize.query(
     `SELECT id, submission_id, status FROM submissions
-      WHERE dataset_registry_id = :iid ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
+      WHERE dataset_registry_id = :iid AND status <> 'expired'
+      ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
     {
       replacements: { iid: internalId },
       type: sequelize.QueryTypes.SELECT,
@@ -256,7 +257,8 @@ const getRawStatus = async (req, res) => {
     );
     const subs = await sequelize.query(
       `SELECT submission_id, status, raw_zip_expected FROM submissions
-        WHERE dataset_registry_id = :iid ORDER BY created_at DESC LIMIT 1`,
+        WHERE dataset_registry_id = :iid AND status <> 'expired'
+        ORDER BY created_at DESC LIMIT 1`,
       { replacements: { iid: reg.internal_id }, type: sequelize.QueryTypes.SELECT }
     );
     const sub = subs[0];

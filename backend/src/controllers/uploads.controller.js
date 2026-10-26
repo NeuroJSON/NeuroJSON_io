@@ -214,7 +214,7 @@ const createUpload = async (req, res) => {
 
         const subs = await sequelize.query(
           `SELECT id, submission_id, status FROM submissions
-            WHERE dataset_registry_id = :rid
+            WHERE dataset_registry_id = :rid AND status <> 'expired'
             ORDER BY created_at DESC FOR UPDATE`,
           {
             replacements: { rid: registryId },
@@ -240,7 +240,7 @@ const createUpload = async (req, res) => {
             { replacements: { id: editable.id }, transaction: t }
           );
         } else if (subs.length === 0) {
-          // Defensive: registry with no cycle → start one.
+          // No active cycle (none yet, or all expired) → start a fresh draft.
           submissionId = crypto.randomUUID();
           await sequelize.query(
             `INSERT INTO submissions
@@ -396,9 +396,10 @@ const listMyUploads = async (req, res) => {
                        WHERE a.submission_id = s.submission_id
                          AND a.status IN ('initiated','uploading','verifying')) AS raw_upload_active
          FROM dataset_registry r
-         LEFT JOIN LATERAL (
+         -- latest NON-expired submission; datasets with only expired ones are hidden
+         JOIN LATERAL (
            SELECT * FROM submissions s2
-            WHERE s2.dataset_registry_id = r.internal_id
+            WHERE s2.dataset_registry_id = r.internal_id AND s2.status <> 'expired'
             ORDER BY s2.created_at DESC LIMIT 1
          ) s ON true
         WHERE r.owner_user_id = :uid
@@ -415,7 +416,8 @@ const listMyUploads = async (req, res) => {
 const latestSubmissionId = async (internalId) => {
   const s = await sequelize.query(
     `SELECT submission_id FROM submissions
-      WHERE dataset_registry_id = :iid ORDER BY created_at DESC LIMIT 1`,
+      WHERE dataset_registry_id = :iid AND status <> 'expired'
+      ORDER BY created_at DESC LIMIT 1`,
     { replacements: { iid: internalId }, type: sequelize.QueryTypes.SELECT }
   );
   return s[0] ? s[0].submission_id : null;
@@ -462,7 +464,7 @@ const submitForReview = async (req, res) => {
       const rows = await sequelize.query(
         `SELECT id, status, json_status, raw_zip_expected, ${RAW_READINESS_COLUMNS}
            FROM submissions
-          WHERE dataset_registry_id = :iid
+          WHERE dataset_registry_id = :iid AND status <> 'expired'
           ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
         {
           replacements: { iid: reg.internal_id },
@@ -573,7 +575,8 @@ const updateSettings = async (req, res) => {
     const out = await sequelize.transaction(async (t) => {
       // Same rule as uploads: only while the submission is editable.
       const rows = await sequelize.query(
-        `SELECT status FROM submissions WHERE dataset_registry_id = :iid
+        `SELECT status FROM submissions
+          WHERE dataset_registry_id = :iid AND status <> 'expired'
           ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
         {
           replacements: { iid: reg.internal_id },
@@ -638,10 +641,18 @@ const getUpload = async (req, res) => {
       `SELECT submission_id, status, created_at, updated_at, promoted_db, promoted_at,
               json_status, json_uploaded_at, json_error, submitted_at, raw_zip_expected,
               reviewed_at, ${RAW_READINESS_COLUMNS}
-         FROM submissions WHERE dataset_registry_id = :iid
+         FROM submissions WHERE dataset_registry_id = :iid AND status <> 'expired'
         ORDER BY created_at DESC LIMIT 1`,
       { replacements: { iid: reg.internal_id }, type: sequelize.QueryTypes.SELECT }
     );
+    if (!s[0]) {
+      // Only expired submissions left → hidden from the owner (kept for history).
+      const any = await sequelize.query(
+        `SELECT 1 FROM submissions WHERE dataset_registry_id = :iid LIMIT 1`,
+        { replacements: { iid: reg.internal_id }, type: sequelize.QueryTypes.SELECT }
+      );
+      if (any.length) throw new HttpError(404, { error: "Dataset not found" });
+    }
     const sub = s[0] || {};
     res.json({
       internal_id: reg.internal_id,

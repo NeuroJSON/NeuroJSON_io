@@ -74,7 +74,8 @@ const loadSubmission = async (submissionId, { t, lock } = {}) => {
       transaction: t,
     }
   );
-  if (!rows[0] || rows[0].status === "draft") {
+  // Drafts (and expired drafts) are private to their owner.
+  if (!rows[0] || ["draft", "expired"].includes(rows[0].status)) {
     throw new HttpError(404, { error: "Submission not found." });
   }
   return rows[0];

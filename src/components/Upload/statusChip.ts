@@ -23,4 +23,6 @@ export const STATUS_CHIP: Record<
   // DB status stays "promoted"; users see "Published".
   promoted: { label: "Published", color: "success" },
   rejected: { label: "Rejected", color: "error" },
+  // Kept for history only; the backend hides expired drafts from users.
+  expired: { label: "Expired", color: "default" },
 };

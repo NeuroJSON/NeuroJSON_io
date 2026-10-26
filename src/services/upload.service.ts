@@ -18,6 +18,7 @@ export interface UploadRecord {
     | "approved"
     | "rejected"
     | "promoted"
+    | "expired" // never shown: the backend hides expired drafts
     | null;
   created_at: string | null;
   updated_at: string | null;
