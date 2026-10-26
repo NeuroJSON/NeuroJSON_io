@@ -1,54 +1,16 @@
 // Upload cleanup, run on a timer. Assumes ONE backend process, like the
 // reconciler (add a Postgres advisory lock if that changes).
 //   1) drafts idle for DRAFT_EXPIRE_DAYS → 'expired' (row kept for history;
-//      sandbox JSON removed, or put back to the published version for a
-//      new-version draft; preferred id released if never published)
+//      sandbox JSON removed; preferred id released if never published).
+//      A published version is read from its archive copy, never the sandbox.
 //   2) unused raw ZIPs → deleted on Zodiac (not built yet)
 const { sequelize } = require("../config/database");
 const { DRAFT_EXPIRE_DAYS } = require("../lib/draftExpiry");
-const { deleteSandboxDoc, replaceSandboxDoc } = require("../lib/sandbox");
-const {
-  promoteEnabled,
-  getDoc,
-  ARCHIVE_DB,
-  archiveIdFor,
-} = require("../lib/publicCouch");
+const { deleteSandboxDoc } = require("../lib/sandbox");
 
 const INTERVAL_MS = Number(process.env.UPLOAD_CLEANUP_INTERVAL_MS ?? 3600000); // 1 h; 0 = off
 const BATCH = 50;
 const ACTIVE = ["initiated", "uploading", "verifying"];
-
-// New-version draft expired → the working copy is the published version again.
-const restorePublished = async (s, t) => {
-  const [p] = await sequelize.query(
-    `SELECT promoted_db, published_major, published_minor
-       FROM submissions WHERE submission_id = :sid`,
-    {
-      replacements: { sid: s.published_submission_id },
-      type: sequelize.QueryTypes.SELECT,
-      transaction: t,
-    }
-  );
-  const frozen =
-    p && promoteEnabled() && ARCHIVE_DB
-      ? await getDoc(
-          ARCHIVE_DB,
-          archiveIdFor(
-            p.promoted_db,
-            s.dataset_id,
-            p.published_major,
-            p.published_minor
-          )
-        )
-      : null;
-  if (!frozen) {
-    console.warn(
-      `cleanup: ${s.dataset_registry_id} expired; published copy not readable, sandbox JSON left as is`
-    );
-    return;
-  }
-  await replaceSandboxDoc(s.dataset_registry_id, frozen);
-};
 
 // One draft, in one transaction. false = no longer due (e.g. Keep was clicked).
 const expireDraft = (id) =>
@@ -56,8 +18,7 @@ const expireDraft = (id) =>
     // Locks the dataset row too: an upload at the same moment waits, then
     // sees the new state.
     const [s] = await sequelize.query(
-      `SELECT s.id, s.submission_id, s.dataset_registry_id,
-              r.dataset_id, r.published_submission_id
+      `SELECT s.id, s.submission_id, s.dataset_registry_id
          FROM submissions s
          JOIN dataset_registry r ON r.internal_id = s.dataset_registry_id
         WHERE s.id = :id AND s.status = 'draft'
@@ -71,8 +32,8 @@ const expireDraft = (id) =>
     );
     if (!s) return false;
     // Sandbox first: if CouchDB fails, this rolls back and the next run retries.
-    if (s.published_submission_id) await restorePublished(s, t);
-    else await deleteSandboxDoc(s.dataset_registry_id);
+    // (A published version is read from its archive copy, not the sandbox.)
+    await deleteSandboxDoc(s.dataset_registry_id);
 
     const run = (sql) =>
       sequelize.query(sql, {

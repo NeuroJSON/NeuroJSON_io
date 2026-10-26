@@ -37,31 +37,10 @@ const deleteSandboxDoc = async (internalId) => {
   }
 };
 
-// Full-replace the working copy with `doc` (plain PUT with the current _rev).
-const replaceSandboxDoc = async (internalId, doc) => {
-  const { _id, _rev, ...body } = doc;
-  let rev;
-  try {
-    rev = (
-      await axios.get(sandboxDocUrl(internalId), { headers: buildHeaders() })
-    ).data._rev;
-  } catch (err) {
-    if (err.response?.status !== 404) throw err;
-  }
-  await axios.put(
-    sandboxDocUrl(internalId),
-    rev ? { ...body, _rev: rev } : body,
-    {
-      headers: buildHeaders(),
-    }
-  );
-};
-
 module.exports = {
   UPLOAD_URL,
   UPLOAD_DB,
   buildHeaders,
   sandboxDocUrl,
   deleteSandboxDoc,
-  replaceSandboxDoc,
 };

@@ -17,6 +17,7 @@ const { draftExpiresAt, draftWarnAt } = require("../lib/draftExpiry");
 // The sandbox holds the latest working copy at _id = internal_id; a re-upload
 // full-replaces it (the `timestamp` update handler on the db).
 const { UPLOAD_URL, UPLOAD_DB, buildHeaders } = require("../lib/sandbox");
+const { getDoc, ARCHIVE_DB, archiveIdFor } = require("../lib/publicCouch");
 
 // Preferred public id rules (final availability is re-checked at promotion).
 const REQUESTED_ID_RE = /^[a-z0-9][a-z0-9_-]{2,62}$/;
@@ -375,15 +376,48 @@ const createUpload = async (req, res) => {
   }
 };
 
-// GET /api/v1/uploads/:internalId/document — the stored sandbox doc (owner
-// only). Proxied server-side so the sandbox CouchDB URL never reaches the
-// browser (not even in DevTools).
+// GET /api/v1/uploads/:internalId/document — the JSON of the submission the
+// detail page shows (owner only). Proxied server-side so the sandbox CouchDB
+// URL never reaches the browser (not even in DevTools).
 const getUploadDocument = async (req, res) => {
   try {
     const reg = await loadOwnedRegistry(
       String(req.params.internalId),
       req.user.id
     );
+    // The same submission the detail page shows (latest non-expired).
+    const [sub] = await sequelize.query(
+      `SELECT status, promoted_db, published_major, published_minor
+         FROM submissions
+        WHERE dataset_registry_id = :iid AND status <> 'expired'
+        ORDER BY created_at DESC LIMIT 1`,
+      {
+        replacements: { iid: reg.internal_id },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+    if (!sub) return res.status(404).json({ error: "Dataset not found" });
+    // Published → its frozen archive copy (the sandbox may hold a newer or
+    // removed draft). Everything else → the sandbox working copy.
+    if (sub.status === "promoted" && sub.published_major != null) {
+      const frozen = ARCHIVE_DB
+        ? await getDoc(
+            ARCHIVE_DB,
+            archiveIdFor(
+              sub.promoted_db,
+              reg.dataset_id,
+              sub.published_major,
+              sub.published_minor
+            )
+          )
+        : null;
+      if (!frozen) {
+        return res.status(404).json({
+          error: "The archived copy of this published version was not found.",
+        });
+      }
+      return res.json(frozen);
+    }
     const url = `${UPLOAD_URL}/${UPLOAD_DB}/${encodeURIComponent(
       reg.internal_id
     )}`;
