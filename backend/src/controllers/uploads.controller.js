@@ -240,7 +240,27 @@ const createUpload = async (req, res) => {
             { replacements: { id: editable.id }, transaction: t }
           );
         } else if (subs.length === 0) {
-          // No active cycle (none yet, or all expired) → start a fresh draft.
+          // Every submission of this dataset expired (a never-published draft):
+          // its JSON and ZIP are removed, so it can't be reopened — the user
+          // starts a new upload instead.
+          const anyExpired = await sequelize.query(
+            `SELECT 1 FROM submissions
+              WHERE dataset_registry_id = :rid AND status = 'expired' LIMIT 1`,
+            {
+              replacements: { rid: registryId },
+              type: sequelize.QueryTypes.SELECT,
+              transaction: t,
+            }
+          );
+          if (anyExpired.length) {
+            const days = Number(process.env.DRAFT_EXPIRE_DAYS || 30);
+            throw new HttpError(409, {
+              code: "DRAFT_EXPIRED",
+              requiresConfirmation: false,
+              message: `This draft expired after ${days} days without updates and was removed. Please start a new upload.`,
+            });
+          }
+          // No submission at all (defensive) → start a fresh draft.
           submissionId = crypto.randomUUID();
           await sequelize.query(
             `INSERT INTO submissions
