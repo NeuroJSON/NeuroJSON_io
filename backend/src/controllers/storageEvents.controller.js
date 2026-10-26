@@ -1,7 +1,8 @@
 // Events from the Zodiac storage API about one raw ZIP upload. Idempotent and
 // forward-only: Zodiac may resend any event (outbox retries, reconciliation).
 //   started   → initiated → uploading
-//   verified  → REN decides commit | discard
+//   verified  → REN decides commit | discard (discard + 'reused' when the
+//               same ZIP is already stored for this dataset)
 //   committed → one transaction: raw_objects + attempt complete + mapping
 //   failed    → attempt failed (safe message)
 // raw_id = upload_id (deterministic, so a repeated "verified" gets the same
@@ -68,6 +69,32 @@ const checkFile = (a, body) => {
   };
 };
 
+// Link an existing raw object to this version instead of storing a copy.
+const reuseObject = async (a, rawId, t) => {
+  await sequelize.query(
+    `INSERT INTO submission_raw_files (submission_id, raw_id, created_at)
+     VALUES (:sid, :rid, NOW())
+     ON CONFLICT (submission_id) DO UPDATE SET raw_id = EXCLUDED.raw_id, created_at = NOW()`,
+    { replacements: { sid: a.submission_id, rid: rawId }, transaction: t }
+  );
+  // Used again → no longer a cleanup candidate.
+  await sequelize.query(
+    `UPDATE raw_objects SET unused_since = NULL, updated_at = NOW() WHERE raw_id = :rid`,
+    { replacements: { rid: rawId }, transaction: t }
+  );
+  await sequelize.query(
+    `UPDATE raw_upload_attempts
+        SET status = 'reused', reused_raw_id = :rid, error = NULL,
+            completed_at = NOW(), updated_at = NOW()
+      WHERE upload_id = :uid`,
+    { replacements: { rid: rawId, uid: a.upload_id }, transaction: t }
+  );
+  await sequelize.query(
+    `UPDATE submissions SET raw_zip_expected = true, updated_at = NOW() WHERE id = :id`,
+    { replacements: { id: a.submission_pk }, transaction: t }
+  );
+};
+
 const onStarted = async (a, body, t) => {
   await sequelize.query(
     `UPDATE raw_upload_attempts SET status = 'uploading', updated_at = NOW()
@@ -90,7 +117,7 @@ const onVerified = async (a, body, t) => {
     // cancelled / failed / expired
     return { decision: "discard", reason: `upload is ${a.status}` };
   }
-  const { sizeOk } = checkFile(a, body);
+  const { size, sha256, sizeOk } = checkFile(a, body);
   if (!sizeOk) {
     await markFailed(a.upload_id, failureMessage("size_mismatch"), t);
     return { decision: "discard", reason: "size_mismatch" };
@@ -102,6 +129,24 @@ const onVerified = async (a, body, t) => {
       t
     );
     return { decision: "discard", reason: "submission_locked" };
+  }
+  // Same ZIP already stored for this dataset → link it, drop the new copy.
+  // FOR UPDATE: the cleanup job can't start deleting it at the same moment.
+  const [same] = await sequelize.query(
+    `SELECT raw_id FROM raw_objects
+      WHERE dataset_registry_id = :iid AND sha256 = :sha AND size_bytes = :size
+        AND delete_requested_at IS NULL AND zip_deleted_at IS NULL
+      ORDER BY created_at DESC LIMIT 1
+      FOR UPDATE`,
+    {
+      replacements: { iid: a.dataset_registry_id, sha: sha256, size },
+      type: sequelize.QueryTypes.SELECT,
+      transaction: t,
+    }
+  );
+  if (same) {
+    await reuseObject(a, same.raw_id, t);
+    return { decision: "discard", reason: "reused" };
   }
   await sequelize.query(
     `UPDATE raw_upload_attempts SET status = 'verifying', updated_at = NOW()

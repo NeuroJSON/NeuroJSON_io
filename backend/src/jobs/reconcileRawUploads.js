@@ -93,7 +93,7 @@ const reconcileActive = async (a) => {
   return st.phase;
 };
 
-// A finished-in-REN attempt (cancelled/failed/expired): make sure Zodiac
+// A finished-in-REN attempt (cancelled/failed/expired/reused): make sure Zodiac
 // drops whatever it still holds. Never touches committed objects REN kept.
 const cleanUpFinished = async (a) => {
   const id = a.upload_id;
@@ -138,7 +138,7 @@ const reconcileOnce = async () => {
     }
     const finished = await q(
       `SELECT upload_id, status FROM raw_upload_attempts
-        WHERE status IN ('cancelled','failed','expired')
+        WHERE status IN ('cancelled','failed','expired','reused')
           AND (last_checked_at IS NULL OR last_checked_at < completed_at)
         ORDER BY completed_at LIMIT ${BATCH}`
     );

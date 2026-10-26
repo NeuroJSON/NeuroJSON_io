@@ -138,6 +138,13 @@ const RawDataUploader: React.FC<RawDataUploaderProps> = ({
             s.current.size
           )}) is verified and attached to this version.`
         );
+      } else if (
+        s.lastUpload?.uploadId === id &&
+        s.lastUpload.status === "reused"
+      ) {
+        setSuccess(
+          "This ZIP is the same as one already stored for this dataset, so the stored copy is used. No second copy was saved."
+        );
       } else if (s.lastUpload?.uploadId === id) {
         setError({
           message: s.lastUpload.error || "The upload could not be completed.",

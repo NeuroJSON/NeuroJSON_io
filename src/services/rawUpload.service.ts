@@ -11,7 +11,8 @@ export type RawAttemptStatus =
   | "complete"
   | "failed"
   | "cancelled"
-  | "expired";
+  | "expired"
+  | "reused";
 
 export type RawExtractionStatus =
   | "not_extracted"

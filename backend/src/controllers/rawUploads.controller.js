@@ -283,7 +283,11 @@ const getRawStatus = async (req, res) => {
               o.extraction_status, o.created_at,
               -- carried forward = the upload that made this object belongs
               -- to a different version (exact; not a timestamp guess)
-              (a.submission_id IS NOT NULL AND a.submission_id <> f.submission_id)
+              -- (a ZIP re-uploaded and reused in this version isn't carried forward)
+              (a.submission_id IS NOT NULL AND a.submission_id <> f.submission_id
+                 AND NOT EXISTS (SELECT 1 FROM raw_upload_attempts r
+                                  WHERE r.submission_id = f.submission_id
+                                    AND r.status = 'reused' AND r.reused_raw_id = o.raw_id))
                 AS carried_forward
          FROM submission_raw_files f
          JOIN raw_objects o ON o.raw_id = f.raw_id
@@ -334,9 +338,10 @@ const getRawStatus = async (req, res) => {
           }
         : null,
       activeUpload: last && ACTIVE.includes(last.status) ? shape(last) : null,
-      // "Last upload failed/cancelled/expired" (the current ZIP is untouched).
+      // "Last upload failed/cancelled/expired" (the current ZIP is untouched),
+      // or "reused" (same ZIP as one already stored; that one is now current).
       lastUpload:
-        last && ["failed", "cancelled", "expired"].includes(last.status)
+        last && ["failed", "cancelled", "expired", "reused"].includes(last.status)
           ? shape(last)
           : null,
     });
