@@ -36,6 +36,9 @@ const call = async (method, sub, body) => {
 module.exports = {
   configured: () => Boolean(base()),
   getUpload: (id) => call("GET", `/uploads/${id}`),
+  // Remove one raw object folder on Zodiac (cleanup job only).
+  deleteObject: (internalId, rawId) =>
+    call("DELETE", `/objects/${internalId}/${rawId}`),
   // Forward REN's answer exactly as it would be returned to a push.
   sendDecision: (id, reply) =>
     call("POST", `/uploads/${id}/decision`, {

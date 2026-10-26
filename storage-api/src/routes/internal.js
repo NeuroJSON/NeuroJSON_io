@@ -3,10 +3,11 @@
 // (BASE_PATH included, which Apache keeps when proxying). Used by REN's pull
 // reconciliation (dev, and as a safety net in prod) and for monitoring.
 import fs from "node:fs/promises";
+import path from "node:path";
 import express from "express";
 import { config } from "../config.js";
 import { verifyRequest } from "../lib/storageSignature.js";
-import { incomingFile } from "../lib/paths.js";
+import { incomingFile, rawObjectDir } from "../lib/paths.js";
 import {
   findRecord,
   readPending,
@@ -203,6 +204,45 @@ router.delete("/uploads/:uploadId", async (req, res) => {
       }
       if (found) return "nothing to remove"; // already done/failed
       await removeIncoming(id);
+      return "removed";
+    });
+    res.json({ ok: true, result });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+// DELETE /internal/objects/:internalId/:rawId — remove one raw object
+// (source.zip, and later its extracted files/ + manifest). REN's cleanup job
+// calls this only after it decided nothing uses the object. Safe to repeat.
+router.delete("/objects/:internalId/:rawId", async (req, res) => {
+  try {
+    const iid = String(req.params.internalId);
+    const rid = String(req.params.rawId);
+    if (!UUID_RE.test(iid) || !UUID_RE.test(rid)) {
+      throw httpError(404, "Unknown object.");
+    }
+    // raw_id = the upload id that made it: don't race a move still in progress.
+    const result = await withLock(rid, async () => {
+      const found = await findRecord(rid);
+      if (
+        found &&
+        found.where === "pending" &&
+        found.rec.state === "committing"
+      ) {
+        throw new Permanent("object is still being committed; try again later");
+      }
+      const dir = rawObjectDir(iid, rid);
+      try {
+        await fs.access(dir);
+      } catch {
+        return "already gone";
+      }
+      await fs.rm(dir, { recursive: true, force: true });
+      // Tidy empty parents (<iid>/raw, <iid>); ignore if not empty.
+      for (const p of [path.dirname(dir), path.dirname(path.dirname(dir))]) {
+        await fs.rmdir(p).catch(() => {});
+      }
       return "removed";
     });
     res.json({ ok: true, result });
