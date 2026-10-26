@@ -11,6 +11,7 @@ const {
   updateSettings,
   listComments,
   postComment,
+  keepDraft,
 } = require("../controllers/uploads.controller");
 const {
   startRawUpload,
@@ -52,6 +53,8 @@ router.get("/:internalId/document", requireAuth, getUploadDocument);
 // Review workflow actions (owner only).
 router.post("/:internalId/submit", requireAuth, submitForReview);
 router.post("/:internalId/withdraw", requireAuth, withdrawSubmission);
+// "Keep this draft": records activity so the draft doesn't expire.
+router.post("/:internalId/keep", requireAuth, keepDraft);
 
 // Publishing settings (target db + preferred id), editable without re-uploading.
 router.patch("/:internalId/settings", requireAuth, updateSettings);

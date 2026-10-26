@@ -2,6 +2,7 @@ const axios = require("axios");
 const crypto = require("crypto");
 const { sequelize } = require("../config/database");
 const { HttpError, loadOwnedRegistry } = require("../lib/uploadAccess");
+const { draftExpiresAt, draftWarnAt } = require("../lib/draftExpiry");
 
 // Upload a JSON dataset into the sandbox CouchDB db for review, tracked in
 // PostgreSQL. See migrations create-dataset-registry / create-submissions /
@@ -171,8 +172,8 @@ const createUpload = async (req, res) => {
         submissionId = crypto.randomUUID();
         await sequelize.query(
           `INSERT INTO submissions
-             (submission_id, dataset_registry_id, status, json_status, json_uploaded_at, created_at, updated_at)
-           VALUES (:sid, :rid, 'draft', 'uploaded', NOW(), NOW(), NOW())`,
+             (submission_id, dataset_registry_id, status, json_status, json_uploaded_at, created_at, updated_at, last_activity_at)
+           VALUES (:sid, :rid, 'draft', 'uploaded', NOW(), NOW(), NOW(), NOW())`,
           {
             replacements: { sid: submissionId, rid: registryId },
             transaction: t,
@@ -235,7 +236,7 @@ const createUpload = async (req, res) => {
           jsonTargetId = editable.id;
           await sequelize.query(
             `UPDATE submissions
-                SET json_status='uploaded', json_uploaded_at=NOW(), json_error=NULL, updated_at=NOW()
+                SET json_status='uploaded', json_uploaded_at=NOW(), json_error=NULL, updated_at=NOW(), last_activity_at=NOW()
               WHERE id=:id`,
             { replacements: { id: editable.id }, transaction: t }
           );
@@ -264,8 +265,8 @@ const createUpload = async (req, res) => {
           submissionId = crypto.randomUUID();
           await sequelize.query(
             `INSERT INTO submissions
-               (submission_id, dataset_registry_id, status, json_status, json_uploaded_at, created_at, updated_at)
-             VALUES (:sid, :rid, 'draft', 'uploaded', NOW(), NOW(), NOW())`,
+               (submission_id, dataset_registry_id, status, json_status, json_uploaded_at, created_at, updated_at, last_activity_at)
+             VALUES (:sid, :rid, 'draft', 'uploaded', NOW(), NOW(), NOW(), NOW())`,
             {
               replacements: { sid: submissionId, rid: registryId },
               transaction: t,
@@ -311,8 +312,8 @@ const createUpload = async (req, res) => {
           submissionId = crypto.randomUUID();
           await sequelize.query(
             `INSERT INTO submissions
-               (submission_id, dataset_registry_id, status, json_status, json_uploaded_at, created_at, updated_at)
-             VALUES (:sid, :rid, 'draft', 'uploaded', NOW(), NOW(), NOW())`,
+               (submission_id, dataset_registry_id, status, json_status, json_uploaded_at, created_at, updated_at, last_activity_at)
+             VALUES (:sid, :rid, 'draft', 'uploaded', NOW(), NOW(), NOW(), NOW())`,
             {
               replacements: { sid: submissionId, rid: registryId },
               transaction: t,
@@ -407,7 +408,7 @@ const listMyUploads = async (req, res) => {
       `SELECT r.internal_id, r.dataset_id, r.requested_dataset_id, r.dataset_name,
               s.submission_id, s.status,
               s.created_at, s.updated_at, s.promoted_db, s.promoted_at,
-              s.raw_zip_expected,
+              s.raw_zip_expected, s.last_activity_at,
               (SELECT o.size_bytes
                  FROM submission_raw_files f
                  JOIN raw_objects o ON o.raw_id = f.raw_id
@@ -426,7 +427,14 @@ const listMyUploads = async (req, res) => {
         ORDER BY r.created_at DESC`,
       { replacements: { uid: req.user.id }, type: sequelize.QueryTypes.SELECT }
     );
-    res.json(rows);
+    // expires_at: when a draft will be removed if not updated (null otherwise).
+    res.json(
+      rows.map((r) => ({
+        ...r,
+        expires_at: draftExpiresAt(r.status, r.last_activity_at),
+        warn_at: draftWarnAt(r.status, r.last_activity_at),
+      }))
+    );
   } catch (err) {
     console.error("List uploads failed:", err.message);
     res.status(500).json({ error: "Failed to list uploads" });
@@ -536,7 +544,7 @@ const withdrawSubmission = async (req, res) => {
     const sid = await latestSubmissionId(reg.internal_id);
     const rows = sid
       ? await sequelize.query(
-          `UPDATE submissions SET status='draft', updated_at=NOW()
+          `UPDATE submissions SET status='draft', updated_at=NOW(), last_activity_at=NOW()
             WHERE submission_id = :sid AND status = 'pending'
           RETURNING id`,
           { replacements: { sid }, type: sequelize.QueryTypes.SELECT }
@@ -595,7 +603,7 @@ const updateSettings = async (req, res) => {
     const out = await sequelize.transaction(async (t) => {
       // Same rule as uploads: only while the submission is editable.
       const rows = await sequelize.query(
-        `SELECT status FROM submissions
+        `SELECT submission_id, status FROM submissions
           WHERE dataset_registry_id = :iid AND status <> 'expired'
           ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
         {
@@ -626,6 +634,11 @@ const updateSettings = async (req, res) => {
         sets.push("requested_db = :rdb");
         repl.rdb = newDb;
       }
+      // Changing settings counts as activity (the draft won't expire).
+      await sequelize.query(
+        `UPDATE submissions SET last_activity_at = NOW() WHERE submission_id = :sid`,
+        { replacements: { sid: rows[0].submission_id }, transaction: t }
+      );
       const updated = await sequelize.query(
         `UPDATE dataset_registry SET ${sets.join(", ")}, updated_at = NOW()
           WHERE internal_id = :iid
@@ -660,7 +673,7 @@ const getUpload = async (req, res) => {
     const s = await sequelize.query(
       `SELECT submission_id, status, created_at, updated_at, promoted_db, promoted_at,
               json_status, json_uploaded_at, json_error, submitted_at, raw_zip_expected,
-              reviewed_at, ${RAW_READINESS_COLUMNS}
+              reviewed_at, last_activity_at, ${RAW_READINESS_COLUMNS}
          FROM submissions WHERE dataset_registry_id = :iid AND status <> 'expired'
         ORDER BY created_at DESC LIMIT 1`,
       { replacements: { iid: reg.internal_id }, type: sequelize.QueryTypes.SELECT }
@@ -690,6 +703,10 @@ const getUpload = async (req, res) => {
       json_uploaded_at: sub.json_uploaded_at || null,
       json_error: sub.json_error || null,
       submitted_at: sub.submitted_at || null,
+      last_activity_at: sub.last_activity_at || null,
+      // when this draft will be removed if not updated (null unless a draft)
+      expires_at: draftExpiresAt(sub.status, sub.last_activity_at),
+      warn_at: draftWarnAt(sub.status, sub.last_activity_at),
       reviewed_at: sub.reviewed_at || null,
       raw_zip_expected: !!sub.raw_zip_expected,
       readiness: sub.submission_id
@@ -769,6 +786,42 @@ const postComment = async (req, res) => {
   }
 };
 
+// POST /api/v1/uploads/:internalId/keep — "Keep this draft": records activity
+// so the draft doesn't expire. Owner only; only for a draft.
+const keepDraft = async (req, res) => {
+  try {
+    const reg = await loadOwnedRegistry(
+      String(req.params.internalId),
+      req.user.id
+    );
+    const rows = await sequelize.query(
+      `UPDATE submissions SET last_activity_at = NOW()
+        WHERE submission_id = (
+          SELECT submission_id FROM submissions
+           WHERE dataset_registry_id = :iid AND status <> 'expired'
+           ORDER BY created_at DESC LIMIT 1)
+          AND status = 'draft'
+      RETURNING status, last_activity_at`,
+      {
+        replacements: { iid: reg.internal_id },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+    if (!rows.length) {
+      throw new HttpError(409, { error: "Only a draft can be kept." });
+    }
+    res.json({
+      last_activity_at: rows[0].last_activity_at,
+      expires_at: draftExpiresAt(rows[0].status, rows[0].last_activity_at),
+      warn_at: draftWarnAt(rows[0].status, rows[0].last_activity_at),
+    });
+  } catch (err) {
+    if (err instanceof HttpError) return res.status(err.status).json(err.body);
+    console.error("Keep draft failed:", err.message);
+    res.status(500).json({ error: "Failed to keep the draft." });
+  }
+};
+
 module.exports = {
   createUpload,
   listMyUploads,
@@ -779,4 +832,5 @@ module.exports = {
   updateSettings,
   listComments,
   postComment,
+  keepDraft,
 };

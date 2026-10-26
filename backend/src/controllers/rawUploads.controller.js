@@ -115,6 +115,11 @@ const startRawUpload = async (req, res) => {
     const out = await sequelize.transaction(async (t) => {
       const sub = await lockLatestSubmission(reg.internal_id, t);
       assertEditable(sub);
+      // Starting (or resuming) a raw upload counts as activity.
+      await sequelize.query(
+        `UPDATE submissions SET last_activity_at = NOW() WHERE id = :id`,
+        { replacements: { id: sub.id }, transaction: t }
+      );
 
       const active = await sequelize.query(
         `SELECT upload_id, original_filename, expected_size FROM raw_upload_attempts
