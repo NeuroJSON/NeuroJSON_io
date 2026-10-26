@@ -19,6 +19,7 @@ const uploadsRoutes = require("./routes/uploads.routes");
 const reviewsRoutes = require("./routes/reviews.routes");
 const internalRoutes = require("./routes/internal.routes");
 const { startRawReconciler } = require("./jobs/reconcileRawUploads");
+const { startUploadCleanup } = require("./jobs/cleanupUploads");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -111,6 +112,8 @@ const startServer = async () => {
       console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
       // Finish raw uploads by asking the storage API (needed in pull mode).
       startRawReconciler();
+      // Expire idle drafts and delete unused raw ZIPs.
+      startUploadCleanup();
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);

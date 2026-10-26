@@ -7,6 +7,8 @@ const {
   dbExists,
   getDoc,
   putDoc,
+  ARCHIVE_DB,
+  archiveIdFor,
 } = require("../lib/publicCouch");
 
 // Reviewer side of the upload workflow (routes use requireAuth + requireReviewer).
@@ -28,10 +30,8 @@ const DECISIONS = {
 const MAX_MESSAGE = 5000;
 
 // Published versions are MAJOR.MINOR ("1.1"); frozen copies are
-// <archive db>/<db>:<dataset_id>:v<major>.<minor>.
+// <archive db>/<db>:<dataset_id>:v<major>.<minor> (archiveIdFor, publicCouch).
 const versionLabel = (major, minor) => `${major}.${minor}`;
-const archiveIdFor = (db, id, major, minor) =>
-  `${db}:${id}:v${versionLabel(major, minor)}`;
 
 const sendError = (res, err, what) => {
   if (err instanceof HttpError) return res.status(err.status).json(err.body);
@@ -323,10 +323,6 @@ const DB_RE = /^[a-z][a-z0-9_-]{0,62}$/;
 // validation (not built yet), so such JSONs are blocked — markers are NOT
 // rewritten here. Later they become /api/v1/files/<db>/<dataset_id>/<path>.
 const FILE_MARKER = "neurojson:files/";
-// Frozen copy of every published version goes here (create-only):
-//   <archive db>/<db>:<dataset_id>:v<major>.<minor>
-// Required while publishing is on, so no version is published without it.
-const ARCHIVE_DB = (process.env.COUCHDB_PROMOTE_ARCHIVE_DB || "").trim();
 
 // Any string anywhere in the doc that starts with "neurojson:files/"?
 // Iterative so a very deep JSON can't overflow the stack.
