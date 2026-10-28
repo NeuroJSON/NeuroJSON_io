@@ -280,7 +280,7 @@ const getRawStatus = async (req, res) => {
 
     const current = await sequelize.query(
       `SELECT o.raw_id, o.original_filename, o.size_bytes, o.sha256,
-              o.extraction_status, o.created_at,
+              o.extraction_status, o.created_at, o.zip_deleted_at,
               -- carried forward = the upload that made this object belongs
               -- to a different version (exact; not a timestamp guess)
               -- (a ZIP re-uploaded and reused in this version isn't carried forward)
@@ -334,6 +334,8 @@ const getRawStatus = async (req, res) => {
             sha256: c.sha256,
             extractionStatus: c.extraction_status,
             carriedForward: !!c.carried_forward,
+            // removed by the cleanup job (no open version used it)
+            zipDeleted: !!c.zip_deleted_at,
             uploadedAt: c.created_at,
           }
         : null,

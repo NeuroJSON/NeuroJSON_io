@@ -32,6 +32,7 @@ import {
   UploadService,
 } from "services/upload.service";
 import RoutesEnum from "types/routes.enum";
+import { daysLeftLabel, daysUntilExpiry } from "utils/draftExpiry";
 
 // Status labels/colors: shared with the uploads tab and review pages.
 
@@ -63,6 +64,8 @@ const UploadDetailPage: React.FC = () => {
   // Review actions (submit / resubmit / withdraw).
   const [acting, setActing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // New expiry date after "Keep this draft" (shown as a short notice).
+  const [keptUntil, setKeptUntil] = useState<string | null>(null);
 
   const runAction = async (fn: (id: string) => Promise<unknown>) => {
     if (!internalId) return;
@@ -169,6 +172,8 @@ const UploadDetailPage: React.FC = () => {
     !!detail.json_uploaded_at &&
     !!detail.reviewed_at &&
     new Date(detail.json_uploaded_at) > new Date(detail.reviewed_at);
+  // Draft idle long enough → warn before the cleanup job removes it.
+  const daysLeft = daysUntilExpiry(detail.expires_at, detail.warn_at);
   const canEditSettings =
     (detail.status === "draft" || detail.status === "changes_requested") &&
     !detail.dataset_id;
@@ -226,6 +231,13 @@ const UploadDetailPage: React.FC = () => {
               ? ` · updated ${formatDate(detail.updated_at)}`
               : ""}
           </Typography>
+          {/* Drafts only: when the cleanup job removes it if not updated. */}
+          {detail.expires_at && (
+            <Typography variant="body2" color="text.secondary">
+              Deleted on {formatDate(detail.expires_at)} if not updated or
+              submitted
+            </Typography>
+          )}
         </Box>
 
         {detail.status === "promoted" &&
@@ -246,6 +258,46 @@ const UploadDetailPage: React.FC = () => {
             </Box>
           )}
       </Paper>
+
+      {daysLeft !== null && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 3 }}
+          action={
+            <Button
+              variant="outlined"
+              color="inherit"
+              size="small"
+              disabled={acting}
+              onClick={() =>
+                runAction(async (id) => {
+                  const kept = await UploadService.keepDraft(id);
+                  setKeptUntil(kept.expires_at);
+                })
+              }
+              // brown = the warning text color; full-strength border
+              sx={{ borderColor: "currentColor", whiteSpace: "nowrap" }}
+            >
+              Keep this draft
+            </Button>
+          }
+        >
+          This draft hasn't been updated for a while. It will be deleted{" "}
+          <strong>{daysLeftLabel(daysLeft)}</strong> (
+          {formatDate(detail.expires_at)}), including its JSON and raw ZIP.
+          Click <strong>Keep this draft</strong> or update it to keep it.
+        </Alert>
+      )}
+      {keptUntil && (
+        <Alert
+          severity="success"
+          sx={{ mb: 3 }}
+          onClose={() => setKeptUntil(null)}
+        >
+          Draft kept. If it isn't updated, it will now be deleted on{" "}
+          <strong>{formatDate(keptUntil)}</strong>.
+        </Alert>
+      )}
 
       {/* Publishing settings: editable while draft/changes_requested and not
           yet published (the public URL is fixed once a public ID exists). */}

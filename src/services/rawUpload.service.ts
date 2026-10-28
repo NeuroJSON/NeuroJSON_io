@@ -40,6 +40,7 @@ export interface RawCurrentZip {
   sha256: string;
   extractionStatus: RawExtractionStatus;
   carriedForward: boolean;
+  zipDeleted: boolean; // removed by the cleanup job
   uploadedAt: string;
 }
 

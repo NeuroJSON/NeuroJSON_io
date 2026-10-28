@@ -390,6 +390,12 @@ const RawDataUploader: React.FC<RawDataUploaderProps> = ({
             {current.carriedForward
               ? " · carried over from the previous version"
               : ""}
+            {current.zipDeleted && (
+              <>
+                {" "}
+                · <strong>removed</strong> (no longer used by any open version)
+              </>
+            )}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             SHA-256{" "}

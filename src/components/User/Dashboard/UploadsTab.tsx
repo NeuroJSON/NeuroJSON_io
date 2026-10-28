@@ -17,6 +17,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { STATUS_CHIP } from "components/Upload/statusChip";
 import { UploadRecord, UploadService } from "services/upload.service";
+import { daysLeftLabel, daysUntilExpiry } from "utils/draftExpiry";
 import { formatBytes } from "utils/formatBytes";
 
 // Status labels/colors: shared with the upload and review pages.
@@ -27,6 +28,13 @@ const rawChip = (r: UploadRecord) => {
     return {
       label: "ZIP uploading",
       sx: { color: Colors.purple, borderColor: Colors.purple },
+      variant: "outlined" as const,
+    };
+  }
+  if (r.raw_zip_deleted) {
+    return {
+      label: "ZIP removed",
+      sx: { color: Colors.darkGray, borderColor: Colors.darkGray },
       variant: "outlined" as const,
     };
   }
@@ -46,12 +54,26 @@ const rawChip = (r: UploadRecord) => {
 const UploadsTab: React.FC = () => {
   const navigate = useNavigate();
   const [rows, setRows] = useState<UploadRecord[]>([]);
+  const [expiredNote, setExpiredNote] = useState<{
+    names: string[];
+    total: number;
+    days: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     UploadService.listMine()
-      .then(setRows)
+      .then((list) => {
+        setRows(list.uploads);
+        setExpiredNote({
+          names: list.recentlyExpired.map(
+            (e) => e.dataset_name || "(unnamed dataset)"
+          ),
+          total: list.recentlyExpiredTotal,
+          days: list.expireDays,
+        });
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -111,6 +133,23 @@ const UploadsTab: React.FC = () => {
         </Button>
       </Box>
 
+      {/* Expired datasets are hidden (nothing is left to open): name them. */}
+      {expiredNote && expiredNote.names.length > 0 && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Removed after {expiredNote.days} days without updates:{" "}
+          {expiredNote.names.map((n, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && ", "}
+              <strong>{n}</strong>
+            </React.Fragment>
+          ))}
+          {expiredNote.total > expiredNote.names.length &&
+            ` and ${expiredNote.total - expiredNote.names.length} more`}
+          . Start a new upload to submit{" "}
+          {expiredNote.total === 1 ? "it" : "them"} again.
+        </Alert>
+      )}
+
       {rows.length === 0 ? (
         <Box textAlign="center" py={6}>
           <CloudUpload sx={{ fontSize: 60, color: "text.secondary", mb: 2 }} />
@@ -168,6 +207,23 @@ const UploadsTab: React.FC = () => {
                                 sx={{ height: 20, ...(chip.sx || {}) }}
                               />
                             )}
+                            {(() => {
+                              const days = daysUntilExpiry(
+                                r.expires_at,
+                                r.warn_at
+                              );
+                              return (
+                                days !== null && (
+                                  <Chip
+                                    label={`Deletes ${daysLeftLabel(days)}`}
+                                    size="small"
+                                    variant="outlined"
+                                    color="warning"
+                                    sx={{ height: 20 }}
+                                  />
+                                )
+                              );
+                            })()}
                             {(() => {
                               const raw = rawChip(r);
                               return (

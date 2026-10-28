@@ -26,7 +26,18 @@ export interface UploadRecord {
   promoted_at: string | null;
   raw_zip_expected: boolean | null;
   raw_zip_size: string | number | null; // BIGINT arrives as a string
+  raw_zip_deleted: boolean | null; // removed by the cleanup job
   raw_upload_active: boolean | null;
+  expires_at: string | null; // drafts only: removed then if not updated
+  warn_at: string | null; // drafts only: the expiry warning shows from then
+}
+
+export interface UploadList {
+  uploads: UploadRecord[];
+  // hidden datasets whose drafts expired recently (newest first, at most 10)
+  recentlyExpired: { dataset_name: string | null; expired_at: string }[];
+  recentlyExpiredTotal: number;
+  expireDays: number;
 }
 
 export interface UploadDetail {
@@ -48,6 +59,8 @@ export interface UploadDetail {
   reviewed_at: string | null;
   raw_zip_expected: boolean;
   readiness: { canSubmit: boolean; problems: string[] };
+  expires_at: string | null;
+  warn_at: string | null;
 }
 
 export interface Comment {
@@ -92,7 +105,7 @@ export const UploadService = {
     return { status: response.status, data };
   },
 
-  listMine: async (): Promise<UploadRecord[]> => {
+  listMine: async (): Promise<UploadList> => {
     const res = await fetch(`${baseURL}/uploads`, { credentials: "include" });
     if (!res.ok) throw new Error(`Failed to load uploads (${res.status})`);
     return res.json();
@@ -159,6 +172,21 @@ export const UploadService = {
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.error || `Failed to update settings (${res.status})`);
+    }
+    return res.json();
+  },
+
+  // Reset a draft's expiry clock ("Keep this draft").
+  keepDraft: async (
+    internalId: string
+  ): Promise<{ expires_at: string; warn_at: string }> => {
+    const res = await fetch(`${baseURL}/uploads/${internalId}/keep`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `Failed to keep the draft (${res.status})`);
     }
     return res.json();
   },

@@ -2,7 +2,11 @@ const axios = require("axios");
 const crypto = require("crypto");
 const { sequelize } = require("../config/database");
 const { HttpError, loadOwnedRegistry } = require("../lib/uploadAccess");
-const { draftExpiresAt, draftWarnAt } = require("../lib/draftExpiry");
+const {
+  DRAFT_EXPIRE_DAYS,
+  draftExpiresAt,
+  draftWarnAt,
+} = require("../lib/draftExpiry");
 
 // Upload a JSON dataset into the sandbox CouchDB db for review, tracked in
 // PostgreSQL. See migrations create-dataset-registry / create-submissions /
@@ -255,7 +259,7 @@ const createUpload = async (req, res) => {
             }
           );
           if (anyExpired.length) {
-            const days = Number(process.env.DRAFT_EXPIRE_DAYS || 30);
+            const days = DRAFT_EXPIRE_DAYS;
             throw new HttpError(409, {
               code: "DRAFT_EXPIRED",
               requiresConfirmation: false,
@@ -447,6 +451,10 @@ const listMyUploads = async (req, res) => {
                  FROM submission_raw_files f
                  JOIN raw_objects o ON o.raw_id = f.raw_id
                 WHERE f.submission_id = s.submission_id) AS raw_zip_size,
+              (SELECT o.zip_deleted_at IS NOT NULL
+                 FROM submission_raw_files f
+                 JOIN raw_objects o ON o.raw_id = f.raw_id
+                WHERE f.submission_id = s.submission_id) AS raw_zip_deleted,
               EXISTS (SELECT 1 FROM raw_upload_attempts a
                        WHERE a.submission_id = s.submission_id
                          AND a.status IN ('initiated','uploading','verifying')) AS raw_upload_active
@@ -461,14 +469,43 @@ const listMyUploads = async (req, res) => {
         ORDER BY r.created_at DESC`,
       { replacements: { uid: req.user.id }, type: sequelize.QueryTypes.SELECT }
     );
+    // Hidden datasets whose drafts all expired recently → a short note with
+    // their names (newest first; the total says if there are more than 10).
+    const expired = await sequelize.query(
+      `SELECT r.dataset_name,
+              (SELECT MAX(s.expired_at) FROM submissions s
+                WHERE s.dataset_registry_id = r.internal_id) AS expired_at,
+              COUNT(*) OVER ()::int AS total
+         FROM dataset_registry r
+        WHERE r.owner_user_id = :uid
+          AND NOT EXISTS (SELECT 1 FROM submissions s
+                           WHERE s.dataset_registry_id = r.internal_id
+                             AND s.status <> 'expired')
+          AND EXISTS (SELECT 1 FROM submissions s
+                       WHERE s.dataset_registry_id = r.internal_id
+                         AND s.status = 'expired'
+                         AND s.expired_at > NOW() - (:days * INTERVAL '1 day'))
+        ORDER BY expired_at DESC
+        LIMIT 10`,
+      {
+        replacements: { uid: req.user.id, days: DRAFT_EXPIRE_DAYS },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
     // expires_at: when a draft will be removed if not updated (null otherwise).
-    res.json(
-      rows.map((r) => ({
+    res.json({
+      uploads: rows.map((r) => ({
         ...r,
         expires_at: draftExpiresAt(r.status, r.last_activity_at),
         warn_at: draftWarnAt(r.status, r.last_activity_at),
-      }))
-    );
+      })),
+      recentlyExpired: expired.map((e) => ({
+        dataset_name: e.dataset_name,
+        expired_at: e.expired_at,
+      })),
+      recentlyExpiredTotal: expired[0]?.total || 0,
+      expireDays: DRAFT_EXPIRE_DAYS,
+    });
   } catch (err) {
     console.error("List uploads failed:", err.message);
     res.status(500).json({ error: "Failed to list uploads" });
